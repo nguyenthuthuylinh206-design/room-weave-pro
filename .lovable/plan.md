@@ -1,45 +1,32 @@
 
-
-## Hiển thị chi tiết dịch vụ & minibar trong Group Checkout
+## Sửa lỗi tính doanh thu trên Owner Dashboard
 
 ### Vấn đề
-Screenshot cho thấy "Dịch vụ sử dụng 1.000.000đ" vẫn hiện dạng chung chung. Có 2 nguyên nhân:
-
-1. **Dữ liệu chi tiết không được fetch được** — `fetchServiceChargeSummary()` trả về mảng rỗng dù `room_bookings.service_charges = 1.000.000`. Fallback tạo 1 item "Dịch vụ (chưa có chi tiết)" → vẫn không có tên cụ thể.
-2. **Bảng tổng hợp** (`GroupCheckoutSummary.tsx`) luôn hiện "Dịch vụ sử dụng" chung chung, chưa liệt kê chi tiết.
-
-### Nguyên nhân gốc
-Khả năng cao dữ liệu dịch vụ được lưu trực tiếp vào `room_bookings.service_charges` (cộng dồn số tổng) mà **không tạo bản ghi chi tiết** trong `booking_service_charges` hoặc `chargeable_consumptions`. Cần kiểm tra thực tế bằng query database.
+"Doanh thu tháng này" hiển thị **0₫** mặc dù bạn đã thu được **2.099.000₫** từ 2 booking (315.000 + 1.784.000). Nguyên nhân: hệ thống chỉ tính doanh thu từ booking có `payment_status = 'paid'`, bỏ qua hoàn toàn số tiền đã thu từ booking `partial`.
 
 ### Giải pháp
 
-| # | Thay đổi | Mô tả |
-|---|----------|-------|
-| 1 | **Query DB kiểm tra** | Truy vấn `booking_service_charges` và `chargeable_consumptions` cho booking đang test để xác nhận dữ liệu có hay không |
-| 2 | `useGroupCheckoutCalculations.ts` | Cải thiện fallback: nếu không có chi tiết, thử fetch lại với điều kiện lỏng hơn (bỏ filter `tenant_id` nếu cần). Thêm console.log debug để dễ trace |
-| 3 | `GroupCheckoutSummary.tsx` | Thêm prop `allServiceDetails` chứa tổng hợp chi tiết từ tất cả phòng. Hiển thị liệt kê chi tiết thay vì 1 dòng "Dịch vụ sử dụng" |
-| 4 | `GroupCheckoutDialog.tsx` | Truyền `allServiceDetails` xuống `GroupCheckoutSummary` bằng cách gom `serviceDetails` từ tất cả `roomCosts` |
+| # | File | Thay đổi |
+|---|------|----------|
+| 1 | `src/hooks/useRevenueReport.ts` | Sửa hàm `calculateRevenueData`: `paidRevenue` = tổng `amount_paid` từ **tất cả** booking (không chỉ booking `paid`). `pendingRevenue` = tổng `total_amount - amount_paid` từ booking chưa thanh toán đủ |
+| 2 | `src/hooks/useRevenueReport.ts` | Sửa biểu đồ xu hướng hàng tháng (line 180): tính revenue = tổng `amount_paid` thay vì chỉ lọc `payment_status === 'paid'` |
 
-### Bước thực hiện
+### Chi tiết logic mới
 
-1. **Query database** để kiểm tra dữ liệu thực tế trong `booking_service_charges` và `chargeable_consumptions`
-2. Nếu dữ liệu trống → trace ngược flow ghi dịch vụ để tìm chỗ bị thiếu insert
-3. Nếu dữ liệu có nhưng query fail → fix điều kiện query trong `fetchServiceChargeSummary`
-4. Cập nhật `GroupCheckoutSummary.tsx` để hiển thị chi tiết từng dịch vụ/minibar thay vì tổng gộp
-5. Thêm debug logging tạm thời trong `calculateRoomCost` để dễ troubleshoot
-
-### Kết quả mong đợi
-
-Thay vì:
-```text
-Dịch vụ sử dụng             1.000.000đ
+**Trước:**
+```
+paidRevenue = SUM(amount_paid) WHERE payment_status = 'paid'  → 0₫
+pendingRevenue = SUM(total - paid) WHERE status IN (pending, partial) → 500K
 ```
 
-Sẽ hiển thị:
-```text
-Dịch vụ & Minibar
-  Dịch vụ  Massage 60 phút        500.000đ
-  Minibar  Coca Cola ×2            20.000đ
-  Minibar  Bia Tiger ×3            75.000đ
+**Sau:**
+```
+paidRevenue = SUM(amount_paid) FROM tất cả booking → 2.099.000₫
+pendingRevenue = SUM(total - paid) WHERE chưa thanh toán đủ → 500.000₫
 ```
 
+### Phạm vi ảnh hưởng
+- Mục "Doanh thu tháng này" trong OwnerProfitOverview
+- Biểu đồ xu hướng doanh thu 6 tháng
+- Số liệu "Tháng trước" và "Hôm nay"
+- Tỷ lệ tăng trưởng (%)
