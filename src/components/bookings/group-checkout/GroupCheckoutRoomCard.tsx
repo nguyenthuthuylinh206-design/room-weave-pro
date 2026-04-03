@@ -344,22 +344,21 @@ export function GroupCheckoutRoomCard({
                   {/* Service charges - itemized */}
                   {cost && cost.serviceDetails && cost.serviceDetails.length > 0 && (
                     <div className="space-y-1">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium border-b pb-1">
+                        Dịch vụ & Minibar
+                      </div>
                       {cost.serviceDetails.map((detail) => (
-                        <div key={detail.id} className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            {detail.source === 'minibar' ? '🧊 ' : '🛎️ '}
+                        <div key={detail.id} className="flex justify-between text-sm py-0.5">
+                          <span className="text-muted-foreground flex items-center gap-1.5">
+                            <span className="text-[10px] uppercase text-muted-foreground/60 w-12 shrink-0">
+                              {detail.source === 'minibar' ? 'Minibar' : 'Dịch vụ'}
+                            </span>
                             {detail.service_name}
                             {detail.quantity > 1 && ` ×${detail.quantity}`}
                           </span>
                           <span className="font-mono">{formatVNCurrency(detail.total_price)}</span>
                         </div>
                       ))}
-                    </div>
-                  )}
-                  {cost && cost.serviceCharges > 0 && (!cost.serviceDetails || cost.serviceDetails.length === 0) && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Dịch vụ sử dụng</span>
-                      <span className="font-mono">{formatVNCurrency(cost.serviceCharges)}</span>
                     </div>
                   )}
 
