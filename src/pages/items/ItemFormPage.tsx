@@ -657,7 +657,7 @@ export function ItemFormPage() {
             {isSubmitting ? t('items:form.buttons.saving') : isEdit ? t('items:form.buttons.update') : t('items:form.buttons.create')}
           </Button>
         </div>
-      </form>
+      </form>}
     </div>
     </>;
 }
