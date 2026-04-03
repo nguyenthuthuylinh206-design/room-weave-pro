@@ -1,34 +1,42 @@
 
 
-## Nhập đầy đủ 150 sản phẩm vào file mẫu + sheet Tổng hợp
+## Thêm formatting màu sắc cho file mẫu Excel
 
-### Mục tiêu
-Cập nhật file mẫu tải xuống chứa đầy đủ 150 sản phẩm từ file gốc, kèm sheet "Tổng hợp" thống kê. Khách chỉ cần thêm/xoá sản phẩm rồi upload, không phải nhập từ đầu.
+### Vấn đề
+File mẫu tải về hiện tại không có màu sắc, font chữ, border — trông rất thô so với file gốc (header xanh đậm, chữ trắng, có border, số format đẹp).
+
+### Giải pháp
+Thư viện `xlsx` (SheetJS community) **không hỗ trợ styling** (màu nền, font color, border). Cần chuyển sang dùng **ExcelJS** — thư viện hỗ trợ đầy đủ formatting và chạy được trong browser.
 
 ### Thay đổi
 
-| # | File | Mô tả |
-|---|------|-------|
-| 1 | `src/lib/importUtils.ts` | Cập nhật `downloadItemsTemplate()` — nhập đầy đủ 150 dòng dữ liệu + thay sheet "Hướng dẫn" bằng sheet "Tổng hợp" |
+| # | Thao tác | Mô tả |
+|---|----------|-------|
+| 1 | Cài `exceljs` + `file-saver` | Thư viện Excel có hỗ trợ styling + lưu file |
+| 2 | `src/lib/importUtils.ts` | Viết lại `downloadItemsTemplate()` dùng ExcelJS với formatting đầy đủ |
 
-### Chi tiết
+### Chi tiết formatting (theo đúng file gốc):
 
-**1. Dữ liệu mẫu** — Hardcode toàn bộ 150 sản phẩm theo đúng file gốc:
-- Đồ vải: 21 mặt hàng (DV-001 → DV-021)
-- Tiêu hao: 42 mặt hàng (TH-001 → TH-042)
-- Thiết bị: 28 mặt hàng (TB-001 → TB-028)
-- Nội thất: 31 mặt hàng (NT-001 → NT-031)
-- Nhà hàng: 22 mặt hàng (NH-001 → NH-022)
-- Đồng phục: 6 mặt hàng (DP-001 → DP-006)
+**Header row:**
+- Background: Xanh đậm (`4472C4`)
+- Font: Trắng, bold, size 11
+- Border: Thin, all sides
+- Alignment: Center
 
-Tình trạng tất cả: `✓ OK`
+**Data rows:**
+- Font: Size 11, Calibri
+- Border: Thin, all sides
+- Alternate row: Xanh nhạt nhẹ (`D6E4F0`) xen kẽ trắng
+- Cột "Đơn giá": Number format `#,##0` (có dấu phẩy)
+- Cột "Tồn kho", "Tồn tối thiểu": Number format `#,##0`
+- Cột "Tình trạng": Chữ xanh lá (`✓ OK`)
 
-**2. Sheet "Tổng hợp"** (thay thế "Hướng dẫn"):
-- Tiêu đề: "TỔNG HỢP HÀNG HÓA THEO DANH MỤC"
-- Bảng: Danh mục | Số mặt hàng | Tổng giá trị tồn kho | Số mặt hàng cần đặt
-- 6 dòng danh mục + dòng TỔNG CỘNG
+**Sheet Tổng hợp:**
+- Header bold, background xanh
+- Dòng "TỔNG CỘNG": Bold
+- Number format cho cột giá trị
 
-**3. Column widths** giữ nguyên như hiện tại.
+**Column widths** giữ nguyên như hiện tại.
 
-**4. Parser (`parseItemsExcel`) không thay đổi** — cấu trúc 9 cột giữ nguyên.
+**Parser (`parseItemsExcel`) không thay đổi** — vẫn dùng `xlsx` để đọc file.
 
