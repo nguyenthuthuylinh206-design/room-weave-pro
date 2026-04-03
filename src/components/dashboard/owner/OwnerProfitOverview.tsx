@@ -180,7 +180,7 @@ export function OwnerProfitOverview() {
         {/* Comparison */}
         <div className="flex items-center justify-between text-sm text-muted-foreground border-t pt-3">
           <span>Tháng trước: {formatCurrency(report.previousPeriod.paidRevenue)}</span>
-          <span>Hôm nay: {formatCurrency(report.today.paidRevenue)}</span>
+          <span>Hôm nay: {formatCurrency(bookingStats?.todayRevenue || 0)}</span>
         </div>
       </CardContent>
     </Card>
