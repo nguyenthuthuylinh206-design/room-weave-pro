@@ -34,10 +34,17 @@ const MainLayoutContent = () => {
         <MobileHeader />
         {isStaffUser && <ShiftStatusBanner />}
         <main className="flex-1 overflow-y-auto overflow-x-hidden pb-16">
-          <div className="p-4">
-            <QuotaWarningBanner />
-          </div>
-          <Outlet />
+          {isSuspended ? (
+            <SuspendedOverlay />
+          ) : (
+            <>
+              <div className="p-4">
+                <QuotaWarningBanner />
+              </div>
+              <Outlet />
+            </>
+          )}
+        </main>
         </main>
         <MobileBottomNav />
       </div>
