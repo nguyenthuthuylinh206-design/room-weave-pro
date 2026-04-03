@@ -36,6 +36,7 @@ const formatCompact = (value: number) => {
 
 export function OwnerProfitOverview() {
   const { data: report, isLoading } = useRevenueReport()
+  const { data: bookingStats } = useBookingStats()
 
   if (isLoading) {
     return (
