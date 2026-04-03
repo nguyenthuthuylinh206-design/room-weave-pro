@@ -84,6 +84,7 @@ export function ItemFormPage() {
     data: categories,
     isLoading: categoriesLoading
   } = useCategories();
+  const { data: warehouses, isLoading: warehousesLoading } = useWarehouses();
   const createItem = useCreateItem();
   const updateItem = useUpdateItem();
   const addItemImage = useAddItemImage();
