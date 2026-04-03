@@ -9158,11 +9158,7 @@ export type Database = {
             }[]
           }
         | {
-            Args: {
-              p_hotel_id?: string
-              p_months?: number
-              p_tenant_id: string
-            }
+            Args: { p_hotel_id?: string; p_months: number; p_tenant_id: string }
             Returns: {
               laundry: number
               maintenance: number
