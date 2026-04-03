@@ -1,5 +1,4 @@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Shirt, Sparkles, Tv, Sofa, Droplets, Package } from 'lucide-react'
 import { useCategories } from '@/hooks/useCategories'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -19,14 +18,6 @@ export function ItemTabs({ activeTab, onTabChange }: ItemTabsProps) {
         ))}
       </div>
     )
-  }
-  
-  const iconMap: Record<string, any> = {
-    shirt: Shirt,
-    sparkles: Sparkles,
-    tv: Tv,
-    sofa: Sofa,
-    spray: Droplets,
   }
   
   return (
