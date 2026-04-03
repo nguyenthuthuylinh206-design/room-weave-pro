@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { MobileHeader } from './MobileHeader'
@@ -12,15 +12,20 @@ import { PushNotificationPrompt } from '@/components/notifications'
 import { PWAUpdatePrompt } from '@/components/pwa'
 import { ShiftStatusBanner } from '@/components/staff/ShiftStatusBanner'
 import { GracePeriodBanner } from './GracePeriodBanner'
+import { SuspendedOverlay } from './SuspendedOverlay'
 import { FreeTrialPopup } from '@/components/promotions/FreeTrialPopup'
 import { useUser } from '@/hooks/useUser'
+import { useGracePeriod } from '@/hooks/useGracePeriod'
 import { isStaff, isTenantOwner, isManager } from '@/lib/userAccess'
 
 const MainLayoutContent = () => {
   const { isMobile } = useBreakpoint()
   const { user } = useUser()
+  const location = useLocation()
+  const { isGracePeriodExpired } = useGracePeriod()
   const isStaffUser = isStaff(user)
   const showSubscriptionBanner = isTenantOwner(user) || isManager(user)
+  const isSuspended = isGracePeriodExpired && !location.pathname.startsWith('/settings/subscription')
 
   if (isMobile) {
     return (
