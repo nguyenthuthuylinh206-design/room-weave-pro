@@ -137,14 +137,16 @@ export function useRevenueReport(period: ReportPeriod = 'month') {
       const bookings = allBookings || []
 
       const calculateRevenueData = (filtered: typeof bookings): RevenueData => {
-        const paid = filtered.filter(b => b.payment_status === 'paid')
-        const pending = filtered.filter(b => b.payment_status === 'pending' || b.payment_status === 'partial' || !b.payment_status)
         const refunded = filtered.filter(b => b.payment_status === 'refunded')
+        const nonRefunded = filtered.filter(b => b.payment_status !== 'refunded')
 
-        const paidRevenue = paid.reduce((s, b) => s + (b.amount_paid || 0), 0)
-        const pendingRevenue = pending.reduce((s, b) => s + Math.max(0, (b.total_amount || 0) - (b.amount_paid || 0)), 0)
+        // paidRevenue = tổng amount_paid từ TẤT CẢ booking (không chỉ status 'paid')
+        const paidRevenue = nonRefunded.reduce((s, b) => s + (b.amount_paid || 0), 0)
+        // pendingRevenue = tổng số tiền chưa thu (total - paid) từ booking chưa thanh toán đủ
+        const pendingRevenue = nonRefunded.reduce((s, b) => s + Math.max(0, (b.total_amount || 0) - (b.amount_paid || 0)), 0)
         const refundedRevenue = refunded.reduce((s, b) => s + (b.total_amount || 0), 0)
         const totalRevenue = paidRevenue + pendingRevenue
+        const paidBookings = nonRefunded.filter(b => b.payment_status === 'paid')
         const otaCommission = filtered.reduce((s, b) => s + (b.ota_commission_amount || 0), 0)
         const netRevenue = filtered.reduce((s, b) => s + (b.net_revenue || b.total_amount || 0), 0) - otaCommission
         const earlyCheckin = filtered.reduce((s, b) => s + (b.early_checkin_charge || 0), 0)
@@ -154,7 +156,7 @@ export function useRevenueReport(period: ReportPeriod = 'month') {
         return {
           totalRevenue, paidRevenue, pendingRevenue, refundedRevenue,
           bookingsCount: filtered.length,
-          paidBookingsCount: paid.length,
+          paidBookingsCount: paidBookings.length,
           averageBookingValue: filtered.length > 0 ? totalRevenue / filtered.length : 0,
           netRevenue, otaCommission,
           surcharges: { earlyCheckin, lateCheckout, damageCharges, total: earlyCheckin + lateCheckout + damageCharges },
@@ -177,11 +179,11 @@ export function useRevenueReport(period: ReportPeriod = 'month') {
         const m = subMonths(today, i)
         const mBookings = bookings.filter(b => {
           const d = new Date(b.check_out_date)
-          return d >= startOfMonth(m) && d <= endOfMonth(m) && b.payment_status === 'paid'
+          return d >= startOfMonth(m) && d <= endOfMonth(m) && b.payment_status !== 'refunded'
         })
         monthlyTrends.push({
           month: format(m, 'MM/yyyy'),
-          revenue: mBookings.reduce((s, b) => s + (b.total_amount || 0), 0),
+          revenue: mBookings.reduce((s, b) => s + (b.amount_paid || 0), 0),
           bookings: mBookings.length,
         })
       }
