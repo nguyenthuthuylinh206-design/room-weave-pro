@@ -33,23 +33,18 @@ export function ItemTabs({ activeTab, onTabChange }: ItemTabsProps) {
           </span>
         </TabsTrigger>
         
-        {categories?.map((category) => {
-          const Icon = iconMap[category.icon] || Package
-          
-          return (
+        {categories?.map((category) => (
             <TabsTrigger 
               key={category.id} 
               value={category.id} 
               className="h-8 gap-1.5 px-3 text-xs data-[state=active]:bg-muted"
             >
-              <Icon className="h-3.5 w-3.5" style={{ color: category.color }} />
               {category.name}
               <span className="text-muted-foreground">
                 {category.items_count}
               </span>
             </TabsTrigger>
-          )
-        })}
+        ))}
       </TabsList>
     </Tabs>
   )
