@@ -44,50 +44,204 @@ export function downloadItemsTemplate() {
     'Ghi chú'
   ]
   
-  const exampleData = [
-    ['KT-001', 'Khăn tắm lớn', 'Đồ vải', 'Cái', 50000, 100, 20, 'Đủ hàng', 'Khăn tắm cotton cao cấp'],
-    ['BC-001', 'Bàn chải đánh răng', 'Tiêu hao', 'Cái', 5000, 500, 100, 'Đủ hàng', 'Bàn chải dùng 1 lần'],
-    ['AD-001', 'Ấm đun nước', 'Thiết bị', 'Cái', 350000, 50, 5, 'Đủ hàng', 'Ấm siêu tốc 1.8L'],
-    ['BG-001', 'Bàn ghế nhà hàng', 'Nội thất', 'Bộ', 2500000, 20, 3, 'Đủ hàng', 'Bàn ghế gỗ sồi'],
-    ['DP-001', 'Đồng phục nhân viên', 'Đồng phục', 'Bộ', 450000, 30, 5, 'Đủ hàng', 'Áo sơ mi + quần tây'],
+  const exampleData: (string | number)[][] = [
+    // Đồ vải (21)
+    ['DV-001', 'Khăn tắm lớn 70x140cm', 'Đồ vải', 'Cái', 50000, 100, 20, '✓ OK', 'Cotton trắng cao cấp'],
+    ['DV-002', 'Khăn tay 40x70cm', 'Đồ vải', 'Cái', 25000, 200, 40, '✓ OK', ''],
+    ['DV-003', 'Khăn mặt 30x50cm', 'Đồ vải', 'Cái', 15000, 200, 40, '✓ OK', ''],
+    ['DV-004', 'Thảm chân phòng tắm', 'Đồ vải', 'Cái', 35000, 80, 15, '✓ OK', 'Chống trượt'],
+    ['DV-005', 'Ga giường đơn', 'Đồ vải', 'Cái', 120000, 60, 10, '✓ OK', '120x200cm'],
+    ['DV-006', 'Ga giường đôi', 'Đồ vải', 'Cái', 180000, 100, 20, '✓ OK', '160x200cm'],
+    ['DV-007', 'Ga giường King', 'Đồ vải', 'Cái', 220000, 80, 15, '✓ OK', '180x200cm'],
+    ['DV-008', 'Vỏ chăn đơn', 'Đồ vải', 'Cái', 200000, 60, 10, '✓ OK', '150x200cm'],
+    ['DV-009', 'Vỏ chăn đôi', 'Đồ vải', 'Cái', 280000, 100, 15, '✓ OK', '180x220cm'],
+    ['DV-010', 'Vỏ chăn King', 'Đồ vải', 'Cái', 350000, 80, 10, '✓ OK', '200x230cm'],
+    ['DV-011', 'Vỏ gối', 'Đồ vải', 'Cái', 30000, 300, 50, '✓ OK', '50x70cm'],
+    ['DV-012', 'Gối mềm', 'Đồ vải', 'Cái', 80000, 100, 15, '✓ OK', 'Bông nhân tạo'],
+    ['DV-013', 'Gối cứng', 'Đồ vải', 'Cái', 90000, 100, 15, '✓ OK', ''],
+    ['DV-014', 'Chăn mỏng', 'Đồ vải', 'Cái', 250000, 50, 10, '✓ OK', 'Lông cừu'],
+    ['DV-015', 'Tấm bảo vệ nệm', 'Đồ vải', 'Cái', 150000, 80, 10, '✓ OK', 'Chống thấm'],
+    ['DV-016', 'Áo choàng tắm', 'Đồ vải', 'Cái', 150000, 60, 10, '✓ OK', 'Cotton trắng'],
+    ['DV-017', 'Tấm trải trang trí giường', 'Đồ vải', 'Cái', 80000, 50, 10, '✓ OK', 'Bed runner'],
+    ['DV-018', 'Khăn trải bàn nhà hàng', 'Đồ vải', 'Cái', 100000, 40, 8, '✓ OK', ''],
+    ['DV-019', 'Khăn ăn vải', 'Đồ vải', 'Cái', 20000, 100, 20, '✓ OK', 'Nhà hàng'],
+    ['DV-020', 'Rèm cản sáng', 'Đồ vải', 'Cái', 500000, 30, 5, '✓ OK', 'Blackout'],
+    ['DV-021', 'Rèm voan', 'Đồ vải', 'Cái', 200000, 30, 5, '✓ OK', 'Trang trí'],
+    // Tiêu hao (42)
+    ['TH-001', 'Bàn chải đánh răng', 'Tiêu hao', 'Cái', 5000, 500, 100, '✓ OK', 'Dùng 1 lần'],
+    ['TH-002', 'Kem đánh răng mini', 'Tiêu hao', 'Tuýp', 3000, 500, 100, '✓ OK', '10g'],
+    ['TH-003', 'Dầu gội đầu', 'Tiêu hao', 'Chai', 8000, 500, 100, '✓ OK', '30ml'],
+    ['TH-004', 'Dầu xả', 'Tiêu hao', 'Chai', 8000, 500, 100, '✓ OK', '30ml'],
+    ['TH-005', 'Sữa tắm', 'Tiêu hao', 'Chai', 8000, 500, 100, '✓ OK', '30ml'],
+    ['TH-006', 'Kem dưỡng thể', 'Tiêu hao', 'Chai', 8000, 300, 60, '✓ OK', '30ml'],
+    ['TH-007', 'Xà phòng cục', 'Tiêu hao', 'Cái', 4000, 500, 100, '✓ OK', '20g'],
+    ['TH-008', 'Mũ tắm', 'Tiêu hao', 'Cái', 2000, 500, 100, '✓ OK', 'Dùng 1 lần'],
+    ['TH-009', 'Bộ dao cạo râu', 'Tiêu hao', 'Bộ', 5000, 300, 50, '✓ OK', 'Dùng 1 lần'],
+    ['TH-010', 'Lược', 'Tiêu hao', 'Cái', 2000, 500, 100, '✓ OK', 'Dùng 1 lần'],
+    ['TH-011', 'Bộ bông tẩy trang', 'Tiêu hao', 'Bộ', 3000, 300, 50, '✓ OK', 'Bông + tăm bông'],
+    ['TH-012', 'Bộ kim chỉ', 'Tiêu hao', 'Bộ', 5000, 200, 30, '✓ OK', ''],
+    ['TH-013', 'Bộ đánh giày', 'Tiêu hao', 'Bộ', 5000, 200, 30, '✓ OK', ''],
+    ['TH-014', 'Túi giặt đồ', 'Tiêu hao', 'Cái', 3000, 300, 50, '✓ OK', ''],
+    ['TH-015', 'Túi vệ sinh', 'Tiêu hao', 'Cái', 1000, 500, 100, '✓ OK', 'Sanitary bag'],
+    ['TH-016', 'Dép phòng', 'Tiêu hao', 'Đôi', 10000, 500, 100, '✓ OK', 'Dùng 1 lần'],
+    ['TH-017', 'Hộp giấy ăn', 'Tiêu hao', 'Hộp', 10000, 300, 50, '✓ OK', ''],
+    ['TH-018', 'Giấy vệ sinh', 'Tiêu hao', 'Cuộn', 5000, 500, 100, '✓ OK', ''],
+    ['TH-019', 'Khăn ướt', 'Tiêu hao', 'Gói', 3000, 300, 50, '✓ OK', 'Gói nhỏ'],
+    ['TH-020', 'Găng tay cao su', 'Tiêu hao', 'Đôi', 10000, 100, 20, '✓ OK', 'Housekeeping'],
+    ['TH-021', 'Bàn chải cọ rửa', 'Tiêu hao', 'Cái', 15000, 30, 5, '✓ OK', ''],
+    ['TH-022', 'Nước khoáng 500ml', 'Tiêu hao', 'Chai', 5000, 500, 100, '✓ OK', 'Phòng khách'],
+    ['TH-023', 'Trà xanh túi lọc', 'Tiêu hao', 'Gói', 2000, 500, 100, '✓ OK', ''],
+    ['TH-024', 'Trà đen túi lọc', 'Tiêu hao', 'Gói', 2000, 500, 100, '✓ OK', ''],
+    ['TH-025', 'Cà phê hòa tan', 'Tiêu hao', 'Gói', 3000, 500, 100, '✓ OK', ''],
+    ['TH-026', 'Đường gói', 'Tiêu hao', 'Gói', 500, 500, 100, '✓ OK', '5g'],
+    ['TH-027', 'Bột kem pha', 'Tiêu hao', 'Gói', 1000, 500, 100, '✓ OK', 'Creamer 5g'],
+    ['TH-028', 'Bút bi có logo', 'Tiêu hao', 'Cái', 3000, 200, 30, '✓ OK', ''],
+    ['TH-029', 'Sổ ghi chú có logo', 'Tiêu hao', 'Cuốn', 5000, 200, 30, '✓ OK', ''],
+    ['TH-030', 'Thẻ từ mở cửa', 'Tiêu hao', 'Cái', 8000, 200, 30, '✓ OK', 'Key card'],
+    ['TH-031', 'Thẻ Do Not Disturb', 'Tiêu hao', 'Cái', 2000, 100, 20, '✓ OK', ''],
+    ['TH-032', 'Phong bì có logo', 'Tiêu hao', 'Cái', 1500, 200, 30, '✓ OK', ''],
+    ['TH-033', 'Phiếu đánh giá khách', 'Tiêu hao', 'Cái', 2000, 200, 30, '✓ OK', ''],
+    ['TH-034', 'Nước lau sàn', 'Tiêu hao', 'Lít', 30000, 50, 10, '✓ OK', ''],
+    ['TH-035', 'Nước lau kính', 'Tiêu hao', 'Lít', 25000, 30, 5, '✓ OK', ''],
+    ['TH-036', 'Nước tẩy bồn cầu', 'Tiêu hao', 'Lít', 25000, 50, 10, '✓ OK', ''],
+    ['TH-037', 'Dung dịch khử trùng', 'Tiêu hao', 'Lít', 40000, 30, 5, '✓ OK', ''],
+    ['TH-038', 'Nước giặt công nghiệp', 'Tiêu hao', 'Kg', 50000, 50, 10, '✓ OK', ''],
+    ['TH-039', 'Nước rửa tay sát khuẩn', 'Tiêu hao', 'Lít', 60000, 30, 5, '✓ OK', ''],
+    ['TH-040', 'Xịt phòng thơm', 'Tiêu hao', 'Chai', 50000, 30, 5, '✓ OK', ''],
+    ['TH-041', 'Túi rác nhỏ', 'Tiêu hao', 'Cái', 1000, 500, 100, '✓ OK', 'Phòng khách'],
+    ['TH-042', 'Túi rác lớn', 'Tiêu hao', 'Cái', 2000, 300, 50, '✓ OK', 'Khu vực công cộng'],
+    // Thiết bị (28)
+    ['TB-001', 'Ấm siêu tốc 1.8L', 'Thiết bị', 'Cái', 350000, 50, 5, '✓ OK', ''],
+    ['TB-002', 'Máy sấy tóc', 'Thiết bị', 'Cái', 250000, 50, 5, '✓ OK', '1600W'],
+    ['TB-003', 'Bàn ủi hơi nước', 'Thiết bị', 'Cái', 300000, 20, 3, '✓ OK', ''],
+    ['TB-004', 'Cầu là gấp gọn', 'Thiết bị', 'Cái', 350000, 20, 3, '✓ OK', ''],
+    ['TB-005', 'Két sắt điện tử', 'Thiết bị', 'Cái', 1200000, 50, 3, '✓ OK', ''],
+    ['TB-006', 'Tủ lạnh mini 50L', 'Thiết bị', 'Cái', 3500000, 50, 3, '✓ OK', ''],
+    ['TB-007', 'TV 43 inch', 'Thiết bị', 'Cái', 5000000, 50, 3, '✓ OK', 'Smart TV'],
+    ['TB-008', 'Điều hòa', 'Thiết bị', 'Cái', 8000000, 50, 2, '✓ OK', '9000-12000 BTU'],
+    ['TB-009', 'Điện thoại bàn phòng', 'Thiết bị', 'Cái', 500000, 50, 3, '✓ OK', ''],
+    ['TB-010', 'Đèn bàn làm việc', 'Thiết bị', 'Cái', 200000, 50, 5, '✓ OK', 'LED'],
+    ['TB-011', 'Đèn ngủ đầu giường', 'Thiết bị', 'Cái', 180000, 100, 5, '✓ OK', ''],
+    ['TB-012', 'Đèn trần phòng', 'Thiết bị', 'Cái', 300000, 60, 5, '✓ OK', ''],
+    ['TB-013', 'Đèn phòng tắm', 'Thiết bị', 'Cái', 150000, 50, 5, '✓ OK', 'Chống nước'],
+    ['TB-014', 'Ổ cắm kéo dài', 'Thiết bị', 'Cái', 100000, 50, 5, '✓ OK', ''],
+    ['TB-015', 'Remote TV', 'Thiết bị', 'Cái', 50000, 50, 5, '✓ OK', ''],
+    ['TB-016', 'Remote điều hòa', 'Thiết bị', 'Cái', 80000, 50, 5, '✓ OK', ''],
+    ['TB-017', 'Đầu báo khói', 'Thiết bị', 'Cái', 150000, 60, 5, '✓ OK', 'PCCC'],
+    ['TB-018', 'Khóa cửa điện tử', 'Thiết bị', 'Cái', 2500000, 50, 2, '✓ OK', 'Thẻ từ'],
+    ['TB-019', 'Bình nóng lạnh 30L', 'Thiết bị', 'Cái', 2000000, 50, 2, '✓ OK', ''],
+    ['TB-020', 'Quạt hút phòng tắm', 'Thiết bị', 'Cái', 200000, 50, 3, '✓ OK', ''],
+    ['TB-021', 'Bộ phát Wi-Fi', 'Thiết bị', 'Cái', 800000, 20, 2, '✓ OK', 'Theo tầng/khu vực'],
+    ['TB-022', 'Máy hút bụi công nghiệp', 'Thiết bị', 'Cái', 5000000, 5, 1, '✓ OK', 'Housekeeping'],
+    ['TB-023', 'Bộ cây lau nhà', 'Thiết bị', 'Bộ', 200000, 20, 3, '✓ OK', ''],
+    ['TB-024', 'Xe đẩy dọn phòng', 'Thiết bị', 'Cái', 3000000, 5, 1, '✓ OK', '3 tầng'],
+    ['TB-025', 'Xe đẩy đồ giặt', 'Thiết bị', 'Cái', 2000000, 3, 1, '✓ OK', ''],
+    ['TB-026', 'Bình xịt vệ sinh', 'Thiết bị', 'Cái', 20000, 20, 5, '✓ OK', 'Cầm tay'],
+    ['TB-027', 'Xô lau nhà có vắt', 'Thiết bị', 'Cái', 50000, 10, 2, '✓ OK', ''],
+    ['TB-028', 'Bộ chổi + hót rác', 'Thiết bị', 'Bộ', 50000, 10, 2, '✓ OK', ''],
+    // Nội thất (31)
+    ['NT-001', 'Khung giường đơn', 'Nội thất', 'Cái', 3000000, 20, 2, '✓ OK', '120x200cm'],
+    ['NT-002', 'Khung giường đôi', 'Nội thất', 'Cái', 5000000, 40, 2, '✓ OK', '160x200cm'],
+    ['NT-003', 'Khung giường King', 'Nội thất', 'Cái', 6000000, 30, 2, '✓ OK', '180x200cm'],
+    ['NT-004', 'Nệm giường đơn', 'Nội thất', 'Cái', 2500000, 20, 2, '✓ OK', ''],
+    ['NT-005', 'Nệm giường đôi', 'Nội thất', 'Cái', 4000000, 40, 2, '✓ OK', ''],
+    ['NT-006', 'Nệm giường King', 'Nội thất', 'Cái', 5000000, 30, 2, '✓ OK', ''],
+    ['NT-007', 'Tủ quần áo', 'Nội thất', 'Cái', 3000000, 50, 2, '✓ OK', ''],
+    ['NT-008', 'Bàn làm việc', 'Nội thất', 'Cái', 1500000, 50, 2, '✓ OK', ''],
+    ['NT-009', 'Ghế bàn làm việc', 'Nội thất', 'Cái', 800000, 50, 3, '✓ OK', ''],
+    ['NT-010', 'Sofa đơn', 'Nội thất', 'Cái', 2000000, 30, 2, '✓ OK', ''],
+    ['NT-011', 'Bàn trà', 'Nội thất', 'Cái', 800000, 30, 2, '✓ OK', ''],
+    ['NT-012', 'Tủ đầu giường', 'Nội thất', 'Cái', 600000, 100, 3, '✓ OK', ''],
+    ['NT-013', 'Kệ để vali', 'Nội thất', 'Cái', 500000, 50, 3, '✓ OK', 'Luggage rack'],
+    ['NT-014', 'Gương soi toàn thân', 'Nội thất', 'Cái', 400000, 50, 3, '✓ OK', ''],
+    ['NT-015', 'Gương phòng tắm', 'Nội thất', 'Cái', 300000, 50, 3, '✓ OK', 'Có đèn LED'],
+    ['NT-016', 'Móc treo quần áo', 'Nội thất', 'Cái', 15000, 300, 30, '✓ OK', 'Gỗ'],
+    ['NT-017', 'Thùng rác phòng ngủ', 'Nội thất', 'Cái', 100000, 60, 5, '✓ OK', ''],
+    ['NT-018', 'Thùng rác phòng tắm', 'Nội thất', 'Cái', 80000, 60, 5, '✓ OK', 'Có nắp đạp'],
+    ['NT-019', 'Tủ minibar', 'Nội thất', 'Cái', 1000000, 50, 2, '✓ OK', ''],
+    ['NT-020', 'Giá treo/kệ TV', 'Nội thất', 'Cái', 300000, 50, 3, '✓ OK', ''],
+    ['NT-021', 'Đĩa đựng xà phòng', 'Nội thất', 'Cái', 50000, 60, 5, '✓ OK', 'Sứ/inox'],
+    ['NT-022', 'Thanh treo khăn', 'Nội thất', 'Cái', 100000, 60, 5, '✓ OK', 'Inox'],
+    ['NT-023', 'Cọ bồn cầu có hộp', 'Nội thất', 'Cái', 50000, 60, 5, '✓ OK', ''],
+    ['NT-024', 'Vòi sen', 'Nội thất', 'Cái', 200000, 50, 5, '✓ OK', ''],
+    ['NT-025', 'Khay đựng amenities', 'Nội thất', 'Cái', 30000, 60, 5, '✓ OK', 'Phòng tắm'],
+    ['NT-026', 'Hộp đựng giấy ăn', 'Nội thất', 'Cái', 50000, 60, 5, '✓ OK', ''],
+    ['NT-027', 'Cây xỏ giày', 'Nội thất', 'Cái', 15000, 50, 5, '✓ OK', ''],
+    ['NT-028', 'Ô dù cho khách mượn', 'Nội thất', 'Cái', 60000, 30, 5, '✓ OK', ''],
+    ['NT-029', 'Xô đá phòng', 'Nội thất', 'Cái', 50000, 50, 5, '✓ OK', ''],
+    ['NT-030', 'Ly thuỷ tinh phòng', 'Nội thất', 'Cái', 10000, 100, 15, '✓ OK', ''],
+    ['NT-031', 'Cốc sứ pha trà phòng', 'Nội thất', 'Cái', 20000, 100, 15, '✓ OK', ''],
+    // Nhà hàng (22)
+    ['NH-001', 'Đĩa ăn chính 26cm', 'Nhà hàng', 'Cái', 40000, 100, 15, '✓ OK', 'Sứ trắng'],
+    ['NH-002', 'Đĩa salad 20cm', 'Nhà hàng', 'Cái', 25000, 80, 10, '✓ OK', 'Sứ trắng'],
+    ['NH-003', 'Bát súp', 'Nhà hàng', 'Cái', 20000, 80, 10, '✓ OK', 'Sứ trắng'],
+    ['NH-004', 'Bát cơm', 'Nhà hàng', 'Cái', 15000, 100, 15, '✓ OK', 'Sứ trắng'],
+    ['NH-005', 'Bộ tách trà', 'Nhà hàng', 'Bộ', 30000, 60, 10, '✓ OK', 'Tách + đĩa lót'],
+    ['NH-006', 'Bộ tách cà phê', 'Nhà hàng', 'Bộ', 35000, 60, 10, '✓ OK', 'Tách + đĩa lót'],
+    ['NH-007', 'Ly nước 300ml', 'Nhà hàng', 'Cái', 15000, 100, 15, '✓ OK', 'Thuỷ tinh'],
+    ['NH-008', 'Ly rượu vang', 'Nhà hàng', 'Cái', 30000, 60, 10, '✓ OK', 'Thuỷ tinh'],
+    ['NH-009', 'Ly bia 400ml', 'Nhà hàng', 'Cái', 20000, 60, 10, '✓ OK', 'Thuỷ tinh'],
+    ['NH-010', 'Ly nước ép 250ml', 'Nhà hàng', 'Cái', 15000, 80, 10, '✓ OK', 'Thuỷ tinh'],
+    ['NH-011', 'Dao ăn chính', 'Nhà hàng', 'Cái', 20000, 100, 15, '✓ OK', 'Inox'],
+    ['NH-012', 'Nĩa ăn chính', 'Nhà hàng', 'Cái', 15000, 100, 15, '✓ OK', 'Inox'],
+    ['NH-013', 'Muỗng súp', 'Nhà hàng', 'Cái', 12000, 100, 15, '✓ OK', 'Inox'],
+    ['NH-014', 'Muỗng trà', 'Nhà hàng', 'Cái', 8000, 100, 15, '✓ OK', 'Inox'],
+    ['NH-015', 'Đũa', 'Nhà hàng', 'Đôi', 5000, 100, 15, '✓ OK', 'Gỗ/inox'],
+    ['NH-016', 'Khay phục vụ tròn', 'Nhà hàng', 'Cái', 80000, 30, 5, '✓ OK', 'Chống trượt'],
+    ['NH-017', 'Nồi hâm buffet', 'Nhà hàng', 'Cái', 500000, 10, 2, '✓ OK', 'Chafing dish inox'],
+    ['NH-018', 'Xô đá nhà hàng', 'Nhà hàng', 'Cái', 80000, 20, 3, '✓ OK', 'Inox'],
+    ['NH-019', 'Bộ lọ tiêu muối', 'Nhà hàng', 'Bộ', 30000, 30, 5, '✓ OK', ''],
+    ['NH-020', 'Bìa menu', 'Nhà hàng', 'Cái', 50000, 20, 3, '✓ OK', 'Da/gỗ'],
+    ['NH-021', 'Khay đựng hóa đơn', 'Nhà hàng', 'Cái', 30000, 20, 3, '✓ OK', ''],
+    ['NH-022', 'Đồ mở nắp chai', 'Nhà hàng', 'Cái', 20000, 10, 2, '✓ OK', ''],
+    // Đồng phục (6)
+    ['DP-001', 'Đồng phục lễ tân', 'Đồng phục', 'Bộ', 500000, 10, 2, '✓ OK', ''],
+    ['DP-002', 'Đồng phục housekeeping', 'Đồng phục', 'Bộ', 300000, 15, 2, '✓ OK', ''],
+    ['DP-003', 'Đồng phục phục vụ', 'Đồng phục', 'Bộ', 400000, 15, 2, '✓ OK', 'Nhà hàng'],
+    ['DP-004', 'Đồng phục bếp', 'Đồng phục', 'Bộ', 350000, 10, 2, '✓ OK', 'Áo + tạp dề'],
+    ['DP-005', 'Đồng phục bảo vệ', 'Đồng phục', 'Bộ', 400000, 5, 1, '✓ OK', ''],
+    ['DP-006', 'Thẻ tên nhân viên', 'Đồng phục', 'Cái', 20000, 30, 5, '✓ OK', ''],
   ]
   
   const ws = XLSX.utils.aoa_to_sheet([headers, ...exampleData])
   
   ws['!cols'] = [
     { wch: 12 }, // Mã SP
-    { wch: 25 }, // Tên sản phẩm
+    { wch: 30 }, // Tên sản phẩm
     { wch: 15 }, // Danh mục
     { wch: 10 }, // Đơn vị
     { wch: 12 }, // Đơn giá
     { wch: 12 }, // Tồn kho
     { wch: 15 }, // Tồn tối thiểu
     { wch: 12 }, // Tình trạng
-    { wch: 30 }, // Ghi chú
+    { wch: 25 }, // Ghi chú
   ]
   
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Tài sản')
   
-  const instructions = [
-    ['HƯỚNG DẪN IMPORT TÀI SẢN'],
+  // Sheet Tổng hợp
+  const summaryData = [
+    ['TỔNG HỢP HÀNG HÓA THEO DANH MỤC'],
     [''],
-    ['1. Các cột có dấu (*) là bắt buộc'],
-    ['2. Tên sản phẩm: Tối thiểu 2 ký tự, tối đa 200 ký tự'],
-    ['3. Đơn vị: VD: Cái, Bộ, Kg, Lít...'],
-    ['4. Đơn giá: Số nguyên >= 0'],
-    ['5. Tồn kho: Số nguyên >= 0'],
-    ['6. Tồn tối thiểu: Số nguyên >= 0 (ngưỡng cảnh báo)'],
-    ['7. Danh mục: Nhập tên danh mục. Nếu chưa có sẽ tự động tạo mới'],
-    ['8. Mã SP: Không bắt buộc, hệ thống sẽ tự tạo nếu bỏ trống'],
-    ['9. Tình trạng: Hệ thống tự tính, không cần nhập'],
-    ['10. Sản phẩm trùng tên sẽ được CẬP NHẬT thay vì tạo mới'],
-    ['11. Xóa các dòng ví dụ trước khi import'],
+    ['Danh mục', 'Số mặt hàng', 'Tổng giá trị tồn kho', 'Số mặt hàng cần đặt'],
+    ['Đồ vải', 21, 217100000, 0],
+    ['Tiêu hao', 42, 63500000, 0],
+    ['Thiết bị', 28, 1329400000, 0],
+    ['Nội thất', 31, 1384150000, 0],
+    ['Nhà hàng', 22, 36400000, 0],
+    ['Đồng phục', 6, 21600000, 0],
+    ['TỔNG CỘNG', 150, 3052150000, 0],
   ]
   
-  const wsInstructions = XLSX.utils.aoa_to_sheet(instructions)
-  wsInstructions['!cols'] = [{ wch: 60 }]
-  XLSX.utils.book_append_sheet(wb, wsInstructions, 'Hướng dẫn')
+  const wsSummary = XLSX.utils.aoa_to_sheet(summaryData)
+  wsSummary['!cols'] = [
+    { wch: 20 },
+    { wch: 15 },
+    { wch: 25 },
+    { wch: 22 },
+  ]
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'Tổng hợp')
   
   XLSX.writeFile(wb, `template-tai-san-${Date.now()}.xlsx`)
 }
