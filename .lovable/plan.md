@@ -1,36 +1,45 @@
 
 
-## Hiển thị chi tiết dịch vụ & minibar trong bảng Group Checkout
+## Hiển thị chi tiết dịch vụ & minibar trong Group Checkout
 
 ### Vấn đề
-Bảng checkout nhóm đang hiện "Dịch vụ sử dụng 1.000.000đ" mà không liệt kê chi tiết từng dịch vụ/minibar. Nhân viên không biết khách đã dùng gì để kiểm tra.
+Screenshot cho thấy "Dịch vụ sử dụng 1.000.000đ" vẫn hiện dạng chung chung. Có 2 nguyên nhân:
 
-### Nguyên nhân
-Code đã có logic hiển thị chi tiết (lines 345-358 trong `GroupCheckoutRoomCard.tsx`), nhưng dữ liệu `serviceDetails` đang rỗng trong một số trường hợp dù `serviceCharges > 0`. Có thể do:
-- Phí dịch vụ lưu trực tiếp trong `room_bookings.service_charges` nhưng không có bản ghi chi tiết tương ứng
-- Hoặc lỗi khi fetch `fetchServiceChargeSummary` (tenant_id không match, query fail silent)
+1. **Dữ liệu chi tiết không được fetch được** — `fetchServiceChargeSummary()` trả về mảng rỗng dù `room_bookings.service_charges = 1.000.000`. Fallback tạo 1 item "Dịch vụ (chưa có chi tiết)" → vẫn không có tên cụ thể.
+2. **Bảng tổng hợp** (`GroupCheckoutSummary.tsx`) luôn hiện "Dịch vụ sử dụng" chung chung, chưa liệt kê chi tiết.
+
+### Nguyên nhân gốc
+Khả năng cao dữ liệu dịch vụ được lưu trực tiếp vào `room_bookings.service_charges` (cộng dồn số tổng) mà **không tạo bản ghi chi tiết** trong `booking_service_charges` hoặc `chargeable_consumptions`. Cần kiểm tra thực tế bằng query database.
 
 ### Giải pháp
 
-| # | File | Thay đổi |
-|---|------|----------|
-| 1 | `src/hooks/useGroupCheckoutCalculations.ts` | Thêm fallback: nếu `serviceDetails` rỗng nhưng `serviceCharges > 0`, tạo 1 detail item tổng hợp từ `room_bookings.service_charges` |
-| 2 | `src/components/bookings/group-checkout/GroupCheckoutRoomCard.tsx` | Bỏ fallback "Dịch vụ sử dụng" chung chung — luôn dùng danh sách chi tiết. Thêm nhóm header "Minibar" và "Dịch vụ" để phân biệt rõ ràng |
+| # | Thay đổi | Mô tả |
+|---|----------|-------|
+| 1 | **Query DB kiểm tra** | Truy vấn `booking_service_charges` và `chargeable_consumptions` cho booking đang test để xác nhận dữ liệu có hay không |
+| 2 | `useGroupCheckoutCalculations.ts` | Cải thiện fallback: nếu không có chi tiết, thử fetch lại với điều kiện lỏng hơn (bỏ filter `tenant_id` nếu cần). Thêm console.log debug để dễ trace |
+| 3 | `GroupCheckoutSummary.tsx` | Thêm prop `allServiceDetails` chứa tổng hợp chi tiết từ tất cả phòng. Hiển thị liệt kê chi tiết thay vì 1 dòng "Dịch vụ sử dụng" |
+| 4 | `GroupCheckoutDialog.tsx` | Truyền `allServiceDetails` xuống `GroupCheckoutSummary` bằng cách gom `serviceDetails` từ tất cả `roomCosts` |
 
-### Chi tiết UI
+### Bước thực hiện
 
-Thay vì 1 dòng "Dịch vụ sử dụng 1.000.000đ", sẽ hiển thị:
+1. **Query database** để kiểm tra dữ liệu thực tế trong `booking_service_charges` và `chargeable_consumptions`
+2. Nếu dữ liệu trống → trace ngược flow ghi dịch vụ để tìm chỗ bị thiếu insert
+3. Nếu dữ liệu có nhưng query fail → fix điều kiện query trong `fetchServiceChargeSummary`
+4. Cập nhật `GroupCheckoutSummary.tsx` để hiển thị chi tiết từng dịch vụ/minibar thay vì tổng gộp
+5. Thêm debug logging tạm thời trong `calculateRoomCost` để dễ troubleshoot
 
+### Kết quả mong đợi
+
+Thay vì:
 ```text
-── Dịch vụ & Minibar ──────────────────
-  Coca Cola ×2                  20.000đ
-  Bia Tiger ×1                  25.000đ
-  Massage 60 phút ×1           300.000đ
-  Giặt ủi ×1                  150.000đ
-────────────────────────────────────────
+Dịch vụ sử dụng             1.000.000đ
 ```
 
-- Nhóm minibar và dịch vụ hiển thị cùng danh sách, phân biệt bằng text nhỏ (minibar / dịch vụ)
-- Bỏ emoji 🧊 🛎️ theo quy tắc UI project
-- Hiện số lượng × đơn giá khi quantity > 1
+Sẽ hiển thị:
+```text
+Dịch vụ & Minibar
+  Dịch vụ  Massage 60 phút        500.000đ
+  Minibar  Coca Cola ×2            20.000đ
+  Minibar  Bia Tiger ×3            75.000đ
+```
 
