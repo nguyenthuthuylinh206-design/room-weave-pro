@@ -1,40 +1,49 @@
 
 
-## Khoá toàn bộ dịch vụ khi tài khoản bị tạm ngưng
+## Đồng bộ file mẫu và parser theo format file Excel đã upload
 
 ### Vấn đề
-Khi tài khoản bị tạm ngưng (grace period expired), banner đỏ hiển thị nhưng user vẫn click vào các module và sử dụng bình thường. Cần chặn truy cập, buộc gia hạn.
+File mẫu hiện tại có 11 cột (Tên, Tên EN, Danh mục, Đơn vị, Đơn giá, Thương hiệu, Model, Số lượng, Ngưỡng, Điểm đặt hàng, Mô tả) — không khớp với file Excel thực tế của user có 9 cột: `Mã SP | Tên sản phẩm | Danh mục | Đơn vị | Đơn giá | Tồn kho | Tồn tối thiểu | Tình trạng | Ghi chú`.
 
 ### Giải pháp
-Thêm một overlay che phủ toàn bộ nội dung (trừ banner và trang subscription) khi `isGracePeriodExpired = true`. Chỉ cho phép truy cập `/settings/subscription` để gia hạn.
+Cập nhật cả template download và parser upload theo đúng format file đã upload.
 
 ### Thay đổi
 
 | # | File | Mô tả |
 |---|------|-------|
-| 1 | `src/components/layout/SuspendedOverlay.tsx` | **Tạo mới** — Component overlay hiển thị thông báo khoá + nút "Gia hạn ngay" |
-| 2 | `src/components/layout/MainLayout.tsx` | Thêm logic: nếu `isGracePeriodExpired` và route hiện tại không phải `/settings/subscription` → hiển thị `SuspendedOverlay` thay vì `<Outlet />` |
+| 1 | `src/lib/importUtils.ts` | Cập nhật `ItemImportRow`, `downloadItemsTemplate()`, `parseItemsExcel()` |
 
 ### Chi tiết
 
-**1. SuspendedOverlay** — Giao diện khoá:
-- Che phủ vùng main content (không che banner đỏ phía trên)
-- Icon khoá + thông báo "Tài khoản đã bị tạm ngưng"
-- Mô tả ngắn: "Vui lòng gia hạn gói đăng ký để tiếp tục sử dụng"
-- Nút "Gia hạn ngay" → navigate `/settings/subscription`
-- Style: `bg-background/80 backdrop-blur` overlay
+**Cấu trúc cột mới (9 cột):**
 
-**2. MainLayout** — Logic điều kiện:
-```text
-if (isGracePeriodExpired && currentPath !== '/settings/subscription')
-  → render <SuspendedOverlay /> thay cho <Outlet />
-else
-  → render <Outlet /> bình thường
-```
+| Cột | Header | Bắt buộc |
+|-----|--------|----------|
+| A | Mã SP | Không |
+| B | Tên sản phẩm (*) | Có |
+| C | Danh mục | Không |
+| D | Đơn vị (*) | Có |
+| E | Đơn giá | Không |
+| F | Tồn kho (*) | Có |
+| G | Tồn tối thiểu | Không |
+| H | Tình trạng | Không (bỏ qua khi import) |
+| I | Ghi chú | Không |
 
-- Sidebar và Header vẫn hiển thị nhưng click vào menu item sẽ thấy overlay
-- Trang `/settings/subscription` vẫn truy cập được để user gia hạn
-- Áp dụng cho cả desktop và mobile layout
+**1. Template download** — Dữ liệu mẫu lấy từ file upload (3-5 dòng ví dụ đại diện các danh mục: Đồ vải, Tiêu hao, Thiết bị, Nội thất, Nhà hàng, Đồng phục).
 
-Kết quả: Khi tài khoản bị tạm ngưng → mọi trang đều bị khoá, chỉ trang gia hạn gói dịch vụ hoạt động.
+**2. Parser upload** — Mapping cột mới:
+- `row[0]` → `sku` (Mã SP, thêm vào `ItemImportRow`)
+- `row[1]` → `name`
+- `row[2]` → `category_name`
+- `row[3]` → `unit`
+- `row[4]` → `unit_price`
+- `row[5]` → `quantity_total`
+- `row[6]` → `minimum_stock`
+- `row[7]` → bỏ qua (Tình trạng — tự tính)
+- `row[8]` → `description` (Ghi chú)
+
+**3. Bỏ các cột không có trong file mẫu:** `name_en`, `brand`, `model`, `reorder_point`
+
+**4. Cập nhật hướng dẫn** trong sheet "Hướng dẫn" cho khớp cấu trúc mới.
 
