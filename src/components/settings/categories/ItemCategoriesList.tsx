@@ -197,7 +197,7 @@ export function ItemCategoriesList() {
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
         title="Import Danh mục từ Excel"
-        description="Tải file mẫu, điền thông tin và upload để import hàng loạt"
+        description="Tải file mẫu bên dưới , điền thông tin và upload để import hàng loạt"
         onDownloadTemplate={downloadCategoriesTemplate}
         onParseFile={parseCategoriesExcel}
         onImport={handleImportCategories}
