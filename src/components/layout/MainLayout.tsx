@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { MobileHeader } from './MobileHeader'
@@ -12,15 +12,20 @@ import { PushNotificationPrompt } from '@/components/notifications'
 import { PWAUpdatePrompt } from '@/components/pwa'
 import { ShiftStatusBanner } from '@/components/staff/ShiftStatusBanner'
 import { GracePeriodBanner } from './GracePeriodBanner'
+import { SuspendedOverlay } from './SuspendedOverlay'
 import { FreeTrialPopup } from '@/components/promotions/FreeTrialPopup'
 import { useUser } from '@/hooks/useUser'
+import { useGracePeriod } from '@/hooks/useGracePeriod'
 import { isStaff, isTenantOwner, isManager } from '@/lib/userAccess'
 
 const MainLayoutContent = () => {
   const { isMobile } = useBreakpoint()
   const { user } = useUser()
+  const location = useLocation()
+  const { isGracePeriodExpired } = useGracePeriod()
   const isStaffUser = isStaff(user)
   const showSubscriptionBanner = isTenantOwner(user) || isManager(user)
+  const isSuspended = isGracePeriodExpired && !location.pathname.startsWith('/settings/subscription')
 
   if (isMobile) {
     return (
@@ -29,10 +34,16 @@ const MainLayoutContent = () => {
         <MobileHeader />
         {isStaffUser && <ShiftStatusBanner />}
         <main className="flex-1 overflow-y-auto overflow-x-hidden pb-16">
-          <div className="p-4">
-            <QuotaWarningBanner />
-          </div>
-          <Outlet />
+          {isSuspended ? (
+            <SuspendedOverlay />
+          ) : (
+            <>
+              <div className="p-4">
+                <QuotaWarningBanner />
+              </div>
+              <Outlet />
+            </>
+          )}
         </main>
         <MobileBottomNav />
       </div>
@@ -47,12 +58,16 @@ const MainLayoutContent = () => {
         <Header onMenuClick={() => {}} />
         {isStaffUser && <ShiftStatusBanner />}
         <main className="flex-1 overflow-auto">
-          <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
-            <div className="mb-4">
-              <QuotaWarningBanner />
+          {isSuspended ? (
+            <SuspendedOverlay />
+          ) : (
+            <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
+              <div className="mb-4">
+                <QuotaWarningBanner />
+              </div>
+              <Outlet />
             </div>
-            <Outlet />
-          </div>
+          )}
         </main>
       </div>
     </div>
