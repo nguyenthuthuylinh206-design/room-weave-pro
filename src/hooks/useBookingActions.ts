@@ -34,6 +34,9 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
     queryClient.invalidateQueries({ queryKey: ['today-checkouts'] })
     queryClient.invalidateQueries({ queryKey: ['today-checkins'] })
     queryClient.invalidateQueries({ queryKey: ['booking-detail'] })
+    queryClient.invalidateQueries({ queryKey: ['revenue-report'] })
+    queryClient.invalidateQueries({ queryKey: ['owner-alerts'] })
+    queryClient.invalidateQueries({ queryKey: ['all-pending-payments'] })
     if (roomId) {
       queryClient.invalidateQueries({ queryKey: ['room-booking', roomId] })
       queryClient.invalidateQueries({ queryKey: ['room-bookings', roomId] })

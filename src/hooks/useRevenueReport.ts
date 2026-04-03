@@ -280,15 +280,22 @@ export function useOwnerAlerts() {
       if (!isAllHotelsMode && selectedHotel?.id) overdueQuery = overdueQuery.eq('hotel_id', selectedHotel.id)
       const { data: overdueCheckouts } = await overdueQuery
 
+      // Query checked_out bookings that are NOT fully paid, including deposit_amount
       let unpaidQuery = supabase
         .from('room_bookings')
-        .select('id, guest_name, total_amount, amount_paid, check_out_date, room:rooms(room_number)')
+        .select('id, guest_name, total_amount, amount_paid, deposit_amount, check_out_date, room:rooms(room_number)')
         .eq('status', 'checked_out')
         .neq('payment_status', 'paid')
-        .limit(10)
+        .limit(50)
       if (tenantId) unpaidQuery = unpaidQuery.eq('tenant_id', tenantId)
       if (!isAllHotelsMode && selectedHotel?.id) unpaidQuery = unpaidQuery.eq('hotel_id', selectedHotel.id)
-      const { data: unpaidBookings } = await unpaidQuery
+      const { data: rawUnpaidBookings } = await unpaidQuery
+
+      // Filter: only keep bookings where remaining_balance > 0
+      const unpaidBookings = (rawUnpaidBookings || []).filter(b => {
+        const remaining = (b.total_amount || 0) - (b.amount_paid || 0) - (b.deposit_amount || 0)
+        return remaining > 0
+      })
 
       let damagesQuery = supabase
         .from('room_checks')
@@ -302,9 +309,9 @@ export function useOwnerAlerts() {
 
       return {
         overdueCheckouts: overdueCheckouts || [],
-        unpaidBookings: unpaidBookings || [],
+        unpaidBookings,
         unresolvedDamages: unresolvedDamages || [],
-        totalAlerts: (overdueCheckouts?.length || 0) + (unpaidBookings?.length || 0) + (unresolvedDamages?.length || 0),
+        totalAlerts: (overdueCheckouts?.length || 0) + unpaidBookings.length + (unresolvedDamages?.length || 0),
       }
     },
     enabled: !!tenantId && (isAllHotelsMode || !!selectedHotel?.id),

@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRevenueReport } from '@/hooks/useRevenueReport'
+import { useBookingStats } from '@/hooks/useBookingStats'
 import { TrendingUp, TrendingDown, DollarSign, CreditCard, Clock, Wallet } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Link } from 'react-router-dom'
@@ -35,6 +36,7 @@ const formatCompact = (value: number) => {
 
 export function OwnerProfitOverview() {
   const { data: report, isLoading } = useRevenueReport()
+  const { data: bookingStats } = useBookingStats()
 
   if (isLoading) {
     return (
@@ -178,7 +180,7 @@ export function OwnerProfitOverview() {
         {/* Comparison */}
         <div className="flex items-center justify-between text-sm text-muted-foreground border-t pt-3">
           <span>Tháng trước: {formatCurrency(report.previousPeriod.paidRevenue)}</span>
-          <span>Hôm nay: {formatCurrency(report.today.paidRevenue)}</span>
+          <span>Hôm nay: {formatCurrency(bookingStats?.todayRevenue || 0)}</span>
         </div>
       </CardContent>
     </Card>

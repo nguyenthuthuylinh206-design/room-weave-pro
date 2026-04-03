@@ -38,7 +38,7 @@ export function MobileOwnerDashboard({ dateRange, datePreset, onDatePresetChange
     queryFn: async () => {
       let query = supabase
         .from('room_bookings')
-        .select('id, total_amount, amount_paid, payment_status')
+        .select('id, total_amount, amount_paid, deposit_amount, payment_status')
         .eq('tenant_id', tenantId!)
         .in('payment_status', ['pending', 'partial'])
 
@@ -53,9 +53,9 @@ export function MobileOwnerDashboard({ dateRange, datePreset, onDatePresetChange
     enabled: !!tenantId && (isAllHotelsMode || !!selectedHotel?.id)
   })
 
-  // Calculate pending payment from all unpaid bookings
+  // Calculate pending payment from all unpaid bookings (subtract deposit)
   const pendingPayment = pendingBookings?.reduce((sum, b) => {
-    const remaining = (b.total_amount || 0) - (b.amount_paid || 0)
+    const remaining = (b.total_amount || 0) - (b.amount_paid || 0) - (b.deposit_amount || 0)
     return sum + Math.max(0, remaining)
   }, 0) || 0
 
