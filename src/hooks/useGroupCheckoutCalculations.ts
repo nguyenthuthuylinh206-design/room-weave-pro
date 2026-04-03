@@ -123,6 +123,7 @@ export function useGroupCheckoutCalculations() {
 
     // 2. Get unified service charges (booking_service_charges + chargeable_consumptions)
     let serviceCharges = 0
+    let serviceDetails: ServiceChargeDetail[] = []
     try {
       // Need tenant_id - fetch from booking
       const { data: bookingData } = await supabase
@@ -134,6 +135,7 @@ export function useGroupCheckoutCalculations() {
       if (bookingData?.tenant_id) {
         const summary = await fetchServiceChargeSummary(booking.bookingId, bookingData.tenant_id, { includeAllBilled: true })
         serviceCharges = summary.grandTotal
+        serviceDetails = summary.details
       }
     } catch (e) {
       console.error('Error fetching service charges:', e)
