@@ -27,7 +27,6 @@ export function ItemTabs({ activeTab, onTabChange }: ItemTabsProps) {
           value="all" 
           className="h-8 gap-1.5 px-3 text-xs data-[state=active]:bg-muted"
         >
-          <Package className="h-3.5 w-3.5" />
           Tất cả
           <span className="text-muted-foreground">
             {categories?.reduce((sum, cat) => sum + cat.items_count, 0) || 0}
