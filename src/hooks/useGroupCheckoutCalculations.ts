@@ -173,6 +173,7 @@ export function useGroupCheckoutCalculations() {
       lateAdjustmentNote: '',
       serviceCharges,
       serviceDetails,
+      damageItems,
       adjustedDamageItems: [...damageItems],
       damageAdjustmentNote: '',
       originalDamageTotal,
