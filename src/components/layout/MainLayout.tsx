@@ -45,7 +45,6 @@ const MainLayoutContent = () => {
             </>
           )}
         </main>
-        </main>
         <MobileBottomNav />
       </div>
     )
