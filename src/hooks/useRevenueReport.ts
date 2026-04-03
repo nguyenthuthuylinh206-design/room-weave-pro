@@ -124,7 +124,7 @@ export function useRevenueReport(period: ReportPeriod = 'month') {
       const sixMonthsAgoISO = startOfDay(sixMonthsAgo).toISOString()
 
       // Query bookings with only needed columns for revenue calculation
-      let query = supabase.from('room_bookings').select('check_out_date, total_amount, amount_paid, payment_status, booking_type, booking_source, ota_commission_amount, net_revenue, early_checkin_charge, late_checkout_charge, damage_charges, room_id, room:rooms!room_bookings_room_id_fkey(room_number, room_type)')
+      let query = supabase.from('room_bookings').select('check_out_date, total_amount, amount_paid, deposit_amount, payment_status, booking_type, booking_source, ota_commission_amount, net_revenue, early_checkin_charge, late_checkout_charge, damage_charges, room_id, room:rooms!room_bookings_room_id_fkey(room_number, room_type)')
         .gte('check_out_date', sixMonthsAgoISO)
         .limit(10000)
 
@@ -143,7 +143,7 @@ export function useRevenueReport(period: ReportPeriod = 'month') {
         // paidRevenue = tổng amount_paid từ TẤT CẢ booking (không chỉ status 'paid')
         const paidRevenue = nonRefunded.reduce((s, b) => s + (b.amount_paid || 0), 0)
         // pendingRevenue = tổng số tiền chưa thu (total - paid) từ booking chưa thanh toán đủ
-        const pendingRevenue = nonRefunded.reduce((s, b) => s + Math.max(0, (b.total_amount || 0) - (b.amount_paid || 0)), 0)
+        const pendingRevenue = nonRefunded.reduce((s, b) => s + Math.max(0, (b.total_amount || 0) - (b.amount_paid || 0) - (b.deposit_amount || 0)), 0)
         const refundedRevenue = refunded.reduce((s, b) => s + (b.total_amount || 0), 0)
         const totalRevenue = paidRevenue + pendingRevenue
         const paidBookings = nonRefunded.filter(b => b.payment_status === 'paid')
