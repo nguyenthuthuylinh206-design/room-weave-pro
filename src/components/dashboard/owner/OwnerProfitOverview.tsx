@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRevenueReport } from '@/hooks/useRevenueReport'
+import { useBookingStats } from '@/hooks/useBookingStats'
 import { TrendingUp, TrendingDown, DollarSign, CreditCard, Clock, Wallet } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Link } from 'react-router-dom'
