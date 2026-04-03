@@ -226,6 +226,11 @@ export function useConfirmBookingPayment() {
       queryClient.invalidateQueries({ queryKey: ['booking-payments', data.booking_id] });
       queryClient.invalidateQueries({ queryKey: ['room-bookings'] });
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['booking-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['revenue-report'] });
+      queryClient.invalidateQueries({ queryKey: ['owner-alerts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-pending-payments'] });
+      queryClient.invalidateQueries({ queryKey: ['today-checkouts'] });
       toast.success('Đã xác nhận thanh toán');
     },
   });
