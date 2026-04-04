@@ -294,6 +294,11 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
                     <div>
                       <p className="text-xs text-muted-foreground">Khách hàng</p>
                       <p className="font-medium">{task.booking.guest_name}</p>
+                      {task.booking.check_out_date && (
+                        <p className="text-xs text-muted-foreground">
+                          Checkout: {format(new Date(task.booking.check_out_date), 'dd/MM/yyyy')}
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}
