@@ -254,22 +254,19 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Thời gian</p>
+                    <p className="text-xs text-muted-foreground">Giao lúc</p>
                     <p className="font-medium">
-                      {formatDistanceToNow(new Date(task.created_at), { 
-                        locale: vi, 
-                        addSuffix: true 
-                      })}
+                      {format(new Date(task.created_at), 'HH:mm', { locale: vi })}
+                      <span className="text-xs text-muted-foreground ml-1">
+                        ({formatDistanceToNow(new Date(task.created_at), { locale: vi, addSuffix: true })})
+                      </span>
                     </p>
                     {task.due_at && (
                       <p className={cn(
                         'text-xs',
                         new Date(task.due_at) < new Date() && 'text-red-600 font-medium'
                       )}>
-                        Deadline: {new Date(task.due_at).toLocaleTimeString('vi-VN', { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
+                        Deadline: {format(new Date(task.due_at), 'HH:mm', { locale: vi })}
                       </p>
                     )}
                   </div>
