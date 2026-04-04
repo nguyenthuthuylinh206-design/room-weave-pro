@@ -186,7 +186,7 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
                   <div>
                     <h3 className="font-semibold text-lg">Phòng {task.room?.room_number}</h3>
                     <p className="text-sm text-muted-foreground">
-                      Tầng {task.room?.floor}
+                      Tầng {task.room?.floor}{task.room?.room_type ? ` · ${task.room.room_type}` : ''}
                     </p>
                   </div>
                 </div>
