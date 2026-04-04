@@ -322,8 +322,16 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
               {/* Description */}
               {task.description && (
                 <div className="p-3 rounded-lg bg-muted/50">
-                  <p className="text-xs text-muted-foreground mb-1">Ghi chú</p>
+                  <p className="text-xs text-muted-foreground mb-1">Mô tả</p>
                   <p className="text-sm">{task.description}</p>
+                </div>
+              )}
+
+              {/* Notes */}
+              {task.notes && task.notes !== task.description && (
+                <div className="p-3 rounded-lg bg-muted/50">
+                  <p className="text-xs text-muted-foreground mb-1">Ghi chú</p>
+                  <p className="text-sm">{task.notes}</p>
                 </div>
               )}
 
