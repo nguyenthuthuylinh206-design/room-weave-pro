@@ -1,37 +1,62 @@
 
 
-## Làm gọn TaskCard trên mobile
+## Bổ sung thông tin đầy đủ vào Chi tiết công việc
 
-### Hiện tại
-TaskCard đang chiếm **4 khối** (header + details + time + actions) = ~120px mỗi task. Quá nhiều thông tin không cần thiết khi nhân viên đang di chuyển: description, tên khách, người yêu cầu, icon loại task...
+### Hiện tại đang hiển thị
+1. Số phòng + Tầng
+2. Loại công việc
+3. Mức độ ưu tiên
+4. Người giao việc
+5. Thời gian tạo (relative)
+6. Deadline (nếu có)
+7. Thời gian đang thực hiện (nếu in_progress)
+8. Tên khách (nếu có booking)
+9. Đồ dùng cần xác nhận (delivery task)
+10. Ghi chú/mô tả
 
-### Thiết kế mới
-Mỗi task chỉ **1 hàng duy nhất**, cao ~48-52px:
+### Thông tin cần bổ sung
 
-```text
-┌─────────────────────────────────────────────┐
-│ 🔴 P.101  Dọn phòng  ·  2 phút  [Bắt đầu] │
-│ 🟡 P.203  KT checkout ·  5 phút  [Tiếp ▸]  │
-│ 🟢 P.305  Check-in    · 12 phút  [✓]       │
-└─────────────────────────────────────────────┘
-```
-
-- **Trái**: Chấm màu priority (đỏ=gấp, cam=cao, vàng=TB, xám=thấp) + số phòng in đậm
-- **Giữa**: Loại task (rút gọn) + thời gian (tạo/đang làm)
-- **Phải**: 1 nút duy nhất tùy trạng thái
+| # | Thông tin | Nguồn dữ liệu | Lý do |
+|---|-----------|----------------|-------|
+| 1 | **Loại phòng** (VIP, Standard...) | `task.room.room_type` | Nhân viên biết chuẩn bị đồ dùng phù hợp |
+| 2 | **Trạng thái công việc** | `task.status` → STATUS_LABELS | Xác nhận rõ task đang ở bước nào |
+| 3 | **Ngày checkout khách** | `task.booking.check_out_date` | Biết deadline thực tế của phòng |
+| 4 | **Ghi chú riêng** (`notes`) | `task.notes` | Hiện chỉ hiện `description`, chưa hiện `notes` |
+| 5 | **Thời gian tạo chính xác** | `task.created_at` format đầy đủ | Thay vì chỉ "7 phút trước", thêm giờ cụ thể |
 
 ### Thay đổi cụ thể
 
-**File: `src/components/housekeeping/TaskCard.tsx`**
-- Thay layout card nhiều khối bằng layout `flex items-center` 1 hàng
-- Bỏ: icon box, badge priority dạng text, description, tên khách, người yêu cầu, delivery items preview
-- Giữ: số phòng (font-bold), loại task (text-xs), thời gian relative, chấm màu priority
-- Nút action: gộp thành 1 nút nhỏ `size="sm"` bên phải
-- Hàng urgent: thêm `bg-red-50/60` nhẹ + border đỏ
-- Hàng in_progress: `bg-blue-50/60` + hiện thời gian đang chạy
-- Giữ nguyên toàn bộ logic xử lý (handleStart, handleComplete, handleContinue, modals)
+**File: `src/components/housekeeping/TaskDetailDialog.tsx`**
 
-### Kết quả
-- Mỗi task ~48px thay vì ~120px → nhìn được gấp 2-3x số task trên màn hình
-- Nhân viên chỉ cần nhìn: phòng nào, làm gì, gấp không, bấm 1 nút
+- Thêm dòng **Loại phòng** ngay dưới "Tầng" trong block Room Info
+- Thêm dòng **Trạng thái** (badge: Chờ xử lý / Đang thực hiện) vào đầu task details
+- Thêm **Ngày checkout** bên dưới tên khách (nếu có booking)
+- Hiển thị **giờ cụ thể** (HH:mm) bên cạnh thời gian relative
+- Hiển thị block **Ghi chú** từ `task.notes` (tách biệt với `task.description`)
+- Giữ nguyên toàn bộ logic action buttons và modals
+
+### Layout sau khi sửa
+```text
+┌──────────────────────────────┐
+│ Chi tiết công việc           │
+├──────────────────────────────┤
+│ 📍 Phòng P.101              │
+│    Tầng 1 · Standard        │
+├──────────────────────────────┤
+│ Trạng thái:  Chờ xử lý      │
+│ Loại:        Dọn phòng       │
+│ Ưu tiên:     🟡 Trung bình  │
+│ Người giao:  Nguyễn Thành    │
+│ Khách:       Trần Văn A      │
+│   └ Checkout: 05/04/2026     │
+│ Giao lúc:    14:30 (7p trước)│
+│ Deadline:    15:00           │
+│ Đang làm:    ⏱ 5 phút       │
+├──────────────────────────────┤
+│ Mô tả: Dọn phòng sau CO     │
+│ Ghi chú: Khách yêu cầu...   │
+├──────────────────────────────┤
+│       [ Bắt đầu thực hiện ] │
+└──────────────────────────────┘
+```
 
