@@ -194,6 +194,19 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
 
               {/* Task Details */}
               <div className="space-y-3">
+                {/* Status */}
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-muted">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Trạng thái</p>
+                    <Badge className={cn('mt-0.5', STATUS_BADGE_STYLES[task.status] || 'bg-muted')}>
+                      {STATUS_LABELS[task.status] || task.status}
+                    </Badge>
+                  </div>
+                </div>
+
                 {/* Task Type */}
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-muted">
