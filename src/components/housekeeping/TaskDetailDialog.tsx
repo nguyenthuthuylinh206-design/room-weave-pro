@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { formatDistanceToNow } from 'date-fns'
+import { formatDistanceToNow, format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { 
   ClipboardCheck, 
@@ -32,7 +32,7 @@ import { DeliveryConfirmationModal } from './DeliveryConfirmationModal'
 import { CleaningCompleteDialog } from '@/components/rooms/CleaningCompleteDialog'
 import { useState } from 'react'
 import type { TaskType, TaskPriority } from '@/types/housekeeping.types'
-import { TASK_TYPE_LABELS, PRIORITY_LABELS } from '@/types/housekeeping.types'
+import { TASK_TYPE_LABELS, PRIORITY_LABELS, STATUS_LABELS } from '@/types/housekeeping.types'
 
 const TASK_ICONS: Record<TaskType, typeof ClipboardCheck> = {
   checkout_inspection: ClipboardCheck,
@@ -48,6 +48,13 @@ const PRIORITY_BADGE_STYLES: Record<TaskPriority, string> = {
   medium: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   high: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
   urgent: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+}
+
+const STATUS_BADGE_STYLES: Record<string, string> = {
+  pending: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  in_progress: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  completed: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  cancelled: 'bg-muted text-muted-foreground',
 }
 
 interface TaskDetailDialogProps {
@@ -179,7 +186,7 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
                   <div>
                     <h3 className="font-semibold text-lg">Phòng {task.room?.room_number}</h3>
                     <p className="text-sm text-muted-foreground">
-                      Tầng {task.room?.floor}
+                      Tầng {task.room?.floor}{task.room?.room_type ? ` · ${task.room.room_type}` : ''}
                     </p>
                   </div>
                 </div>
@@ -187,6 +194,19 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
 
               {/* Task Details */}
               <div className="space-y-3">
+                {/* Status */}
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-muted">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Trạng thái</p>
+                    <Badge className={cn('mt-0.5', STATUS_BADGE_STYLES[task.status] || 'bg-muted')}>
+                      {STATUS_LABELS[task.status] || task.status}
+                    </Badge>
+                  </div>
+                </div>
+
                 {/* Task Type */}
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-muted">
@@ -234,22 +254,19 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Thời gian</p>
+                    <p className="text-xs text-muted-foreground">Giao lúc</p>
                     <p className="font-medium">
-                      {formatDistanceToNow(new Date(task.created_at), { 
-                        locale: vi, 
-                        addSuffix: true 
-                      })}
+                      {format(new Date(task.created_at), 'HH:mm', { locale: vi })}
+                      <span className="text-xs text-muted-foreground ml-1">
+                        ({formatDistanceToNow(new Date(task.created_at), { locale: vi, addSuffix: true })})
+                      </span>
                     </p>
                     {task.due_at && (
                       <p className={cn(
                         'text-xs',
                         new Date(task.due_at) < new Date() && 'text-red-600 font-medium'
                       )}>
-                        Deadline: {new Date(task.due_at).toLocaleTimeString('vi-VN', { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
+                        Deadline: {format(new Date(task.due_at), 'HH:mm', { locale: vi })}
                       </p>
                     )}
                   </div>
@@ -277,6 +294,11 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
                     <div>
                       <p className="text-xs text-muted-foreground">Khách hàng</p>
                       <p className="font-medium">{task.booking.guest_name}</p>
+                      {task.booking.check_out_date && (
+                        <p className="text-xs text-muted-foreground">
+                          Checkout: {format(new Date(task.booking.check_out_date), 'dd/MM/yyyy')}
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}
@@ -300,8 +322,16 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
               {/* Description */}
               {task.description && (
                 <div className="p-3 rounded-lg bg-muted/50">
-                  <p className="text-xs text-muted-foreground mb-1">Ghi chú</p>
+                  <p className="text-xs text-muted-foreground mb-1">Mô tả</p>
                   <p className="text-sm">{task.description}</p>
+                </div>
+              )}
+
+              {/* Notes */}
+              {task.notes && task.notes !== task.description && (
+                <div className="p-3 rounded-lg bg-muted/50">
+                  <p className="text-xs text-muted-foreground mb-1">Ghi chú</p>
+                  <p className="text-sm">{task.notes}</p>
                 </div>
               )}
 
