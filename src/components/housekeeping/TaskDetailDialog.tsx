@@ -32,7 +32,7 @@ import { DeliveryConfirmationModal } from './DeliveryConfirmationModal'
 import { CleaningCompleteDialog } from '@/components/rooms/CleaningCompleteDialog'
 import { useState } from 'react'
 import type { TaskType, TaskPriority } from '@/types/housekeeping.types'
-import { TASK_TYPE_LABELS, PRIORITY_LABELS } from '@/types/housekeeping.types'
+import { TASK_TYPE_LABELS, PRIORITY_LABELS, STATUS_LABELS } from '@/types/housekeeping.types'
 
 const TASK_ICONS: Record<TaskType, typeof ClipboardCheck> = {
   checkout_inspection: ClipboardCheck,
