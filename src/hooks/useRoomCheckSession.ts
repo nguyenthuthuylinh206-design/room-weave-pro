@@ -189,12 +189,26 @@ export function useRoomCheckSession(roomId: string | undefined) {
     }
   }
 
+  const updateSessionCheckType = async (sessionId: string, checkType: RoomCheckType) => {
+    try {
+      const { error } = await supabase
+        .from('room_check_sessions')
+        .update({ check_type: checkType })
+        .eq('id', sessionId)
+
+      if (error) throw error
+    } catch (error: any) {
+      console.error('Error updating check type:', error)
+    }
+  }
+
   return {
     session,
     isLoading,
     createSession,
     deleteSession,
     takeOverSession,
+    updateSessionCheckType,
   }
 }
 
