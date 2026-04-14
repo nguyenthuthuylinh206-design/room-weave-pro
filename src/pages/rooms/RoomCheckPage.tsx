@@ -122,7 +122,8 @@ export function RoomCheckPage() {
     isLoading: isSessionLoading,
     createSession, 
     deleteSession,
-    takeOverSession 
+    takeOverSession,
+    updateSessionCheckType,
   } = useRoomCheckSession(id)
   
   // Auto-skip step 1 if check type is provided via URL
