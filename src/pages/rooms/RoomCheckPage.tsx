@@ -180,6 +180,13 @@ export function RoomCheckPage() {
   // Watch check_type từ form để detect khi user chọn checkout hoặc delivery
   const watchedCheckType = form.watch('check_type')
   
+  // Sync check_type to session when user changes it in step 1
+  useEffect(() => {
+    if (existingSession?.id && watchedCheckType && watchedCheckType !== existingSession.check_type) {
+      updateSessionCheckType(existingSession.id, watchedCheckType)
+    }
+  }, [watchedCheckType, existingSession?.id, existingSession?.check_type])
+
   // Calculate steps based on check type
   const isCheckoutType = watchedCheckType === 'checkout'
   const isDeliveryType = watchedCheckType === 'delivery'
