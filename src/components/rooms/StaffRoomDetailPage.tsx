@@ -371,18 +371,7 @@ export function StaffRoomDetailPage() {
                 </Card>
               )}
 
-              {/* Alert for checkout - chỉ hiện khi KHÔNG có inspection banner ở trên (tránh trùng) */}
-              {room.status === 'check_out' && !pendingInspection && (
-                <Alert className="border-orange-500 bg-orange-50 dark:bg-orange-950/30">
-                  <AlertCircle className="h-4 w-4 text-orange-600" />
-                  <AlertDescription className="text-orange-800 dark:text-orange-200">
-                    <span className="font-medium">Khách vừa trả phòng — cần kiểm tra</span>
-                    <p className="text-xs mt-1 opacity-80">
-                      Bấm "Kiểm tra phòng" bên dưới để bắt đầu.
-                    </p>
-                  </AlertDescription>
-                </Alert>
-              )}
+              {/* Alert checkout đã được hợp nhất vào CheckoutInspectionBanner ở trên — không hiển thị lặp */}
             </>
           ) : (
             /* Items Tab */
