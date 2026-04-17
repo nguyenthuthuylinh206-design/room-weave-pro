@@ -2,6 +2,11 @@ import React from 'react';
 import { Button, ButtonProps } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { triggerHaptic } from '@/lib/haptics';
+import {
+  SWIPE_THRESHOLD_PX,
+  SWIPE_VELOCITY_MIN,
+  SWIPE_ANGLE_RATIO,
+} from '@/lib/touch-constants';
 
 // Minimum touch target size: 48x48px (WCAG 2.1 AA)
 export const TOUCH_TARGET_SIZE = 48;
