@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
 import { isCurrentlyOnShift } from './useShiftManagement'
@@ -24,6 +25,31 @@ export interface OnShiftStaffMember {
  */
 export function useOnShiftStaffListAll() {
   const { tenantId } = useUser()
+  const queryClient = useQueryClient()
+
+  // Realtime: cập nhật ngay khi có người vào/ra ca
+  useEffect(() => {
+    if (!tenantId) return
+    const channel = supabase
+      .channel(`on-shift-staff-list-all-${tenantId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'staff_status',
+          filter: `tenant_id=eq.${tenantId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['on-shift-staff-list-all', tenantId] })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [tenantId, queryClient])
 
   return useQuery({
     queryKey: ['on-shift-staff-list-all', tenantId],
@@ -99,6 +125,6 @@ export function useOnShiftStaffListAll() {
       })
     },
     enabled: !!tenantId,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 30 * 1000, // 30s — realtime sẽ invalidate khi có shift thay đổi
   })
 }
