@@ -497,40 +497,36 @@ export function StaffRoomDetailPage() {
           )}
         </div>
 
-        {/* Fixed Bottom Actions */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur border-t safe-area-pb space-y-3">
-          {/* Alert nếu phòng có yêu cầu checkout giao cho nhân viên khác */}
-          {isBlockedFromInspection && (
-            <Alert variant="destructive" className="py-2">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-sm">
-                Phòng đang có yêu cầu kiểm tra checkout giao cho{' '}
-                <span className="font-medium">{roomInspection.assignedUserName || 'nhân viên khác'}</span>.
-                Bạn không được phép kiểm tra phòng này.
-              </AlertDescription>
-            </Alert>
-          )}
-          
-          <div className="flex gap-3">
-            {missingCount > 0 && !isBlockedFromInspection && (
-              <Button 
-                variant="outline"
-                className="flex-1 h-12 gap-2"
-                onClick={() => handleOpenSupplement('missing')}
-              >
-                <Plus className="h-5 w-5" />
-                Bổ sung đồ
-              </Button>
+        {/* Fixed Bottom Actions — ẨN TOÀN BỘ khi có CheckoutInspectionBanner ở trên (chỉ giữ 1 hành động chính) */}
+        {!pendingInspection && (
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur border-t safe-area-pb space-y-3">
+            {/* Alert nếu phòng có yêu cầu checkout giao cho nhân viên khác */}
+            {isBlockedFromInspection && (
+              <Alert variant="destructive" className="py-2">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  Phòng đang có yêu cầu kiểm tra checkout giao cho{' '}
+                  <span className="font-medium">{roomInspection.assignedUserName || 'nhân viên khác'}</span>.
+                  Bạn không được phép kiểm tra phòng này.
+                </AlertDescription>
+              </Alert>
             )}
-            {/* Ẩn nút "Kiểm tra checkout" ở dưới khi đã có CheckoutInspectionBanner ở trên (chỉ giữ 1 nút khởi động) */}
-            {!pendingInspection && (
+            
+            <div className="flex gap-3">
+              {missingCount > 0 && !isBlockedFromInspection && (
+                <Button 
+                  variant="outline"
+                  className="flex-1 h-12 gap-2"
+                  onClick={() => handleOpenSupplement('missing')}
+                >
+                  <Plus className="h-5 w-5" />
+                  Bổ sung đồ
+                </Button>
+              )}
               <Button 
                 className={`h-12 text-base font-semibold gap-2 ${missingCount > 0 && !isBlockedFromInspection ? 'flex-1' : 'w-full'}`}
                 disabled={isLoadingInspection || isLoadingRoomInspection || isBlockedFromInspection}
-                onClick={() => {
-                  console.log('[StaffRoomDetailPage] No pending inspection, navigating to normal check...')
-                  navigate(`/rooms/${id}/check`)
-                }}
+                onClick={() => navigate(`/rooms/${id}/check`)}
               >
                 {(isLoadingInspection || isLoadingRoomInspection) ? (
                   <span className="h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -541,9 +537,9 @@ export function StaffRoomDetailPage() {
                 )}
                 {isBlockedFromInspection ? 'Không có quyền' : t('detail.checkRoom')}
               </Button>
-            )}
+            </div>
           </div>
-        </div>
+        )}
       </PullToRefresh>
       
       {/* Supplement Sheet */}
