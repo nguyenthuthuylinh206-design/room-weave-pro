@@ -1,38 +1,88 @@
 
-User hỏi: "có ảnh hưởng gì không" — về kế hoạch sửa performance đã trình bày trước đó (sửa `sw.ts`, `vite.config.ts`, `useStaffStatus.ts`, bump version 1.0.2).
+User báo: PWA mobile (iPhone) không lưu/gợi ý email + password đã đăng nhập. Mỗi lần phải gõ lại.
 
-## Trả lời: Có 3 ảnh hưởng — đều LÀNH TÍNH
+## Phân tích nguyên nhân
 
-### 1. User hiện tại sẽ bị reload 1 lần (≈3 giây)
-- Vì bump `APP_VERSION` → '1.0.2' → `CacheBuster` phát hiện mismatch → wipe cache + unregister SW cũ → tự reload
-- Trên iPhone PWA: tự reload trong vài giây sau khi mở app
-- Trên web: reload ngay lần load tiếp theo
-- **Không mất dữ liệu** (chỉ clear cache HTTP, không động vào localStorage auth/session)
-- User sẽ thấy popup changelog v1.0.2 sau khi reload xong
+Đã xem `LoginForm.tsx` và `credential-manager.ts`:
 
-### 2. Lần đầu sau update sẽ hơi chậm hơn 1 chút (≈1-2 giây)
-- Vì cache cũ bị xoá sạch → request đầu tiên phải đi network thật
-- Từ lần 2 trở đi: nhanh hơn HẲN vì SW không còn chặn request Supabase nữa
+### Vấn đề #1: iOS Safari/PWA KHÔNG hỗ trợ `PasswordCredential` API
+- `credential-manager.ts` dùng `window.PasswordCredential` → chỉ Chrome/Edge desktop hỗ trợ
+- iOS Safari & PWA standalone mode → API trả về `undefined` → không lưu được
+- iOS dùng **iCloud Keychain** thông qua autofill HTML chuẩn, KHÔNG qua JS API
 
-### 3. Một số tính năng phụ thuộc realtime telegram_connections sẽ refetch chậm hơn
-- Hiện listener này không filter tenant → refetch sai tenant → bỏ đi là đúng
-- Dữ liệu telegram của staff vẫn cập nhật bình thường khi user mở/đóng tab (visibility refetch) hoặc sau staleTime (2 phút)
-- **Không ai mất tính năng nào**
+### Vấn đề #2: Form HTML không đúng chuẩn để Keychain nhận diện
+File `LoginForm.tsx` có vài chỗ sai khiến iOS Keychain không lưu:
 
-## KHÔNG ảnh hưởng đến:
-- ✅ Đăng nhập / phiên đăng nhập (auth không qua SW nữa nên còn ổn định hơn)
-- ✅ Realtime booking, room status, payment (vẫn chạy WebSocket trực tiếp)
-- ✅ Dữ liệu trong DB (không động chạm)
-- ✅ RLS / phân quyền
-- ✅ Edge functions
-- ✅ Mutation (tạo/sửa/xoá booking, room, etc.)
-- ✅ Console logs khi dev (chỉ tắt ở production build)
+1. **`action="#"` + `method="POST"`** → iOS coi đây là form không submit thật → không trigger lưu password. Cần bỏ hoặc dùng `action` thật.
+2. **Email field có `name="username"`** nhưng **type="email"** + label "email" → iOS Keychain confused. Nên dùng `name="email"` hoặc giữ `username` nhưng đảm bảo nhất quán.
+3. **Submit qua `form.handleSubmit(onSubmit)`** với `e.preventDefault()` của react-hook-form → iOS đôi khi không nhận diện đây là "successful login submission" → không prompt lưu.
+4. **Password manager prompt cần navigation thật**: sau submit, iOS chờ navigation/page change để xác nhận login thành công rồi mới prompt lưu. Hiện tại `navigate('/auth/callback')` là client-side routing → iOS không phải lúc nào cũng nhận diện.
 
-## Rủi ro tiềm ẩn (rất thấp)
-- Nếu user đang giữa chừng 1 thao tác khi CacheBuster reload → mất form chưa submit
-  - **Mitigation**: CacheBuster chỉ chạy 1 lần ngay khi mở app, không chạy giữa session
-- Nếu mạng user yếu → lần load đầu sau update có thể chậm 3-5 giây thay vì 1-2 giây
-  - Sau đó vẫn nhanh hơn hiện tại
+### Vấn đề #3: `QuickReLogin` component có thể đang chiếm quyền autofill
+- Khi có `remembered_email` trong localStorage → render `QuickReLogin` thay vì `LoginForm`
+- Cần xem `QuickReLogin.tsx` có đúng chuẩn autofill không
 
-## Tóm lại
-**An toàn để triển khai.** Nếu bạn xác nhận tiếp tục, mình sẽ thực hiện đúng 5 file đã liệt kê trong kế hoạch. Bạn xác nhận triển khai chứ?
+## Giải pháp đề xuất
+
+### Fix 1: Sửa form HTML chuẩn cho iOS Keychain (LoginForm.tsx)
+
+```tsx
+<form 
+  id="login-form"
+  onSubmit={form.handleSubmit(onSubmit)}
+  // BỎ action="#" và method="POST" → để form là pure JS
+>
+  <input 
+    name="email"           // đổi từ "username" → "email"
+    type="email"
+    autoComplete="email username"  // cả 2 để cover mọi trường hợp
+    inputMode="email"
+    autoCapitalize="off"
+    autoCorrect="off"
+    spellCheck={false}
+  />
+  <input
+    name="password"
+    type="password"
+    autoComplete="current-password"
+  />
+</form>
+```
+
+### Fix 2: Thêm hidden username input vào QuickReLogin
+Khi chỉ hiển thị password field, iOS cần một `<input name="email" type="email" autoComplete="username">` (có thể hidden hoặc readonly) để Keychain biết đây là login flow nào.
+
+### Fix 3: Trigger Keychain save bằng cách đúng
+- iOS tự động prompt lưu khi: form có `name="password"` + `autoComplete="current-password"` + submit thành công + có navigation
+- Bỏ `storeCredential()` call trên iOS (chỉ gọi khi `'PasswordCredential' in window`)
+- Đảm bảo form submit đi qua native form submission flow
+
+### Fix 4: Thêm meta tag cho PWA standalone
+`index.html` cần:
+```html
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+```
+(Kiểm tra xem đã có chưa)
+
+### Fix 5: Bump APP_VERSION → 1.0.3
+Để CacheBuster wipe SW cũ, đảm bảo user nhận được fix ngay.
+
+## Files sẽ sửa
+
+| File | Thay đổi |
+|------|---------|
+| `src/components/auth/LoginForm.tsx` | Bỏ `action="#" method="POST"`, đổi `name="username"` → `name="email"`, thêm `inputMode/autoCapitalize/autoCorrect`, chỉ gọi `storeCredential` nếu API tồn tại |
+| `src/components/auth/QuickReLogin.tsx` | Thêm hidden email input với `autoComplete="username"` để Keychain biết account context |
+| `index.html` | Verify meta tags PWA Apple (nếu thiếu thì thêm) |
+| `src/lib/app-version.ts` | Bump `1.0.2` → `1.0.3` |
+| `public/changelog.json` | Entry 1.0.3: "Sửa lưu mật khẩu trên iPhone" |
+
+## Ghi chú quan trọng cho user
+
+Sau khi deploy + reload PWA:
+- Lần đăng nhập tiếp theo, iOS sẽ hỏi "Save Password to Keychain?" → bấm **Save**
+- Lần sau mở app, ô email/password sẽ có gợi ý vàng từ iCloud Keychain → tap để autofill
+- Nếu trước đó đã từ chối lưu: vào Settings → Passwords trên iPhone, xóa entry cũ (nếu có) hoặc đăng nhập lại để iOS hỏi lại
+
+Bạn xác nhận triển khai theo kế hoạch trên?
