@@ -74,7 +74,8 @@ export function useShiftHistory(filters: ShiftHistoryFilters = {}) {
         query = query.lte('start_at', endDate.toISOString())
       }
 
-      const { data, error } = await query.limit(500)
+      // Đợt 3: giảm payload — 500 → 100 dòng/lần load (UI không cần nhiều hơn)
+      const { data, error } = await query.limit(100)
 
       if (error) throw error
       return data as unknown as ShiftHistoryRecord[]

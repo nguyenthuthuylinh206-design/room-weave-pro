@@ -74,7 +74,8 @@ export function useSupplementRequests(filters: SupplementRequestFilters = {}) {
         `)
         .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false })
-        .limit(200)
+        // Đợt 3: 200 → 100 — đủ cho UI list, giảm 50% payload
+        .limit(100)
 
       if (hotelIdToFilter) {
         query = query.eq('hotel_id', hotelIdToFilter)

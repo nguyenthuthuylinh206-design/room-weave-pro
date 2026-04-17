@@ -121,7 +121,8 @@ export function useMaintenanceRequests(filters: MaintenanceFilters = {}) {
         query = query.lte('reported_at', filters.to_date)
       }
 
-      query = query.order('reported_at', { ascending: false }).limit(200)
+      // Đợt 3: 200 → 100 — UI list hiển thị có scroll/filter, không cần 200 dòng cùng lúc
+      query = query.order('reported_at', { ascending: false }).limit(100)
 
       const { data, error } = await query
 

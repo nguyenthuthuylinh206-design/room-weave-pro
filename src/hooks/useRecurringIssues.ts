@@ -27,7 +27,8 @@ export function useRecurringIssues(days: number = 90) {
         `)
         .eq('tenant_id', tenantId)
         .gte('reported_at', cutoffDate.toISOString())
-        .limit(500)
+        // Đợt 3: 500 → 200 — đủ cho phân tích recurring 90 ngày, giảm 60% payload
+        .limit(200)
       
       if (!isAllHotelsMode && selectedHotel?.id) {
         query = query.eq('hotel_id', selectedHotel.id)

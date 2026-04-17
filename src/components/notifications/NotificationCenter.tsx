@@ -66,7 +66,8 @@ export function NotificationCenter({ onClose, onMarkAllRead }: NotificationCente
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(50);
+        // Đợt 3: 50 → 25 — chỉ load batch nhỏ ban đầu, đủ cho dropdown notifications
+        .limit(25);
 
       if (!error && data) {
         setNotifications(data as Notification[]);
