@@ -194,7 +194,8 @@ export function RoomCheckPage() {
   
   const getTotalSteps = () => {
     if (quickMode) return 2
-    if (isCheckoutType) return 5 // Type -> Phase1 Items -> Phase1 Confirm (may auto-skip) -> Phase2 Items -> Review+Cleaning
+    // Checkout 4 bước: Type -> Phase1 Items (mất/hỏng) -> Phase1 Confirm (báo lễ tân) -> Phase2 Items + Mức bẩn (gộp)
+    if (isCheckoutType) return 4
     if (isDeliveryType) return 3 // Type -> DeliveryItems/Cleaning -> Review
     if (isReplenishType) return 3 // Type -> Items+Cleaning -> Review
     return 3 // Type -> Items -> Review
@@ -1336,14 +1337,8 @@ export function RoomCheckPage() {
               )}
               {currentStep === 4 && !quickMode && isCheckoutType && (
                 <div className="bg-muted/50 rounded-lg px-3 py-2 text-sm text-muted-foreground">
-                  <p className="font-medium text-foreground">Bước 2/2: Ghi đồ cần thay & dọn</p>
-                  <p className="text-xs mt-0.5">Ghi rõ đồ nào cần <strong>giặt, thay, bổ sung</strong>. Ca sau sẽ nhận phiếu này và mang đồ đến dọn.</p>
-                </div>
-              )}
-              {currentStep === 5 && !quickMode && isCheckoutType && (
-                <div className="bg-muted/50 rounded-lg px-3 py-2 text-sm text-muted-foreground">
-                  <p className="font-medium text-foreground">Xem lại & hoàn tất</p>
-                  <p className="text-xs mt-0.5">Đánh giá độ sạch và xác nhận tạo phiếu cho ca sau.</p>
+                  <p className="font-medium text-foreground">Bước 2/2: Ghi đồ cần thay & mức bẩn</p>
+                  <p className="text-xs mt-0.5">Ghi rõ đồ nào cần <strong>giặt, thay, bổ sung</strong> và chọn mức bẩn của phòng. Ca sau sẽ nhận phiếu này và mang đồ đến dọn.</p>
                 </div>
               )}
 
@@ -1433,24 +1428,23 @@ export function RoomCheckPage() {
                   />
                 </div>
               )}
-              {/* Step 4 for Checkout: Phase 2 Items (bổ sung/giặt/thay) */}
+              {/* Step 4 (cuối) for Checkout: Phase 2 Items (bổ sung/giặt/thay) + Mức bẩn (gộp).
+                  Bấm "Hoàn thành" sẽ mở dialog xác nhận tạo phiếu cho ca sau. */}
               {currentStep === 4 && !quickMode && isCheckoutType && (
-                <ItemsCheckStep 
-                  form={form} 
-                  items={items} 
-                  roomId={id!}
-                  hotelId={room.hotel_id}
-                  tenantId={room.tenant_id}
-                  bookingId={currentBooking?.id || null}
-                  checkType={watchedCheckType as 'daily' | 'checkin' | 'checkout' | 'maintenance'}
-                  phase={2}
-                  onQuantitiesChange={setItemQuantities}
-                />
-              )}
-              {/* Step 5 for Checkout: chỉ giữ CleaningRequestStep (mức bẩn + ghi chú).
-                  ĐÃ BỎ ReviewStep chấm sao 1-5 vì trùng với mức bẩn cô đã chọn ở đây. */}
-              {currentStep === 5 && !quickMode && isCheckoutType && (
-                <CleaningRequestStep form={form} />
+                <div className="space-y-6">
+                  <ItemsCheckStep 
+                    form={form} 
+                    items={items} 
+                    roomId={id!}
+                    hotelId={room.hotel_id}
+                    tenantId={room.tenant_id}
+                    bookingId={currentBooking?.id || null}
+                    checkType={watchedCheckType as 'daily' | 'checkin' | 'checkout' | 'maintenance'}
+                    phase={2}
+                    onQuantitiesChange={setItemQuantities}
+                  />
+                  <CleaningRequestStep form={form} />
+                </div>
               )}
               {/* Review Step - adjusts based on check type */}
               {((currentStep === 2 && quickMode) || 

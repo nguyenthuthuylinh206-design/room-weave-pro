@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useUser } from '@/hooks/useUser'
 import { 
   ArrowLeft,
   ClipboardCheck, 
@@ -57,8 +58,16 @@ export function StaffRoomDetailPage() {
   const { t } = useTranslation(['rooms', 'common'])
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { hasAnyRole } = useUser()
   const { data, isLoading, refetch } = useRoom(id)
   const { data: booking } = useRoomBooking(id)
+  
+  // Staff (buồng phòng) vào từ /my-tasks → back về /my-tasks để bốc việc tiếp
+  // Manager/Owner vào từ /rooms → back về /rooms quản lý
+  const isManager = hasAnyRole(['super_admin', 'owner', 'hotel_manager', 'department_manager'])
+  const handleHeaderBack = () => {
+    navigate(isManager ? '/rooms' : '/my-tasks')
+  }
   
   // Checkout inspection (assigned cho tôi)
   const { 
@@ -190,7 +199,7 @@ export function StaffRoomDetailPage() {
       <div className="flex flex-col min-h-screen bg-background">
         <div className="sticky top-0 z-10 bg-background border-b px-4 py-3">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/rooms')}>
+            <Button variant="ghost" size="icon" onClick={handleHeaderBack}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <h1 className="text-lg font-semibold">{t('roomDetail')}</h1>
@@ -199,7 +208,7 @@ export function StaffRoomDetailPage() {
         <div className="flex-1 flex flex-col items-center justify-center p-6">
           <AlertCircle className="h-12 w-12 text-muted-foreground" />
           <h3 className="mt-4 text-lg font-semibold">{t('detail.notFound')}</h3>
-          <Button onClick={() => navigate('/rooms')} className="mt-4">
+          <Button onClick={handleHeaderBack} className="mt-4">
             {t('detail.backToList')}
           </Button>
         </div>
@@ -232,7 +241,7 @@ export function StaffRoomDetailPage() {
         <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => navigate('/rooms')}>
+              <Button variant="ghost" size="icon" onClick={handleHeaderBack}>
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div>
