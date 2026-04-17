@@ -222,6 +222,18 @@
     "missingQuantity": "Tổng cộng {{count}} món cần bổ sung",
     "missingItemsList": "Danh sách thiếu",
     "andMore": "+{{count}} đồ khác",
+    "missingTypes": "{{count}} loại",
+    "missingItems": "Tổng {{count}} món",
+    "noItemsDescription": "Nhấn nút đồng bộ ở trên để thêm đồ dùng theo tiêu chuẩn phòng {{type}}.",
+    "itemsInRoom": "Đồ dùng trong phòng",
+    "checkHistory": "Lịch sử kiểm tra",
+    "quickActions": "Thao tác nhanh",
+    "checkType": {
+      "daily": "Kiểm tra hàng ngày",
+      "checkin": "Kiểm tra check-in",
+      "checkout": "Kiểm tra check-out",
+      "maintenance": "Kiểm tra bảo trì"
+    },
     "guestStatus": {
       "checkedIn": "Đang ở",
       "confirmed": "Đã đặt"
