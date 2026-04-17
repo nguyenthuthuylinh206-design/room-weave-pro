@@ -25,6 +25,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useUser } from '@/hooks/useUser'
 import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
 import { MobileModuleCard } from '@/components/mobile'
+import { APP_VERSION } from '@/lib/app-version'
 
 interface ModuleItem {
   icon: typeof Package
@@ -148,7 +149,7 @@ export function MorePage() {
             <CardContent className="p-4 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Phiên bản</span>
-                <span className="font-medium">v1.0.0</span>
+                <span className="font-medium">v{APP_VERSION}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Người dùng</span>

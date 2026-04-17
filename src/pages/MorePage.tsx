@@ -22,6 +22,7 @@ import { useUser } from '@/hooks/useUser'
 import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
 import { cn } from '@/lib/utils'
 import { isAdminUser } from '@/lib/userAccess'
+import { APP_VERSION } from '@/lib/app-version'
 
 interface MenuItem {
   icon: typeof Settings
@@ -231,7 +232,7 @@ export default function MorePage() {
       {/* Version Info */}
       <div className="max-w-screen-xl mx-auto px-4 py-4 text-center">
         <p className="text-xs text-muted-foreground">
-          Room Weave Pro v1.0.0
+          Room Weave Pro v{APP_VERSION}
         </p>
       </div>
     </div>

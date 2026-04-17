@@ -1,13 +1,14 @@
 import { useEffect } from 'react';
+import { APP_VERSION } from '@/lib/app-version';
 
 /**
  * CacheBuster — force-clear stale caches & service workers for users stuck
  * on an old build (common on iOS PWAs that aggressively keep old assets).
  *
- * Bump CURRENT_VERSION on every release to trigger a one-time wipe + reload
- * for clients still running an older version.
+ * Version is sourced from src/lib/app-version.ts — bump APP_VERSION there
+ * on every release to trigger a one-time wipe + reload for old clients.
  */
-const CURRENT_VERSION = '2026.04.17.2';
+const CURRENT_VERSION = APP_VERSION;
 const STORAGE_KEY = 'app_version';
 
 export function CacheBuster() {
