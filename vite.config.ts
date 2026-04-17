@@ -76,6 +76,9 @@ export default defineConfig(({ mode }) => ({
       },
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // Exclude very large lazy chunks (e.g. wasm scanners) from precache.
+        // They will still be cached at runtime when first used.
+        globIgnores: ['**/wasm-*.js', '**/*.wasm'],
         maximumFileSizeToCacheInBytes: 2 * 1024 * 1024, // 2MB — pair with code-splitting
       },
       devOptions: {
