@@ -34,6 +34,7 @@ import {
 import { cn } from '@/lib/utils'
 import { supabase } from '@/integrations/supabase/client'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
+import { useUser } from '@/hooks/useUser'
 import { AddToLaundryBatchDialog } from './AddToLaundryBatchDialog'
 import { SendLaundryBatchDialog } from './SendLaundryBatchDialog'
 
@@ -47,6 +48,7 @@ export function LaundryRequestsTab() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
+  const { tenantId } = useUser()
   const [selectedRequest, setSelectedRequest] = useState<LaundryRequest | null>(null)
   const [confirmDialogRequest, setConfirmDialogRequest] = useState<LaundryRequest | null>(null)
   const [sendBatchDialogOpen, setSendBatchDialogOpen] = useState(false)
@@ -92,29 +94,51 @@ export function LaundryRequestsTab() {
     }
   }
   
-  // Realtime subscription
+  // Realtime subscription (filter theo tenant + pause khi tab ẩn)
   useEffect(() => {
-    const channel = supabase
-      .channel('laundry-requests-changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'laundry_requests' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['laundry-requests'] })
-          queryClient.invalidateQueries({ queryKey: ['laundry-requests-pending-count'] })
-        }
-      )
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'laundry_batches' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['draft-laundry-batch'] })
-        }
-      )
-      .subscribe()
-    
-    return () => { 
-      supabase.removeChannel(channel) 
+    if (!tenantId) return
+    let channel: ReturnType<typeof supabase.channel> | null = null
+
+    const subscribe = () => {
+      if (channel) return
+      channel = supabase
+        .channel(`laundry-requests-${tenantId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'laundry_requests', filter: `tenant_id=eq.${tenantId}` },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ['laundry-requests'] })
+            queryClient.invalidateQueries({ queryKey: ['laundry-requests-pending-count'] })
+          }
+        )
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'laundry_batches', filter: `tenant_id=eq.${tenantId}` },
+          () => queryClient.invalidateQueries({ queryKey: ['draft-laundry-batch'] })
+        )
+        .subscribe()
     }
-  }, [queryClient])
+
+    const unsubscribe = () => {
+      if (channel) { supabase.removeChannel(channel); channel = null }
+    }
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        subscribe()
+        queryClient.invalidateQueries({ queryKey: ['laundry-requests'] })
+        queryClient.invalidateQueries({ queryKey: ['draft-laundry-batch'] })
+      } else {
+        unsubscribe()
+      }
+    }
+
+    if (document.visibilityState === 'visible') subscribe()
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
+      unsubscribe()
+    }
+  }, [tenantId, queryClient])
   
   // Open confirmation dialog before adding to batch
   const handleOpenConfirmDialog = (request: LaundryRequest) => {
