@@ -10,5 +10,5 @@
  * → CacheBuster sẽ tự wipe cache cũ + reload PWA trên iPhone
  * → PWAUpdatePrompt sẽ tự hiện popup với changelog mới
  */
-export const APP_VERSION = '1.0.1';
+export const APP_VERSION = '1.0.2';
 export const APP_VERSION_DATE = '2026-04-17';
