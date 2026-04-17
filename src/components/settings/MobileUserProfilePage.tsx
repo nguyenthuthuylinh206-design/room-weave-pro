@@ -1,104 +1,75 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { useUser } from '@/hooks/useUser'
+import { useProfile } from '@/hooks/useProfile'
 import { MobileDetailHeader } from '@/components/layout/MobileDetailHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { User, Mail, Lock, Save, MessageCircle } from 'lucide-react'
-import { toast } from 'sonner'
-import { supabase } from '@/integrations/supabase/client'
+import { User, Mail, Lock, Save, MessageCircle, Loader2 } from 'lucide-react'
 import { TelegramConnectionCard } from '@/components/profile/TelegramConnectionCard'
+import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter'
+import {
+  profileFormSchema,
+  ProfileFormData,
+  changePasswordSchema,
+  ChangePasswordData,
+} from '@/lib/validations/user.schemas'
 
-const profileSchema = z.object({
-  full_name: z.string().min(2, 'Tên phải có ít nhất 2 ký tự'),
-  email: z.string().email('Email không hợp lệ'),
-})
-
-const passwordSchema = z.object({
-  currentPassword: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
-  newPassword: z.string().min(6, 'Mật khẩu mới phải có ít nhất 6 ký tự'),
-  confirmPassword: z.string().min(6, 'Xác nhận mật khẩu phải có ít nhất 6 ký tự'),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: 'Mật khẩu xác nhận không khớp',
-  path: ['confirmPassword'],
-})
-
-type ProfileFormData = z.infer<typeof profileSchema>
-type PasswordFormData = z.infer<typeof passwordSchema>
+const getUserLevelLabel = (code?: string | null) => {
+  switch (code) {
+    case 'super_admin':
+      return 'Quản trị hệ thống'
+    case 'tenant_owner':
+      return 'Chủ khách sạn'
+    case 'manager':
+      return 'Quản lý'
+    case 'staff':
+      return 'Nhân viên'
+    default:
+      return code || 'Chưa xác định'
+  }
+}
 
 export const MobileUserProfilePage = () => {
   const navigate = useNavigate()
-  const { user, refetch } = useUser()
-  const [isUpdating, setIsUpdating] = useState(false)
-  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const { user } = useUser()
+  const { updateProfile, changePassword, isUpdating, isChangingPassword } = useProfile()
 
-  const {
-    register: registerProfile,
-    handleSubmit: handleSubmitProfile,
-    formState: { errors: profileErrors },
-  } = useForm<ProfileFormData>({
-    resolver: zodResolver(profileSchema),
-    defaultValues: {
-      full_name: user?.full_name || '',
-      email: user?.email || '',
+  const profileForm = useForm<ProfileFormData>({
+    resolver: zodResolver(profileFormSchema),
+    values: {
+      fullName: user?.full_name || '',
+      phone: user?.phone || '',
+      avatarUrl: user?.avatar_url || '',
     },
   })
 
-  const {
-    register: registerPassword,
-    handleSubmit: handleSubmitPassword,
-    reset: resetPassword,
-    formState: { errors: passwordErrors },
-  } = useForm<PasswordFormData>({
-    resolver: zodResolver(passwordSchema),
+  const passwordForm = useForm<ChangePasswordData>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
   })
 
-  const onUpdateProfile = async (data: ProfileFormData) => {
-    if (!user?.id) return
+  const newPassword = passwordForm.watch('newPassword')
 
-    setIsUpdating(true)
-    try {
-      const { error } = await supabase
-        .from('users')
-        .update({
-          full_name: data.full_name,
-          email: data.email,
-        })
-        .eq('id', user.id)
-
-      if (error) throw error
-
-      await refetch()
-      toast.success('Cập nhật thông tin thành công!')
-    } catch (error) {
-      toast.error('Lỗi khi cập nhật thông tin')
-    } finally {
-      setIsUpdating(false)
-    }
+  const onUpdateProfile = (data: ProfileFormData) => {
+    updateProfile({
+      full_name: data.fullName,
+      phone: data.phone || undefined,
+      avatar_url: data.avatarUrl || undefined,
+    })
   }
 
-  const onChangePassword = async (data: PasswordFormData) => {
-    setIsChangingPassword(true)
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: data.newPassword,
-      })
-
-      if (error) throw error
-
-      resetPassword()
-      toast.success('Đổi mật khẩu thành công!')
-    } catch (error) {
-      toast.error('Lỗi khi đổi mật khẩu')
-    } finally {
-      setIsChangingPassword(false)
-    }
+  const onChangePassword = (data: ChangePasswordData) => {
+    changePassword(data.newPassword)
+    passwordForm.reset()
   }
 
   return (
@@ -119,19 +90,23 @@ export const MobileUserProfilePage = () => {
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Cấp bậc:</span>
-              <Badge variant="secondary">{user?.user_level_code}</Badge>
+              <span className="text-muted-foreground">Email:</span>
+              <span className="font-medium text-xs break-all text-right">{user?.email}</span>
             </div>
-            {user?.hotel_id && (
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Cấp bậc:</span>
+              <Badge variant="secondary">{getUserLevelLabel(user?.user_level_code)}</Badge>
+            </div>
+            {user?.hotel?.name && (
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Khách sạn:</span>
-                <span className="font-medium text-xs">{user.hotel_id}</span>
+                <span className="font-medium text-xs text-right">{user.hotel.name}</span>
               </div>
             )}
-            {user?.position_id && (
+            {user?.position?.name && (
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Vị trí:</span>
-                <span className="font-medium text-xs">{user.position_id}</span>
+                <span className="font-medium text-xs text-right">{user.position.name}</span>
               </div>
             )}
           </CardContent>
@@ -146,29 +121,42 @@ export const MobileUserProfilePage = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmitProfile(onUpdateProfile)} className="space-y-4">
+            <form onSubmit={profileForm.handleSubmit(onUpdateProfile)} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="full_name">Họ và tên</Label>
+                <Label htmlFor="fullName">Họ và tên</Label>
                 <Input
-                  id="full_name"
+                  id="fullName"
                   placeholder="Nguyễn Văn A"
-                  {...registerProfile('full_name')}
+                  {...profileForm.register('fullName')}
                 />
-                {profileErrors.full_name && (
-                  <p className="text-xs text-destructive">{profileErrors.full_name.message}</p>
+                {profileForm.formState.errors.fullName && (
+                  <p className="text-xs text-destructive">{profileForm.formState.errors.fullName.message}</p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="phone">Số điện thoại</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="email@example.com"
-                  {...registerProfile('email')}
+                  id="phone"
+                  type="tel"
+                  placeholder="0901234567"
+                  {...profileForm.register('phone')}
                 />
-                {profileErrors.email && (
-                  <p className="text-xs text-destructive">{profileErrors.email.message}</p>
+                {profileForm.formState.errors.phone && (
+                  <p className="text-xs text-destructive">{profileForm.formState.errors.phone.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="avatarUrl">URL ảnh đại diện</Label>
+                <Input
+                  id="avatarUrl"
+                  type="url"
+                  placeholder="https://..."
+                  {...profileForm.register('avatarUrl')}
+                />
+                {profileForm.formState.errors.avatarUrl && (
+                  <p className="text-xs text-destructive">{profileForm.formState.errors.avatarUrl.message}</p>
                 )}
               </div>
 
@@ -177,7 +165,7 @@ export const MobileUserProfilePage = () => {
                 className="w-full"
                 disabled={isUpdating}
               >
-                <Save className="h-4 w-4 mr-2" />
+                {isUpdating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                 {isUpdating ? 'Đang lưu...' : 'Lưu thay đổi'}
               </Button>
             </form>
@@ -193,16 +181,16 @@ export const MobileUserProfilePage = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmitPassword(onChangePassword)} className="space-y-4">
+            <form onSubmit={passwordForm.handleSubmit(onChangePassword)} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="currentPassword">Mật khẩu hiện tại</Label>
                 <Input
                   id="currentPassword"
                   type="password"
-                  {...registerPassword('currentPassword')}
+                  {...passwordForm.register('currentPassword')}
                 />
-                {passwordErrors.currentPassword && (
-                  <p className="text-xs text-destructive">{passwordErrors.currentPassword.message}</p>
+                {passwordForm.formState.errors.currentPassword && (
+                  <p className="text-xs text-destructive">{passwordForm.formState.errors.currentPassword.message}</p>
                 )}
               </div>
 
@@ -211,10 +199,11 @@ export const MobileUserProfilePage = () => {
                 <Input
                   id="newPassword"
                   type="password"
-                  {...registerPassword('newPassword')}
+                  {...passwordForm.register('newPassword')}
                 />
-                {passwordErrors.newPassword && (
-                  <p className="text-xs text-destructive">{passwordErrors.newPassword.message}</p>
+                <PasswordStrengthMeter password={newPassword} />
+                {passwordForm.formState.errors.newPassword && (
+                  <p className="text-xs text-destructive">{passwordForm.formState.errors.newPassword.message}</p>
                 )}
               </div>
 
@@ -223,10 +212,10 @@ export const MobileUserProfilePage = () => {
                 <Input
                   id="confirmPassword"
                   type="password"
-                  {...registerPassword('confirmPassword')}
+                  {...passwordForm.register('confirmPassword')}
                 />
-                {passwordErrors.confirmPassword && (
-                  <p className="text-xs text-destructive">{passwordErrors.confirmPassword.message}</p>
+                {passwordForm.formState.errors.confirmPassword && (
+                  <p className="text-xs text-destructive">{passwordForm.formState.errors.confirmPassword.message}</p>
                 )}
               </div>
 
@@ -236,7 +225,7 @@ export const MobileUserProfilePage = () => {
                 variant="secondary"
                 disabled={isChangingPassword}
               >
-                <Lock className="h-4 w-4 mr-2" />
+                {isChangingPassword ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Lock className="h-4 w-4 mr-2" />}
                 {isChangingPassword ? 'Đang đổi...' : 'Đổi mật khẩu'}
               </Button>
             </form>
