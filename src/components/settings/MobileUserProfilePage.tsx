@@ -40,8 +40,10 @@ const getUserLevelLabel = (code?: string | null) => {
 
 export const MobileUserProfilePage = () => {
   const navigate = useNavigate()
-  const { user } = useUser()
+  const { user, refetch } = useUser()
   const { updateProfile, changePassword, isUpdating, isChangingPassword } = useProfile()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
 
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileFormSchema),
@@ -62,6 +64,49 @@ export const MobileUserProfilePage = () => {
   })
 
   const newPassword = passwordForm.watch('newPassword')
+  const currentAvatarUrl = profileForm.watch('avatarUrl')
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !user?.id) return
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Vui lòng chọn tệp ảnh')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Kích thước ảnh tối đa 5MB')
+      return
+    }
+
+    setIsUploadingAvatar(true)
+    try {
+      const ext = file.name.split('.').pop() || 'jpg'
+      const filePath = `${user.id}/avatar-${Date.now()}.${ext}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true, cacheControl: '3600' })
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath)
+
+      profileForm.setValue('avatarUrl', publicUrl, { shouldDirty: true })
+
+      await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', user.id)
+      await refetch()
+
+      toast.success('Tải ảnh đại diện thành công')
+    } catch (err: any) {
+      toast.error('Lỗi khi tải ảnh: ' + (err.message || 'Không xác định'))
+    } finally {
+      setIsUploadingAvatar(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
 
   const onUpdateProfile = (data: ProfileFormData) => {
     updateProfile({
