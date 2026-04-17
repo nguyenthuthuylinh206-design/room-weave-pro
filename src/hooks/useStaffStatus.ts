@@ -151,59 +151,60 @@ export function useStaffStatus() {
     return () => clearInterval(interval)
   }, [user?.id, tenantId])
 
-  // Subscribe to realtime changes for staff_status, telegram_connections, and users
+  // Subscribe to realtime changes (gộp 1 channel + visibility pause)
   useEffect(() => {
     if (!tenantId) return
+    let channel: ReturnType<typeof supabase.channel> | null = null
 
-    const channel = supabase
-      .channel(`staff-status-${tenantId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'staff_status',
-          filter: `tenant_id=eq.${tenantId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({
-            queryKey: ['staff-status', tenantId],
-          })
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'telegram_connections',
-        },
-        () => {
-          // Telegram connection changed - refresh staff list
-          queryClient.invalidateQueries({
-            queryKey: ['staff-status', tenantId],
-          })
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'users',
-          filter: `tenant_id=eq.${tenantId}`,
-        },
-        () => {
-          // User updated (e.g., telegram_username) - refresh staff list
-          queryClient.invalidateQueries({
-            queryKey: ['staff-status', tenantId],
-          })
-        }
-      )
-      .subscribe()
-
+    const subscribe = () => {
+      if (channel) return
+      channel = supabase
+        .channel(`staff-status-${tenantId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'staff_status',
+            filter: `tenant_id=eq.${tenantId}`,
+          },
+          () => queryClient.invalidateQueries({ queryKey: ['staff-status', tenantId] })
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'users',
+            filter: `tenant_id=eq.${tenantId}`,
+          },
+          () => queryClient.invalidateQueries({ queryKey: ['staff-status', tenantId] })
+        )
+        // telegram_connections không có cột tenant_id → bắt buộc filter ở client side
+        // Tạm thời lắng nghe toàn bảng nhưng chỉ refetch — không xử lý dữ liệu chéo tenant
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'telegram_connections',
+          },
+          () => queryClient.invalidateQueries({ queryKey: ['staff-status', tenantId] })
+        )
+        .subscribe()
+    }
+    const unsubscribe = () => { if (channel) { supabase.removeChannel(channel); channel = null } }
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        subscribe()
+        queryClient.invalidateQueries({ queryKey: ['staff-status', tenantId] })
+      } else { unsubscribe() }
+    }
+    if (document.visibilityState === 'visible') subscribe()
+    document.addEventListener('visibilitychange', handleVisibility)
     return () => {
-      supabase.removeChannel(channel)
+      document.removeEventListener('visibilitychange', handleVisibility)
+      unsubscribe()
     }
   }, [tenantId, queryClient])
 
