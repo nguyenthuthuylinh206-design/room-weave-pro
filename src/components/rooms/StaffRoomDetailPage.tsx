@@ -293,98 +293,44 @@ export function StaffRoomDetailPage() {
         <div className="flex-1 p-4 space-y-4 pb-24">
           {activeTab === 'overview' ? (
             <>
-              {/* Item Status Card */}
-              <Card className={isItemsComplete ? 'border-green-500/50 bg-green-50/30 dark:bg-green-950/20' : 'border-amber-500/50 bg-amber-50/30 dark:bg-amber-950/20'}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center gap-2">
-                    <Package className="h-5 w-5 text-muted-foreground" />
-                    <CardTitle className="text-base">{t('detail.itemsInRoom')}</CardTitle>
+              {/* Item Status — compact one-line */}
+              {totalItemsInRoom === 0 ? (
+                <div className="flex items-center gap-3 p-3 rounded-lg border border-amber-500/50 bg-amber-50/30 dark:bg-amber-950/20">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+                      Phòng chưa thiết lập danh sách đồ chuẩn
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Liên hệ quản lý để thêm đồ vào phòng
+                    </p>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Status Summary */}
+                </div>
+              ) : isItemsComplete ? (
+                <div className="flex items-center gap-3 p-3 rounded-lg border border-green-500/50 bg-green-50/30 dark:bg-green-950/20">
+                  <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
+                  <p className="text-sm font-semibold text-green-700 dark:text-green-400">
+                    Đầy đủ {totalItemsInRoom} món
+                  </p>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('items')}
+                  className="w-full flex items-center justify-between gap-3 p-3 rounded-lg border border-amber-500/50 bg-amber-50/30 dark:bg-amber-950/20 text-left hover:bg-amber-50/50"
+                >
                   <div className="flex items-center gap-3">
-                    {isItemsComplete ? (
-                      <>
-                        <CheckCircle2 className="h-10 w-10 text-green-600" />
-                        <div>
-                          <p className="text-lg font-bold text-green-700 dark:text-green-400">
-                            {t('detail.allItemsComplete')}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {totalItemsInRoom} {t('detail.itemsTotal')}
-                          </p>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="h-10 w-10 text-amber-600" />
-                        <div>
-                          <p className="text-lg font-bold text-amber-700 dark:text-amber-400">
-                            {missingCount} {t('detail.itemsMissing')}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {t('detail.missingQuantity', { count: totalMissingQuantity })}
-                          </p>
-                        </div>
-                      </>
-                    )}
+                    <XCircle className="h-5 w-5 text-amber-600 flex-shrink-0" />
+                    <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+                      Thiếu {missingCount}/{standardItems.length} món
+                      <span className="ml-2 text-xs font-normal text-muted-foreground">
+                        ({totalMissingQuantity} cái)
+                      </span>
+                    </p>
                   </div>
-
-                  {/* Stats by Type */}
-                  <div className="grid grid-cols-4 gap-2">
-                    {(['linen', 'consumable', 'equipment', 'furniture'] as ItemType[]).map(type => (
-                      <div key={type} className="text-center p-2 bg-background rounded border">
-                        <div className="flex justify-center text-muted-foreground mb-1">
-                          {ITEM_TYPE_ICONS[type]}
-                        </div>
-                        <p className="text-lg font-bold">{countByType(type)}</p>
-                        <p className="text-[10px] text-muted-foreground truncate">{ITEM_TYPE_LABELS[type]}</p>
-                        {missingByType(type) > 0 && (
-                          <Badge variant="destructive" className="text-[10px] px-1 mt-1">
-                            -{missingByType(type)}
-                          </Badge>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Missing Items Quick List */}
-                  {missingCount > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-muted-foreground">
-                        {t('detail.missingItemsList')}:
-                      </p>
-                      <div className="space-y-1">
-                        {standardItems
-                          .filter(item => item.missing_quantity > 0)
-                          .slice(0, 5)
-                          .map(item => (
-                            <div 
-                              key={item.item_id} 
-                              className="flex items-center justify-between p-2 bg-background rounded border"
-                            >
-                              <span className="text-sm">{item.item_name}</span>
-                              <Badge variant="destructive" className="text-xs">
-                                -{item.missing_quantity}
-                              </Badge>
-                            </div>
-                          ))}
-                        {standardItems.filter(item => item.missing_quantity > 0).length > 5 && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="w-full text-xs"
-                            onClick={() => setActiveTab('items')}
-                          >
-                            Xem thêm {standardItems.filter(item => item.missing_quantity > 0).length - 5} mục...
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </button>
+              )}
 
               {/* Guest Info Card */}
               {booking && (
