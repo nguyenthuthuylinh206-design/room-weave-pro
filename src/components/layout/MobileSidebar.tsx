@@ -334,7 +334,7 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
       </div>
 
       {/* Sign Out */}
-      <div className="p-4 border-t">
+      <div className="p-4 border-t safe-area-bottom">
         <Button
           variant="ghost"
           className="w-full justify-start gap-3 h-11 text-destructive hover:text-destructive hover:bg-destructive/10"
