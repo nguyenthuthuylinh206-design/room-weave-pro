@@ -1,69 +1,47 @@
 
 
-## Đợt 3 bổ sung + sót Đợt 2 — Phương án AN TOÀN TUYỆT ĐỐI cho dữ liệu
+## Sửa trang /settings/profile (mobile)
 
-### Nguyên tắc
-Bạn lo cắt cột `select('*')` có thể làm mất field → component vỡ hoặc tính toán sai (giá tiền, công nợ, trạng thái phòng). **Mình loại bỏ hoàn toàn rủi ro đó** bằng cách KHÔNG đụng vào select ở các hook tài chính/booking nhạy cảm.
+### Vấn đề phát hiện
+1. **Thiếu trường SĐT** — desktop có, mobile không có
+2. **Thiếu trường URL ảnh đại diện** — desktop có, mobile không
+3. **Email cho sửa được** — desktop disable (đúng), mobile cho edit (sai — update bảng `users` không sync với `auth.users`, gây lệch dữ liệu)
+4. **Cấp bậc hiển thị raw** `tenant_owner` thay vì **"Chủ khách sạn"**
+5. **Khách sạn hiển thị UUID** thay vì tên khách sạn (dữ liệu `user.hotel.name` đã có sẵn từ `useUser`)
+6. **Vị trí hiển thị UUID** — `useUser` chưa join bảng `positions`
+7. **Mật khẩu yếu** — schema mobile chỉ min 6 ký tự, desktop yêu cầu 8+ với chữ hoa/thường/số/ký tự đặc biệt → không đồng nhất, kém bảo mật
+8. **Trùng lặp** — `MobileUserProfilePage` viết lại schema/logic riêng thay vì dùng `useProfile` + `profileFormSchema` như desktop
 
----
+### Phương án sửa (an toàn, không đổi DB/logic)
 
-### Phạm vi điều chỉnh (so với plan trước)
+**A. `MobileUserProfilePage.tsx` — refactor dùng chung hook/schema với desktop**
+- Dùng `useProfile()` thay cho gọi `supabase.from('users').update()` trực tiếp (thống nhất logic, có toast/invalidate sẵn)
+- Dùng `profileFormSchema` và `changePasswordSchema` từ `src/lib/validations/user.schemas.ts` (thống nhất validation)
+- Bỏ trường email khỏi form (để hiển thị read-only như desktop)
+- **Thêm trường**: SĐT, URL ảnh đại diện
+- **Sửa hiển thị thông tin hiện tại**:
+  - Cấp bậc: dùng `getUserLevelLabel(user)` từ `lib/userAccess.ts` → "Chủ khách sạn" / "Quản lý" / "Nhân viên"
+  - Khách sạn: hiển thị `user.hotel?.name` (đã có sẵn)
+  - Vị trí: ẩn nếu chưa join được tên (xem mục B)
+- Xác nhận mật khẩu: dùng `changePasswordSchema` mạnh (8+, hoa/thường/số/ký tự đặc biệt) — đồng nhất với desktop
 
-**❌ BỎ (vì rủi ro dữ liệu):**
-- ~~Cắt `select('*')` ở `useBookings.ts`~~ — liên quan tiền/checkout, không động
-- ~~Cắt `select('*')` ở `useBookingPayments.ts`~~ — tài chính, không động
-- ~~Cắt `select('*')` ở `useRoomChecks.ts`~~ — items_lost/damaged ảnh hưởng kho + tính phí
-- ~~Cắt `select('*')` ở `useMaintenanceRequests.ts`~~ — giữ nguyên
-- ~~Cắt `select('*')` ở `useUnifiedTasks.ts`~~ — giữ nguyên
-- ~~Server-side pagination `BookingsPage`~~ — đụng query logic phức tạp, dễ sai bộ lọc
-- ~~Tách hook list/detail~~ — tăng complexity, dễ regression
+**B. `useUser.ts` — bổ sung join position (1 dòng, an toàn)**
+- Thêm `position:positions!users_position_id_fkey(id, name)` vào select
+- Hiển thị `user.position?.name` ở mobile profile
+- Không đổi shape khác, không ảnh hưởng component nào đang dùng `user`
 
-**✅ GIỮ (an toàn 100%, KHÔNG đổi data shape):**
-
-**1. Sót Đợt 2 — A1: `SubscriptionPaymentPage.tsx`**
-- CHỈ thêm filter `tenant_id=eq.${tenantId}` vào channel hiện có
-- Không đụng query, không đổi data
-- Rủi ro: 0 (chỉ giảm event nhận về, query vẫn fetch full)
-
-**2. Sót Đợt 2 — A2: `GroupCheckoutDialog`**
-- Bỏ `refetchInterval: 10s`
-- Thêm realtime subscription `booking_payments` filter theo `booking_id IN (...)` của group
-- onMount: invalidate 1 lần để fetch snapshot mới
-- Khi tab visible trở lại: invalidate
-- Rủi ro: 0 — vẫn dùng cùng query, chỉ đổi trigger refetch
-
-**3. Chỉ cắt `select('*')` ở 1 hook DUY NHẤT — `useNotifications.ts`**
-- Notification list KHÔNG ảnh hưởng tài chính/kho
-- Trước khi cắt: grep mọi `notification.field` để liệt kê field đang dùng
-- Giữ TẤT CẢ field đang được component đọc, chỉ bỏ cột `data` (JSON lớn) **NẾU** không có usage
-- Nếu có bất kỳ usage nào → giữ nguyên `select('*')`, bỏ qua hook này luôn
-- Rủi ro: cực thấp (đã grep + chỉ là notification)
-
-### Quy trình bảo vệ dữ liệu
-
-Trước mỗi thay đổi:
-1. **Grep usage** field trên toàn project
-2. Nếu có ≥1 usage không chắc chắn → **giữ nguyên select**, không cắt
-3. Sau khi sửa → đọc lại file để đảm bảo type vẫn khớp
-4. Không tách hook, không đổi shape return
-
-### Ảnh hưởng dữ liệu (cuối cùng)
-
-| Khu vực | Trước | Sau | Rủi ro |
-|---|---|---|---|
-| Subscription payment realtime | nhận event mọi tenant | chỉ tenant mình | 0 — chỉ chính xác hơn |
-| GroupCheckoutDialog | poll 10s | realtime + invalidate on resume | 0 — cùng query, nhanh hơn |
-| Notifications select | full `*` | bỏ cột `data` nếu không dùng | thấp (đã grep) |
-| Bookings/Payments/RoomChecks/Maintenance/Tasks | full `*` | **giữ nguyên** | 0 |
-| Server pagination | — | **không đổi** | 0 |
-
-### Kết quả
-- 2 sót Đợt 2 được vá → realtime sạch + giảm DB query
-- Tất cả flow tài chính/booking/kho/nhiệm vụ: **không đổi 1 byte logic nào**
-- An toàn dữ liệu: tuyệt đối
+**C. Không đụng**
+- DB schema, RLS, RPC
+- Desktop ProfileForm (đã đúng)
+- Logic update profile (đã có sẵn `useProfile`)
 
 ### Phạm vi file
-- `src/pages/.../SubscriptionPaymentPage.tsx`
-- `src/components/.../GroupCheckoutDialog.tsx`
-- `src/hooks/useNotifications.ts` (chỉ khi grep an toàn, nếu không thì skip)
+- Sửa: `src/components/settings/MobileUserProfilePage.tsx` (refactor lớn)
+- Sửa: `src/hooks/useUser.ts` (thêm join position)
+
+### Kết quả
+- Mobile và desktop đồng nhất về trường, validation, label tiếng Việt
+- Hiển thị "Chủ khách sạn" / tên khách sạn / tên vị trí thay vì code/UUID
+- Mật khẩu mạnh hơn, đồng nhất với desktop
+- Không còn cho sửa email lệch giữa `users` và `auth.users`
 
