@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,131 +12,170 @@ import { RoleGuard } from "@/components/auth/RoleGuard";
 import { PermissionRoute } from "@/components/auth/PermissionRoute";
 import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
 import { MainLayout } from "@/components/layout/MainLayout";
-import Dashboard from "./pages/Dashboard";
-import LandingPage from "./pages/LandingPage";
-import { InventoryDashboardPage } from "./pages/inventory/InventoryDashboardPage";
-import { SupplementsPage } from "./pages/supplements/SupplementsPage";
-import { TransactionListPage } from "./pages/inventory/TransactionListPage";
-import { InboundPage } from "./pages/inventory/InboundPage";
-import { OutboundPage } from "./pages/inventory/OutboundPage";
-import { AdjustmentListPage } from "./pages/inventory/AdjustmentListPage";
-import { CreateAdjustmentPage } from "./pages/inventory/CreateAdjustmentPage";
-import { CheckAdjustmentPage } from "./pages/inventory/CheckAdjustmentPage";
-import { AdjustmentDetailPage } from "./pages/inventory/AdjustmentDetailPage";
-import DistributionOrdersPage from "./pages/inventory/DistributionOrdersPage";
-import DistributionOrderDetailPage from "./pages/inventory/DistributionOrderDetailPage";
-import CreateDistributionPage from "./pages/inventory/CreateDistributionPage";
-import CreateFromSupplementsPage from "./pages/inventory/CreateFromSupplementsPage";
-import TransferPage from "./pages/inventory/TransferPage";
-import { ItemsPage } from "./pages/items/ItemsPage";
-import ItemDetailPage from "./pages/items/ItemDetailPage";
-import { ItemFormPage } from "./pages/items/ItemFormPage";
-import { CategoriesPage } from "./pages/items/CategoriesPage";
-import { RoomsPage } from "./pages/rooms/RoomsPage";
-import { RoomDetailPage } from "./pages/rooms/RoomDetailPage";
-import { RoomFormPage } from "./pages/rooms/RoomFormPage";
-import { RoomStandardsPage } from "./pages/rooms/RoomStandardsPage";
-import { RoomCheckPage } from "./pages/rooms/RoomCheckPage";
-import { BookingsPage } from "./pages/bookings/BookingsPage";
-import { BookingDetailPage } from "./pages/bookings/BookingDetailPage";
-import { LaundryDashboardPage } from "./pages/laundry/LaundryDashboardPage";
-import { LaundryBatchesPage } from "./pages/laundry/LaundryBatchesPage";
-import { CreateBatchPage } from "./pages/laundry/CreateBatchPage";
-import { BatchDetailPage } from "./pages/laundry/BatchDetailPage";
-import { ReceiveBatchPage } from "./pages/laundry/ReceiveBatchPage";
-import { VendorListPage } from "./pages/laundry/VendorListPage";
-import { VendorDetailPage } from "./pages/laundry/VendorDetailPage";
-import { VendorFormPage } from "./pages/laundry/VendorFormPage";
-
-
-import { GeneralSettingsPage } from "./pages/settings/GeneralSettingsPage";
-import HotelsManagementPage from "./pages/settings/HotelsManagementPage";
 import { SuperAdminLayout } from './components/super-admin/SuperAdminLayout';
 import { SuperAdminErrorBoundary } from './components/super-admin/ErrorBoundary';
-import SubscriptionPage from "./pages/settings/SubscriptionPage";
-import SubscriptionPaymentPage from "./pages/settings/SubscriptionPaymentPage";
-import UsageDashboardPage from "./pages/settings/UsageDashboardPage";
 
-import { NotificationSettingsPage } from "./pages/settings/NotificationSettingsPage";
-import PushDevicesPage from "./pages/settings/PushDevicesPage";
-import TelegramSettingsPage from "./pages/settings/TelegramSettingsPage";
-import { BusinessConfigurationPage } from "./pages/settings/BusinessConfigurationPage";
-import CategoryManagementPage from "./pages/settings/CategoryManagementPage";
-import WorkflowsPage from "./pages/settings/WorkflowsPage";
+// Helper: lazy-load named export as default
+const lazyNamed = <T extends Record<string, any>>(
+  loader: () => Promise<T>,
+  name: keyof T
+) => lazy(() => loader().then((m) => ({ default: m[name] })));
 
-import WarehouseListPage from "./pages/settings/WarehouseListPage";
-import ChangePasswordPage from "./pages/settings/ChangePasswordPage";
+// === Lazy routes — code-split per page ===
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const LandingPage = lazy(() => import("./pages/LandingPage"));
 
-import { ReportsDashboardPage } from "./pages/reports/ReportsDashboardPage";
-import { InventoryReportPage } from "./pages/reports/InventoryReportPage";
-import { FinancialReportPage } from "./pages/reports/FinancialReportPage";
-import { LaundryReportPage } from "./pages/reports/LaundryReportPage";
-import { OperationsReportPage } from "./pages/reports/OperationsReportPage";
-import { RoomsReportPage } from "./pages/reports/RoomsReportPage";
-import { MaintenanceReportPage } from "./pages/reports/MaintenanceReportPage";
-import { OutboundReportPage } from "./pages/reports/OutboundReportPage";
-import { RevenueReportPage } from "./pages/reports/RevenueReportPage";
-import { DamagesReportPage } from "./pages/reports/DamagesReportPage";
-import { StockAuditReportPage } from "./pages/reports/StockAuditReportPage";
-import { HotelsPage } from "./pages/hotels/HotelsPage";
-import HotelPerformancePage from "./pages/hotels/HotelPerformancePage";
-import { VendorListPage as VendorManagementListPage } from "./pages/vendors/VendorListPage";
-import { VendorDetailPage as VendorManagementDetailPage } from "./pages/vendors/VendorDetailPage";
-import VendorManagementFormPage from "./pages/vendors/VendorFormPage";
-import VendorComparisonPage from "./pages/vendors/VendorComparisonPage";
-import { MorePage } from "./pages/mobile/MorePage";
-import MaintenanceDashboard from "./pages/maintenance/MaintenanceDashboard";
-import MaintenanceRequestList from "./pages/maintenance/MaintenanceRequestList";
-import MaintenanceRequestForm from "./pages/maintenance/MaintenanceRequestForm";
-import MaintenanceRequestDetail from "./pages/maintenance/MaintenanceRequestDetail";
-import RecurringIssuesPage from "./pages/maintenance/RecurringIssuesPage";
-import POListPage from "./pages/purchase-orders/POListPage";
-import PODetailPage from "./pages/purchase-orders/PODetailPage";
-import POFormPage from "./pages/purchase-orders/POFormPage";
-import Login from "./pages/auth/Login";
-import Register from "./pages/auth/Register";
-import ForgotPassword from "./pages/auth/ForgotPassword";
-import AuthChangePasswordPage from "./pages/auth/ChangePasswordPage";
+// Inventory
+const InventoryDashboardPage = lazyNamed(() => import("./pages/inventory/InventoryDashboardPage"), "InventoryDashboardPage");
+const SupplementsPage = lazyNamed(() => import("./pages/supplements/SupplementsPage"), "SupplementsPage");
+const TransactionListPage = lazyNamed(() => import("./pages/inventory/TransactionListPage"), "TransactionListPage");
+const InboundPage = lazyNamed(() => import("./pages/inventory/InboundPage"), "InboundPage");
+const OutboundPage = lazyNamed(() => import("./pages/inventory/OutboundPage"), "OutboundPage");
+const AdjustmentListPage = lazyNamed(() => import("./pages/inventory/AdjustmentListPage"), "AdjustmentListPage");
+const CreateAdjustmentPage = lazyNamed(() => import("./pages/inventory/CreateAdjustmentPage"), "CreateAdjustmentPage");
+const CheckAdjustmentPage = lazyNamed(() => import("./pages/inventory/CheckAdjustmentPage"), "CheckAdjustmentPage");
+const AdjustmentDetailPage = lazyNamed(() => import("./pages/inventory/AdjustmentDetailPage"), "AdjustmentDetailPage");
+const DistributionOrdersPage = lazy(() => import("./pages/inventory/DistributionOrdersPage"));
+const DistributionOrderDetailPage = lazy(() => import("./pages/inventory/DistributionOrderDetailPage"));
+const CreateDistributionPage = lazy(() => import("./pages/inventory/CreateDistributionPage"));
+const CreateFromSupplementsPage = lazy(() => import("./pages/inventory/CreateFromSupplementsPage"));
+const TransferPage = lazy(() => import("./pages/inventory/TransferPage"));
 
-import AuthCallback from "./pages/auth/AuthCallback";
-import Onboarding from "./pages/auth/Onboarding";
-import Unauthorized from "./pages/Unauthorized";
-import NotFound from "./pages/NotFound";
-import UsersPage from "./pages/users/UsersPage";
-import ProfilePage from "./pages/profile/ProfilePage";
+// Items
+const ItemsPage = lazyNamed(() => import("./pages/items/ItemsPage"), "ItemsPage");
+const ItemDetailPage = lazy(() => import("./pages/items/ItemDetailPage"));
+const ItemFormPage = lazyNamed(() => import("./pages/items/ItemFormPage"), "ItemFormPage");
+const CategoriesPage = lazyNamed(() => import("./pages/items/CategoriesPage"), "CategoriesPage");
 
-import PricingRulesPage from "./pages/settings/PricingRulesPage";
-import { SuperAdminDashboard } from "./pages/admin/SuperAdminDashboard";
-import { TenantsPage } from "./pages/admin/TenantsPage";
-import { AnalyticsPage } from "./pages/admin/AnalyticsPage";
-import { PromoCodesPage } from "./pages/admin/PromoCodesPage";
-import { MarketingCampaignsPage } from "./pages/admin/MarketingCampaignsPage";
-import { RenewalRemindersPage } from "./pages/admin/RenewalRemindersPage";
-import { PricingPlansPage } from "./pages/admin/PricingPlansPage";
-import { PaymentSettingsPage } from "./pages/admin/PaymentSettingsPage";
-import { SuperAdminSettingsPage } from "./pages/admin/SuperAdminSettingsPage";
-import TenantApprovalPage from "./pages/admin/TenantApprovalPage";
-import NotificationHistoryPage from "./pages/NotificationHistoryPage";
-import HelpPage from "./pages/HelpPage";
-import StaffManagementPage from "./pages/staff/StaffManagementPage";
-import MyTasksPage from "./pages/MyTasksPage";
-import PaymentQRPage from "./pages/payment/PaymentQRPage";
-import ScanDocumentPage from "./pages/scan/ScanDocumentPage";
-import GuestsPage from "./pages/guests/GuestsPage";
-import GuestDetailPage from "./pages/guests/GuestDetailPage";
-import LostFoundPage from "./pages/lost-found/LostFoundPage";
-import GuestInvoicesPage from "./pages/invoices/GuestInvoicesPage";
-import HousekeepingStaffDashboard from "./pages/HousekeepingStaffDashboard";
+// Rooms
+const RoomsPage = lazyNamed(() => import("./pages/rooms/RoomsPage"), "RoomsPage");
+const RoomDetailPage = lazyNamed(() => import("./pages/rooms/RoomDetailPage"), "RoomDetailPage");
+const RoomFormPage = lazyNamed(() => import("./pages/rooms/RoomFormPage"), "RoomFormPage");
+const RoomStandardsPage = lazyNamed(() => import("./pages/rooms/RoomStandardsPage"), "RoomStandardsPage");
+const RoomCheckPage = lazyNamed(() => import("./pages/rooms/RoomCheckPage"), "RoomCheckPage");
+
+// Bookings & Guests
+const BookingsPage = lazyNamed(() => import("./pages/bookings/BookingsPage"), "BookingsPage");
+const BookingDetailPage = lazyNamed(() => import("./pages/bookings/BookingDetailPage"), "BookingDetailPage");
+const GuestsPage = lazy(() => import("./pages/guests/GuestsPage"));
+const GuestDetailPage = lazy(() => import("./pages/guests/GuestDetailPage"));
+const LostFoundPage = lazy(() => import("./pages/lost-found/LostFoundPage"));
+const GuestInvoicesPage = lazy(() => import("./pages/invoices/GuestInvoicesPage"));
+
+// Laundry
+const LaundryDashboardPage = lazyNamed(() => import("./pages/laundry/LaundryDashboardPage"), "LaundryDashboardPage");
+const LaundryBatchesPage = lazyNamed(() => import("./pages/laundry/LaundryBatchesPage"), "LaundryBatchesPage");
+const CreateBatchPage = lazyNamed(() => import("./pages/laundry/CreateBatchPage"), "CreateBatchPage");
+const BatchDetailPage = lazyNamed(() => import("./pages/laundry/BatchDetailPage"), "BatchDetailPage");
+const ReceiveBatchPage = lazyNamed(() => import("./pages/laundry/ReceiveBatchPage"), "ReceiveBatchPage");
+const VendorListPage = lazyNamed(() => import("./pages/laundry/VendorListPage"), "VendorListPage");
+const VendorDetailPage = lazyNamed(() => import("./pages/laundry/VendorDetailPage"), "VendorDetailPage");
+const VendorFormPage = lazyNamed(() => import("./pages/laundry/VendorFormPage"), "VendorFormPage");
+
+// Settings
+const GeneralSettingsPage = lazyNamed(() => import("./pages/settings/GeneralSettingsPage"), "GeneralSettingsPage");
+const HotelsManagementPage = lazy(() => import("./pages/settings/HotelsManagementPage"));
+const SubscriptionPage = lazy(() => import("./pages/settings/SubscriptionPage"));
+const SubscriptionPaymentPage = lazy(() => import("./pages/settings/SubscriptionPaymentPage"));
+const UsageDashboardPage = lazy(() => import("./pages/settings/UsageDashboardPage"));
+const NotificationSettingsPage = lazyNamed(() => import("./pages/settings/NotificationSettingsPage"), "NotificationSettingsPage");
+const PushDevicesPage = lazy(() => import("./pages/settings/PushDevicesPage"));
+const TelegramSettingsPage = lazy(() => import("./pages/settings/TelegramSettingsPage"));
+const BusinessConfigurationPage = lazyNamed(() => import("./pages/settings/BusinessConfigurationPage"), "BusinessConfigurationPage");
+const CategoryManagementPage = lazy(() => import("./pages/settings/CategoryManagementPage"));
+const WorkflowsPage = lazy(() => import("./pages/settings/WorkflowsPage"));
+const WarehouseListPage = lazy(() => import("./pages/settings/WarehouseListPage"));
+const ChangePasswordPage = lazy(() => import("./pages/settings/ChangePasswordPage"));
+const PricingRulesPage = lazy(() => import("./pages/settings/PricingRulesPage"));
+
+// Reports
+const ReportsDashboardPage = lazyNamed(() => import("./pages/reports/ReportsDashboardPage"), "ReportsDashboardPage");
+const InventoryReportPage = lazyNamed(() => import("./pages/reports/InventoryReportPage"), "InventoryReportPage");
+const FinancialReportPage = lazyNamed(() => import("./pages/reports/FinancialReportPage"), "FinancialReportPage");
+const LaundryReportPage = lazyNamed(() => import("./pages/reports/LaundryReportPage"), "LaundryReportPage");
+const OperationsReportPage = lazyNamed(() => import("./pages/reports/OperationsReportPage"), "OperationsReportPage");
+const RoomsReportPage = lazyNamed(() => import("./pages/reports/RoomsReportPage"), "RoomsReportPage");
+const MaintenanceReportPage = lazyNamed(() => import("./pages/reports/MaintenanceReportPage"), "MaintenanceReportPage");
+const OutboundReportPage = lazyNamed(() => import("./pages/reports/OutboundReportPage"), "OutboundReportPage");
+const RevenueReportPage = lazyNamed(() => import("./pages/reports/RevenueReportPage"), "RevenueReportPage");
+const DamagesReportPage = lazyNamed(() => import("./pages/reports/DamagesReportPage"), "DamagesReportPage");
+const StockAuditReportPage = lazyNamed(() => import("./pages/reports/StockAuditReportPage"), "StockAuditReportPage");
+
+// Hotels & Vendors
+const HotelsPage = lazyNamed(() => import("./pages/hotels/HotelsPage"), "HotelsPage");
+const HotelPerformancePage = lazy(() => import("./pages/hotels/HotelPerformancePage"));
+const VendorManagementListPage = lazyNamed(() => import("./pages/vendors/VendorListPage"), "VendorListPage");
+const VendorManagementDetailPage = lazyNamed(() => import("./pages/vendors/VendorDetailPage"), "VendorDetailPage");
+const VendorManagementFormPage = lazy(() => import("./pages/vendors/VendorFormPage"));
+const VendorComparisonPage = lazy(() => import("./pages/vendors/VendorComparisonPage"));
+
+// Mobile / Misc
+const MorePage = lazyNamed(() => import("./pages/mobile/MorePage"), "MorePage");
+
+// Maintenance
+const MaintenanceDashboard = lazy(() => import("./pages/maintenance/MaintenanceDashboard"));
+const MaintenanceRequestList = lazy(() => import("./pages/maintenance/MaintenanceRequestList"));
+const MaintenanceRequestForm = lazy(() => import("./pages/maintenance/MaintenanceRequestForm"));
+const MaintenanceRequestDetail = lazy(() => import("./pages/maintenance/MaintenanceRequestDetail"));
+const RecurringIssuesPage = lazy(() => import("./pages/maintenance/RecurringIssuesPage"));
+
+// Purchase Orders
+const POListPage = lazy(() => import("./pages/purchase-orders/POListPage"));
+const PODetailPage = lazy(() => import("./pages/purchase-orders/PODetailPage"));
+const POFormPage = lazy(() => import("./pages/purchase-orders/POFormPage"));
+
+// Auth
+const Login = lazy(() => import("./pages/auth/Login"));
+const Register = lazy(() => import("./pages/auth/Register"));
+const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
+const AuthChangePasswordPage = lazy(() => import("./pages/auth/ChangePasswordPage"));
+const AuthCallback = lazy(() => import("./pages/auth/AuthCallback"));
+const Onboarding = lazy(() => import("./pages/auth/Onboarding"));
+const Unauthorized = lazy(() => import("./pages/Unauthorized"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+// Users / Profile
+const UsersPage = lazy(() => import("./pages/users/UsersPage"));
+const ProfilePage = lazy(() => import("./pages/profile/ProfilePage"));
+
+// Super Admin
+const SuperAdminDashboard = lazyNamed(() => import("./pages/admin/SuperAdminDashboard"), "SuperAdminDashboard");
+const TenantsPage = lazyNamed(() => import("./pages/admin/TenantsPage"), "TenantsPage");
+const AnalyticsPage = lazyNamed(() => import("./pages/admin/AnalyticsPage"), "AnalyticsPage");
+const PromoCodesPage = lazyNamed(() => import("./pages/admin/PromoCodesPage"), "PromoCodesPage");
+const MarketingCampaignsPage = lazyNamed(() => import("./pages/admin/MarketingCampaignsPage"), "MarketingCampaignsPage");
+const RenewalRemindersPage = lazyNamed(() => import("./pages/admin/RenewalRemindersPage"), "RenewalRemindersPage");
+const PricingPlansPage = lazyNamed(() => import("./pages/admin/PricingPlansPage"), "PricingPlansPage");
+const PaymentSettingsPage = lazyNamed(() => import("./pages/admin/PaymentSettingsPage"), "PaymentSettingsPage");
+const SuperAdminSettingsPage = lazyNamed(() => import("./pages/admin/SuperAdminSettingsPage"), "SuperAdminSettingsPage");
+const TenantApprovalPage = lazy(() => import("./pages/admin/TenantApprovalPage"));
+
+// Other
+const NotificationHistoryPage = lazy(() => import("./pages/NotificationHistoryPage"));
+const HelpPage = lazy(() => import("./pages/HelpPage"));
+const StaffManagementPage = lazy(() => import("./pages/staff/StaffManagementPage"));
+const MyTasksPage = lazy(() => import("./pages/MyTasksPage"));
+const PaymentQRPage = lazy(() => import("./pages/payment/PaymentQRPage"));
+const ScanDocumentPage = lazy(() => import("./pages/scan/ScanDocumentPage"));
+const HousekeepingStaffDashboard = lazy(() => import("./pages/HousekeepingStaffDashboard"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 30 * 60 * 1000, // 30 minutes — keep cache longer to reduce refetches
       refetchOnWindowFocus: false,
       retry: 1,
     },
   },
 });
+
+// Lightweight loader shown while a route chunk is being fetched
+const RouteFallback = () => (
+  <div className="flex min-h-screen items-center justify-center">
+    <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+  </div>
+);
 
 const router = createBrowserRouter([
   // Landing page - public
@@ -280,723 +320,135 @@ const router = createBrowserRouter([
       },
       
       // Inventory - Permission Based
-      { 
-        path: "inventory", 
-        element: (
-          <PermissionRoute module="inventory">
-            <InventoryDashboardPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "inventory/transactions", 
-        element: (
-          <PermissionRoute module="inventory">
-            <TransactionListPage />
-          </PermissionRoute>
-        )
-      },
+      { path: "inventory", element: <PermissionRoute module="inventory"><InventoryDashboardPage /></PermissionRoute> },
+      { path: "inventory/transactions", element: <PermissionRoute module="inventory"><TransactionListPage /></PermissionRoute> },
       { path: "inventory/inbound", element: <Navigate to="/inventory/transactions" replace /> },
-      { 
-        path: "inventory/inbound/new", 
-        element: (
-          <PermissionRoute module="inventory" action="create">
-            <InboundPage />
-          </PermissionRoute>
-        )
-      },
+      { path: "inventory/inbound/new", element: <PermissionRoute module="inventory" action="create"><InboundPage /></PermissionRoute> },
       { path: "inventory/outbound", element: <Navigate to="/inventory/transactions" replace /> },
-      { 
-        path: "inventory/outbound/new", 
-        element: (
-          <PermissionRoute module="inventory" action="create">
-            <OutboundPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "inventory/adjustments", 
-        element: (
-          <PermissionRoute module="inventory">
-            <AdjustmentListPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "inventory/adjustments/new", 
-        element: (
-          <PermissionRoute module="inventory" action="create">
-            <CreateAdjustmentPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "inventory/adjustments/:id", 
-        element: (
-          <PermissionRoute module="inventory">
-            <AdjustmentDetailPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "inventory/adjustments/:id/check", 
-        element: (
-          <PermissionRoute module="inventory" action="update">
-            <CheckAdjustmentPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "inventory/distributions", 
-        element: (
-          <PermissionRoute module="inventory">
-            <DistributionOrdersPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "inventory/transfer/new", 
-        element: (
-          <PermissionRoute module="inventory" action="create">
-            <TransferPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "inventory/distributions/new", 
-        element: (
-          <PermissionRoute module="inventory" action="create">
-            <CreateDistributionPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "inventory/distributions/from-supplements", 
-        element: (
-          <PermissionRoute module="inventory" action="create">
-            <CreateFromSupplementsPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "inventory/distributions/:id", 
-        element: (
-          <PermissionRoute module="inventory">
-            <DistributionOrderDetailPage />
-          </PermissionRoute>
-        )
-      },
+      { path: "inventory/outbound/new", element: <PermissionRoute module="inventory" action="create"><OutboundPage /></PermissionRoute> },
+      { path: "inventory/adjustments", element: <PermissionRoute module="inventory"><AdjustmentListPage /></PermissionRoute> },
+      { path: "inventory/adjustments/new", element: <PermissionRoute module="inventory" action="create"><CreateAdjustmentPage /></PermissionRoute> },
+      { path: "inventory/adjustments/:id", element: <PermissionRoute module="inventory"><AdjustmentDetailPage /></PermissionRoute> },
+      { path: "inventory/adjustments/:id/check", element: <PermissionRoute module="inventory" action="update"><CheckAdjustmentPage /></PermissionRoute> },
+      { path: "inventory/distributions", element: <PermissionRoute module="inventory"><DistributionOrdersPage /></PermissionRoute> },
+      { path: "inventory/transfer/new", element: <PermissionRoute module="inventory" action="create"><TransferPage /></PermissionRoute> },
+      { path: "inventory/distributions/new", element: <PermissionRoute module="inventory" action="create"><CreateDistributionPage /></PermissionRoute> },
+      { path: "inventory/distributions/from-supplements", element: <PermissionRoute module="inventory" action="create"><CreateFromSupplementsPage /></PermissionRoute> },
+      { path: "inventory/distributions/:id", element: <PermissionRoute module="inventory"><DistributionOrderDetailPage /></PermissionRoute> },
 
-      // Items - Permission Based
-      { 
-        path: "items", 
-        element: (
-          <PermissionRoute module="items">
-            <ItemsPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "items/:id", 
-        element: (
-          <PermissionRoute module="items">
-            <ItemDetailPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "items/new", 
-        element: (
-          <PermissionRoute module="items" action="create">
-            <ItemFormPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "items/:id/edit", 
-        element: (
-          <PermissionRoute module="items" action="update">
-            <ItemFormPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "items/categories", 
-        element: (
-          <PermissionRoute module="items">
-            <CategoriesPage />
-          </PermissionRoute>
-        )
-      },
+      // Items
+      { path: "items", element: <PermissionRoute module="items"><ItemsPage /></PermissionRoute> },
+      { path: "items/:id", element: <PermissionRoute module="items"><ItemDetailPage /></PermissionRoute> },
+      { path: "items/new", element: <PermissionRoute module="items" action="create"><ItemFormPage /></PermissionRoute> },
+      { path: "items/:id/edit", element: <PermissionRoute module="items" action="update"><ItemFormPage /></PermissionRoute> },
+      { path: "items/categories", element: <PermissionRoute module="items"><CategoriesPage /></PermissionRoute> },
 
-      // Rooms - Permission Based
-      { 
-        path: "rooms", 
-        element: (
-          <PermissionRoute module="rooms">
-            <RoomsPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "rooms/new", 
-        element: (
-          <PermissionRoute module="rooms" action="create">
-            <RoomFormPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "rooms/:id", 
-        element: (
-          <PermissionRoute module="rooms" action="update">
-            <RoomDetailPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "rooms/:id/edit", 
-        element: (
-          <PermissionRoute module="rooms" action="update">
-            <RoomFormPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "rooms/:id/check", 
-        element: (
-          <PermissionRoute module="rooms" action="update">
-            <RoomCheckPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "rooms/standards", 
-        element: (
-          <PermissionRoute module="rooms">
-            <RoomStandardsPage />
-          </PermissionRoute>
-        )
-      },
+      // Rooms
+      { path: "rooms", element: <PermissionRoute module="rooms"><RoomsPage /></PermissionRoute> },
+      { path: "rooms/new", element: <PermissionRoute module="rooms" action="create"><RoomFormPage /></PermissionRoute> },
+      { path: "rooms/:id", element: <PermissionRoute module="rooms" action="update"><RoomDetailPage /></PermissionRoute> },
+      { path: "rooms/:id/edit", element: <PermissionRoute module="rooms" action="update"><RoomFormPage /></PermissionRoute> },
+      { path: "rooms/:id/check", element: <PermissionRoute module="rooms" action="update"><RoomCheckPage /></PermissionRoute> },
+      { path: "rooms/standards", element: <PermissionRoute module="rooms"><RoomStandardsPage /></PermissionRoute> },
 
-      // Supplements - Permission Based
-      { 
-        path: "supplements", 
-        element: (
-          <PermissionRoute module="inventory">
-            <SupplementsPage />
-          </PermissionRoute>
-        )
-      },
+      // Supplements
+      { path: "supplements", element: <PermissionRoute module="inventory"><SupplementsPage /></PermissionRoute> },
 
-      // Bookings - Permission Based
-      { 
-        path: "bookings", 
-        element: (
-          <PermissionRoute module="bookings">
-            <BookingsPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "bookings/:id", 
-        element: (
-          <PermissionRoute module="bookings">
-            <BookingDetailPage />
-          </PermissionRoute>
-        )
-      },
+      // Bookings
+      { path: "bookings", element: <PermissionRoute module="bookings"><BookingsPage /></PermissionRoute> },
+      { path: "bookings/:id", element: <PermissionRoute module="bookings"><BookingDetailPage /></PermissionRoute> },
 
       // Guests
-      {
-        path: "guests",
-        element: (
-          <PermissionRoute module="bookings">
-            <GuestsPage />
-          </PermissionRoute>
-        ),
-      },
-      {
-        path: "guests/:id",
-        element: (
-          <PermissionRoute module="bookings">
-            <GuestDetailPage />
-          </PermissionRoute>
-        ),
-      },
+      { path: "guests", element: <PermissionRoute module="bookings"><GuestsPage /></PermissionRoute> },
+      { path: "guests/:id", element: <PermissionRoute module="bookings"><GuestDetailPage /></PermissionRoute> },
 
       // Lost & Found
-      {
-        path: "lost-found",
-        element: (
-          <PermissionRoute module="rooms">
-            <LostFoundPage />
-          </PermissionRoute>
-        ),
-      },
+      { path: "lost-found", element: <PermissionRoute module="rooms"><LostFoundPage /></PermissionRoute> },
 
       // Guest Invoices
-      {
-        path: "guest-invoices",
-        element: (
-          <PermissionRoute module="bookings">
-            <GuestInvoicesPage />
-          </PermissionRoute>
-        ),
-      },
+      { path: "guest-invoices", element: <PermissionRoute module="bookings"><GuestInvoicesPage /></PermissionRoute> },
 
-      { 
-        path: "laundry", 
-        element: (
-          <PermissionRoute module="laundry">
-            <LaundryDashboardPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "laundry/batches", 
-        element: (
-          <PermissionRoute module="laundry">
-            <LaundryBatchesPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "laundry/batches/new", 
-        element: (
-          <PermissionRoute module="laundry" action="create">
-            <CreateBatchPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "laundry/batches/:id", 
-        element: (
-          <PermissionRoute module="laundry">
-            <BatchDetailPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "laundry/batches/:id/receive", 
-        element: (
-          <PermissionRoute module="laundry" action="update">
-            <ReceiveBatchPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "laundry/vendors", 
-        element: (
-          <PermissionRoute module="laundry">
-            <VendorListPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "laundry/vendors/new", 
-        element: (
-          <PermissionRoute module="laundry" action="create">
-            <VendorFormPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "laundry/vendors/:id", 
-        element: (
-          <PermissionRoute module="laundry">
-            <VendorDetailPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "laundry/vendors/:id/edit", 
-        element: (
-          <PermissionRoute module="laundry" action="update">
-            <VendorFormPage />
-          </PermissionRoute>
-        )
-      },
+      // Laundry
+      { path: "laundry", element: <PermissionRoute module="laundry"><LaundryDashboardPage /></PermissionRoute> },
+      { path: "laundry/batches", element: <PermissionRoute module="laundry"><LaundryBatchesPage /></PermissionRoute> },
+      { path: "laundry/batches/new", element: <PermissionRoute module="laundry" action="create"><CreateBatchPage /></PermissionRoute> },
+      { path: "laundry/batches/:id", element: <PermissionRoute module="laundry"><BatchDetailPage /></PermissionRoute> },
+      { path: "laundry/batches/:id/receive", element: <PermissionRoute module="laundry" action="update"><ReceiveBatchPage /></PermissionRoute> },
+      { path: "laundry/vendors", element: <PermissionRoute module="laundry"><VendorListPage /></PermissionRoute> },
+      { path: "laundry/vendors/new", element: <PermissionRoute module="laundry" action="create"><VendorFormPage /></PermissionRoute> },
+      { path: "laundry/vendors/:id", element: <PermissionRoute module="laundry"><VendorDetailPage /></PermissionRoute> },
+      { path: "laundry/vendors/:id/edit", element: <PermissionRoute module="laundry" action="update"><VendorFormPage /></PermissionRoute> },
 
-      // Settings - Permission Based (flat routes)
+      // Settings
       { path: "settings", element: <Navigate to="/settings/general" replace /> },
-      { 
-        path: "settings/general", 
-        element: (
-          <PermissionRoute module="settings">
-            <GeneralSettingsPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "settings/hotels", 
-        element: (
-          <PermissionRoute module="hotels">
-            <HotelsManagementPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "settings/categories", 
-        element: (
-          <PermissionRoute module="settings">
-            <CategoryManagementPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "settings/users", 
-        element: (
-          <PermissionRoute module="users">
-            <UsersPage />
-          </PermissionRoute>
-        )
-      },
+      { path: "settings/general", element: <PermissionRoute module="settings"><GeneralSettingsPage /></PermissionRoute> },
+      { path: "settings/hotels", element: <PermissionRoute module="hotels"><HotelsManagementPage /></PermissionRoute> },
+      { path: "settings/categories", element: <PermissionRoute module="settings"><CategoryManagementPage /></PermissionRoute> },
+      { path: "settings/users", element: <PermissionRoute module="users"><UsersPage /></PermissionRoute> },
       { path: "settings/change-password", element: <ChangePasswordPage /> },
-      // Staff Management
-      {
-        path: "staff",
-        element: (
-          <PermissionRoute module="users">
-            <StaffManagementPage />
-          </PermissionRoute>
-        )
-      },
-      // My Tasks - No permission required, staff can view their own tasks
-      {
-        path: "my-tasks",
-        element: <MyTasksPage />
-      },
-      // Housekeeping Staff Dashboard - dedicated mobile-first view
-      {
-        path: "staff/housekeeping",
-        element: <HousekeepingStaffDashboard />
-      },
-      {
-        path: "settings/warehouses", 
-        element: (
-          <PermissionRoute module="inventory">
-            <WarehouseListPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "settings/subscription", 
-        element: (
-          <RoleGuard allowedRoles={['super_admin', 'owner']}>
-            <SubscriptionPage />
-          </RoleGuard>
-        )
-      },
-      { 
-        path: "settings/subscription/pay/:invoiceId", 
-        element: (
-          <RoleGuard allowedRoles={['super_admin', 'owner']}>
-            <SubscriptionPaymentPage />
-          </RoleGuard>
-        )
-      },
-      { 
-        path: "settings/usage", 
-        element: (
-          <RoleGuard allowedRoles={['super_admin', 'owner']}>
-            <UsageDashboardPage />
-          </RoleGuard>
-        )
-      },
-      { 
-        path: "settings/notifications", 
-        element: (
-          <PermissionRoute module="settings">
-            <NotificationSettingsPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "settings/notifications/devices", 
-        element: (
-          <PermissionRoute module="settings">
-            <PushDevicesPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "settings/telegram", 
-        element: (
-          <PermissionRoute module="settings">
-            <TelegramSettingsPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "settings/business",
-        element: (
-          <PermissionRoute module="settings">
-            <BusinessConfigurationPage />
-          </PermissionRoute>
-        )
-      },
-      {
-        path: "settings/workflows",
-        element: (
-          <PermissionRoute module="settings" action="manage">
-            <WorkflowsPage />
-          </PermissionRoute>
-        ),
-      },
-      {
-        path: "settings/pricing-rules",
-        element: (
-          <PermissionRoute module="settings">
-            <PricingRulesPage />
-          </PermissionRoute>
-        )
-      },
+      { path: "staff", element: <PermissionRoute module="users"><StaffManagementPage /></PermissionRoute> },
+      { path: "my-tasks", element: <MyTasksPage /> },
+      { path: "staff/housekeeping", element: <HousekeepingStaffDashboard /> },
+      { path: "settings/warehouses", element: <PermissionRoute module="inventory"><WarehouseListPage /></PermissionRoute> },
+      { path: "settings/subscription", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><SubscriptionPage /></RoleGuard> },
+      { path: "settings/subscription/pay/:invoiceId", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><SubscriptionPaymentPage /></RoleGuard> },
+      { path: "settings/usage", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><UsageDashboardPage /></RoleGuard> },
+      { path: "settings/notifications", element: <PermissionRoute module="settings"><NotificationSettingsPage /></PermissionRoute> },
+      { path: "settings/notifications/devices", element: <PermissionRoute module="settings"><PushDevicesPage /></PermissionRoute> },
+      { path: "settings/telegram", element: <PermissionRoute module="settings"><TelegramSettingsPage /></PermissionRoute> },
+      { path: "settings/business", element: <PermissionRoute module="settings"><BusinessConfigurationPage /></PermissionRoute> },
+      { path: "settings/workflows", element: <PermissionRoute module="settings" action="manage"><WorkflowsPage /></PermissionRoute> },
+      { path: "settings/pricing-rules", element: <PermissionRoute module="settings"><PricingRulesPage /></PermissionRoute> },
 
-      // Profile - Always accessible (both paths for desktop and mobile)
+      // Profile
       { path: "profile", element: <ProfilePage /> },
       { path: "settings/profile", element: <ProfilePage /> },
       
       // Notifications History
       { path: "notifications", element: <NotificationHistoryPage /> },
       
-      // Help - Always accessible
+      // Help
       { path: "help", element: <HelpPage /> },
 
-      // Reports - Permission Based
-      {
-        path: "reports",
-        element: (
-          <PermissionRoute module="reports">
-            <ReportsDashboardPage />
-          </PermissionRoute>
-        ),
-      },
-      {
-        path: "reports/inventory",
-        element: (
-          <PermissionRoute module="reports">
-            <InventoryReportPage />
-          </PermissionRoute>
-        ),
-      },
-      {
-        path: "reports/financial",
-        element: (
-          <PermissionRoute module="reports">
-            <FinancialReportPage />
-          </PermissionRoute>
-        ),
-      },
-      {
-        path: "reports/laundry",
-        element: (
-          <PermissionRoute module="reports">
-            <LaundryReportPage />
-          </PermissionRoute>
-        ),
-      },
-      {
-        path: "reports/stock-audit",
-        element: (
-          <PermissionRoute module="reports">
-            <StockAuditReportPage />
-          </PermissionRoute>
-        ),
-      },
-      {
-        path: "reports/operations",
-        element: (
-          <PermissionRoute module="reports">
-            <OperationsReportPage />
-          </PermissionRoute>
-        ),
-      },
-      {
-        path: "reports/rooms",
-        element: (
-          <PermissionRoute module="reports">
-            <RoomsReportPage />
-          </PermissionRoute>
-        ),
-      },
-      {
-        path: "reports/maintenance",
-        element: (
-          <PermissionRoute module="reports">
-            <MaintenanceReportPage />
-          </PermissionRoute>
-        ),
-      },
-      {
-        path: "reports/outbound",
-        element: (
-          <PermissionRoute module="reports">
-            <OutboundReportPage />
-          </PermissionRoute>
-        ),
-      },
-      {
-        path: "reports/revenue",
-        element: (
-          <PermissionRoute module="reports">
-            <RevenueReportPage />
-          </PermissionRoute>
-        ),
-      },
-      {
-        path: "reports/damages",
-        element: (
-          <PermissionRoute module="reports">
-            <DamagesReportPage />
-          </PermissionRoute>
-        ),
-      },
+      // Reports
+      { path: "reports", element: <PermissionRoute module="reports"><ReportsDashboardPage /></PermissionRoute> },
+      { path: "reports/inventory", element: <PermissionRoute module="reports"><InventoryReportPage /></PermissionRoute> },
+      { path: "reports/financial", element: <PermissionRoute module="reports"><FinancialReportPage /></PermissionRoute> },
+      { path: "reports/laundry", element: <PermissionRoute module="reports"><LaundryReportPage /></PermissionRoute> },
+      { path: "reports/stock-audit", element: <PermissionRoute module="reports"><StockAuditReportPage /></PermissionRoute> },
+      { path: "reports/operations", element: <PermissionRoute module="reports"><OperationsReportPage /></PermissionRoute> },
+      { path: "reports/rooms", element: <PermissionRoute module="reports"><RoomsReportPage /></PermissionRoute> },
+      { path: "reports/maintenance", element: <PermissionRoute module="reports"><MaintenanceReportPage /></PermissionRoute> },
+      { path: "reports/outbound", element: <PermissionRoute module="reports"><OutboundReportPage /></PermissionRoute> },
+      { path: "reports/revenue", element: <PermissionRoute module="reports"><RevenueReportPage /></PermissionRoute> },
+      { path: "reports/damages", element: <PermissionRoute module="reports"><DamagesReportPage /></PermissionRoute> },
 
-      {
-        path: "vendors",
-        element: (
-          <PermissionRoute module="vendors">
-            <VendorManagementListPage />
-          </PermissionRoute>
-        ),
-      },
-      {
-        path: "vendors/new",
-        element: (
-          <PermissionRoute module="vendors" action="create">
-            <VendorManagementFormPage />
-          </PermissionRoute>
-        ),
-      },
-      {
-        path: "vendors/:id",
-        element: (
-          <PermissionRoute module="vendors">
-            <VendorManagementDetailPage />
-          </PermissionRoute>
-        ),
-      },
-      {
-        path: "vendors/:id/edit",
-        element: (
-          <PermissionRoute module="vendors" action="update">
-            <VendorManagementFormPage />
-          </PermissionRoute>
-        ),
-      },
-      {
-        path: "vendors/compare",
-        element: (
-          <PermissionRoute module="vendors">
-            <VendorComparisonPage />
-          </PermissionRoute>
-        ),
-      },
+      // Vendors
+      { path: "vendors", element: <PermissionRoute module="vendors"><VendorManagementListPage /></PermissionRoute> },
+      { path: "vendors/new", element: <PermissionRoute module="vendors" action="create"><VendorManagementFormPage /></PermissionRoute> },
+      { path: "vendors/:id", element: <PermissionRoute module="vendors"><VendorManagementDetailPage /></PermissionRoute> },
+      { path: "vendors/:id/edit", element: <PermissionRoute module="vendors" action="update"><VendorManagementFormPage /></PermissionRoute> },
+      { path: "vendors/compare", element: <PermissionRoute module="vendors"><VendorComparisonPage /></PermissionRoute> },
 
-      // Maintenance - Permission Based
-      { 
-        path: "maintenance", 
-        element: (
-          <PermissionRoute module="maintenance">
-            <MaintenanceDashboard />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "maintenance/requests", 
-        element: (
-          <PermissionRoute module="maintenance">
-            <MaintenanceRequestList />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "maintenance/requests/new", 
-        element: (
-          <PermissionRoute module="maintenance" action="create">
-            <MaintenanceRequestForm />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "maintenance/requests/:id", 
-        element: (
-          <PermissionRoute module="maintenance">
-            <MaintenanceRequestDetail />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "maintenance/requests/edit/:id", 
-        element: (
-          <PermissionRoute module="maintenance" action="update">
-            <MaintenanceRequestForm />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "maintenance/recurring-issues", 
-        element: (
-          <PermissionRoute module="maintenance">
-            <RecurringIssuesPage />
-          </PermissionRoute>
-        )
-      },
+      // Maintenance
+      { path: "maintenance", element: <PermissionRoute module="maintenance"><MaintenanceDashboard /></PermissionRoute> },
+      { path: "maintenance/requests", element: <PermissionRoute module="maintenance"><MaintenanceRequestList /></PermissionRoute> },
+      { path: "maintenance/requests/new", element: <PermissionRoute module="maintenance" action="create"><MaintenanceRequestForm /></PermissionRoute> },
+      { path: "maintenance/requests/:id", element: <PermissionRoute module="maintenance"><MaintenanceRequestDetail /></PermissionRoute> },
+      { path: "maintenance/requests/edit/:id", element: <PermissionRoute module="maintenance" action="update"><MaintenanceRequestForm /></PermissionRoute> },
+      { path: "maintenance/recurring-issues", element: <PermissionRoute module="maintenance"><RecurringIssuesPage /></PermissionRoute> },
 
-      // Purchase Orders - Permission Based
-      {
-        path: "purchase-orders",
-        element: (
-          <PermissionRoute module="purchase_orders">
-            <POListPage />
-          </PermissionRoute>
-        ),
-      },
-      {
-        path: "purchase-orders/new",
-        element: (
-          <PermissionRoute module="purchase_orders" action="create">
-            <POFormPage />
-          </PermissionRoute>
-        ),
-      },
-      {
-        path: "purchase-orders/:id",
-        element: (
-          <PermissionRoute module="purchase_orders">
-            <PODetailPage />
-          </PermissionRoute>
-        ),
-      },
+      // Purchase Orders
+      { path: "purchase-orders", element: <PermissionRoute module="purchase_orders"><POListPage /></PermissionRoute> },
+      { path: "purchase-orders/new", element: <PermissionRoute module="purchase_orders" action="create"><POFormPage /></PermissionRoute> },
+      { path: "purchase-orders/:id", element: <PermissionRoute module="purchase_orders"><PODetailPage /></PermissionRoute> },
 
-      // Hotels - Permission Based
-      {
-        path: "hotels",
-        element: (
-          <PermissionRoute module="hotels">
-            <HotelsPage />
-          </PermissionRoute>
-        ),
-      },
-      {
-        path: "hotels/performance",
-        element: (
-          <PermissionRoute module="hotels">
-            <HotelPerformancePage />
-          </PermissionRoute>
-        ),
-      },
+      // Hotels
+      { path: "hotels", element: <PermissionRoute module="hotels"><HotelsPage /></PermissionRoute> },
+      { path: "hotels/performance", element: <PermissionRoute module="hotels"><HotelPerformancePage /></PermissionRoute> },
 
-      // User Management - Permission Based
-      {
-        path: "users",
-        element: (
-          <PermissionRoute module="users">
-            <UsersPage />
-          </PermissionRoute>
-        ),
-      },
+      // User Management
+      { path: "users", element: <PermissionRoute module="users"><UsersPage /></PermissionRoute> },
     ],
   },
 
@@ -1011,7 +463,9 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <RouterProvider router={router} />
+          <Suspense fallback={<RouteFallback />}>
+            <RouterProvider router={router} />
+          </Suspense>
         </TooltipProvider>
       </ThemeProvider>
     </AuthProvider>
