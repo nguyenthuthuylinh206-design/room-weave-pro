@@ -1,59 +1,52 @@
 
 
-## Đánh giá hiện trạng
+## Hiểu lại yêu cầu
 
-### ✅ Đã làm tốt
-- Checkout còn 4 bước ✓
-- Chặn back sau khi báo lễ tân ✓
-- Submit dialog viết lại bằng câu dễ hiểu ✓
-- Phase1ConfirmStep — chỉ 1 nút "Tiếp tục" ✓
-- Header back: staff → `/my-tasks`, manager → `/rooms` ✓
-- Item Status Card 1 dòng + empty state ✓
+User chỉnh nghiệp vụ thực tế: **Phòng "Sạch" KHÔNG có nghĩa là không cần dọn**. Sau mỗi lần khách trả phòng, dù phòng để lại sạch sẽ thì cô buồng phòng **VẪN PHẢI**:
+- Thay ga giường, vỏ gối, khăn tắm (đồ vải bắt buộc thay sau mỗi khách)
+- Bổ sung đồ tiêu hao (nước suối, trà, dầu gội...)
+- Lau dọn cơ bản (bụi, bồn rửa)
 
-### 🔴 Còn 4 vấn đề thực tế chưa hoàn thiện
+Chỉ là **mức độ công việc nhẹ hơn** so với phòng bẩn/rất bẩn.
 
-#### Vấn đề 1: Bước 4 vẫn render **2 instance ItemsCheckStep** — gây nhầm lẫn nặng
-File `RoomCheckPage.tsx`:
-- Dòng 1390-1402: `currentStep === 2 && isCheckoutType` → render `ItemsCheckStep phase={1}`
-- Dòng 1433-1447: `currentStep === 4 && isCheckoutType` → render lại `ItemsCheckStep phase={2}`
+→ Vậy logic "Sạch → đánh dấu phòng trống luôn, không tạo phiếu dọn" là **SAI nghiệp vụ**.
 
-Khi cô đang ở **bước 4**, điều kiện step 2 đã false nên OK ✓. NHƯNG: **CleaningRequestStep ở bước 4** (`<CleaningRequestStep form={form} />` dòng 1446) — file này có chấm sao 1-5 hoặc các option chấm điểm? Cần kiểm tra lại — nếu vẫn có "đánh giá độ sạch 1-5 sao" thì trùng với "mức bẩn" (clean/dirty/very_dirty). Theo plan trước user yêu cầu **bỏ chấm sao** nhưng có thể bị bỏ sót trong CleaningRequestStep — cần xem & gộp UI.
+## Điều chỉnh kế hoạch (sửa lại Vấn đề 3 từ kế hoạch trước)
 
-#### Vấn đề 2: Header back về `/my-tasks` cho cả Manager khi Manager vào từ `/my-tasks`
-Hiện logic cứng: manager → `/rooms`, staff → `/my-tasks`. Nếu Manager vào từ `/my-tasks` (họ cũng có task) → bị đẩy sang `/rooms` lệch context. Nên ưu tiên `document.referrer` / `navigate(-1)` trước, fallback theo role.
+### Logic đúng
 
-#### Vấn đề 3: Banner instruction step 4 vẫn ghi "Bước 2/2" — nhưng thanh tiến trình hiển thị "4/4"
-Dòng 1340: "Bước 2/2: Ghi đồ cần thay & mức bẩn"
-Dòng 1265: hiển thị "4/4"
+**Mọi checkout đều TẠO PHIẾU DỌN cho ca sau** — không phụ thuộc mức bẩn. Mức bẩn chỉ là **thông tin tham khảo** giúp ca sau biết khối lượng việc:
+- **Sạch** → ca sau dọn nhẹ (~15 phút): thay ga, bổ sung đồ
+- **Bẩn nhẹ** → dọn bình thường (~30 phút): thay ga + lau dọn
+- **Rất bẩn** → dọn kỹ (~45-60 phút): thay ga + lau sâu + có thể cần hóa chất
 
-→ Cô buồng phòng nhìn 2 con số khác nhau (2/2 vs 4/4) sẽ rối. Phải **thống nhất**: hoặc dùng `Bước 2/2 (giai đoạn 2)` với progress hiển thị giai đoạn (1=Phase1 gồm step 1-3, 2=Phase2 = step 4) → progress 50% rồi 100%, hoặc bỏ "Bước X/Y" trong banner để tránh mâu thuẫn.
-
-#### Vấn đề 4: Submit dialog đếm "món" sai — đếm số dòng thay vì tổng số lượng
-Dòng 1121: `form.watch('items_sent_to_laundry').length` — đây là số **loại đồ** (vd: khăn tắm, ga giường = 2), không phải tổng cái (vd: 5 cái). Cô buồng phòng đọc "Cần giặt: 2 món" trong khi thực tế có 5 cái → hiểu nhầm.
-
-→ Đổi: `items.reduce((s, i) => s + (i.quantity || 0), 0)` để hiển thị tổng cái.
-
----
-
-## Kế hoạch sửa
+### Sửa 3 vấn đề còn lại
 
 | # | File | Thay đổi |
 |---|------|---------|
-| 1 | `src/components/rooms/check-steps/CleaningRequestStep.tsx` | Đọc & rà soát: nếu còn slider/sao chấm điểm độ sạch (1-5) → bỏ, chỉ giữ 3 nút "Hơi bẩn / Bẩn / Rất bẩn". Loại bỏ trùng với `room_condition` |
-| 2 | `RoomCheckPage.tsx` dòng 67-70 (StaffRoomDetailPage handleHeaderBack) | Đổi sang ưu tiên `document.referrer`: nếu referrer là `/my-tasks` hoặc `/rooms` thì dùng — nếu không có thì fallback theo role. Cùng pattern cho `handleHeaderBack` ở `StaffRoomDetailPage.tsx` |
-| 3 | `RoomCheckPage.tsx` dòng 1338-1343 | Sửa banner step 4: bỏ "Bước 2/2" — thay bằng "Ghi đồ cần thay & mức bẩn" thuần (đã có "4/4" ở header rồi). HOẶC đổi progress header sang "Giai đoạn 2/2" khi `phase1Submitted` |
-| 4 | `RoomCheckPage.tsx` dòng 1118-1135 | Sửa cách đếm trong dialog tóm tắt: dùng `reduce(sum, qty)` thay vì `.length` để hiển thị "Cần giặt: 5 cái" thay vì "Cần giặt: 2 món" |
-| 5 | `RoomCheckPage.tsx` dòng 783, 985 (fallback navigate) | Thay `navigate('/rooms')` thành `navigate(isManager ? '/rooms' : '/my-tasks')` cho nhất quán |
+| 1 | `RoomCheckPage.tsx` dòng 1472-1481 | **Ẩn nút "Quay lại"** khi `currentStep === 4 && isCheckoutType && phase1Submitted` (đã chặn logic, ẩn UI cho gọn) |
+| 2 | `RoomCheckPage.tsx` dòng 1112-1114 | **Đồng bộ label mức bẩn** trong dialog: `'clean' → 'Sạch'`, `'dirty' → 'Bẩn nhẹ'`, `'very_dirty' → 'Rất bẩn'` (khớp với CleaningRequestStep) |
+| 3 | `CleaningRequestStep.tsx` | **Sửa lại logic khi chọn "Sạch"**: vẫn `needs_cleaning = true` (vì vẫn cần dọn nhẹ), priority = `low`. Sửa lại Summary text:<br>• Sạch → "Ca sau sẽ dọn nhẹ (thay ga, bổ sung đồ)"<br>• Bẩn nhẹ → "Ca sau sẽ dọn bình thường"<br>• Rất bẩn → "Ca sau sẽ dọn kỹ — quản lý nhận thông báo ưu tiên" |
+| 4 | `RoomCheckPage.tsx` dialog title | **Giữ NGUYÊN** "Tạo phiếu cho ca dọn phòng tiếp theo?" cho mọi trường hợp (vì luôn tạo phiếu). Thêm dòng phụ hiển thị mức độ: "Mức độ: Dọn nhẹ / Dọn bình thường / Dọn kỹ" |
+| 5 | `CleaningRequestStep.tsx` checkbox "Yêu cầu dọn dẹp ngay" | **Bỏ checkbox** — vì luôn cần dọn, không cần cho cô bật/tắt nữa. Mặc định luôn `needs_cleaning = true`. |
+
+### Phòng chuyển trạng thái sau checkout
+
+- Sạch / Bẩn nhẹ / Rất bẩn → **đều chuyển sang `cleaning`** (đang chờ dọn)
+- Ca sau hoàn tất dọn → mới chuyển sang `available` (trống, sẵn sàng đón khách)
+
+→ Sửa đoạn Summary trong CleaningRequestStep: bỏ trường hợp "Phòng chuyển sang Trống", thay bằng "Phòng chuyển sang Đang chờ dọn"
 
 ## Quy tắc giữ nguyên
 - Tiếng Việt thuần
 - 1 hành động/màn
-- Không cho bỏ qua sau khi báo lễ tân
-- Số liệu hiển thị phải khớp thực tế (tổng cái, không phải số loại)
+- Không cho quay lui sau khi báo lễ tân
+- **Mới**: Mọi checkout đều tạo phiếu dọn — mức bẩn chỉ quyết định độ ưu tiên & ước lượng thời gian
 
 ## Kết quả mong đợi
-- CleaningRequestStep & room_condition không trùng (chỉ còn 1 chỗ chọn mức bẩn)
-- Cô bấm back ở header trở về đúng nơi đến (`/my-tasks` hoặc `/rooms`) bất kể role
-- Banner & progress thống nhất con số (không còn 2/2 vs 4/4)
-- Dialog tóm tắt hiển thị **tổng cái thực tế** chứ không phải số dòng
+
+- Cô chọn "Sạch" → vẫn tạo phiếu cho ca sau (không bỏ sót việc thay ga)
+- Dialog hiển thị mức độ dọn cần thiết → ca sau biết chuẩn bị bao nhiêu đồ
+- Phòng luôn về trạng thái `cleaning` sau checkout → quy trình nhất quán
+- Bỏ checkbox "Yêu cầu dọn dẹp ngay" — đỡ 1 thao tác thừa cho cô
 
