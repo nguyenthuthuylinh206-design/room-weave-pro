@@ -1,48 +1,70 @@
 
 
-## Ẩn module không có quyền + Toast cho action không có quyền
+## Sửa scroll lag/stuck trên PWA standalone (iOS + Android)
 
-### Vấn đề hiện tại
-1. **Sidebar/MobileBottomNav/MorePage**: đã filter theo `hasModuleAccess` (kiểm tra quyền module) → nhưng vẫn còn vấn đề:
-   - `MobileBottomNav` các tab `Home`, `Tasks`, `More` không filter → luôn hiện
-   - `Bookings` ở `MobileBottomNav` chỉ check module nhưng không kiểm tra `roles` (staff được mặc định cho phép)
-2. **AccessDenied page to đùng** (`src/components/auth/AccessDenied.tsx`) hiện ra khi:
-   - User click vào URL trực tiếp
-   - User click vào con item mà module cha có quyền view nhưng action create/update bị chặn (ví dụ: thấy danh sách phòng nhưng không có quyền `rooms.create` → click "Thêm phòng" → trang to đùng)
-3. **Sidebar children**: đã filter `hasChildAccess` cho VIEW/CREATE → có vẻ đã ẩn đúng, nhưng do `MOBILE NAV` + một số trường hợp child không khớp `getRequiredAction` (vd "newPO", "addVendor", "addRoom") sẽ rơi vào nhánh `'view'` mặc định → vẫn hiện sai action
+### Khảo sát đã làm
+- `index.html`: viewport `width=device-width, initial-scale=1.0` — **thiếu `viewport-fit=cover`**
+- `src/index.css`: 
+  - Có `-webkit-overflow-scrolling: touch` cho `*` mobile (OK)
+  - Có `overscroll-behavior: contain` cho `html, body` mobile (OK)
+  - **`html, body { overflow-x: hidden; max-width: 100vw }`** — `100vw` gây lỗi trên iOS, cần `100%`
+  - **`* { max-width: 100% }`** — quy tắc quá rộng, có thể chặn scroll container con; đã có exception nhưng vẫn rủi ro
+  - `touch-action: manipulation` set trên `body` — ổn nhưng không cần thiết, có thể bỏ
+  - Có safe-area utility class nhưng **layout gốc không áp dụng**
+- `MainLayout.tsx` (mobile): `min-h-screen` + `overflow-y-auto` lồng nhau — `100vh` trên iOS standalone gây jump
+- `MobileLayout.tsx`: `min-h-screen` — tương tự
+- `MobileBottomNav` fixed bottom + `pb-16/pb-20` trên main — OK nhưng chưa cộng safe-area-bottom
+- Không thấy `vite-plugin-pwa` / service worker trong project — chỉ có `manifest.webmanifest` thuần (không gây vấn đề)
 
-### Phương án (chia 2 lớp, an toàn dữ liệu)
+### Phương án sửa (an toàn, chỉ CSS + layout, không đụng logic/data)
 
-**Lớp 1 — ẨN (module/page chính không có quyền)**
-- **Sidebar.tsx**: giữ logic hiện tại (đã đúng), nhưng sửa `getRequiredAction` để nhận diện đúng các key tạo mới: `addItem`, `addRoom`, `addVendor`, `newPO`, `newBatch`, `addNewVendor`, `addVendor` → trả `'create'` thay vì rơi xuống `'view'`. Như vậy nếu user không có `can_create` thì các nút "Thêm mới" trong sidebar tự ẩn.
-- **MobileBottomNav.tsx**: 
-  - Tab `Bookings`/`Rooms` đang check module → giữ nguyên
-  - Bổ sung: nếu sau khi filter còn <5 tab thì tự co lại (đã có sẵn flex-around → OK, không cần làm gì thêm)
-- **MorePage (mobile + desktop)**: đã filter sẵn → giữ nguyên
+**1. `index.html`** — bật safe area
+- Đổi viewport: `width=device-width, initial-scale=1.0, viewport-fit=cover`
 
-**Lớp 2 — TOAST thay vì AccessDenied page (cho child page)**
-- Tạo component mới `PermissionToast` (dùng `sonner` toast) thay cho `AccessDenied`:
-  - Hiển thị toast đỏ ngắn gọn: "Bạn không có quyền với chức năng này. Liên hệ quản lý."
-  - Tự động `navigate(-1)` (quay lại trang trước) sau khi toast hiện
-  - Nếu không có history → `navigate('/')`
-- Sửa `PermissionRoute.tsx`:
-  - Khi `!hasPermission` và **không có** `fallback` → render `PermissionToast` thay cho `AccessDenied`
-  - Vẫn cho phép truyền `fallback` riêng nếu cần (giữ tương thích)
-- `AccessDenied` lớn vẫn giữ cho `RoleGuard` (trường hợp role không khớp — hiếm hơn) hoặc xoá nếu không còn ai dùng. **Plan: giữ file, chỉ đổi `PermissionRoute` dùng toast.**
+**2. `src/index.css`** — sửa core scroll
+- `html, body`: bỏ `max-width: 100vw` (đổi sang `100%`), giữ `overflow-x: hidden`, **bỏ `touch-action: manipulation` trên body** (giữ trên button/link cụ thể nếu cần)
+- **Bỏ `* { max-width: 100% }`** — quá rủi ro, không cần thiết khi đã có `overflow-x: hidden` ở root
+- Thêm utility `.h-dvh` / `.min-h-dvh` (dùng `100dvh`) để layout dùng thay `h-screen` / `min-h-screen` ở mobile
+- Thêm `overscroll-behavior-y: contain` cho `body` (đã có ở `.scrollable-area`, mở rộng)
+- Đảm bảo mọi `.overflow-y-auto`, `.overflow-auto` mặc định có `-webkit-overflow-scrolling: touch` (thêm rule global)
+- Safe-area helper cho bottom nav: `.pb-safe { padding-bottom: calc(4rem + env(safe-area-inset-bottom)) }`
 
-### Phạm vi file
-- Sửa `src/components/layout/Sidebar.tsx` — bổ sung từ khoá nhận diện action `create`
-- Sửa `src/components/auth/PermissionRoute.tsx` — thay `AccessDenied` mặc định bằng `PermissionToast`
-- Tạo mới `src/components/auth/PermissionToast.tsx` — toast + auto navigate back
+**3. `src/components/layout/MainLayout.tsx`** (nhánh mobile)
+- Đổi `min-h-screen` → `min-h-dvh` (hoặc inline `style={{ minHeight: '100dvh' }}`)
+- Wrapper ngoài cùng: thêm `style={{ paddingTop: 'env(safe-area-inset-top)' }}` cho header area
+- `<main>` mobile: dùng `pb-safe` thay `pb-16` để cộng safe-area-bottom
 
-### Không đụng
-- Logic phân quyền RPC `has_user_permission`
-- DB, RLS, hooks
-- `RoleGuard` (vẫn dùng `AccessDenied` cho trường hợp role mismatch)
-- `AccessDenied.tsx` (giữ lại, không xoá để tránh lỗi import khác)
+**4. `src/components/layout/MobileLayout.tsx`**
+- Đổi `min-h-screen` → `min-h-dvh`
+- `<main className="pb-20">` → `pb-safe-20` (custom: `calc(5rem + env(safe-area-inset-bottom))`)
 
-### Kết quả UX
-- Trang chính không có quyền → **không xuất hiện trong sidebar/bottom nav/more**
-- Lỡ vào URL trực tiếp / click sub-item không quyền → **toast đỏ nhỏ + auto quay lại** (không còn trang to đùng)
-- Owner/Super admin: không đổi gì, vẫn full quyền
+**5. `src/components/layout/MobileBottomNav.tsx`** (kiểm tra, sửa nếu cần)
+- Bottom nav fixed: thêm `padding-bottom: env(safe-area-inset-bottom)` để không bị che bởi home indicator iOS
+
+**6. `public/manifest.webmanifest`** (kiểm tra)
+- Xác nhận `"display": "standalone"` — nếu chưa có thì thêm
+
+### KHÔNG đụng
+- Logic JS, hooks, state, data
+- Service worker (project không có vite-plugin-pwa, OK)
+- Routing, components nghiệp vụ
+- `touch-action` ở các element specific (canvas, swiper, scanner) — giữ nguyên
+- Không thêm `vite-plugin-pwa` (theo guideline Lovable, gây vấn đề trong preview iframe)
+
+### Phạm vi file thay đổi
+| File | Thay đổi |
+|---|---|
+| `index.html` | Thêm `viewport-fit=cover` |
+| `src/index.css` | Bỏ `max-width:100vw` & `* max-width:100%`, bỏ `touch-action` trên body, thêm utility `min-h-dvh` / `pb-safe` / global momentum scroll |
+| `src/components/layout/MainLayout.tsx` | `min-h-screen` → `min-h-dvh`, safe-area top, `pb-safe` cho main mobile |
+| `src/components/layout/MobileLayout.tsx` | `min-h-screen` → `min-h-dvh`, padding bottom safe-area |
+| `src/components/layout/MobileBottomNav.tsx` | Thêm `padding-bottom: env(safe-area-inset-bottom)` |
+| `public/manifest.webmanifest` | Verify `display: standalone` (chỉ kiểm tra) |
+
+### Kết quả mong đợi
+- iOS Safari PWA standalone: không còn jump khi address bar ẩn/hiện (dvh)
+- Momentum scroll mượt trên iOS (đã có, củng cố thêm)
+- Không còn rubber-band kẹt ở edge (overscroll contain)
+- Không bị home indicator che bottom nav (safe-area)
+- Không có rủi ro chặn scroll do `max-width: 100vw` hoặc `* max-width: 100%`
 
