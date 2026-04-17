@@ -197,13 +197,40 @@ export const MobileUserProfilePage = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="avatarUrl">URL ảnh đại diện</Label>
-                <Input
-                  id="avatarUrl"
-                  type="url"
-                  placeholder="https://..."
-                  {...profileForm.register('avatarUrl')}
-                />
+                <Label>Ảnh đại diện</Label>
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage src={currentAvatarUrl || undefined} alt={user?.full_name || ''} />
+                    <AvatarFallback>
+                      {user?.full_name?.charAt(0)?.toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarUpload}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploadingAvatar}
+                      className="w-full"
+                    >
+                      {isUploadingAvatar ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Upload className="h-4 w-4 mr-2" />
+                      )}
+                      {isUploadingAvatar ? 'Đang tải...' : 'Tải ảnh từ máy'}
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-1">JPG, PNG tối đa 5MB</p>
+                  </div>
+                </div>
                 {profileForm.formState.errors.avatarUrl && (
                   <p className="text-xs text-destructive">{profileForm.formState.errors.avatarUrl.message}</p>
                 )}
