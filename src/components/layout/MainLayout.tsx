@@ -30,10 +30,7 @@ const MainLayoutContent = () => {
 
   if (isMobile) {
     return (
-      <div
-        className="min-h-dvh flex flex-col bg-background overflow-x-hidden"
-        style={{ paddingTop: 'env(safe-area-inset-top)' }}
-      >
+      <div className="min-h-dvh flex flex-col bg-background overflow-x-hidden safe-area-x">
         {showSubscriptionBanner && <GracePeriodBanner />}
         <MobileHeader />
         {isStaffUser && <ShiftStatusBanner />}
