@@ -18,7 +18,8 @@ export const useUser = () => {
         .select(`
           *,
           tenant:tenants!users_tenant_id_fkey(*),
-          hotel:hotels!users_hotel_id_fkey(*)
+          hotel:hotels!users_hotel_id_fkey(*),
+          position:positions!users_position_id_fkey(id, code, name, user_level_code, department)
         `)
         .eq('id', authUser.id)
         .maybeSingle()
