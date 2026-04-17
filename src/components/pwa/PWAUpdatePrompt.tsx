@@ -1,31 +1,19 @@
- import { useState, useEffect } from 'react';
-import { RefreshCw, X } from 'lucide-react';
+import { useState } from 'react';
+import { RefreshCw, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { usePWAUpdate } from '@/hooks/usePWAUpdate';
 
 export function PWAUpdatePrompt() {
   const { needRefresh, update, dismiss } = usePWAUpdate();
   const [isUpdating, setIsUpdating] = useState(false);
 
-   // Auto-update after 10 seconds if not dismissed
-   useEffect(() => {
-     if (needRefresh && !isUpdating) {
-       const timer = setTimeout(() => {
-         handleUpdate();
-       }, 10000);
-       
-       return () => clearTimeout(timer);
-     }
-   }, [needRefresh, isUpdating]);
- 
   if (!needRefresh) return null;
 
   const handleUpdate = async () => {
     setIsUpdating(true);
     try {
       await update();
-      // App will reload automatically
+      // App will reload automatically via controllerchange listener
     } catch (error) {
       console.error('[PWA] Update failed:', error);
       setIsUpdating(false);
@@ -33,55 +21,56 @@ export function PWAUpdatePrompt() {
   };
 
   return (
-    <Card className="fixed bottom-20 left-4 right-4 z-50 border-primary/20 bg-card shadow-lg md:bottom-6 md:left-auto md:right-6 md:w-80">
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
-            <RefreshCw className="h-5 w-5 text-primary" />
+    <div
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-background/60 backdrop-blur-sm sm:items-center"
+      style={{
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)',
+      }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pwa-update-title"
+    >
+      <div className="w-full max-w-md rounded-t-2xl border border-border bg-card p-6 shadow-2xl sm:rounded-2xl sm:mx-4 animate-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:fade-in duration-300">
+        <div className="flex flex-col items-center text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 mb-4">
+            <Sparkles className="h-7 w-7 text-primary" />
           </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-sm">Có phiên bản mới</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Nhấn "Cập nhật" để sử dụng các tính năng mới nhất
-            </p>
-          </div>
+          <h3 id="pwa-update-title" className="text-lg font-semibold text-foreground">
+            Có bản cập nhật mới
+          </h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Phiên bản mới đã sẵn sàng. Cập nhật để trải nghiệm các tính năng mới nhất.
+          </p>
+        </div>
+
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row">
           <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 shrink-0"
+            variant="outline"
             onClick={dismiss}
             disabled={isUpdating}
+            className="flex-1"
           >
-            <X className="h-4 w-4" />
+            Để sau
           </Button>
-        </div>
-        
-        <div className="flex gap-2 mt-3">
           <Button
             onClick={handleUpdate}
             disabled={isUpdating}
-            size="sm"
             className="flex-1"
           >
             {isUpdating ? (
               <>
-                <RefreshCw className="h-4 w-4 animate-spin mr-1" />
+                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
                 Đang cập nhật...
               </>
             ) : (
               'Cập nhật ngay'
             )}
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={dismiss}
-            disabled={isUpdating}
-          >
-            Để sau
-          </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
