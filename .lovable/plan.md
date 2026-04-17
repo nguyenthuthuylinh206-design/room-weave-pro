@@ -1,88 +1,129 @@
 
-User báo: PWA mobile (iPhone) không lưu/gợi ý email + password đã đăng nhập. Mỗi lần phải gõ lại.
+## Hiểu lại yêu cầu
 
-## Phân tích nguyên nhân
+1. **Câu từ phải dễ hiểu hơn** — viết như nói chuyện với cô buồng phòng thật, không dùng từ kỹ thuật ("Phase 1/2", "inspection", "milestone")
+2. **Sau khi báo lễ tân → BẮT BUỘC làm tiếp bước 2**, KHÔNG có nút "Tạm dừng" / "Làm sau"
+3. Lý do bắt buộc: nếu cô bỏ giữa chừng, ca sau không biết phòng cần dọn gì → tạo task thiếu thông tin
 
-Đã xem `LoginForm.tsx` và `credential-manager.ts`:
+## Điều chỉnh kế hoạch
 
-### Vấn đề #1: iOS Safari/PWA KHÔNG hỗ trợ `PasswordCredential` API
-- `credential-manager.ts` dùng `window.PasswordCredential` → chỉ Chrome/Edge desktop hỗ trợ
-- iOS Safari & PWA standalone mode → API trả về `undefined` → không lưu được
-- iOS dùng **iCloud Keychain** thông qua autofill HTML chuẩn, KHÔNG qua JS API
+### Đổi cách gọi tên (tiếng Việt thuần, dễ hiểu)
 
-### Vấn đề #2: Form HTML không đúng chuẩn để Keychain nhận diện
-File `LoginForm.tsx` có vài chỗ sai khiến iOS Keychain không lưu:
+| Từ kỹ thuật cũ | Câu dễ hiểu mới |
+|---|---|
+| Phase 1 — Kiểm tra mất hỏng | **"Bước 1/2: Xem khách có làm mất hay hỏng đồ không"** |
+| Phase 2 — Ghi chú bổ sung | **"Bước 2/2: Ghi chú đồ cần thay & dọn"** |
+| Hoàn tất Phase 1 → Báo lễ tân | **"Xong - Báo lễ tân thu tiền khách"** |
+| Tiếp tục Phase 2 | **"Tiếp tục: Ghi đồ cần thay"** |
+| State machine | (không gọi tên với user) |
+| NextActionCard | (không gọi tên với user) |
 
-1. **`action="#"` + `method="POST"`** → iOS coi đây là form không submit thật → không trigger lưu password. Cần bỏ hoặc dùng `action` thật.
-2. **Email field có `name="username"`** nhưng **type="email"** + label "email" → iOS Keychain confused. Nên dùng `name="email"` hoặc giữ `username` nhưng đảm bảo nhất quán.
-3. **Submit qua `form.handleSubmit(onSubmit)`** với `e.preventDefault()` của react-hook-form → iOS đôi khi không nhận diện đây là "successful login submission" → không prompt lưu.
-4. **Password manager prompt cần navigation thật**: sau submit, iOS chờ navigation/page change để xác nhận login thành công rồi mới prompt lưu. Hiện tại `navigate('/auth/callback')` là client-side routing → iOS không phải lúc nào cũng nhận diện.
+### Bỏ hoàn toàn nút "Tạm dừng / Làm sau"
 
-### Vấn đề #3: `QuickReLogin` component có thể đang chiếm quyền autofill
-- Khi có `remembered_email` trong localStorage → render `QuickReLogin` thay vì `LoginForm`
-- Cần xem `QuickReLogin.tsx` có đúng chuẩn autofill không
+Sau khi xong Bước 1, màn hình tóm tắt CHỈ có **1 nút duy nhất**: "Tiếp tục ghi đồ cần thay →"
 
-## Giải pháp đề xuất
+Không có cách nào thoát ra giữa chừng (trừ nút back hệ thống — sẽ cảnh báo "Bạn cần hoàn thành cả 2 bước trước khi rời đi").
 
-### Fix 1: Sửa form HTML chuẩn cho iOS Keychain (LoginForm.tsx)
+### Màn hình tóm tắt sau Bước 1 (viết lại)
 
-```tsx
-<form 
-  id="login-form"
-  onSubmit={form.handleSubmit(onSubmit)}
-  // BỎ action="#" và method="POST" → để form là pure JS
->
-  <input 
-    name="email"           // đổi từ "username" → "email"
-    type="email"
-    autoComplete="email username"  // cả 2 để cover mọi trường hợp
-    inputMode="email"
-    autoCapitalize="off"
-    autoCorrect="off"
-    spellCheck={false}
-  />
-  <input
-    name="password"
-    type="password"
-    autoComplete="current-password"
-  />
-</form>
+```text
+┌─────────────────────────────────┐
+│ ✅ Đã báo cho lễ tân            │
+│                                 │
+│ Khách làm mất:                  │
+│   • 1 khăn tắm — 50.000đ        │
+│ Khách làm hỏng:                 │
+│   • Không có                    │
+│                                 │
+│ Lễ tân sẽ thu của khách:        │
+│   50.000đ                       │
+│                                 │
+│ ─────────────────────────────   │
+│ Giờ kiểm tra tiếp đồ nào cần    │
+│ thay, giặt, bổ sung để tạo      │
+│ phiếu cho ca sau đến dọn.       │
+│                                 │
+│ [  Tiếp tục →  ]                │
+└─────────────────────────────────┘
 ```
 
-### Fix 2: Thêm hidden username input vào QuickReLogin
-Khi chỉ hiển thị password field, iOS cần một `<input name="email" type="email" autoComplete="username">` (có thể hidden hoặc readonly) để Keychain biết đây là login flow nào.
+### Bước 2 — viết lại label
 
-### Fix 3: Trigger Keychain save bằng cách đúng
-- iOS tự động prompt lưu khi: form có `name="password"` + `autoComplete="current-password"` + submit thành công + có navigation
-- Bỏ `storeCredential()` call trên iOS (chỉ gọi khi `'PasswordCredential' in window`)
-- Đảm bảo form submit đi qua native form submission flow
-
-### Fix 4: Thêm meta tag cho PWA standalone
-`index.html` cần:
-```html
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="format-detection" content="telephone=no">
+```text
+┌─────────────────────────────────┐
+│ Bước 2/2 — Ghi đồ cần thay      │
+│ Ca sau sẽ mang đồ đến dọn       │
+├─────────────────────────────────┤
+│ Phòng bẩn mức nào?              │
+│ [ Hơi bẩn ] [ Bẩn ] [ Rất bẩn ] │
+│                                 │
+│ Chăn ga gối khăn:               │
+│ Chăn        [Còn dùng] [Giặt]   │
+│                          [Thay] │
+│ Ga giường   [Còn dùng] [Giặt]   │
+│                          [Thay] │
+│ Khăn tắm    [Còn dùng] [Giặt]   │
+│                          [Thay] │
+│                                 │
+│ Đồ tiêu dùng (dầu gội, nước...):│
+│ Dầu gội     [Còn] [Hết - bổ sung]│
+│ Nước suối   [Còn] [Hết - bổ sung]│
+│                                 │
+│ Ghi chú thêm: [_____________]   │
+│                                 │
+│ [  Xong - Tạo phiếu cho ca sau ]│
+└─────────────────────────────────┘
 ```
-(Kiểm tra xem đã có chưa)
 
-### Fix 5: Bump APP_VERSION → 1.0.3
-Để CacheBuster wipe SW cũ, đảm bảo user nhận được fix ngay.
+### Màn hình kết thúc
 
-## Files sẽ sửa
+```text
+┌─────────────────────────────────┐
+│ ✅ Hoàn tất kiểm tra phòng 101  │
+│                                 │
+│ Đã tạo phiếu dọn:               │
+│   • Mức bẩn: Bẩn                │
+│   • 3 món cần giặt              │
+│   • 2 món cần bổ sung           │
+│                                 │
+│ Ca dọn sẽ nhận thông báo ngay.  │
+│                                 │
+│ [  Đi phòng tiếp theo  ]        │
+│ [  Về danh sách công việc  ]    │
+└─────────────────────────────────┘
+```
+
+### Cảnh báo khi cô bấm back giữa chừng
+
+Sau Bước 1, nếu cô bấm nút back trình duyệt / nút back app:
+```
+⚠️ Chưa xong việc
+Bạn vừa báo mất/hỏng cho lễ tân nhưng 
+chưa ghi đồ cần thay. Ca sau sẽ không 
+biết mang gì đến dọn.
+
+[ Quay lại làm tiếp ]  [ Vẫn thoát ]
+```
+
+## Files sẽ sửa/tạo (cập nhật)
 
 | File | Thay đổi |
-|------|---------|
-| `src/components/auth/LoginForm.tsx` | Bỏ `action="#" method="POST"`, đổi `name="username"` → `name="email"`, thêm `inputMode/autoCapitalize/autoCorrect`, chỉ gọi `storeCredential` nếu API tồn tại |
-| `src/components/auth/QuickReLogin.tsx` | Thêm hidden email input với `autoComplete="username"` để Keychain biết account context |
-| `index.html` | Verify meta tags PWA Apple (nếu thiếu thì thêm) |
-| `src/lib/app-version.ts` | Bump `1.0.2` → `1.0.3` |
-| `public/changelog.json` | Entry 1.0.3: "Sửa lưu mật khẩu trên iPhone" |
+|---|---|
+| `src/hooks/useRoomNextAction.ts` (MỚI) | Logic xác định bước tiếp theo cho phòng |
+| `src/components/rooms/NextActionCard.tsx` (MỚI) | Card "Việc cần làm" hiển thị ở `/rooms/:id` |
+| `src/components/rooms/StaffRoomDetailPage.tsx` | Bỏ Card "Đồ dùng trong phòng" mâu thuẫn + bỏ Alert checkout trùng + render NextActionCard |
+| `src/pages/RoomCheck.tsx` | Đọc `?step=1\|2`, render đúng UI từng bước, chặn back giữa chừng |
+| `src/components/rooms/CheckoutStep1.tsx` (MỚI) | UI bước 1 — chỉ các action mất/hỏng |
+| `src/components/rooms/CheckoutStep1Summary.tsx` (MỚI) | Màn tóm tắt sau bước 1, **chỉ 1 nút "Tiếp tục →"** |
+| `src/components/rooms/CheckoutStep2.tsx` (MỚI) | UI bước 2 — mức bẩn + đồ vải + đồ tiêu dùng |
+| `src/components/rooms/RoomConditionPicker.tsx` (MỚI) | 3 nút Hơi bẩn / Bẩn / Rất bẩn |
+| `src/components/rooms/CheckoutDoneScreen.tsx` (MỚI) | Màn kết thúc với 2 nút điều hướng |
+| `src/hooks/useCreateCleaningTask.ts` (MỚI) | Tạo `housekeeping_task` cleaning + đính danh sách đồ |
+| `src/i18n/locales/vi/rooms.json` | Toàn bộ chuỗi mới bằng tiếng Việt thuần |
 
-## Ghi chú quan trọng cho user
+## Quy tắc viết câu (áp dụng cho mọi label mới)
 
-Sau khi deploy + reload PWA:
-- Lần đăng nhập tiếp theo, iOS sẽ hỏi "Save Password to Keychain?" → bấm **Save**
-- Lần sau mở app, ô email/password sẽ có gợi ý vàng từ iCloud Keychain → tap để autofill
-- Nếu trước đó đã từ chối lưu: vào Settings → Passwords trên iPhone, xóa entry cũ (nếu có) hoặc đăng nhập lại để iOS hỏi lại
-
-Bạn xác nhận triển khai theo kế hoạch trên?
+1. Không dùng từ Anh: "phase", "inspection", "checkout" → "bước", "kiểm tra", "khách trả phòng"
+2. Câu chủ động, ngắn: "Báo lễ tân thu tiền" thay vì "Hoàn tất quy trình thông báo lễ tân"
+3. Giải thích "vì sao" ngay dưới tiêu đề: "Ca sau sẽ mang đồ đến dọn" (cô hiểu mục đích → làm cẩn thận hơn)
+4. Nút action luôn dùng động từ + kết quả: "Xong - Tạo phiếu cho ca sau" thay vì "Submit"
