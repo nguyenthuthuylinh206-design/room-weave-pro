@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -9,9 +10,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { User, Mail, Lock, Save, MessageCircle, Loader2 } from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { User, Mail, Lock, Save, MessageCircle, Loader2, Upload } from 'lucide-react'
 import { TelegramConnectionCard } from '@/components/profile/TelegramConnectionCard'
 import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter'
+import { supabase } from '@/integrations/supabase/client'
+import { toast } from 'sonner'
 import {
   profileFormSchema,
   ProfileFormData,
@@ -36,8 +40,10 @@ const getUserLevelLabel = (code?: string | null) => {
 
 export const MobileUserProfilePage = () => {
   const navigate = useNavigate()
-  const { user } = useUser()
+  const { user, refetch } = useUser()
   const { updateProfile, changePassword, isUpdating, isChangingPassword } = useProfile()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
 
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileFormSchema),
@@ -58,6 +64,49 @@ export const MobileUserProfilePage = () => {
   })
 
   const newPassword = passwordForm.watch('newPassword')
+  const currentAvatarUrl = profileForm.watch('avatarUrl')
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !user?.id) return
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Vui lòng chọn tệp ảnh')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Kích thước ảnh tối đa 5MB')
+      return
+    }
+
+    setIsUploadingAvatar(true)
+    try {
+      const ext = file.name.split('.').pop() || 'jpg'
+      const filePath = `${user.id}/avatar-${Date.now()}.${ext}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true, cacheControl: '3600' })
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath)
+
+      profileForm.setValue('avatarUrl', publicUrl, { shouldDirty: true })
+
+      await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', user.id)
+      await refetch()
+
+      toast.success('Tải ảnh đại diện thành công')
+    } catch (err: any) {
+      toast.error('Lỗi khi tải ảnh: ' + (err.message || 'Không xác định'))
+    } finally {
+      setIsUploadingAvatar(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
 
   const onUpdateProfile = (data: ProfileFormData) => {
     updateProfile({
@@ -148,13 +197,40 @@ export const MobileUserProfilePage = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="avatarUrl">URL ảnh đại diện</Label>
-                <Input
-                  id="avatarUrl"
-                  type="url"
-                  placeholder="https://..."
-                  {...profileForm.register('avatarUrl')}
-                />
+                <Label>Ảnh đại diện</Label>
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage src={currentAvatarUrl || undefined} alt={user?.full_name || ''} />
+                    <AvatarFallback>
+                      {user?.full_name?.charAt(0)?.toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarUpload}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploadingAvatar}
+                      className="w-full"
+                    >
+                      {isUploadingAvatar ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Upload className="h-4 w-4 mr-2" />
+                      )}
+                      {isUploadingAvatar ? 'Đang tải...' : 'Tải ảnh từ máy'}
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-1">JPG, PNG tối đa 5MB</p>
+                  </div>
+                </div>
                 {profileForm.formState.errors.avatarUrl && (
                   <p className="text-xs text-destructive">{profileForm.formState.errors.avatarUrl.message}</p>
                 )}
