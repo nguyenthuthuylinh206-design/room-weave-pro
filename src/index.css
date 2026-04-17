@@ -256,12 +256,22 @@ All colors MUST be HSL.
     touch-action: pan-x;
   }
 
-  /* Prevent horizontal overflow on mobile */
+  /* Touch Standard v1: swipeable utility — dùng cho mọi component vuốt ngang.
+     Cho phép cuộn dọc native, chặn select text. */
+  .swipeable {
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevent horizontal overflow on mobile + chặn back-swipe iOS xung đột với swipe trong app */
   @media screen and (max-width: 768px) {
     html, body {
       overflow-x: hidden;
       max-width: 100%;
       overscroll-behavior-y: contain;
+      overscroll-behavior-x: none;
     }
   }
 
