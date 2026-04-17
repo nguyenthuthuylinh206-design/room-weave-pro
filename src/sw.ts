@@ -23,18 +23,24 @@ registerRoute(
   new NetworkOnly()
 );
 
-// Runtime caching for Supabase API
+// Runtime caching for Supabase REST API — ONLY GET/HEAD on /rest/v1/ (not /rpc/)
+// IMPORTANT: Do NOT cache auth, realtime (websocket), RPC, mutations, or storage —
+// caching them caused login delays, stale sessions, and broken realtime in v1.0.1.
 registerRoute(
-  /^https:\/\/.*\.supabase\.co\/.*/i,
+  ({ url, request }) =>
+    /\.supabase\.co\/rest\/v1\//.test(url.href) &&
+    (request.method === 'GET' || request.method === 'HEAD') &&
+    !url.pathname.includes('/rpc/'),
   new NetworkFirst({
-    cacheName: 'supabase-api-cache',
+    cacheName: 'supabase-rest-cache',
+    networkTimeoutSeconds: 3, // bail to cache fast on slow networks
     plugins: [
       new ExpirationPlugin({
-        maxEntries: 50,
-        maxAgeSeconds: 60 * 60, // 1 hour
+        maxEntries: 200,
+        maxAgeSeconds: 5 * 60, // 5 minutes — React Query handles longer staleness
       }),
       new CacheableResponsePlugin({
-        statuses: [0, 200],
+        statuses: [200],
       }),
     ],
   })

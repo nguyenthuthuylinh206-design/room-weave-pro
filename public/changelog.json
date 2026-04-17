@@ -1,11 +1,11 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.2",
   "releaseDate": "2026-04-17",
-  "title": "Cập nhật mượt mà",
+  "title": "Tăng tốc tải trang",
   "changes": [
-    { "type": "new", "text": "Realtime cập nhật danh sách nhân viên đang trong ca khi giao việc" },
-    { "type": "improved", "text": "Thao tác vuốt/chạm mượt mà hơn trên toàn bộ app" },
-    { "type": "fixed", "text": "PWA trên iPhone tự động nhận bản cập nhật mới" },
-    { "type": "fixed", "text": "Trang Kho không còn bị giật khi vuốt" }
+    { "type": "improved", "text": "Tăng tốc tải trang đáng kể (nhanh hơn 2-5 lần)" },
+    { "type": "fixed", "text": "Sửa lỗi đăng nhập và phiên đăng nhập bị chậm" },
+    { "type": "fixed", "text": "Sửa lỗi realtime đôi khi tải lại dữ liệu sai" },
+    { "type": "improved", "text": "Tối ưu cache để app phản hồi mượt mà hơn" }
   ]
 }
