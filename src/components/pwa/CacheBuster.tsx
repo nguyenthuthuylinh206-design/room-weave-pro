@@ -7,7 +7,7 @@ import { useEffect } from 'react';
  * Bump CURRENT_VERSION on every release to trigger a one-time wipe + reload
  * for clients still running an older version.
  */
-const CURRENT_VERSION = '2026.04.17.1';
+const CURRENT_VERSION = '2026.04.17.2';
 const STORAGE_KEY = 'app_version';
 
 export function CacheBuster() {
