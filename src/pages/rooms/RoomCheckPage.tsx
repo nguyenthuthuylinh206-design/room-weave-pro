@@ -864,10 +864,11 @@ export function RoomCheckPage() {
         navigate(`/inventory/distributions/${distributionOrderId}`)
       } else {
         toast({
-          title: 'Thành công',
-          description: `Đã hoàn thành kiểm tra phòng ${room?.room_number}`,
+          title: 'Đã tạo phiếu cho ca dọn phòng',
+          description: `Phòng ${room?.room_number} — ca sau sẽ nhận thông báo ngay`,
         })
-        navigate(isManager ? `/rooms/${id}` : '/rooms')
+        // Staff về thẳng /my-tasks để bốc việc tiếp; Manager về chi tiết phòng để theo dõi
+        navigate(isManager ? `/rooms/${id}` : '/my-tasks')
       }
       
       // === CHẠY NỀN: Các task không cần chờ ===
@@ -1091,25 +1092,66 @@ export function RoomCheckPage() {
         </AlertDialogContent>
       </AlertDialog>
       
-      {/* Submit Confirmation Dialog */}
+      {/* Submit Confirmation Dialog — viết lại bằng câu dễ hiểu cho cô buồng phòng */}
       <AlertDialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Xác nhận hoàn tất kiểm tra?</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <div>Vui lòng kiểm tra lại thông tin trước khi hoàn tất:</div>
-              <ul className="list-disc list-inside space-y-1 text-sm">
-                <li>Loại kiểm tra: <strong>{getCheckTypeLabel(form.watch('check_type'))}</strong></li>
-                <li>Đánh giá độ sạch: <strong>{form.watch('cleanliness_score')}/5 sao</strong></li>
-                <li>Trạng thái đồ dùng: <strong>{form.watch('items_complete') ? 'Đầy đủ' : 'Có vấn đề'}</strong></li>
-                {form.watch('items_missing')?.length > 0 && (
-                  <li className="text-orange-600">Thiếu {form.watch('items_missing').length} vật phẩm</li>
-                )}
-                {form.watch('items_damaged')?.length > 0 && (
-                  <li className="text-red-600">Hỏng {form.watch('items_damaged').length} vật phẩm</li>
-                )}
-              </ul>
-              <div className="mt-3 font-medium">Bạn có chắc chắn muốn hoàn tất kiểm tra này?</div>
+            <AlertDialogTitle>
+              {isCheckoutType ? 'Tạo phiếu cho ca dọn phòng tiếp theo?' : 'Hoàn tất kiểm tra?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              {isCheckoutType ? (
+                <>
+                  <div className="text-sm">Ca dọn phòng sẽ nhận phiếu với các thông tin sau:</div>
+                  <div className="rounded-lg border bg-muted/30 p-3 space-y-1.5 text-sm">
+                    {form.watch('room_condition') && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Mức bẩn:</span>
+                        <strong>
+                          {form.watch('room_condition') === 'clean' ? 'Hơi bẩn'
+                            : form.watch('room_condition') === 'dirty' ? 'Bẩn'
+                            : 'Rất bẩn'}
+                        </strong>
+                      </div>
+                    )}
+                    {(form.watch('items_sent_to_laundry')?.length || 0) > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Cần giặt:</span>
+                        <strong>{form.watch('items_sent_to_laundry').length} món</strong>
+                      </div>
+                    )}
+                    {(form.watch('items_replaced')?.length || 0) > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Cần thay/bổ sung:</span>
+                        <strong>{form.watch('items_replaced').length} món</strong>
+                      </div>
+                    )}
+                    {(form.watch('items_consumed')?.length || 0) > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Đã hết:</span>
+                        <strong>{form.watch('items_consumed').length} món</strong>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Sau khi xong, bạn sẽ về danh sách công việc để nhận phòng tiếp theo.
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-sm">Vui lòng kiểm tra lại thông tin trước khi hoàn tất:</div>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    <li>Loại kiểm tra: <strong>{getCheckTypeLabel(form.watch('check_type'))}</strong></li>
+                    <li>Trạng thái đồ dùng: <strong>{form.watch('items_complete') ? 'Đầy đủ' : 'Có vấn đề'}</strong></li>
+                    {form.watch('items_missing')?.length > 0 && (
+                      <li className="text-orange-600">Thiếu {form.watch('items_missing').length} vật phẩm</li>
+                    )}
+                    {form.watch('items_damaged')?.length > 0 && (
+                      <li className="text-red-600">Hỏng {form.watch('items_damaged').length} vật phẩm</li>
+                    )}
+                  </ul>
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1128,7 +1170,7 @@ export function RoomCheckPage() {
               ) : (
                 <>
                   <Check className="mr-2 h-4 w-4" />
-                  Xác nhận hoàn tất
+                  {isCheckoutType ? 'Xong - Tạo phiếu cho ca sau' : 'Xác nhận hoàn tất'}
                 </>
               )}
             </AlertDialogAction>
@@ -1405,15 +1447,10 @@ export function RoomCheckPage() {
                   onQuantitiesChange={setItemQuantities}
                 />
               )}
-              {/* Step 5 for Checkout: Review + Cleaning (merged) */}
+              {/* Step 5 for Checkout: chỉ giữ CleaningRequestStep (mức bẩn + ghi chú).
+                  ĐÃ BỎ ReviewStep chấm sao 1-5 vì trùng với mức bẩn cô đã chọn ở đây. */}
               {currentStep === 5 && !quickMode && isCheckoutType && (
-                <div className="space-y-4">
-                  <CleaningRequestStep form={form} />
-                  <div className="border-t pt-4">
-                    <p className="text-sm font-medium mb-3">Đánh giá & ghi chú</p>
-                    <ReviewStep form={form} room={room} checkType={watchedCheckType as CheckType} currentBooking={currentBooking} />
-                  </div>
-                </div>
+                <CleaningRequestStep form={form} />
               )}
               {/* Review Step - adjusts based on check type */}
               {((currentStep === 2 && quickMode) || 
