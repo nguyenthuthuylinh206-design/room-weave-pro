@@ -522,51 +522,26 @@ export function StaffRoomDetailPage() {
                 Bổ sung đồ
               </Button>
             )}
-            <Button 
-              className={`h-12 text-base font-semibold gap-2 ${missingCount > 0 && !isBlockedFromInspection ? 'flex-1' : 'w-full'}`}
-              disabled={isLoadingInspection || isLoadingRoomInspection || startInspection.isPending || isBlockedFromInspection}
-              onClick={async () => {
-                console.log('[StaffRoomDetailPage] Button clicked, pendingInspection:', pendingInspection)
-                
-                // Sử dụng trực tiếp pendingInspection từ state (không refetch để tránh race condition)
-                if (pendingInspection) {
-                  if (pendingInspection.status === 'pending') {
-                    try {
-                      console.log('[StaffRoomDetailPage] Starting inspection:', pendingInspection.id)
-                      const result = await startInspection.mutateAsync(pendingInspection.id)
-                      console.log('[StaffRoomDetailPage] Start result:', result)
-                      
-                      // Navigate sau khi start thành công
-                      navigate(`/rooms/${id}/check?type=checkout&inspection=${pendingInspection.id}`)
-                    } catch (err) {
-                      console.error('[StaffRoomDetailPage] Failed to start inspection:', err)
-                      // Toast lỗi đã được handle trong mutation onError
-                    }
-                  } else if (pendingInspection.status === 'in_progress') {
-                    // Đã start rồi, chỉ navigate tiếp tục
-                    console.log('[StaffRoomDetailPage] Inspection already in_progress, navigating...')
-                    navigate(`/rooms/${id}/check?type=checkout&inspection=${pendingInspection.id}`)
-                  }
-                } else {
-                  // Không có checkout inspection, kiểm tra thường
+            {/* Ẩn nút "Kiểm tra checkout" ở dưới khi đã có CheckoutInspectionBanner ở trên (chỉ giữ 1 nút khởi động) */}
+            {!pendingInspection && (
+              <Button 
+                className={`h-12 text-base font-semibold gap-2 ${missingCount > 0 && !isBlockedFromInspection ? 'flex-1' : 'w-full'}`}
+                disabled={isLoadingInspection || isLoadingRoomInspection || isBlockedFromInspection}
+                onClick={() => {
                   console.log('[StaffRoomDetailPage] No pending inspection, navigating to normal check...')
                   navigate(`/rooms/${id}/check`)
-                }
-              }}
-            >
-              {(isLoadingInspection || isLoadingRoomInspection || startInspection.isPending) ? (
-                <span className="h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-              ) : isBlockedFromInspection ? (
-                <AlertTriangle className="h-5 w-5" />
-              ) : (
-                <ClipboardCheck className="h-5 w-5" />
-              )}
-              {isBlockedFromInspection 
-                ? 'Không có quyền' 
-                : pendingInspection 
-                  ? 'Kiểm tra checkout' 
-                  : t('detail.checkRoom')}
-            </Button>
+                }}
+              >
+                {(isLoadingInspection || isLoadingRoomInspection) ? (
+                  <span className="h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                ) : isBlockedFromInspection ? (
+                  <AlertTriangle className="h-5 w-5" />
+                ) : (
+                  <ClipboardCheck className="h-5 w-5" />
+                )}
+                {isBlockedFromInspection ? 'Không có quyền' : t('detail.checkRoom')}
+              </Button>
+            )}
           </div>
         </div>
       </PullToRefresh>
