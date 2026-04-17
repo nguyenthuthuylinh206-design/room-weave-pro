@@ -1,59 +1,94 @@
 
 
-## Ảnh hưởng của Đợt 2 đến logic & dữ liệu
+## Đợt 3 — Tối ưu Database Queries & Index
 
-### Trả lời ngắn
-**Không thay đổi logic nghiệp vụ, không thay đổi dữ liệu lưu trong DB.** Chỉ thay đổi *cách* client lắng nghe và đồng bộ dữ liệu. Tuy nhiên có **3 điểm rủi ro hành vi** cần lưu ý.
-
----
-
-### Những gì KHÔNG đổi
-- Schema DB, RLS, RPC, edge functions: giữ nguyên
-- Mọi `INSERT/UPDATE/DELETE` từ user thao tác: giữ nguyên
-- Kết quả query (`useQuery` trả về data gì) sau khi load xong: giống hệt
-- Logic checkin/checkout/payment/laundry/maintenance: không đụng
-
-### Những gì ĐỔI (chỉ về timing & transport)
-| Thay đổi | Trước | Sau |
-|---|---|---|
-| Filter realtime theo `tenant_id` | Một số channel nhận event của tenant khác (bug tiềm ẩn) | Chỉ nhận event đúng tenant → **dữ liệu chính xác hơn** |
-| Bỏ `refetchInterval` | Tự refetch mỗi 30–60s | Chỉ refetch khi có realtime event hoặc user thao tác |
-| Pause realtime khi tab ẩn | Luôn lắng nghe | Pause khi ẩn, resume + invalidate khi quay lại |
-| Heartbeat staff_status | UPDATE DB mỗi 5 phút | Presence in-memory, không ghi DB |
+### Mục tiêu
+- Giảm payload mỗi query (~50-70%) bằng cách select cột cụ thể
+- Phân trang server-side cho list lớn → giảm memory + bandwidth
+- Thêm DB index trên cột filter nóng → giảm CPU database
+- Refactor RLS dùng SECURITY DEFINER nếu có policy nặng
 
 ---
 
-### 3 rủi ro hành vi cần lưu ý
+### Phạm vi
 
-**1. Bỏ polling → phụ thuộc 100% vào realtime**
-- Nếu một bảng *không* có realtime publication mà ta lỡ bỏ `refetchInterval` → data sẽ stale cho đến khi user thao tác.
-- **Cách phòng**: trước khi bỏ polling cho mỗi hook, xác nhận bảng đó đã `ALTER PUBLICATION supabase_realtime ADD TABLE`. Nếu chưa có → giữ polling hoặc thêm publication.
+**A. Thay `.select('*')` bằng cột cụ thể (hot path trước)**
 
-**2. Pause khi tab ẩn → có thể bỏ lỡ event lúc ẩn**
-- Khi user mở lại tab, channel resubscribe nhưng các event xảy ra lúc ẩn đã mất.
-- **Cách phòng**: lúc resume luôn `queryClient.invalidateQueries()` cho các key liên quan → fetch snapshot mới → dữ liệu vẫn đúng, chỉ trễ 1 lần fetch.
+Ưu tiên các hook query nhiều/payload lớn:
+- `useBookings.ts` — booking có nhiều cột JSON nặng (guest_info, room_assignments)
+- `useRoomChecks.ts` — `items_lost`, `items_damaged`, `items_consumed` JSON nặng
+- `usePayments.ts` / `useBookingPayments.ts`
+- `useUnifiedTasks.ts`, `useHousekeepingTasks.ts`
+- `useMaintenanceRequests.ts`
+- `useLaundryBatches.ts`
+- `useStockAdjustments.ts`
+- `useNotifications.ts`
 
-**3. Heartbeat → Presence**
-- `staff_status.last_seen_at` trong DB sẽ **không còn được cập nhật mỗi 5 phút**.
-- Nơi nào đang đọc `last_seen_at` từ DB để tính online/offline (ví dụ báo cáo lịch sử, query SQL ngoài app) sẽ thấy giá trị cũ.
-- **Cách phòng**: 
-  - UI online/offline đọc từ presence state (real-time, chính xác hơn).
-  - Nếu cần lưu lịch sử online → vẫn UPDATE `last_seen_at` nhưng giãn ra 15 phút/lần, hoặc chỉ ghi khi user vào/ra shift.
-  - Logic shift (`shift_start_at`, `shift_end_at`) **giữ nguyên ghi DB** như cũ — không đụng.
+55 file dùng `.select('*')` — Đợt 3 chỉ refactor ~10 hot path quan trọng nhất (file ít dùng giữ nguyên để tránh phình scope).
+
+**B. Server-side pagination thực sự**
+
+Thay `.limit(N)` lớn bằng `range(from, to)` + trả `count`:
+- `BookingsPage` — hiện `limit(100)`, chuyển sang pagination 25/page
+- `useShiftHistory` — `limit(500)` → 50/page
+- `useSupplementRequests` — `limit(200)` → 50/page
+- `useRecurringIssues` — `limit(500)` → 50/page
+- `NotificationCenter` — load thêm khi scroll
+
+**C. Thêm DB index còn thiếu**
+
+Chạy `supabase--linter` để xác định chính xác. Dự kiến cần index trên các bảng nóng:
+- `room_checks(tenant_id, hotel_id, checked_at DESC)`
+- `room_check_sessions(tenant_id, room_id, status)`
+- `housekeeping_tasks(tenant_id, assigned_to, status)`
+- `room_bookings(tenant_id, hotel_id, status, check_in_date)`
+- `booking_payments(tenant_id, booking_id, status)`
+- `notifications(tenant_id, user_id, is_read)`
+- `staff_status(tenant_id, user_id)`
+- `stock_adjustments(tenant_id, hotel_id, created_at DESC)`
+
+Tất cả là `CREATE INDEX IF NOT EXISTS` → an toàn, không khoá bảng lâu (dùng `CONCURRENTLY` nếu có thể).
+
+**D. RLS audit (chỉ khi linter báo)**
+
+Nếu linter phát hiện policy có subquery nặng → refactor sang SECURITY DEFINER function (theo pattern `has_role` đã có).
 
 ---
 
-### Kết quả dữ liệu sau Đợt 2
-- **Chính xác hơn** ở các channel hiện đang thiếu filter `tenant_id` (đang có nguy cơ nhận chéo event giữa tenant).
-- **Tươi như cũ** với các bảng đã có realtime publication.
-- **Trễ tối đa 1 fetch** khi user vừa mở lại tab sau thời gian dài → tự động đồng bộ.
-- **Heartbeat trong DB không còn realtime** → cần chấp nhận hoặc thêm phương án ghi định kỳ nhẹ hơn.
+### Cách triển khai
 
-### Đề xuất an toàn
-Trước khi gỡ `refetchInterval` từng hook, mình sẽ:
-1. Check bảng đã enable realtime chưa (qua `supabase_realtime` publication).
-2. Nếu chưa → tạo migration `ALTER PUBLICATION` trước.
-3. Mới gỡ polling.
+1. **Chạy `supabase--linter`** để lấy danh sách index thiếu + RLS có vấn đề
+2. **Tạo migration** thêm index `IF NOT EXISTS` (an toàn, idempotent)
+3. **Refactor 10 hook hot path**: thay `select('*')` → cột cụ thể; chuyển sang `range()` + `count: 'exact'`
+4. **Cập nhật UI pagination** ở `BookingsPage`, `ShiftHistory`, `SupplementsPage`, `RecurringIssues`, `NotificationCenter`
 
-Cách này đảm bảo **không có bảng nào mất khả năng cập nhật** sau refactor.
+---
+
+### Ảnh hưởng đến logic & dữ liệu
+
+**KHÔNG đổi:**
+- Schema, RLS policies (chỉ thêm index — không sửa rule)
+- Logic nghiệp vụ
+- Dữ liệu hiển thị (chỉ thay đổi cột query nhưng vẫn đủ field UI cần)
+
+**ĐỔI:**
+- List nhiều trang → user phải bấm next page (UX có pagination control rõ ràng)
+- Một số hook trả về ít field hơn → nếu có component nào dùng field "ẩn" → phải bổ sung lại (mình sẽ rà type + grep usage)
+
+**Rủi ro:**
+- Bỏ sót cột cần dùng → component lỗi `undefined`. Phòng: grep mọi `data.field` cho từng hook trước khi cắt cột.
+- Index `CONCURRENTLY` không chạy được trong transaction migration → dùng `CREATE INDEX IF NOT EXISTS` thường (chấp nhận khoá ngắn).
+
+---
+
+### Kết quả mong đợi
+- Payload trung bình mỗi query: giảm 50-70%
+- DB CPU khi filter nóng: giảm 30-60% nhờ index
+- BookingsPage TTFB: từ ~vài trăm KB → ~30 KB/trang
+- Sẵn sàng chịu tải 10K user concurrent (kết hợp Đợt 1 + 2)
+
+### Phạm vi file
+- 1 migration mới (index + có thể RLS refactor)
+- ~10 hook refactor select cột
+- ~5 component UI thêm pagination control
 
