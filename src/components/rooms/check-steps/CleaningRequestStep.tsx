@@ -1,9 +1,8 @@
 import { UseFormReturn } from 'react-hook-form'
+import { useEffect } from 'react'
 import { CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react'
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
 import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import type { RoomCheckFormData } from '@/types/rooms.types'
 
@@ -17,28 +16,28 @@ const ROOM_CONDITIONS = [
   { value: 'very_dirty', label: 'Rất bẩn', icon: AlertTriangle, color: 'text-red-600', selectedBg: 'bg-red-50 border-red-500 text-red-700' },
 ] as const
 
-const PRIORITY_OPTIONS = [
-  { value: 'low', label: 'Thấp' },
-  { value: 'medium', label: 'Trung bình' },
-  { value: 'high', label: 'Cao' },
-  { value: 'urgent', label: 'Khẩn cấp' },
-] as const
-
 export function CleaningRequestStep({ form }: CleaningRequestStepProps) {
   const roomCondition = form.watch('room_condition')
-  const needsCleaning = form.watch('needs_cleaning')
-  
-  const handleConditionChange = (value: string) => {
-    form.setValue('room_condition', value as 'clean' | 'dirty' | 'very_dirty')
-    
-    if (value === 'clean') {
-      form.setValue('needs_cleaning', false)
-      form.setValue('cleaning_priority', 'medium')
-    } else {
-      form.setValue('needs_cleaning', true)
-      form.setValue('cleaning_priority', value === 'very_dirty' ? 'high' : 'medium')
-    }
+
+  // Mọi checkout đều cần dọn — chỉ khác mức độ ưu tiên
+  useEffect(() => {
+    form.setValue('needs_cleaning', true)
+    if (!roomCondition) return
+    const priority = roomCondition === 'clean' ? 'low'
+      : roomCondition === 'very_dirty' ? 'high'
+      : 'medium'
+    form.setValue('cleaning_priority', priority)
+  }, [roomCondition, form])
+
+  const handleConditionChange = (value: 'clean' | 'dirty' | 'very_dirty') => {
+    form.setValue('room_condition', value)
   }
+
+  const summaryText =
+    roomCondition === 'clean' ? 'Ca sau sẽ dọn nhẹ — thay ga giường, bổ sung đồ tiêu hao (~15 phút)'
+    : roomCondition === 'dirty' ? 'Ca sau sẽ dọn bình thường — thay ga + lau dọn (~30 phút)'
+    : roomCondition === 'very_dirty' ? 'Ca sau sẽ dọn kỹ — quản lý nhận thông báo ưu tiên (~45-60 phút)'
+    : 'Chọn mức bẩn để biết khối lượng việc của ca sau'
 
   return (
     <div className="space-y-4">
@@ -48,7 +47,7 @@ export function CleaningRequestStep({ form }: CleaningRequestStepProps) {
         name="room_condition"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className="text-sm font-medium">Tình trạng phòng</FormLabel>
+            <FormLabel className="text-sm font-medium">Tình trạng phòng khi khách trả</FormLabel>
             <FormControl>
               <div className="grid grid-cols-3 gap-2 pt-1">
                 {ROOM_CONDITIONS.map((condition) => {
@@ -78,89 +77,29 @@ export function CleaningRequestStep({ form }: CleaningRequestStepProps) {
         )}
       />
 
-      {/* Needs Cleaning Checkbox */}
-      {roomCondition && roomCondition !== 'clean' && (
-        <FormField
-          control={form.control}
-          name="needs_cleaning"
-          render={({ field }) => (
-            <FormItem className="flex items-start gap-3 p-3 rounded-lg border bg-muted/30">
-              <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                  className="mt-0.5"
-                />
-              </FormControl>
-              <div className="flex-1">
-                <FormLabel className="text-sm font-medium cursor-pointer">
-                  Yêu cầu dọn dẹp ngay
-                </FormLabel>
-                <p className="text-xs text-muted-foreground">
-                  Gửi thông báo cho quản lý để phân công nhân viên dọn phòng
-                </p>
-              </div>
-            </FormItem>
-          )}
-        />
-      )}
-
-      {/* Priority & Notes — khi cần dọn */}
-      {needsCleaning && (
-        <div className="space-y-3 animate-in slide-in-from-top-2 duration-200">
-          <FormField
-            control={form.control}
-            name="cleaning_priority"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm">Mức độ ưu tiên</FormLabel>
-                <Select value={field.value || 'medium'} onValueChange={field.onChange}>
-                  <FormControl>
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Chọn mức độ ưu tiên" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="z-[200]">
-                    {PRIORITY_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="cleaning_notes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm">Ghi chú dọn dẹp</FormLabel>
-                <FormControl>
-                  <Textarea
-                    {...field}
-                    placeholder="VD: Khách để lại nhiều rác, cần đổi ga giường..."
-                    className="min-h-[60px] text-sm resize-none"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-      )}
-
-      {/* Summary — compact */}
-      <div className="px-3 py-2 rounded-lg border bg-muted/20 text-xs text-muted-foreground">
-        {(!roomCondition || roomCondition === 'clean') && !needsCleaning && (
-          <p>Sau khi hoàn tất → Phòng chuyển sang <strong className="text-green-600">Trống</strong></p>
+      {/* Ghi chú dọn dẹp — luôn hiện */}
+      <FormField
+        control={form.control}
+        name="cleaning_notes"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="text-sm">Ghi chú cho ca sau (tuỳ chọn)</FormLabel>
+            <FormControl>
+              <Textarea
+                {...field}
+                placeholder="VD: Khách để lại nhiều rác, cần đổi ga giường, có vết bẩn trên thảm..."
+                className="min-h-[60px] text-sm resize-none"
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
         )}
-        {needsCleaning && (
-          <p>Sau khi hoàn tất → Phòng chuyển sang <strong className="text-amber-600">Đang dọn</strong>, quản lý sẽ nhận thông báo</p>
-        )}
+      />
+
+      {/* Summary — luôn tạo phiếu dọn, chỉ khác mức độ */}
+      <div className="px-3 py-2 rounded-lg border bg-muted/20 text-xs text-muted-foreground space-y-1">
+        <p>{summaryText}</p>
+        <p>Sau khi hoàn tất → Phòng chuyển sang <strong className="text-amber-600">Đang chờ dọn</strong></p>
       </div>
     </div>
   )

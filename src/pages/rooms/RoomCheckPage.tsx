@@ -1106,14 +1106,24 @@ export function RoomCheckPage() {
                   <div className="text-sm">Ca dọn phòng sẽ nhận phiếu với các thông tin sau:</div>
                   <div className="rounded-lg border bg-muted/30 p-3 space-y-1.5 text-sm">
                     {form.watch('room_condition') && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Mức bẩn:</span>
-                        <strong>
-                          {form.watch('room_condition') === 'clean' ? 'Hơi bẩn'
-                            : form.watch('room_condition') === 'dirty' ? 'Bẩn'
-                            : 'Rất bẩn'}
-                        </strong>
-                      </div>
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Mức bẩn:</span>
+                          <strong>
+                            {form.watch('room_condition') === 'clean' ? 'Sạch'
+                              : form.watch('room_condition') === 'dirty' ? 'Bẩn nhẹ'
+                              : 'Rất bẩn'}
+                          </strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Mức độ dọn:</span>
+                          <strong>
+                            {form.watch('room_condition') === 'clean' ? 'Dọn nhẹ (~15 phút)'
+                              : form.watch('room_condition') === 'dirty' ? 'Dọn bình thường (~30 phút)'
+                              : 'Dọn kỹ (~45-60 phút)'}
+                          </strong>
+                        </div>
+                      </>
                     )}
                     {(() => {
                       const laundryItems = form.watch('items_sent_to_laundry') || []
@@ -1469,7 +1479,7 @@ export function RoomCheckPage() {
               <div className="sticky bottom-0 z-10 bg-background border-t p-3 -mx-2 md:relative md:mx-0 md:p-0 md:pt-6 md:border-t">
                 <div className="flex items-center justify-between">
                 <div className="flex gap-2">
-                  {currentStep > 1 && (
+                  {currentStep > 1 && !(currentStep === 4 && isCheckoutType && phase1Submitted) && (
                     <Button
                       type="button"
                       variant="outline"
