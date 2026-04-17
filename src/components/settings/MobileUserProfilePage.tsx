@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -9,9 +10,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { User, Mail, Lock, Save, MessageCircle, Loader2 } from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { User, Mail, Lock, Save, MessageCircle, Loader2, Upload } from 'lucide-react'
 import { TelegramConnectionCard } from '@/components/profile/TelegramConnectionCard'
 import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter'
+import { supabase } from '@/integrations/supabase/client'
+import { toast } from 'sonner'
 import {
   profileFormSchema,
   ProfileFormData,
