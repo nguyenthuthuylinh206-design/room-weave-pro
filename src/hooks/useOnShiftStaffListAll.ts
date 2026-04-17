@@ -99,7 +99,6 @@ export function useOnShiftStaffListAll() {
       })
     },
     enabled: !!tenantId,
-    staleTime: 30 * 1000, // 30 seconds
-    refetchInterval: 60000, // Refetch every minute
+    staleTime: 2 * 60 * 1000,
   })
 }
