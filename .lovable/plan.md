@@ -1,58 +1,38 @@
 
-User muốn:
-1. Phiên bản trong "Thông tin" ở MorePage tự động cập nhật theo mỗi lần deploy (hiện hardcode `v1.0.0`)
-2. Bắt đầu với phiên bản `v1.0.1` ngay sau lần deploy này, kèm popup thông báo
+User hỏi: "có ảnh hưởng gì không" — về kế hoạch sửa performance đã trình bày trước đó (sửa `sw.ts`, `vite.config.ts`, `useStaffStatus.ts`, bump version 1.0.2).
 
-## Phân tích hiện trạng
+## Trả lời: Có 3 ảnh hưởng — đều LÀNH TÍNH
 
-- `MorePage.tsx` line 158: hardcode `<span className="font-medium">v1.0.0</span>`
-- `CacheBuster.tsx`: có `CURRENT_VERSION = '2026.04.17.2'` (format ngày, không phải semver)
-- `PWAUpdatePrompt.tsx`: đã có popup hiển thị changelog với `version` từ hook `useChangelog`
-- `useChangelog`: tồn tại — cần xem để biết changelog đến từ đâu (file JSON? hardcode?)
+### 1. User hiện tại sẽ bị reload 1 lần (≈3 giây)
+- Vì bump `APP_VERSION` → '1.0.2' → `CacheBuster` phát hiện mismatch → wipe cache + unregister SW cũ → tự reload
+- Trên iPhone PWA: tự reload trong vài giây sau khi mở app
+- Trên web: reload ngay lần load tiếp theo
+- **Không mất dữ liệu** (chỉ clear cache HTTP, không động vào localStorage auth/session)
+- User sẽ thấy popup changelog v1.0.2 sau khi reload xong
 
-## Đề xuất
+### 2. Lần đầu sau update sẽ hơi chậm hơn 1 chút (≈1-2 giây)
+- Vì cache cũ bị xoá sạch → request đầu tiên phải đi network thật
+- Từ lần 2 trở đi: nhanh hơn HẲN vì SW không còn chặn request Supabase nữa
 
-### 1. Tạo single source of truth cho version
-Tạo file `src/lib/app-version.ts`:
-```ts
-export const APP_VERSION = '1.0.1';
-export const APP_VERSION_DATE = '2026-04-17';
-```
+### 3. Một số tính năng phụ thuộc realtime telegram_connections sẽ refetch chậm hơn
+- Hiện listener này không filter tenant → refetch sai tenant → bỏ đi là đúng
+- Dữ liệu telegram của staff vẫn cập nhật bình thường khi user mở/đóng tab (visibility refetch) hoặc sau staleTime (2 phút)
+- **Không ai mất tính năng nào**
 
-### 2. Dùng version ở 3 nơi
-- **MorePage**: import `APP_VERSION` thay cho hardcode `v1.0.0`
-- **CacheBuster**: dùng `APP_VERSION` làm `CURRENT_VERSION` (thay format ngày bằng semver — đơn giản hơn cho user)
-- **PWAUpdatePrompt**: changelog hiện tại đã hiển thị version từ `useChangelog` — kiểm tra & đảm bảo entry `1.0.1` tồn tại
+## KHÔNG ảnh hưởng đến:
+- ✅ Đăng nhập / phiên đăng nhập (auth không qua SW nữa nên còn ổn định hơn)
+- ✅ Realtime booking, room status, payment (vẫn chạy WebSocket trực tiếp)
+- ✅ Dữ liệu trong DB (không động chạm)
+- ✅ RLS / phân quyền
+- ✅ Edge functions
+- ✅ Mutation (tạo/sửa/xoá booking, room, etc.)
+- ✅ Console logs khi dev (chỉ tắt ở production build)
 
-### 3. Cập nhật changelog cho v1.0.1
-Cần xem `useChangelog` lấy data từ đâu để thêm entry mới với:
-- version: `1.0.1`
-- title: "Cập nhật mượt mà"
-- changes: liệt kê những fix gần đây (PWA cache busting, realtime nhân viên, touch standard, tắt PullToRefresh /inventory)
+## Rủi ro tiềm ẩn (rất thấp)
+- Nếu user đang giữa chừng 1 thao tác khi CacheBuster reload → mất form chưa submit
+  - **Mitigation**: CacheBuster chỉ chạy 1 lần ngay khi mở app, không chạy giữa session
+- Nếu mạng user yếu → lần load đầu sau update có thể chậm 3-5 giây thay vì 1-2 giây
+  - Sau đó vẫn nhanh hơn hiện tại
 
-### 4. Quy trình cho lần sau
-Mỗi lần deploy cần update:
-- `src/lib/app-version.ts` — bump số (1.0.1 → 1.0.2)
-- Thêm entry mới vào changelog
-→ MorePage tự đổi, CacheBuster tự wipe cache, PWAUpdatePrompt tự hiện popup mới
-
-## Files thay đổi
-
-| File | Thao tác |
-|------|---------|
-| `src/lib/app-version.ts` | **Mới** — export `APP_VERSION = '1.0.1'` |
-| `src/pages/mobile/MorePage.tsx` | Import `APP_VERSION`, thay `v1.0.0` |
-| `src/components/pwa/CacheBuster.tsx` | Dùng `APP_VERSION` thay date string |
-| Changelog source (cần xác định) | Thêm entry `1.0.1` với danh sách changes |
-
-## Câu hỏi cần làm rõ trước khi implement
-
-Mình cần biết changelog đang lưu ở đâu (JSON file? hardcode trong hook? database?) để biết cách thêm entry `1.0.1`. Sẽ kiểm tra `useChangelog.ts` ở bước implement.
-
-**Nội dung changelog v1.0.1 đề xuất:**
-- ✨ Mới: Realtime cập nhật nhân viên đang trong ca khi giao việc
-- ⚡ Cải tiến: Vuốt/chạm mượt mà hơn trên toàn bộ app
-- 🔧 Sửa lỗi: PWA trên iPhone tự động cập nhật phiên bản mới
-- 🔧 Sửa lỗi: Trang Kho không còn bị giật khi vuốt
-
-Bạn xác nhận nội dung changelog trên có ổn không, hay muốn mình điều chỉnh?
+## Tóm lại
+**An toàn để triển khai.** Nếu bạn xác nhận tiếp tục, mình sẽ thực hiện đúng 5 file đã liệt kê trong kế hoạch. Bạn xác nhận triển khai chứ?
