@@ -152,9 +152,21 @@ export function useStaffStatus() {
   }, [user?.id, tenantId])
 
   // Subscribe to realtime changes (gộp 1 channel + visibility pause)
+  // NOTE: Bỏ listener telegram_connections vì bảng không có tenant_id → trước đây
+  // nhận event toàn platform, gây refetch sai tenant + load chậm. Telegram cập nhật
+  // qua visibility refetch + staleTime là đủ.
   useEffect(() => {
     if (!tenantId) return
     let channel: ReturnType<typeof supabase.channel> | null = null
+    let invalidateTimer: ReturnType<typeof setTimeout> | null = null
+
+    // Debounce 300ms để gộp burst event (5 update/200ms → 1 lần refetch)
+    const scheduleInvalidate = () => {
+      if (invalidateTimer) clearTimeout(invalidateTimer)
+      invalidateTimer = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['staff-status', tenantId] })
+      }, 300)
+    }
 
     const subscribe = () => {
       if (channel) return
@@ -168,7 +180,7 @@ export function useStaffStatus() {
             table: 'staff_status',
             filter: `tenant_id=eq.${tenantId}`,
           },
-          () => queryClient.invalidateQueries({ queryKey: ['staff-status', tenantId] })
+          scheduleInvalidate
         )
         .on(
           'postgres_changes',
@@ -178,22 +190,14 @@ export function useStaffStatus() {
             table: 'users',
             filter: `tenant_id=eq.${tenantId}`,
           },
-          () => queryClient.invalidateQueries({ queryKey: ['staff-status', tenantId] })
-        )
-        // telegram_connections không có cột tenant_id → bắt buộc filter ở client side
-        // Tạm thời lắng nghe toàn bảng nhưng chỉ refetch — không xử lý dữ liệu chéo tenant
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'telegram_connections',
-          },
-          () => queryClient.invalidateQueries({ queryKey: ['staff-status', tenantId] })
+          scheduleInvalidate
         )
         .subscribe()
     }
-    const unsubscribe = () => { if (channel) { supabase.removeChannel(channel); channel = null } }
+    const unsubscribe = () => {
+      if (invalidateTimer) { clearTimeout(invalidateTimer); invalidateTimer = null }
+      if (channel) { supabase.removeChannel(channel); channel = null }
+    }
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
         subscribe()
