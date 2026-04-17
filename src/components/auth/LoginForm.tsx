@@ -50,8 +50,11 @@ export const LoginForm = () => {
 
     const { error } = await signIn(data.email, data.password);
     if (!error) {
-      // Trigger browser password manager save
-      await storeCredential(data.email, data.password);
+      // Chỉ gọi PasswordCredential API nếu trình duyệt hỗ trợ (Chrome/Edge desktop).
+      // iOS Safari/PWA tự động prompt lưu vào iCloud Keychain dựa vào form HTML chuẩn.
+      if ('PasswordCredential' in window) {
+        await storeCredential(data.email, data.password);
+      }
       navigate('/auth/callback');
     }
   };
@@ -59,7 +62,7 @@ export const LoginForm = () => {
   return (
     <div className="w-full space-y-6">
       <Form {...form}>
-        <form id="login-form" action="#" method="POST" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form id="login-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {/* Email */}
           <FormField
             control={form.control}
@@ -73,11 +76,15 @@ export const LoginForm = () => {
                     <Input
                       {...field}
                       id="login-email"
-                      name="username"
+                      name="email"
                       type="email"
                       placeholder="email@example.com"
                       className="pl-10"
                       autoComplete="username"
+                      inputMode="email"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
                     />
                   </div>
                 </FormControl>

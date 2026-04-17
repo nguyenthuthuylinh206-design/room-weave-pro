@@ -1,11 +1,10 @@
 {
-  "version": "1.0.2",
+  "version": "1.0.3",
   "releaseDate": "2026-04-17",
-  "title": "Tăng tốc tải trang",
+  "title": "Sửa lưu mật khẩu trên iPhone",
   "changes": [
-    { "type": "improved", "text": "Tăng tốc tải trang đáng kể (nhanh hơn 2-5 lần)" },
-    { "type": "fixed", "text": "Sửa lỗi đăng nhập và phiên đăng nhập bị chậm" },
-    { "type": "fixed", "text": "Sửa lỗi realtime đôi khi tải lại dữ liệu sai" },
-    { "type": "improved", "text": "Tối ưu cache để app phản hồi mượt mà hơn" }
+    { "type": "fixed", "text": "Sửa lỗi PWA trên iPhone không lưu/gợi ý email & mật khẩu đã đăng nhập" },
+    { "type": "improved", "text": "Tối ưu form đăng nhập theo chuẩn iOS Keychain — autofill nhanh và chính xác hơn" },
+    { "type": "improved", "text": "Bàn phím tự động chuyển sang chế độ email khi nhập tài khoản" }
   ]
 }
