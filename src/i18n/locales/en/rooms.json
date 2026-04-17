@@ -221,6 +221,18 @@
     "missingQuantity": "Total {{count}} items need replenishment",
     "missingItemsList": "Missing items",
     "andMore": "+{{count}} more",
+    "missingTypes": "{{count}} types",
+    "missingItems": "Total {{count}} items",
+    "noItemsDescription": "Click the sync button at the top to add items based on {{type}} room standards.",
+    "itemsInRoom": "Room Items",
+    "checkHistory": "Check History",
+    "quickActions": "Quick Actions",
+    "checkType": {
+      "daily": "Daily check",
+      "checkin": "Check-in check",
+      "checkout": "Check-out check",
+      "maintenance": "Maintenance check"
+    },
     "guestStatus": {
       "checkedIn": "Checked In",
       "confirmed": "Confirmed"
