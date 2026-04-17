@@ -1,10 +1,11 @@
 {
-  "version": "2.1.0",
+  "version": "1.0.1",
   "releaseDate": "2026-04-17",
-  "title": "Cập nhật tháng 4",
+  "title": "Cập nhật mượt mà",
   "changes": [
-    { "type": "new", "text": "Thêm popup hiển thị changelog khi có bản cập nhật mới" },
-    { "type": "improved", "text": "Tối ưu trải nghiệm cuộn trang trên PWA iOS/Android" },
-    { "type": "fixed", "text": "Sửa lỗi hiển thị safe-area trên iPhone notch" }
+    { "type": "new", "text": "Realtime cập nhật danh sách nhân viên đang trong ca khi giao việc" },
+    { "type": "improved", "text": "Thao tác vuốt/chạm mượt mà hơn trên toàn bộ app" },
+    { "type": "fixed", "text": "PWA trên iPhone tự động nhận bản cập nhật mới" },
+    { "type": "fixed", "text": "Trang Kho không còn bị giật khi vuốt" }
   ]
 }
