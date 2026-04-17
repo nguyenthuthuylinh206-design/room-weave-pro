@@ -1,0 +1,10 @@
+{
+  "version": "2.1.0",
+  "releaseDate": "2026-04-17",
+  "title": "Cập nhật tháng 4",
+  "changes": [
+    { "type": "new", "text": "Thêm popup hiển thị changelog khi có bản cập nhật mới" },
+    { "type": "improved", "text": "Tối ưu trải nghiệm cuộn trang trên PWA iOS/Android" },
+    { "type": "fixed", "text": "Sửa lỗi hiển thị safe-area trên iPhone notch" }
+  ]
+}

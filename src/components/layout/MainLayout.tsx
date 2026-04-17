@@ -16,6 +16,7 @@ import { SuspendedOverlay } from './SuspendedOverlay'
 import { FreeTrialPopup } from '@/components/promotions/FreeTrialPopup'
 import { useUser } from '@/hooks/useUser'
 import { useGracePeriod } from '@/hooks/useGracePeriod'
+import { usePostUpdateToast } from '@/hooks/usePostUpdateToast'
 import { isStaff, isTenantOwner, isManager } from '@/lib/userAccess'
 
 const MainLayoutContent = () => {
@@ -79,6 +80,7 @@ const MainLayoutContent = () => {
 
 export const MainLayout = () => {
   const { user, loading } = useAuth()
+  usePostUpdateToast()
 
   if (loading) {
     return (

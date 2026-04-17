@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL } from 'workbox-precaching';
 import { registerRoute, NavigationRoute } from 'workbox-routing';
-import { NetworkFirst, CacheFirst } from 'workbox-strategies';
+import { NetworkFirst, CacheFirst, NetworkOnly } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 
@@ -16,6 +16,12 @@ const navigationRoute = new NavigationRoute(createHandlerBoundToURL('index.html'
   denylist: [/^\/~oauth/],
 });
 registerRoute(navigationRoute);
+
+// Always fetch changelog.json fresh — never cache (so users see latest release notes)
+registerRoute(
+  /\/changelog\.json/,
+  new NetworkOnly()
+);
 
 // Runtime caching for Supabase API
 registerRoute(
