@@ -745,15 +745,15 @@ export function RoomCheckPage() {
   
   const handleBack = () => {
     if (currentStep > 1) {
-      // Skip back over Phase1 Confirm (step 3) if it was auto-skipped (no charges)
-      if (currentStep === 4 && isCheckoutType && phase1Submitted) {
-        const lostItems = (form.getValues('items_lost') || []) as LostItem[]
-        const damagedItems = (form.getValues('items_damaged') || []) as DamagedItem[]
-        const hasCharges = chargeableItems.length > 0 || lostItems.length > 0 || damagedItems.length > 0
-        if (!hasCharges) {
-          setCurrentStep(2)
-          return
-        }
+      // CHẶN: Sau khi đã báo lễ tân (phase1Submitted = true), KHÔNG cho quay về step 3 (màn confirm) hay step trước đó
+      // Quy trình bắt buộc: báo lễ tân xong → tiếp tục ghi đồ cần thay & dọn, không có lựa chọn quay lui
+      if (isCheckoutType && phase1Submitted && currentStep <= 4) {
+        toast({
+          title: 'Không thể quay lại',
+          description: 'Bạn đã báo lễ tân thu tiền. Vui lòng hoàn tất ghi đồ cần thay & dọn.',
+          variant: 'destructive',
+        })
+        return
       }
       setCurrentStep(currentStep - 1)
     }
