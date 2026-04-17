@@ -38,8 +38,11 @@ export const QuickReLogin = ({ email, onSwitchAccount, onSuccess }: QuickReLogin
   const onSubmit = async (data: QuickLoginData) => {
     const { error } = await signIn(email, data.password);
     if (!error) {
-      // Trigger browser password manager save
-      await storeCredential(email, data.password);
+      // Chỉ gọi PasswordCredential API nếu trình duyệt hỗ trợ (Chrome/Edge desktop).
+      // iOS Safari/PWA tự động prompt lưu vào iCloud Keychain dựa vào form HTML chuẩn.
+      if ('PasswordCredential' in window) {
+        await storeCredential(email, data.password);
+      }
       onSuccess();
     }
   };
@@ -66,20 +69,21 @@ export const QuickReLogin = ({ email, onSwitchAccount, onSuccess }: QuickReLogin
       </div>
 
       <Form {...form}>
-        <form id="quick-login-form" action="#" method="POST" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          {/* Hidden username for credential manager - visually hidden but accessible */}
-          <div className="sr-only">
-            <input 
-              type="email"
-              name="username"
-              id="quick-login-username"
-              autoComplete="username"
-              value={email}
-              readOnly
-              tabIndex={-1}
-              onChange={() => {}}
-            />
-          </div>
+        <form id="quick-login-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {/* Hidden email field cho iOS Keychain biết đang đăng nhập tài khoản nào.
+              Dùng style ẩn (không sr-only) để iOS vẫn nhận diện đây là input thật. */}
+          <input 
+            type="email"
+            name="email"
+            id="quick-login-email"
+            autoComplete="username"
+            value={email}
+            readOnly
+            tabIndex={-1}
+            aria-hidden="true"
+            onChange={() => {}}
+            style={{ position: 'absolute', opacity: 0, height: 0, width: 0, pointerEvents: 'none' }}
+          />
           
           {/* Password */}
           <FormField
