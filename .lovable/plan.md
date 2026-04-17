@@ -1,47 +1,48 @@
 
 
-## Sửa trang /settings/profile (mobile)
+## Ẩn module không có quyền + Toast cho action không có quyền
 
-### Vấn đề phát hiện
-1. **Thiếu trường SĐT** — desktop có, mobile không có
-2. **Thiếu trường URL ảnh đại diện** — desktop có, mobile không
-3. **Email cho sửa được** — desktop disable (đúng), mobile cho edit (sai — update bảng `users` không sync với `auth.users`, gây lệch dữ liệu)
-4. **Cấp bậc hiển thị raw** `tenant_owner` thay vì **"Chủ khách sạn"**
-5. **Khách sạn hiển thị UUID** thay vì tên khách sạn (dữ liệu `user.hotel.name` đã có sẵn từ `useUser`)
-6. **Vị trí hiển thị UUID** — `useUser` chưa join bảng `positions`
-7. **Mật khẩu yếu** — schema mobile chỉ min 6 ký tự, desktop yêu cầu 8+ với chữ hoa/thường/số/ký tự đặc biệt → không đồng nhất, kém bảo mật
-8. **Trùng lặp** — `MobileUserProfilePage` viết lại schema/logic riêng thay vì dùng `useProfile` + `profileFormSchema` như desktop
+### Vấn đề hiện tại
+1. **Sidebar/MobileBottomNav/MorePage**: đã filter theo `hasModuleAccess` (kiểm tra quyền module) → nhưng vẫn còn vấn đề:
+   - `MobileBottomNav` các tab `Home`, `Tasks`, `More` không filter → luôn hiện
+   - `Bookings` ở `MobileBottomNav` chỉ check module nhưng không kiểm tra `roles` (staff được mặc định cho phép)
+2. **AccessDenied page to đùng** (`src/components/auth/AccessDenied.tsx`) hiện ra khi:
+   - User click vào URL trực tiếp
+   - User click vào con item mà module cha có quyền view nhưng action create/update bị chặn (ví dụ: thấy danh sách phòng nhưng không có quyền `rooms.create` → click "Thêm phòng" → trang to đùng)
+3. **Sidebar children**: đã filter `hasChildAccess` cho VIEW/CREATE → có vẻ đã ẩn đúng, nhưng do `MOBILE NAV` + một số trường hợp child không khớp `getRequiredAction` (vd "newPO", "addVendor", "addRoom") sẽ rơi vào nhánh `'view'` mặc định → vẫn hiện sai action
 
-### Phương án sửa (an toàn, không đổi DB/logic)
+### Phương án (chia 2 lớp, an toàn dữ liệu)
 
-**A. `MobileUserProfilePage.tsx` — refactor dùng chung hook/schema với desktop**
-- Dùng `useProfile()` thay cho gọi `supabase.from('users').update()` trực tiếp (thống nhất logic, có toast/invalidate sẵn)
-- Dùng `profileFormSchema` và `changePasswordSchema` từ `src/lib/validations/user.schemas.ts` (thống nhất validation)
-- Bỏ trường email khỏi form (để hiển thị read-only như desktop)
-- **Thêm trường**: SĐT, URL ảnh đại diện
-- **Sửa hiển thị thông tin hiện tại**:
-  - Cấp bậc: dùng `getUserLevelLabel(user)` từ `lib/userAccess.ts` → "Chủ khách sạn" / "Quản lý" / "Nhân viên"
-  - Khách sạn: hiển thị `user.hotel?.name` (đã có sẵn)
-  - Vị trí: ẩn nếu chưa join được tên (xem mục B)
-- Xác nhận mật khẩu: dùng `changePasswordSchema` mạnh (8+, hoa/thường/số/ký tự đặc biệt) — đồng nhất với desktop
+**Lớp 1 — ẨN (module/page chính không có quyền)**
+- **Sidebar.tsx**: giữ logic hiện tại (đã đúng), nhưng sửa `getRequiredAction` để nhận diện đúng các key tạo mới: `addItem`, `addRoom`, `addVendor`, `newPO`, `newBatch`, `addNewVendor`, `addVendor` → trả `'create'` thay vì rơi xuống `'view'`. Như vậy nếu user không có `can_create` thì các nút "Thêm mới" trong sidebar tự ẩn.
+- **MobileBottomNav.tsx**: 
+  - Tab `Bookings`/`Rooms` đang check module → giữ nguyên
+  - Bổ sung: nếu sau khi filter còn <5 tab thì tự co lại (đã có sẵn flex-around → OK, không cần làm gì thêm)
+- **MorePage (mobile + desktop)**: đã filter sẵn → giữ nguyên
 
-**B. `useUser.ts` — bổ sung join position (1 dòng, an toàn)**
-- Thêm `position:positions!users_position_id_fkey(id, name)` vào select
-- Hiển thị `user.position?.name` ở mobile profile
-- Không đổi shape khác, không ảnh hưởng component nào đang dùng `user`
-
-**C. Không đụng**
-- DB schema, RLS, RPC
-- Desktop ProfileForm (đã đúng)
-- Logic update profile (đã có sẵn `useProfile`)
+**Lớp 2 — TOAST thay vì AccessDenied page (cho child page)**
+- Tạo component mới `PermissionToast` (dùng `sonner` toast) thay cho `AccessDenied`:
+  - Hiển thị toast đỏ ngắn gọn: "Bạn không có quyền với chức năng này. Liên hệ quản lý."
+  - Tự động `navigate(-1)` (quay lại trang trước) sau khi toast hiện
+  - Nếu không có history → `navigate('/')`
+- Sửa `PermissionRoute.tsx`:
+  - Khi `!hasPermission` và **không có** `fallback` → render `PermissionToast` thay cho `AccessDenied`
+  - Vẫn cho phép truyền `fallback` riêng nếu cần (giữ tương thích)
+- `AccessDenied` lớn vẫn giữ cho `RoleGuard` (trường hợp role không khớp — hiếm hơn) hoặc xoá nếu không còn ai dùng. **Plan: giữ file, chỉ đổi `PermissionRoute` dùng toast.**
 
 ### Phạm vi file
-- Sửa: `src/components/settings/MobileUserProfilePage.tsx` (refactor lớn)
-- Sửa: `src/hooks/useUser.ts` (thêm join position)
+- Sửa `src/components/layout/Sidebar.tsx` — bổ sung từ khoá nhận diện action `create`
+- Sửa `src/components/auth/PermissionRoute.tsx` — thay `AccessDenied` mặc định bằng `PermissionToast`
+- Tạo mới `src/components/auth/PermissionToast.tsx` — toast + auto navigate back
 
-### Kết quả
-- Mobile và desktop đồng nhất về trường, validation, label tiếng Việt
-- Hiển thị "Chủ khách sạn" / tên khách sạn / tên vị trí thay vì code/UUID
-- Mật khẩu mạnh hơn, đồng nhất với desktop
-- Không còn cho sửa email lệch giữa `users` và `auth.users`
+### Không đụng
+- Logic phân quyền RPC `has_user_permission`
+- DB, RLS, hooks
+- `RoleGuard` (vẫn dùng `AccessDenied` cho trường hợp role mismatch)
+- `AccessDenied.tsx` (giữ lại, không xoá để tránh lỗi import khác)
+
+### Kết quả UX
+- Trang chính không có quyền → **không xuất hiện trong sidebar/bottom nav/more**
+- Lỡ vào URL trực tiếp / click sub-item không quyền → **toast đỏ nhỏ + auto quay lại** (không còn trang to đùng)
+- Owner/Super admin: không đổi gì, vẫn full quyền
 
