@@ -52,7 +52,7 @@ export function CheckoutInspectionBanner({
     <div className="mx-4 mb-4 p-4 rounded-lg border-2 border-orange-500 bg-orange-50 dark:bg-orange-950/30">
       <div className="flex items-center gap-2 text-orange-700 dark:text-orange-400 mb-3">
         <ClipboardCheck className="h-5 w-5" />
-        <span className="font-semibold">Yêu cầu kiểm tra Checkout</span>
+        <span className="font-semibold">Khách vừa trả phòng — cần kiểm tra</span>
       </div>
       
       <div className="space-y-2 mb-4">
@@ -66,14 +66,14 @@ export function CheckoutInspectionBanner({
         {inspection.requested_user && (
           <div className="flex items-center gap-2 text-sm">
             <User className="h-4 w-4 text-muted-foreground" />
-            <span>Yêu cầu bởi: <strong>{inspection.requested_user.full_name}</strong></span>
+            <span>Lễ tân báo: <strong>{inspection.requested_user.full_name}</strong></span>
           </div>
         )}
         
         <div className="flex items-center gap-2 text-sm">
           <Clock className="h-4 w-4 text-muted-foreground" />
           <span>
-            {inspection.status === 'pending' ? 'Yêu cầu lúc: ' : 'Bắt đầu lúc: '}
+            {inspection.status === 'pending' ? 'Báo lúc: ' : 'Bắt đầu lúc: '}
             <strong>
               {format(
                 new Date(inspection.status === 'in_progress' ? inspection.started_at! : inspection.created_at),
