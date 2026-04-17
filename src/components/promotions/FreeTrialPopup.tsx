@@ -5,7 +5,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogDescription,
-  AlertDialogFooter,
   AlertDialogAction,
 } from '@/components/ui/alert-dialog'
 import { useUser } from '@/hooks/useUser'
