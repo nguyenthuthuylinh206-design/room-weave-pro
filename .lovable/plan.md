@@ -1,94 +1,69 @@
 
 
-## Đợt 3 — Tối ưu Database Queries & Index
+## Đợt 3 bổ sung + sót Đợt 2 — Phương án AN TOÀN TUYỆT ĐỐI cho dữ liệu
 
-### Mục tiêu
-- Giảm payload mỗi query (~50-70%) bằng cách select cột cụ thể
-- Phân trang server-side cho list lớn → giảm memory + bandwidth
-- Thêm DB index trên cột filter nóng → giảm CPU database
-- Refactor RLS dùng SECURITY DEFINER nếu có policy nặng
+### Nguyên tắc
+Bạn lo cắt cột `select('*')` có thể làm mất field → component vỡ hoặc tính toán sai (giá tiền, công nợ, trạng thái phòng). **Mình loại bỏ hoàn toàn rủi ro đó** bằng cách KHÔNG đụng vào select ở các hook tài chính/booking nhạy cảm.
 
 ---
 
-### Phạm vi
+### Phạm vi điều chỉnh (so với plan trước)
 
-**A. Thay `.select('*')` bằng cột cụ thể (hot path trước)**
+**❌ BỎ (vì rủi ro dữ liệu):**
+- ~~Cắt `select('*')` ở `useBookings.ts`~~ — liên quan tiền/checkout, không động
+- ~~Cắt `select('*')` ở `useBookingPayments.ts`~~ — tài chính, không động
+- ~~Cắt `select('*')` ở `useRoomChecks.ts`~~ — items_lost/damaged ảnh hưởng kho + tính phí
+- ~~Cắt `select('*')` ở `useMaintenanceRequests.ts`~~ — giữ nguyên
+- ~~Cắt `select('*')` ở `useUnifiedTasks.ts`~~ — giữ nguyên
+- ~~Server-side pagination `BookingsPage`~~ — đụng query logic phức tạp, dễ sai bộ lọc
+- ~~Tách hook list/detail~~ — tăng complexity, dễ regression
 
-Ưu tiên các hook query nhiều/payload lớn:
-- `useBookings.ts` — booking có nhiều cột JSON nặng (guest_info, room_assignments)
-- `useRoomChecks.ts` — `items_lost`, `items_damaged`, `items_consumed` JSON nặng
-- `usePayments.ts` / `useBookingPayments.ts`
-- `useUnifiedTasks.ts`, `useHousekeepingTasks.ts`
-- `useMaintenanceRequests.ts`
-- `useLaundryBatches.ts`
-- `useStockAdjustments.ts`
-- `useNotifications.ts`
+**✅ GIỮ (an toàn 100%, KHÔNG đổi data shape):**
 
-55 file dùng `.select('*')` — Đợt 3 chỉ refactor ~10 hot path quan trọng nhất (file ít dùng giữ nguyên để tránh phình scope).
+**1. Sót Đợt 2 — A1: `SubscriptionPaymentPage.tsx`**
+- CHỈ thêm filter `tenant_id=eq.${tenantId}` vào channel hiện có
+- Không đụng query, không đổi data
+- Rủi ro: 0 (chỉ giảm event nhận về, query vẫn fetch full)
 
-**B. Server-side pagination thực sự**
+**2. Sót Đợt 2 — A2: `GroupCheckoutDialog`**
+- Bỏ `refetchInterval: 10s`
+- Thêm realtime subscription `booking_payments` filter theo `booking_id IN (...)` của group
+- onMount: invalidate 1 lần để fetch snapshot mới
+- Khi tab visible trở lại: invalidate
+- Rủi ro: 0 — vẫn dùng cùng query, chỉ đổi trigger refetch
 
-Thay `.limit(N)` lớn bằng `range(from, to)` + trả `count`:
-- `BookingsPage` — hiện `limit(100)`, chuyển sang pagination 25/page
-- `useShiftHistory` — `limit(500)` → 50/page
-- `useSupplementRequests` — `limit(200)` → 50/page
-- `useRecurringIssues` — `limit(500)` → 50/page
-- `NotificationCenter` — load thêm khi scroll
+**3. Chỉ cắt `select('*')` ở 1 hook DUY NHẤT — `useNotifications.ts`**
+- Notification list KHÔNG ảnh hưởng tài chính/kho
+- Trước khi cắt: grep mọi `notification.field` để liệt kê field đang dùng
+- Giữ TẤT CẢ field đang được component đọc, chỉ bỏ cột `data` (JSON lớn) **NẾU** không có usage
+- Nếu có bất kỳ usage nào → giữ nguyên `select('*')`, bỏ qua hook này luôn
+- Rủi ro: cực thấp (đã grep + chỉ là notification)
 
-**C. Thêm DB index còn thiếu**
+### Quy trình bảo vệ dữ liệu
 
-Chạy `supabase--linter` để xác định chính xác. Dự kiến cần index trên các bảng nóng:
-- `room_checks(tenant_id, hotel_id, checked_at DESC)`
-- `room_check_sessions(tenant_id, room_id, status)`
-- `housekeeping_tasks(tenant_id, assigned_to, status)`
-- `room_bookings(tenant_id, hotel_id, status, check_in_date)`
-- `booking_payments(tenant_id, booking_id, status)`
-- `notifications(tenant_id, user_id, is_read)`
-- `staff_status(tenant_id, user_id)`
-- `stock_adjustments(tenant_id, hotel_id, created_at DESC)`
+Trước mỗi thay đổi:
+1. **Grep usage** field trên toàn project
+2. Nếu có ≥1 usage không chắc chắn → **giữ nguyên select**, không cắt
+3. Sau khi sửa → đọc lại file để đảm bảo type vẫn khớp
+4. Không tách hook, không đổi shape return
 
-Tất cả là `CREATE INDEX IF NOT EXISTS` → an toàn, không khoá bảng lâu (dùng `CONCURRENTLY` nếu có thể).
+### Ảnh hưởng dữ liệu (cuối cùng)
 
-**D. RLS audit (chỉ khi linter báo)**
+| Khu vực | Trước | Sau | Rủi ro |
+|---|---|---|---|
+| Subscription payment realtime | nhận event mọi tenant | chỉ tenant mình | 0 — chỉ chính xác hơn |
+| GroupCheckoutDialog | poll 10s | realtime + invalidate on resume | 0 — cùng query, nhanh hơn |
+| Notifications select | full `*` | bỏ cột `data` nếu không dùng | thấp (đã grep) |
+| Bookings/Payments/RoomChecks/Maintenance/Tasks | full `*` | **giữ nguyên** | 0 |
+| Server pagination | — | **không đổi** | 0 |
 
-Nếu linter phát hiện policy có subquery nặng → refactor sang SECURITY DEFINER function (theo pattern `has_role` đã có).
-
----
-
-### Cách triển khai
-
-1. **Chạy `supabase--linter`** để lấy danh sách index thiếu + RLS có vấn đề
-2. **Tạo migration** thêm index `IF NOT EXISTS` (an toàn, idempotent)
-3. **Refactor 10 hook hot path**: thay `select('*')` → cột cụ thể; chuyển sang `range()` + `count: 'exact'`
-4. **Cập nhật UI pagination** ở `BookingsPage`, `ShiftHistory`, `SupplementsPage`, `RecurringIssues`, `NotificationCenter`
-
----
-
-### Ảnh hưởng đến logic & dữ liệu
-
-**KHÔNG đổi:**
-- Schema, RLS policies (chỉ thêm index — không sửa rule)
-- Logic nghiệp vụ
-- Dữ liệu hiển thị (chỉ thay đổi cột query nhưng vẫn đủ field UI cần)
-
-**ĐỔI:**
-- List nhiều trang → user phải bấm next page (UX có pagination control rõ ràng)
-- Một số hook trả về ít field hơn → nếu có component nào dùng field "ẩn" → phải bổ sung lại (mình sẽ rà type + grep usage)
-
-**Rủi ro:**
-- Bỏ sót cột cần dùng → component lỗi `undefined`. Phòng: grep mọi `data.field` cho từng hook trước khi cắt cột.
-- Index `CONCURRENTLY` không chạy được trong transaction migration → dùng `CREATE INDEX IF NOT EXISTS` thường (chấp nhận khoá ngắn).
-
----
-
-### Kết quả mong đợi
-- Payload trung bình mỗi query: giảm 50-70%
-- DB CPU khi filter nóng: giảm 30-60% nhờ index
-- BookingsPage TTFB: từ ~vài trăm KB → ~30 KB/trang
-- Sẵn sàng chịu tải 10K user concurrent (kết hợp Đợt 1 + 2)
+### Kết quả
+- 2 sót Đợt 2 được vá → realtime sạch + giảm DB query
+- Tất cả flow tài chính/booking/kho/nhiệm vụ: **không đổi 1 byte logic nào**
+- An toàn dữ liệu: tuyệt đối
 
 ### Phạm vi file
-- 1 migration mới (index + có thể RLS refactor)
-- ~10 hook refactor select cột
-- ~5 component UI thêm pagination control
+- `src/pages/.../SubscriptionPaymentPage.tsx`
+- `src/components/.../GroupCheckoutDialog.tsx`
+- `src/hooks/useNotifications.ts` (chỉ khi grep an toàn, nếu không thì skip)
 
