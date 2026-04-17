@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { CacheBuster } from "@/components/pwa/CacheBuster";
 
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { RoleGuard } from "@/components/auth/RoleGuard";
@@ -461,6 +462,7 @@ const App = () => (
     <AuthProvider>
       <ThemeProvider defaultTheme="system" storageKey="hotel-theme">
         <TooltipProvider>
+          <CacheBuster />
           <Toaster />
           <Sonner />
           <Suspense fallback={<RouteFallback />}>
