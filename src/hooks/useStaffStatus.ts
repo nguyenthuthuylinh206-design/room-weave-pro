@@ -128,25 +128,25 @@ export function useStaffStatus() {
     refetchOnWindowFocus: false,
   })
 
-  // Heartbeat: update last_seen_at every 5 minutes for current user
+  // Heartbeat: update last_seen_at every 15 minutes for current user
+  // (Tăng từ 5 → 15 phút để giảm 67% lượng write + realtime broadcast.
+  //  Không chuyển sang Presence để giữ tương thích với báo cáo SQL đọc last_seen_at.)
   const { user } = useUser()
   useEffect(() => {
     if (!user?.id || !tenantId) return
 
-    // Initial heartbeat
-    supabase
-      .from('staff_status')
-      .update({ last_seen_at: new Date().toISOString() })
-      .eq('user_id', user.id)
-      .then()
-
-    const interval = setInterval(() => {
+    // Chỉ heartbeat khi tab visible
+    const beat = () => {
+      if (document.visibilityState !== 'visible') return
       supabase
         .from('staff_status')
         .update({ last_seen_at: new Date().toISOString() })
         .eq('user_id', user.id)
         .then()
-    }, 5 * 60 * 1000) // 5 minutes
+    }
+
+    beat()
+    const interval = setInterval(beat, 15 * 60 * 1000) // 15 minutes
 
     return () => clearInterval(interval)
   }, [user?.id, tenantId])
