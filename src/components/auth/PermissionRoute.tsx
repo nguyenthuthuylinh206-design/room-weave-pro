@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { Loader2 } from 'lucide-react'
 import { isAdminUser } from '@/lib/userAccess'
 import { AccessDenied } from './AccessDenied'
+import { PermissionToast } from './PermissionToast'
 
 export type PermissionModule = 
   | 'dashboard'
@@ -124,7 +125,7 @@ function NonAdminPermissionCheck({
   }
   
   if (!hasPermission) {
-    return fallback ? <>{fallback}</> : <AccessDenied module={module} action={action} />
+    return fallback ? <>{fallback}</> : <PermissionToast module={module} action={action} />
   }
   
   return <>{children}</>
