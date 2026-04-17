@@ -4,8 +4,11 @@ import { InstallPWA } from '@/components/pwa/InstallPWA'
 
 export const MobileLayout = () => {
   return (
-    <div className="min-h-screen bg-background">
-      <main className="pb-20">
+    <div
+      className="min-h-dvh bg-background"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+    >
+      <main className="pb-safe-20">
         <Outlet />
       </main>
       <MobileBottomNav />

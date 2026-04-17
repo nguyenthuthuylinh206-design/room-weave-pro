@@ -29,11 +29,14 @@ const MainLayoutContent = () => {
 
   if (isMobile) {
     return (
-      <div className="min-h-screen flex flex-col bg-background overflow-x-hidden">
+      <div
+        className="min-h-dvh flex flex-col bg-background overflow-x-hidden"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
         {showSubscriptionBanner && <GracePeriodBanner />}
         <MobileHeader />
         {isStaffUser && <ShiftStatusBanner />}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden pb-16">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden pb-safe">
           {isSuspended ? (
             <SuspendedOverlay />
           ) : (
@@ -51,7 +54,7 @@ const MainLayoutContent = () => {
   }
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="min-h-dvh flex bg-background">
       <Sidebar />
       <div className="flex-1 flex flex-col">
         {showSubscriptionBanner && <GracePeriodBanner />}
