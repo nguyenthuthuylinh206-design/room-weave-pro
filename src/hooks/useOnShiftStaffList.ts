@@ -90,7 +90,6 @@ export function useOnShiftStaffList(hotelId: string | undefined) {
       return onShiftStaff.sort((a, b) => a.full_name.localeCompare(b.full_name, 'vi'))
     },
     enabled: !!hotelId,
-    staleTime: 60 * 1000, // 60 seconds
-    refetchInterval: 120000, // Refetch every 2 minutes
+    staleTime: 2 * 60 * 1000,
   })
 }

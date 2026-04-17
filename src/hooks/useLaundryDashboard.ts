@@ -23,7 +23,7 @@ export function useLaundryDashboardStats() {
       return data as unknown as LaundryDashboardStats
     },
     enabled: !!tenant?.id,
-    refetchInterval: 60000, // 60 seconds
+    staleTime: 60 * 1000,
     refetchOnWindowFocus: false,
   })
 }

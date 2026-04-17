@@ -582,8 +582,7 @@ export function usePendingAdjustmentsCount() {
       return count || 0
     },
     enabled: !!tenant?.id && canSee,
-    staleTime: 30 * 1000, // 30 seconds
-    refetchInterval: 60 * 1000, // Refetch every minute
+    staleTime: 60 * 1000,
   })
 }
 

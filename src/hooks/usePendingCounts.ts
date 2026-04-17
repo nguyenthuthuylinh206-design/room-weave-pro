@@ -129,8 +129,7 @@ export function usePendingCounts() {
       }
     },
     enabled: !!tenantId,
-    refetchInterval: 60000, // Refetch every 60 seconds
-    staleTime: 20000, // Consider data stale after 20 seconds
+    staleTime: 60 * 1000,
     refetchOnWindowFocus: false,
   })
 }

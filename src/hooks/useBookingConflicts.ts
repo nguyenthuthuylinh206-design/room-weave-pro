@@ -131,8 +131,7 @@ export function useBookingConflicts() {
       })
     },
     enabled: !!tenantId && (isAllHotelsMode || !!selectedHotel?.id),
-    staleTime: 60 * 1000, // Consider stale after 60 seconds
-    refetchInterval: 120 * 1000, // Auto-refetch every 2 minutes
+    staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
   })
 }

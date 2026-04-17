@@ -23,8 +23,7 @@ export function useDashboardStats() {
       return data as unknown as DashboardStats
     },
     enabled: !!tenantId,
-    refetchInterval: 60000,
-    staleTime: 30000,
+    staleTime: 60 * 1000,
     refetchOnWindowFocus: false,
   })
 }

@@ -124,7 +124,7 @@ export function useStaffStatus() {
       return staffWithStatus
     },
     enabled: !!tenantId,
-    refetchInterval: 60000, // Refetch every 60 seconds
+    staleTime: 60 * 1000,
     refetchOnWindowFocus: false,
   })
 
