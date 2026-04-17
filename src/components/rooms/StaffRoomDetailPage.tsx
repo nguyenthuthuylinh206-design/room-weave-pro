@@ -62,10 +62,23 @@ export function StaffRoomDetailPage() {
   const { data, isLoading, refetch } = useRoom(id)
   const { data: booking } = useRoomBooking(id)
   
-  // Staff (buồng phòng) vào từ /my-tasks → back về /my-tasks để bốc việc tiếp
-  // Manager/Owner vào từ /rooms → back về /rooms quản lý
+  // Ưu tiên referrer: nếu vào từ /my-tasks → về /my-tasks, /rooms → về /rooms
+  // Fallback theo role: Manager → /rooms, Staff → /my-tasks
   const isManager = hasAnyRole(['super_admin', 'owner', 'hotel_manager', 'department_manager'])
   const handleHeaderBack = () => {
+    try {
+      const ref = document.referrer ? new URL(document.referrer).pathname : ''
+      if (ref.startsWith('/my-tasks')) {
+        navigate('/my-tasks')
+        return
+      }
+      if (ref.startsWith('/rooms') && ref !== `/rooms/${id}`) {
+        navigate('/rooms')
+        return
+      }
+    } catch {
+      // ignore
+    }
     navigate(isManager ? '/rooms' : '/my-tasks')
   }
   

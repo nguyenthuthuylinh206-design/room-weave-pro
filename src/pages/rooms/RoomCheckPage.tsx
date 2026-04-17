@@ -1115,24 +1115,37 @@ export function RoomCheckPage() {
                         </strong>
                       </div>
                     )}
-                    {(form.watch('items_sent_to_laundry')?.length || 0) > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Cần giặt:</span>
-                        <strong>{form.watch('items_sent_to_laundry').length} món</strong>
-                      </div>
-                    )}
-                    {(form.watch('items_replaced')?.length || 0) > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Cần thay/bổ sung:</span>
-                        <strong>{form.watch('items_replaced').length} món</strong>
-                      </div>
-                    )}
-                    {(form.watch('items_consumed')?.length || 0) > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Đã hết:</span>
-                        <strong>{form.watch('items_consumed').length} món</strong>
-                      </div>
-                    )}
+                    {(() => {
+                      const laundryItems = form.watch('items_sent_to_laundry') || []
+                      const replacedItems = form.watch('items_replaced') || []
+                      const consumedItems = form.watch('items_consumed') || []
+                      const sumQty = (arr: any[]) => arr.reduce((s, i) => s + (Number(i?.quantity) || 0), 0)
+                      const laundryQty = sumQty(laundryItems)
+                      const replacedQty = sumQty(replacedItems)
+                      const consumedQty = sumQty(consumedItems)
+                      return (
+                        <>
+                          {laundryQty > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Cần giặt:</span>
+                              <strong>{laundryQty} cái</strong>
+                            </div>
+                          )}
+                          {replacedQty > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Cần thay/bổ sung:</span>
+                              <strong>{replacedQty} cái</strong>
+                            </div>
+                          )}
+                          {consumedQty > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Đã hết:</span>
+                              <strong>{consumedQty} cái</strong>
+                            </div>
+                          )}
+                        </>
+                      )
+                    })()}
                   </div>
                   <div className="text-sm text-muted-foreground">
                     Sau khi xong, bạn sẽ về danh sách công việc để nhận phòng tiếp theo.
@@ -1298,7 +1311,7 @@ export function RoomCheckPage() {
                 <div className="bg-muted/50 rounded-lg px-3 py-2 text-sm text-muted-foreground">
                   {isCheckoutType ? (
                     <>
-                      <p className="font-medium text-foreground">Bước 1/2: Xem khách có làm mất hay hỏng đồ không</p>
+                      <p className="font-medium text-foreground">Xem khách có làm mất hay hỏng đồ không</p>
                       <p className="text-xs mt-0.5">Xem từng món. Nếu còn nguyên thì bấm ✓. Nếu khách làm <strong>mất</strong> hoặc <strong>hỏng</strong> thì bấm nút tương ứng — lễ tân sẽ thu tiền khách.</p>
                     </>
                   ) : isDeliveryType ? (
@@ -1337,7 +1350,7 @@ export function RoomCheckPage() {
               )}
               {currentStep === 4 && !quickMode && isCheckoutType && (
                 <div className="bg-muted/50 rounded-lg px-3 py-2 text-sm text-muted-foreground">
-                  <p className="font-medium text-foreground">Bước 2/2: Ghi đồ cần thay & mức bẩn</p>
+                  <p className="font-medium text-foreground">Ghi đồ cần thay & mức bẩn</p>
                   <p className="text-xs mt-0.5">Ghi rõ đồ nào cần <strong>giặt, thay, bổ sung</strong> và chọn mức bẩn của phòng. Ca sau sẽ nhận phiếu này và mang đồ đến dọn.</p>
                 </div>
               )}
