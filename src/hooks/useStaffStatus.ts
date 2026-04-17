@@ -124,86 +124,87 @@ export function useStaffStatus() {
       return staffWithStatus
     },
     enabled: !!tenantId,
-    refetchInterval: 60000, // Refetch every 60 seconds
+    staleTime: 60 * 1000,
     refetchOnWindowFocus: false,
   })
 
-  // Heartbeat: update last_seen_at every 5 minutes for current user
+  // Heartbeat: update last_seen_at every 15 minutes for current user
+  // (Tăng từ 5 → 15 phút để giảm 67% lượng write + realtime broadcast.
+  //  Không chuyển sang Presence để giữ tương thích với báo cáo SQL đọc last_seen_at.)
   const { user } = useUser()
   useEffect(() => {
     if (!user?.id || !tenantId) return
 
-    // Initial heartbeat
-    supabase
-      .from('staff_status')
-      .update({ last_seen_at: new Date().toISOString() })
-      .eq('user_id', user.id)
-      .then()
-
-    const interval = setInterval(() => {
+    // Chỉ heartbeat khi tab visible
+    const beat = () => {
+      if (document.visibilityState !== 'visible') return
       supabase
         .from('staff_status')
         .update({ last_seen_at: new Date().toISOString() })
         .eq('user_id', user.id)
         .then()
-    }, 5 * 60 * 1000) // 5 minutes
+    }
+
+    beat()
+    const interval = setInterval(beat, 15 * 60 * 1000) // 15 minutes
 
     return () => clearInterval(interval)
   }, [user?.id, tenantId])
 
-  // Subscribe to realtime changes for staff_status, telegram_connections, and users
+  // Subscribe to realtime changes (gộp 1 channel + visibility pause)
   useEffect(() => {
     if (!tenantId) return
+    let channel: ReturnType<typeof supabase.channel> | null = null
 
-    const channel = supabase
-      .channel(`staff-status-${tenantId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'staff_status',
-          filter: `tenant_id=eq.${tenantId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({
-            queryKey: ['staff-status', tenantId],
-          })
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'telegram_connections',
-        },
-        () => {
-          // Telegram connection changed - refresh staff list
-          queryClient.invalidateQueries({
-            queryKey: ['staff-status', tenantId],
-          })
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'users',
-          filter: `tenant_id=eq.${tenantId}`,
-        },
-        () => {
-          // User updated (e.g., telegram_username) - refresh staff list
-          queryClient.invalidateQueries({
-            queryKey: ['staff-status', tenantId],
-          })
-        }
-      )
-      .subscribe()
-
+    const subscribe = () => {
+      if (channel) return
+      channel = supabase
+        .channel(`staff-status-${tenantId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'staff_status',
+            filter: `tenant_id=eq.${tenantId}`,
+          },
+          () => queryClient.invalidateQueries({ queryKey: ['staff-status', tenantId] })
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'users',
+            filter: `tenant_id=eq.${tenantId}`,
+          },
+          () => queryClient.invalidateQueries({ queryKey: ['staff-status', tenantId] })
+        )
+        // telegram_connections không có cột tenant_id → bắt buộc filter ở client side
+        // Tạm thời lắng nghe toàn bảng nhưng chỉ refetch — không xử lý dữ liệu chéo tenant
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'telegram_connections',
+          },
+          () => queryClient.invalidateQueries({ queryKey: ['staff-status', tenantId] })
+        )
+        .subscribe()
+    }
+    const unsubscribe = () => { if (channel) { supabase.removeChannel(channel); channel = null } }
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        subscribe()
+        queryClient.invalidateQueries({ queryKey: ['staff-status', tenantId] })
+      } else { unsubscribe() }
+    }
+    if (document.visibilityState === 'visible') subscribe()
+    document.addEventListener('visibilitychange', handleVisibility)
     return () => {
-      supabase.removeChannel(channel)
+      document.removeEventListener('visibilitychange', handleVisibility)
+      unsubscribe()
     }
   }, [tenantId, queryClient])
 

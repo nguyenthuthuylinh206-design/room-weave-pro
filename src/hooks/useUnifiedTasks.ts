@@ -158,51 +158,61 @@
      enabled: !!userId && !!tenantId,
    })
  
-   // Realtime subscriptions
+   // Realtime subscriptions (gộp 1 channel + visibility pause)
    useEffect(() => {
      if (!userId || !tenantId) return
- 
-     const channels: ReturnType<typeof supabase.channel>[] = []
- 
-     // Subscribe to housekeeping tasks changes
-     const housekeepingChannel = supabase
-       .channel('unified-tasks-housekeeping')
-       .on(
-         'postgres_changes',
-         {
-           event: '*',
-           schema: 'public',
-           table: 'housekeeping_tasks',
-           filter: `assigned_to=eq.${userId}`,
-         },
-         () => {
-           queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })
-         }
-       )
-       .subscribe()
-     channels.push(housekeepingChannel)
- 
-     // Subscribe to stock adjustments changes
-      const stockChannel = supabase
-        .channel(`unified-tasks-stock-${tenantId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'stock_adjustments',
-            filter: `tenant_id=eq.${tenantId}`,
-          },
-         () => {
-           // Re-check if user is still assigned
-           queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })
-         }
-       )
-       .subscribe()
-     channels.push(stockChannel)
- 
+
+     let channel: ReturnType<typeof supabase.channel> | null = null
+
+     const subscribe = () => {
+       if (channel) return
+       channel = supabase
+         .channel(`unified-tasks-${tenantId}-${userId}`)
+         .on(
+           'postgres_changes',
+           {
+             event: '*',
+             schema: 'public',
+             table: 'housekeeping_tasks',
+             filter: `assigned_to=eq.${userId}`,
+           },
+           () => queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })
+         )
+         .on(
+           'postgres_changes',
+           {
+             event: '*',
+             schema: 'public',
+             table: 'stock_adjustments',
+             filter: `tenant_id=eq.${tenantId}`,
+           },
+           () => queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })
+         )
+         .subscribe()
+     }
+
+     const unsubscribe = () => {
+       if (channel) {
+         supabase.removeChannel(channel)
+         channel = null
+       }
+     }
+
+     const handleVisibility = () => {
+       if (document.visibilityState === 'visible') {
+         subscribe()
+         queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })
+       } else {
+         unsubscribe()
+       }
+     }
+
+     if (document.visibilityState === 'visible') subscribe()
+     document.addEventListener('visibilitychange', handleVisibility)
+
      return () => {
-       channels.forEach(ch => supabase.removeChannel(ch))
+       document.removeEventListener('visibilitychange', handleVisibility)
+       unsubscribe()
      }
    }, [userId, tenantId, queryClient])
  

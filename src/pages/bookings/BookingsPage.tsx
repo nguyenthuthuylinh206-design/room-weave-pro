@@ -211,24 +211,41 @@ export function BookingsPage() {
     }
   }, [searchParams, setSearchParams])
 
-  // Realtime subscription for bookings and rooms
+  // Realtime subscription for bookings and rooms (filter tenant + visibility pause)
   useEffect(() => {
-    const channel = supabase
-      .channel('bookings-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_bookings' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
-        queryClient.invalidateQueries({ queryKey: ['available-rooms'] })
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
-        queryClient.invalidateQueries({ queryKey: ['available-rooms'] })
-      })
-      .subscribe()
+    if (!tenant?.id) return
+    const tId = tenant.id
+    let channel: ReturnType<typeof supabase.channel> | null = null
 
-    return () => {
-      supabase.removeChannel(channel)
+    const subscribe = () => {
+      if (channel) return
+      channel = supabase
+        .channel(`bookings-realtime-${tId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'room_bookings', filter: `tenant_id=eq.${tId}` }, () => {
+          queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
+          queryClient.invalidateQueries({ queryKey: ['available-rooms'] })
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms', filter: `tenant_id=eq.${tId}` }, () => {
+          queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
+          queryClient.invalidateQueries({ queryKey: ['available-rooms'] })
+        })
+        .subscribe()
     }
-  }, [queryClient])
+    const unsubscribe = () => { if (channel) { supabase.removeChannel(channel); channel = null } }
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        subscribe()
+        queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
+        queryClient.invalidateQueries({ queryKey: ['available-rooms'] })
+      } else { unsubscribe() }
+    }
+    if (document.visibilityState === 'visible') subscribe()
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
+      unsubscribe()
+    }
+  }, [tenant?.id, queryClient])
 
   // Get booking conflicts for filtering
   const { data: bookingConflicts } = useBookingConflicts()

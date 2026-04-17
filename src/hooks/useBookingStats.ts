@@ -131,8 +131,7 @@ export function useBookingStats() {
       }
     },
     enabled: !!tenantId,
-    staleTime: 60 * 1000, // 1 minute
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    staleTime: 5 * 60 * 1000,
   })
 }
 

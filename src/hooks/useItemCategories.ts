@@ -42,23 +42,33 @@ export const useItemCategories = () => {
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const queryClient = useQueryClient()
 
-  // Subscribe to real-time changes
+  // Subscribe to real-time changes (filter tenant + visibility pause)
   useEffect(() => {
     if (!tenantId) return
+    let channel: ReturnType<typeof supabase.channel> | null = null
 
-    const channel = supabase
-      .channel('item-categories-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'item_categories' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['item-categories'] })
-        }
-      )
-      .subscribe()
-
+    const subscribe = () => {
+      if (channel) return
+      channel = supabase
+        .channel(`item-categories-${tenantId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'item_categories', filter: `tenant_id=eq.${tenantId}` },
+          () => queryClient.invalidateQueries({ queryKey: ['item-categories'] })
+        )
+        .subscribe()
+    }
+    const unsubscribe = () => { if (channel) { supabase.removeChannel(channel); channel = null } }
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        subscribe()
+        queryClient.invalidateQueries({ queryKey: ['item-categories'] })
+      } else { unsubscribe() }
+    }
+    if (document.visibilityState === 'visible') subscribe()
+    document.addEventListener('visibilitychange', handleVisibility)
     return () => {
-      supabase.removeChannel(channel)
+      document.removeEventListener('visibilitychange', handleVisibility)
+      unsubscribe()
     }
   }, [tenantId, queryClient])
 

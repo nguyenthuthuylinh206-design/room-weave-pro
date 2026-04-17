@@ -33,6 +33,7 @@ import { SupplementRequestSheet } from '@/components/supplements/SupplementReque
 import { cn } from '@/lib/utils'
 import { supabase } from '@/integrations/supabase/client'
 import { useQueryClient } from '@tanstack/react-query'
+import { useUser } from '@/hooks/useUser'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof Clock }> = {
   pending: { label: 'Chờ duyệt', color: 'text-amber-600', icon: Clock },
@@ -52,6 +53,7 @@ const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
 export function SupplementsPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { tenantId } = useUser()
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(
     searchParams.get('request')
@@ -69,23 +71,38 @@ export function SupplementsPage() {
   
   const { data: pendingCount } = usePendingSupplementCount()
   
-  // Realtime subscription
+  // Realtime subscription (filter tenant + visibility pause)
   useEffect(() => {
-    const channel = supabase
-      .channel('supplement-requests-changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'supplement_requests' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['supplement-requests'] })
-          queryClient.invalidateQueries({ queryKey: ['supplement-requests-pending-count'] })
-        }
-      )
-      .subscribe()
-    
-    return () => { 
-      supabase.removeChannel(channel) 
+    if (!tenantId) return
+    let channel: ReturnType<typeof supabase.channel> | null = null
+
+    const subscribe = () => {
+      if (channel) return
+      channel = supabase
+        .channel(`supplement-requests-${tenantId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'supplement_requests', filter: `tenant_id=eq.${tenantId}` },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ['supplement-requests'] })
+            queryClient.invalidateQueries({ queryKey: ['supplement-requests-pending-count'] })
+          }
+        )
+        .subscribe()
     }
-  }, [queryClient])
+    const unsubscribe = () => { if (channel) { supabase.removeChannel(channel); channel = null } }
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        subscribe()
+        queryClient.invalidateQueries({ queryKey: ['supplement-requests'] })
+      } else { unsubscribe() }
+    }
+    if (document.visibilityState === 'visible') subscribe()
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
+      unsubscribe()
+    }
+  }, [tenantId, queryClient])
   
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }))
