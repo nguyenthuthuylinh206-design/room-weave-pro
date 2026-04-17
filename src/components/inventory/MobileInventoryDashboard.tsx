@@ -1,5 +1,3 @@
-import { useQueryClient } from '@tanstack/react-query'
-import { PullToRefresh } from '@/components/mobile/TouchOptimized'
 import { MobileInventoryHero } from './MobileInventoryHero'
 import { MobilePrimaryActions } from './MobilePrimaryActions'
 import { MobileInventoryFAB } from './MobileInventoryFAB'
@@ -9,13 +7,7 @@ import { MobileRecentTransactions } from './MobileRecentTransactions'
 import { useInventoryDashboard } from '@/hooks/useInventoryDashboard'
 
 export function MobileInventoryDashboard() {
-  const queryClient = useQueryClient()
   const { isLoading } = useInventoryDashboard()
-
-  const handleRefresh = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['inventory-dashboard'] })
-    await queryClient.invalidateQueries({ queryKey: ['low-stock-items'] })
-  }
 
   if (isLoading) {
     return (
@@ -40,23 +32,21 @@ export function MobileInventoryDashboard() {
   }
 
   return (
-    <PullToRefresh onRefresh={handleRefresh}>
-      <div className="space-y-5 pb-32">
-          {/* Hero Card with Stock Value */}
-          <MobileInventoryHero />
-          
-          {/* Primary Actions - Nhập/Xuất kho */}
-          <MobilePrimaryActions />
-          
-          {/* Secondary Actions Grid */}
-          <MobileSecondaryActions />
-          
-          {/* Low Stock Alerts */}
-          <MobileLowStockSection />
-          
-          {/* Today's Transactions */}
-          <MobileRecentTransactions />
-        </div>
-    </PullToRefresh>
+    <div className="space-y-5 pb-32">
+      {/* Hero Card with Stock Value */}
+      <MobileInventoryHero />
+      
+      {/* Primary Actions - Nhập/Xuất kho */}
+      <MobilePrimaryActions />
+      
+      {/* Secondary Actions Grid */}
+      <MobileSecondaryActions />
+      
+      {/* Low Stock Alerts */}
+      <MobileLowStockSection />
+      
+      {/* Today's Transactions */}
+      <MobileRecentTransactions />
+    </div>
   )
 }
