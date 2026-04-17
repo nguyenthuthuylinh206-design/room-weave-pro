@@ -265,7 +265,7 @@ export function GroupCheckoutDialog({
       })
     },
     enabled: !!groupData?.bookings && open,
-    refetchInterval: 10000,
+    // Bỏ polling 10s — đã có realtime channel cho checkout_inspection_requests + room_checks bên dưới
   })
 
   // Realtime subscriptions
