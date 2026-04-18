@@ -1,48 +1,55 @@
 
 
-## Trạng thái hiện tại — đã hoàn thiện
+## Hiểu yêu cầu
 
-✅ `roomCheckConfig.ts` — daily có đầy đủ `missing/damaged/empty`
-✅ `CleaningRequestStep` — phân biệt `mode: daily | checkout`, không ép `needs_cleaning` cho daily sạch
-✅ `RoomCheckPage` dialog — tách 3 nhánh: checkout / daily-sạch / daily-bẩn
-✅ `useRoomChecks.processDailyCheck` — chỉ tạo cleaning task khi `room_condition !== 'clean'`
-✅ Banner step 2 daily — đã đúng nghiệp vụ "Thiếu/Hỏng/Hết"
-✅ Auto-tạo supplement request khi có shortage + consumed
-✅ Phòng daily không đổi trạng thái (giữ `occupied`)
+User đơn giản hoá nghiệp vụ báo hỏng/mất/thiếu. Hiện tại khi đánh dấu "Hỏng" có popup hỏi:
+- Mức độ: **Sửa chữa (50%)** / **Thay thế (100%)**
+- **Chi phí ước tính**
+- Ghi chú
 
-## Còn 3 điểm chưa khớp giữa UI ↔ Downstream
+→ Quá phức tạp cho cô buồng phòng. Nghiệp vụ thực tế:
+- **Hỏng = Thay** (không cần biết chi phí, không phân biệt sửa/thay)
+- **Thiếu = Bổ sung**
+- **Mất = Bổ sung + Báo cáo**
 
-### 🟡 Vấn đề 1: ReviewStep (step 3 daily) chưa hiển thị tình trạng vệ sinh phòng
-File `ReviewStep.tsx` — hiện chỉ dùng `room_condition` để auto-fill `cleanliness_score` (dòng 175-177), **không hiện ra cho cô review** trước khi submit. Cô làm xong step 2 chọn "Bẩn nhẹ" → sang step 3 không thấy lại → dễ submit nhầm.
+Cô buồng phòng chỉ cần báo: cái gì hỏng/thiếu/mất → hệ thống tự sinh phiếu cho kho/bảo trì. Chi phí là việc của quản lý sau, không phải lúc check phòng.
 
-→ Thêm 1 dòng tóm tắt trong ReviewStep cho daily: "Tình trạng phòng: **Sạch / Bẩn nhẹ / Rất bẩn**" + nếu không sạch thì hiện "→ Sẽ tạo phiếu lau dọn cho buồng phòng".
+## Vị trí code cần sửa
 
-### 🟡 Vấn đề 2: Daily check có damage nhưng KHÔNG tạo task bảo trì
-Trong `processDailyCheck` (dòng 161-195) chỉ xử lý `room_condition` để tạo cleaning task. Nhưng nếu cô bấm **"Hỏng"** cho linen/equipment trong daily → `items_damaged` có data nhưng **không có flow nào tạo maintenance_request hoặc thông báo bảo trì**.
+**File `CategoryItemRow.tsx` dòng 554-588**: Popup chọn loại hỏng (radio group `damage_type` + input `damage_cost` + textarea ghi chú).
 
-→ Bổ sung: nếu `items_damaged.length > 0` trong daily → tự tạo `maintenance_request` (priority theo `damage_level` nếu có, mặc định `medium`) cho bộ phận bảo trì.
-
-### 🟡 Vấn đề 3: Dialog daily-sạch vẫn hiển thị summary "Cần giặt / Cần thay" nếu cô lỡ bấm
-Dialog dòng 1171-1178 (daily + clean) chỉ hiển thị "không cần dọn lại" — tốt. Nhưng nếu cô lỡ chọn "Sạch" mà ở step 2 lại có đánh dấu **Thiếu (missing)** hoặc **Hỏng (damaged)** → dialog không cảnh báo gì, dễ bỏ sót.
-
-→ Trong nhánh daily-sạch của dialog, thêm cảnh báo nhỏ nếu có `items_missing` hoặc `items_damaged`: "⚠️ Có X đồ cần bổ sung / Y đồ hỏng — sẽ tự gửi yêu cầu cho kho/bảo trì".
+Cần kiểm tra thêm:
+- Nơi gọi popup hỏng cho linen/equipment/furniture
+- Schema `damagedItemSchema` trong `rooms.schemas.ts` (có `damage_type`, `damage_cost`)
+- Type `DamagedItem` trong `rooms.types.ts`
+- Nơi xử lý downstream: `useRoomChecks.ts` → `createMaintenanceForDamagedItems` (có dùng `damage_cost` không)
+- `ReviewStep.tsx` có hiển thị chi phí hỏng không
 
 ## Kế hoạch sửa
 
 | # | File | Thay đổi |
 |---|------|---------|
-| 1 | `ReviewStep.tsx` | Thêm block tóm tắt vệ sinh phòng cho daily (chỉ hiện khi `checkType === 'daily'` và đã chọn `room_condition`). Hiển thị label màu + footnote tạo task. |
-| 2 | `useRoomChecks.ts` (sau dòng 195) | Thêm logic auto-tạo `maintenance_requests` khi daily có `items_damaged.length > 0`. Title: `Báo hỏng từ kiểm tra hằng ngày phòng X`, status: `pending`, type: `repair`. |
-| 3 | `RoomCheckPage.tsx` dialog dòng 1171-1178 | Trong nhánh daily-sạch, thêm dòng cảnh báo nếu `items_missing.length > 0` hoặc `items_damaged.length > 0`. |
+| 1 | `CategoryItemRow.tsx` dòng 554-588 | Bỏ block radio "Sửa chữa/Thay thế" + input "Chi phí". Giữ lại textarea "Ghi chú (tuỳ chọn)" để cô mô tả ngắn nếu cần. Khi submit hỏng: mặc định `damage_type = 'replacement_needed'`, `damage_cost = 0`. |
+| 2 | `CategoryItemRow.tsx` (nút xác nhận hỏng) | Đổi label nút thành "Báo hỏng - cần thay" thay vì "Xác nhận". Bỏ validate chi phí. |
+| 3 | `ItemsCheckStep.tsx` `handleMarkDamaged` | Truyền mặc định `damage_type: 'replacement_needed'`, `damage_cost: 0` nếu component con không gửi lên. |
+| 4 | `ReviewStep.tsx` (nếu có hiển thị tổng chi phí hỏng) | Bỏ cột/dòng "Chi phí ước tính". Chỉ hiển thị: Tên đồ + Số lượng + "Cần thay". |
+| 5 | `useRoomChecks.ts` `createMaintenanceForDamagedItems` | Bỏ phần ghép `damage_cost` vào title/description maintenance request. Title gọn: "Báo hỏng phòng X — cần thay [tên đồ]". |
+| 6 | Tương tự cho **Mất (lost)** | Kiểm tra popup nhập `estimated_value` (dòng `handleEquipmentLost` trong `ItemsCheckStep.tsx`). Bỏ input chi phí. Lost = mặc định bổ sung + tạo báo cáo. |
 
 ## Quy tắc giữ nguyên
 - Tiếng Việt thuần
-- Daily không đổi trạng thái phòng
-- 1 màn / 1 hành động, không phình bước
-- Nếu daily có damage → vẫn tạo maintenance task song song với cleaning task (nếu có)
+- Schema DB không cần migration (cột `damage_cost`/`estimated_value` vẫn để default 0, không xoá để tránh phá dữ liệu cũ)
+- Maintenance request vẫn được tạo tự động cho đồ hỏng (đã làm ở plan trước)
+- Supplement request vẫn tự sinh cho thiếu/mất (đã làm)
+
+## Việc cần verify trước khi sửa
+- Đọc kỹ `CategoryItemRow.tsx` toàn bộ section damage popup để biết các state liên quan (`damageType`, `damageCost`, `damageNotes`) và xoá sạch.
+- Kiểm tra `ItemsCheckStep.tsx` `handleEquipmentLost` có popup nhập `estimated_value` không → bỏ tương tự.
+- Kiểm tra `ReviewStep.tsx` có summary chi phí hỏng/mất không → bỏ.
 
 ## Kết quả mong đợi
-- ReviewStep daily hiện rõ tình trạng vệ sinh trước khi submit
-- Daily báo hỏng → tự sinh phiếu bảo trì (không bị "rơi" data như hiện tại)
-- Dialog daily-sạch cảnh báo rõ nếu vẫn còn đồ thiếu/hỏng cần xử lý
+- Cô bấm "Hỏng" → chỉ hỏi (tuỳ chọn) ghi chú → xác nhận xong → tự sinh phiếu bảo trì "cần thay"
+- Cô bấm "Mất" → chỉ hỏi số lượng → tự sinh phiếu bổ sung kho + báo cáo mất
+- Không hỏi chi phí ở bất kỳ đâu trong luồng kiểm tra phòng
+- Quy trình nhanh hơn, đúng vai trò: cô buồng phòng báo hiện trạng, không định giá
 
