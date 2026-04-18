@@ -88,9 +88,6 @@ export function ReviewStep({ form, room, checkType, currentBooking }: ReviewStep
   const totalLost = itemsLost.reduce((sum, i) => sum + i.quantity, 0)
   const totalReplaced = itemsReplaced.reduce((sum, i) => sum + i.quantity, 0)
   const totalDamaged = itemsDamaged.length
-  const estimatedLossValue = itemsLost.reduce((sum, i) => sum + (i.estimated_value || 0), 0)
-  const damageCostTotal = itemsDamaged.reduce((sum: number, i: any) => sum + (i.damage_cost || 0), 0)
-  const totalCharge = estimatedLossValue + damageCostTotal
   const totalMissing = itemsMissing.reduce((sum, i) => sum + (i.shortage || 0), 0)
   const hasActions = totalLaundry > 0 || totalConsumed > 0 || totalLost > 0 || totalReplaced > 0 || totalDamaged > 0 || totalMissing > 0
   
