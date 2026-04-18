@@ -1392,6 +1392,25 @@ export function RoomCheckPage() {
                   onQuantitiesChange={setItemQuantities}
                 />
               )}
+
+              {/* Step 2 for Daily/Maintenance/Checkin: Items Check + Cleaning Assessment */}
+              {currentStep === 2 && !quickMode && !isCheckoutType && !isDeliveryType && !isReplenishType && (
+                <div className="space-y-6">
+                  <ItemsCheckStep 
+                    form={form} 
+                    items={items} 
+                    roomId={id!}
+                    hotelId={room.hotel_id}
+                    tenantId={room.tenant_id}
+                    bookingId={currentBooking?.id || null}
+                    checkType={watchedCheckType as 'daily' | 'checkin' | 'checkout' | 'maintenance'}
+                    onQuantitiesChange={setItemQuantities}
+                  />
+                  {watchedCheckType === 'daily' && (
+                    <CleaningRequestStep form={form} mode="daily" />
+                  )}
+                </div>
+              )}
               {/* Step 3 for Checkout: Phase 1 Confirm with Chargeable Items */}
               {currentStep === 3 && !quickMode && isCheckoutType && (
                 <div className="space-y-6">
@@ -1435,7 +1454,7 @@ export function RoomCheckPage() {
                     phase={2}
                     onQuantitiesChange={setItemQuantities}
                   />
-                  <CleaningRequestStep form={form} />
+                  <CleaningRequestStep form={form} mode="checkout" />
                 </div>
               )}
               {/* Review Step - adjusts based on check type */}
