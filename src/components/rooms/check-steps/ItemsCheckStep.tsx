@@ -245,12 +245,12 @@ export function ItemsCheckStep({
     }]);
   };
 
-const handleMarkDamaged = (item: RoomItemWithDetails, damageInfo: { damage_type: 'repairable' | 'replacement_needed'; damage_cost: number; notes?: string; item_type?: 'linen' | 'consumable' | 'equipment' | 'furniture' }) => {
+const handleMarkDamaged = (item: RoomItemWithDetails, damageInfo: { damage_type: 'repairable' | 'replacement_needed'; damage_cost: number; notes?: string; quantity?: number; item_type?: 'linen' | 'consumable' | 'equipment' | 'furniture' }) => {
     setDamagedItems(prev => [...prev, {
       item_id: item.item_id,
       item_name: item.item_name,
       item_code: item.item_code,
-      quantity: 1,
+      quantity: damageInfo.quantity ?? 1,
       damage_type: damageInfo.damage_type,
       damage_cost: damageInfo.damage_cost,
       notes: damageInfo.notes,
