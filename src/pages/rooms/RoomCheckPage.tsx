@@ -1098,7 +1098,14 @@ export function RoomCheckPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {isCheckoutType ? 'Tạo phiếu cho ca dọn phòng tiếp theo?' : 'Hoàn tất kiểm tra?'}
+              {(() => {
+                if (isCheckoutType) return 'Tạo phiếu cho ca dọn phòng tiếp theo?'
+                const cond = form.watch('room_condition')
+                const isDaily = watchedCheckType === 'daily'
+                if (isDaily && cond && cond !== 'clean') return 'Tạo phiếu lau dọn?'
+                if (isDaily && cond === 'clean') return 'Hoàn tất kiểm tra hằng ngày?'
+                return 'Hoàn tất kiểm tra?'
+              })()}
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-3">
               {isCheckoutType ? (
@@ -1159,6 +1166,31 @@ export function RoomCheckPage() {
                   </div>
                   <div className="text-sm text-muted-foreground">
                     Sau khi xong, bạn sẽ về danh sách công việc để nhận phòng tiếp theo.
+                  </div>
+                </>
+              ) : watchedCheckType === 'daily' && form.watch('room_condition') === 'clean' ? (
+                <>
+                  <div className="text-sm">Phòng sạch sẽ, đồ dùng đầy đủ — <strong>không cần dọn lại</strong>.</div>
+                  <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-1">
+                    <div className="text-muted-foreground">Hệ thống chỉ ghi nhận lượt kiểm tra hôm nay.</div>
+                    <div className="text-muted-foreground">Khách vẫn ở phòng → phòng giữ nguyên trạng thái <strong className="text-blue-600">Đang sử dụng</strong>.</div>
+                  </div>
+                </>
+              ) : watchedCheckType === 'daily' && form.watch('room_condition') && form.watch('room_condition') !== 'clean' ? (
+                <>
+                  <div className="text-sm">Bộ phận buồng phòng sẽ nhận task lau dọn ngay.</div>
+                  <div className="rounded-lg border bg-muted/30 p-3 space-y-1.5 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Mức bẩn:</span>
+                      <strong>{form.watch('room_condition') === 'dirty' ? 'Bẩn nhẹ' : 'Rất bẩn'}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Độ ưu tiên:</span>
+                      <strong>{form.watch('room_condition') === 'very_dirty' ? 'Cao' : 'Bình thường'}</strong>
+                    </div>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Khách vẫn ở phòng → phòng <strong>không đổi trạng thái</strong>, chỉ tạo task riêng cho buồng phòng.
                   </div>
                 </>
               ) : (
