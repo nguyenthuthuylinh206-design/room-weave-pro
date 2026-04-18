@@ -200,8 +200,10 @@ export function DeliveryStepWizard({
         isAssignee={isAssignee}
         hasAssignee={hasAssignee}
         useSimplifiedFlow={useSimplifiedFlow}
+        canConfirmOnBehalf={canConfirmOnBehalf}
         onHandoverBatch={onHandoverBatch}
         onConfirmReceive={onConfirmReceive}
+        onConfirmReceiveOnBehalf={onConfirmReceiveOnBehalf}
         onCloseRoute={onCloseRoute}
         isHandingOver={isHandingOver}
         isConfirmingReceive={isConfirmingReceive}
@@ -221,8 +223,10 @@ function GuidanceSection({
   isAssignee,
   hasAssignee,
   useSimplifiedFlow,
+  canConfirmOnBehalf,
   onHandoverBatch,
   onConfirmReceive,
+  onConfirmReceiveOnBehalf,
   onCloseRoute,
   isHandingOver,
   isConfirmingReceive,
@@ -237,8 +241,10 @@ function GuidanceSection({
   isAssignee: boolean
   hasAssignee: boolean
   useSimplifiedFlow: boolean
+  canConfirmOnBehalf: boolean
   onHandoverBatch?: () => void
   onConfirmReceive?: () => void
+  onConfirmReceiveOnBehalf?: () => void
   onCloseRoute?: () => void
   isHandingOver?: boolean
   isConfirmingReceive?: boolean
