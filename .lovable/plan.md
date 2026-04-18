@@ -1,89 +1,75 @@
 
 
-## Vấn đề: Chỉ thấy nút "Hỏng" cho khăn tắm trong Daily check
+## Vấn đề thực: Data legacy phân loại sai (không phải bug code)
 
-Đã trace kỹ luồng — gốc rễ là **item type bị mặc định sai về `equipment`** khi `items.item_type` NULL.
+**Bằng chứng từ DB cho phòng `997ffb2a-...`:**
 
-### Bằng chứng từ DB
+| room_item | items.item_type | category | default_item_type | Đúng? |
+|---|---|---|---|---|
+| Khăn tắm lớn | `equipment` | Đồ vải | NULL | ❌ phải là `linen` |
+| Ấm đun nước | `equipment` | Thiết bị | NULL | ✅ đúng |
+| Bàn chải đánh răng | `equipment` | **Tiêu hao** | NULL | ❌ phải là `consumable` |
 
+→ Code đã đúng (sửa fallback ở plan trước rồi). Nhưng **fallback không kích hoạt** vì `items.item_type` đã có giá trị 'equipment' rõ ràng → fallback chain `?? category.default_item_type` bị bỏ qua.
+
+→ Daily + equipment = chỉ có **OK + Hỏng** (đúng theo `roomCheckConfig.equipmentActions: ['ok', 'damaged']`).
+
+→ Hiển thị 0/3 sai loại tab: Khăn tắm lớn nằm ở tab "Đồ vải" (đúng theo category) nhưng nội bộ vẫn xử lý là equipment → render thiếu nút Thiếu.
+
+## Có 2 nguồn gốc data sai cần sửa
+
+**A. Data items (15+ record có `item_type` sai, `default_item_type` NULL):**
+- 1 × Khăn tắm lớn (equipment) — phải là linen
+- 1 × Bàn chải đánh răng (equipment) — phải là consumable
+- Cô owner đã có 4 record Khăn tắm khác đã đúng `linen`, chứng tỏ đã từng sửa đúng nhưng record cũ chưa update
+
+**B. Data item_categories (default_item_type NULL):**
+- Category "Đồ vải" có 1 record `default_item_type = NULL`
+- Category "Tiêu hao" có 1 record `default_item_type = NULL`
+- Category "Thiết bị" có 1 record `default_item_type = NULL`
+
+## Kế hoạch sửa — 2 migration data nhỏ, không đụng code
+
+| # | Bảng | Hành động |
+|---|---|---|
+| 1 | `item_categories` | UPDATE `default_item_type` cho các record NULL theo tên category: "Đồ vải" → `linen`, "Tiêu hao"/"Phòng tắm" → `consumable`, "Thiết bị"/"Phòng khách"/"Phòng ngủ" → `equipment`, "Nội thất" → `furniture` |
+| 2 | `items` | UPDATE `items.item_type` = `category.default_item_type` cho mọi item có `item_type` không khớp với `category.default_item_type` (sau khi bước 1 đã chuẩn hoá) |
+
+### SQL dự kiến (dùng RPC migration)
+
+```sql
+-- Bước 1: chuẩn hoá default_item_type cho category NULL
+UPDATE item_categories SET default_item_type = 'linen' 
+  WHERE default_item_type IS NULL AND name ILIKE '%đồ vải%';
+UPDATE item_categories SET default_item_type = 'consumable' 
+  WHERE default_item_type IS NULL AND (name ILIKE '%tiêu hao%' OR name ILIKE '%phòng tắm%');
+UPDATE item_categories SET default_item_type = 'equipment' 
+  WHERE default_item_type IS NULL AND name ILIKE '%thiết bị%';
+
+-- Bước 2: đồng bộ items.item_type theo category
+UPDATE items i SET item_type = c.default_item_type
+FROM item_categories c
+WHERE i.category_id = c.id 
+  AND c.default_item_type IS NOT NULL 
+  AND (i.item_type IS NULL OR i.item_type::text != c.default_item_type::text);
 ```
-Khăn tắm lớn × 6 records:
-  - 4 records: default_item_type = 'linen' (đúng)
-  - 2 records: default_item_type = NULL (sai)
-  - Khăn tắm nhỏ × 3 records: category 'Phòng khách' → default_item_type = 'equipment' (sai)
-```
-
-### Bằng chứng từ code
-
-`CategoryBasedItemsCheck.tsx` dòng 114-136:
-```ts
-const { data } = await supabase
-  .from('items')
-  .select('id, item_type, quantity_in_stock, ..., item_categories(...)')  // ❌ KHÔNG select category.default_item_type
-  
-return {
-  ...item,
-  item_type: (itemData?.item_type as ItemType) || 'equipment',  // ❌ NULL → fallback 'equipment'
-  ...
-}
-```
-
-Daily check + equipment per `roomCheckConfig`:
-```ts
-equipment: { equipmentActions: ['ok', 'damaged'] }
-```
-
-→ Khăn tắm bị treat as equipment → chỉ render nút **Hỏng**, mất nút **Thiếu** đáng lẽ có cho linen.
-
-### Vi phạm spec đã có
-
-Memory `category-driven-classification-spec` nói rõ: **item type phải lấy từ `item_categories.default_item_type` khi item.item_type NULL**. Code hiện tại đang bỏ qua bước fallback này.
-
-## Kế hoạch sửa — 1 file, logic fallback
-
-| # | File | Thay đổi |
-|---|------|---------|
-| 1 | `CategoryBasedItemsCheck.tsx` query (dòng 116) | Bổ sung `default_item_type` vào select của `item_categories(...)` |
-| 2 | `CategoryBasedItemsCheck.tsx` enrichment (dòng 132) | Đổi fallback chain: `itemData.item_type ?? category.default_item_type ?? 'equipment'` |
-| 3 | `CategoryBasedItemsCheck.tsx` (dòng 145) | Tương tự cho fallback nhánh data null |
-
-### Logic mới đề xuất
-
-```ts
-const category = itemData?.item_categories as { 
-  id: string; name: string; color: string | null; icon: string | null;
-  default_item_type: ItemType | null  // ← thêm
-} | null
-
-return {
-  ...item,
-  item_type: (itemData?.item_type as ItemType) 
-          ?? (category?.default_item_type as ItemType) 
-          ?? 'equipment',
-  ...
-}
-```
-
-### Tuỳ chọn: Cleanup data (không bắt buộc, có thể làm sau)
-
-Có thể chạy 1 migration nhỏ:
-- Xét `Khăn tắm` đang ở category 'Phòng khách' với `default_item_type = 'equipment'` → đây là **lỗi phân loại category**, để cô owner tự sửa qua UI Item categories
-- Hoặc chỉ update `items.item_type` cho các record NULL bằng `category.default_item_type` (an toàn, không phá UI cũ)
-
-→ **Không làm trong plan này** để khỏi đụng dữ liệu owner. Code fallback đã giải quyết 95% case.
 
 ## Quy tắc giữ nguyên
 
 - Tiếng Việt thuần
-- Không sửa `roomCheckConfig.ts`
-- Không sửa `CategoryItemRow.tsx` (logic mapping action đã đúng)
-- Không migration DB
-- Tuân thủ spec `category-driven-classification-spec`
+- Không đổi code (`CategoryItemRow`, `CategoryBasedItemsCheck`, `roomCheckConfig` đã đúng)
+- Không phá nghiệp vụ: chỉ chuẩn hoá `item_type` theo category — đúng spec `category-driven-classification-spec`
+- Cảnh báo: bước 2 sẽ ảnh hưởng đến cách items render ở mọi nơi (inventory, laundry, room check). Nhưng đây là kết quả MONG MUỐN — phân loại đúng theo category mà owner đã chọn.
 
 ## Kết quả mong đợi
 
-- Khăn tắm (NULL item_type, category 'Đồ vải' → default_item_type 'linen') → render đúng linen → daily hiện **Thiếu** + **Hỏng**
-- Khăn tắm (NULL item_type, category 'Phòng khách' → equipment) → vẫn render equipment (đúng theo cấu hình category, owner cần sửa category nếu muốn)
-- Items có `item_type` set rõ → giữ nguyên hành vi
-- Mọi check type khác không ảnh hưởng
+Sau migration:
+- Khăn tắm lớn → `linen` → daily check hiện **OK / Thiếu / Hỏng**
+- Bàn chải đánh răng → `consumable` → daily check hiện **OK / Thiếu / Hết**
+- Ấm đun nước → vẫn `equipment` → daily check hiện **OK / Hỏng** (đúng nghiệp vụ)
+- Tất cả phòng khác trong tenant tự động được "fix" theo
+
+## Ngoài migration, có cần sửa code thêm không?
+
+Không. Plan trước đã sửa fallback chain trong `CategoryBasedItemsCheck.tsx`, plan trước nữa đã sửa `getActionsForItemType` trong `CategoryItemRow.tsx`. Cả hai đều hoạt động đúng — chỉ là data legacy đang "thắng" fallback. Sau khi data sạch, cả 2 lớp fix code vẫn còn giá trị bảo vệ cho dữ liệu mới.
 
