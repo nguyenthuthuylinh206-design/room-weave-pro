@@ -51,6 +51,7 @@ interface CategoryBasedItemsCheckProps {
   lostItems: LostItem[]
   replacedItems: ReplacedItem[]
   damagedItems: DamagedItem[]
+  missingItems?: { item_id: string; quantity?: number; missing_quantity?: number }[]
   onLinenStatusChange: (item: RoomItemWithDetails, status: 'ok' | 'laundry' | 'add' | 'change' | 'lost' | 'missing', quantity: number) => void
   onMarkConsumed: (item: RoomItemWithDetails, quantity: number, needRefill: boolean) => void
   onEquipmentLost: (item: RoomItemWithDetails, quantity: number, estimatedValue?: number) => void
@@ -76,6 +77,7 @@ export function CategoryBasedItemsCheck({
   lostItems,
   replacedItems,
   damagedItems,
+  missingItems = [],
   onLinenStatusChange,
   onMarkConsumed,
   onEquipmentLost,
