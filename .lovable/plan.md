@@ -1,55 +1,74 @@
 
 
-## Hiểu yêu cầu
+## Vấn đề: `CategoryItemRow.getActionsForItemType()` không khớp với `roomCheckConfig`
 
-User đơn giản hoá nghiệp vụ báo hỏng/mất/thiếu. Hiện tại khi đánh dấu "Hỏng" có popup hỏi:
-- Mức độ: **Sửa chữa (50%)** / **Thay thế (100%)**
-- **Chi phí ước tính**
-- Ghi chú
+Cấu hình `roomCheckConfig.ts` đã định nghĩa đúng các action theo nghiệp vụ cho từng `checkType` × `itemType`, nhưng `CategoryItemRow.tsx` dòng 175-194 **hardcode danh sách action theo itemType** và **bỏ qua `allowedActions` thực tế** truyền từ config:
 
-→ Quá phức tạp cho cô buồng phòng. Nghiệp vụ thực tế:
-- **Hỏng = Thay** (không cần biết chi phí, không phân biệt sửa/thay)
-- **Thiếu = Bổ sung**
-- **Mất = Bổ sung + Báo cáo**
+| Loại đồ | Config (daily) | CategoryItemRow render | Thiếu nút |
+|---|---|---|---|
+| **Linen** | ok, missing, damaged | laundry, change, add, lost | ❌ Thiếu **Thiếu**, **Hỏng** |
+| **Consumable** | ok, missing, empty | consumed (gộp tất cả) | ❌ Không tách **Thiếu** vs **Hết** |
+| **Equipment** | ok, damaged | damaged, lost | ❌ Render thừa **Mất** (daily không có) |
+| **Furniture** | ok, damaged | damaged, lost | ❌ Render thừa **Mất** |
 
-Cô buồng phòng chỉ cần báo: cái gì hỏng/thiếu/mất → hệ thống tự sinh phiếu cho kho/bảo trì. Chi phí là việc của quản lý sau, không phải lúc check phòng.
+→ Cô bấm tab Linen trong daily check → chỉ thấy nút OK (vì laundry/change/add/lost không có trong daily) → không báo được Thiếu/Hỏng.
 
-## Vị trí code cần sửa
+## Nguyên nhân
 
-**File `CategoryItemRow.tsx` dòng 554-588**: Popup chọn loại hỏng (radio group `damage_type` + input `damage_cost` + textarea ghi chú).
+`getActionsForItemType()` đang **whitelist cứng** theo itemType:
+```ts
+if (itemType === 'linen') {
+  if (allowedActions.includes('laundry')) actions.push('laundry')
+  // ... chỉ check 4 action: laundry/change/add/lost
+  // → BỎ SÓT missing, damaged dù allowedActions có
+}
+```
 
-Cần kiểm tra thêm:
-- Nơi gọi popup hỏng cho linen/equipment/furniture
-- Schema `damagedItemSchema` trong `rooms.schemas.ts` (có `damage_type`, `damage_cost`)
-- Type `DamagedItem` trong `rooms.types.ts`
-- Nơi xử lý downstream: `useRoomChecks.ts` → `createMaintenanceForDamagedItems` (có dùng `damage_cost` không)
-- `ReviewStep.tsx` có hiển thị chi phí hỏng không
+Nó chỉ "cho phép" 1 tập con cứng, dù `allowedActions` từ config có nhiều hơn.
 
-## Kế hoạch sửa
+## Kế hoạch sửa — chỉ 1 file, 1 hàm
 
 | # | File | Thay đổi |
-|---|------|---------|
-| 1 | `CategoryItemRow.tsx` dòng 554-588 | Bỏ block radio "Sửa chữa/Thay thế" + input "Chi phí". Giữ lại textarea "Ghi chú (tuỳ chọn)" để cô mô tả ngắn nếu cần. Khi submit hỏng: mặc định `damage_type = 'replacement_needed'`, `damage_cost = 0`. |
-| 2 | `CategoryItemRow.tsx` (nút xác nhận hỏng) | Đổi label nút thành "Báo hỏng - cần thay" thay vì "Xác nhận". Bỏ validate chi phí. |
-| 3 | `ItemsCheckStep.tsx` `handleMarkDamaged` | Truyền mặc định `damage_type: 'replacement_needed'`, `damage_cost: 0` nếu component con không gửi lên. |
-| 4 | `ReviewStep.tsx` (nếu có hiển thị tổng chi phí hỏng) | Bỏ cột/dòng "Chi phí ước tính". Chỉ hiển thị: Tên đồ + Số lượng + "Cần thay". |
-| 5 | `useRoomChecks.ts` `createMaintenanceForDamagedItems` | Bỏ phần ghép `damage_cost` vào title/description maintenance request. Title gọn: "Báo hỏng phòng X — cần thay [tên đồ]". |
-| 6 | Tương tự cho **Mất (lost)** | Kiểm tra popup nhập `estimated_value` (dòng `handleEquipmentLost` trong `ItemsCheckStep.tsx`). Bỏ input chi phí. Lost = mặc định bổ sung + tạo báo cáo. |
+|---|---|---|
+| 1 | `CategoryItemRow.tsx` `getActionsForItemType()` (dòng 175-194) | Viết lại theo hướng **dynamic**: lặp qua tất cả action trong `allowedActions`, lọc ra action hợp lệ cho itemType, giữ thứ tự ưu tiên hiển thị |
+| 2 | `CategoryItemRow.tsx` `ACTION_CONFIG` (dòng 60-69) | Thêm cấu hình cho `empty` (đồng bộ với `consumed` về bản chất nhưng label "Hết") nếu thiếu — kiểm tra lại |
+| 3 | `CategoryItemRow.tsx` `handleQuickAction` switch | Thêm case `empty` → xử lý như `consumed` (mở drawer chọn số lượng + cần bổ sung), hoặc gộp missing/empty/consumed về cùng 1 flow drawer với label động |
+
+### Logic mới đề xuất cho `getActionsForItemType()`
+
+```ts
+const ITEM_TYPE_ALLOWED_ACTIONS: Record<ItemType, string[]> = {
+  linen:     ['laundry', 'change', 'add', 'missing', 'damaged', 'lost'],
+  consumable:['consumed', 'empty', 'missing', 'lost'],
+  equipment: ['damaged', 'missing', 'lost'],
+  furniture: ['damaged', 'missing', 'lost'],
+}
+
+const PRIORITY_ORDER = ['missing', 'damaged', 'lost', 'consumed', 'empty', 'laundry', 'change', 'add']
+
+const allowed = ITEM_TYPE_ALLOWED_ACTIONS[itemType] || []
+return PRIORITY_ORDER.filter(a => allowed.includes(a) && allowedActions.includes(a))
+```
+
+→ Giao điểm 3 tập: cấu hình check type × giới hạn theo loại đồ × thứ tự hiển thị.
 
 ## Quy tắc giữ nguyên
-- Tiếng Việt thuần
-- Schema DB không cần migration (cột `damage_cost`/`estimated_value` vẫn để default 0, không xoá để tránh phá dữ liệu cũ)
-- Maintenance request vẫn được tạo tự động cho đồ hỏng (đã làm ở plan trước)
-- Supplement request vẫn tự sinh cho thiếu/mất (đã làm)
 
-## Việc cần verify trước khi sửa
-- Đọc kỹ `CategoryItemRow.tsx` toàn bộ section damage popup để biết các state liên quan (`damageType`, `damageCost`, `damageNotes`) và xoá sạch.
-- Kiểm tra `ItemsCheckStep.tsx` `handleEquipmentLost` có popup nhập `estimated_value` không → bỏ tương tự.
-- Kiểm tra `ReviewStep.tsx` có summary chi phí hỏng/mất không → bỏ.
+- Tiếng Việt thuần
+- Không sửa `roomCheckConfig.ts` (đã đúng nghiệp vụ)
+- Không sửa schema/types
+- Drawer/popup hỏng/mất giữ nguyên (đã bỏ chi phí ở plan trước)
+- `consumed` và `empty` cùng dùng drawer chọn số lượng + cần bổ sung (đã có sẵn)
+- Mặc định khi cô bấm "Thiếu" → tạo supplement request (đã có downstream)
+- Mặc định khi cô bấm "Hỏng" → tạo maintenance request (đã có downstream)
+- Mặc định khi cô bấm "Mất" → bổ sung + báo cáo (đã có downstream)
 
 ## Kết quả mong đợi
-- Cô bấm "Hỏng" → chỉ hỏi (tuỳ chọn) ghi chú → xác nhận xong → tự sinh phiếu bảo trì "cần thay"
-- Cô bấm "Mất" → chỉ hỏi số lượng → tự sinh phiếu bổ sung kho + báo cáo mất
-- Không hỏi chi phí ở bất kỳ đâu trong luồng kiểm tra phòng
-- Quy trình nhanh hơn, đúng vai trò: cô buồng phòng báo hiện trạng, không định giá
+
+- **Daily + Linen**: thấy nút Thiếu, Hỏng (đúng nghiệp vụ)
+- **Daily + Consumable**: thấy nút Thiếu, Hết
+- **Daily + Equipment/Furniture**: thấy nút Hỏng (không thừa nút Mất)
+- **Checkout + Linen**: thấy đầy đủ Giặt, Đổi, Mất, Hỏng
+- **Replenish + Equipment**: thấy nút Hỏng để báo cáo
+- Mọi check type khác đều render đúng theo `roomCheckConfig` — không cần sửa thêm
 
