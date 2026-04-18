@@ -37,6 +37,7 @@ export interface CategoryItemRowProps {
   allowedActions: string[]
   onAction: (action: ItemAction) => void
   onReset: () => void
+  onUpdateQuantity?: (newQuantity: number) => void
   isSaving?: boolean
   // Additional info for displaying after action
   consumedInfo?: ConsumedItem | null
