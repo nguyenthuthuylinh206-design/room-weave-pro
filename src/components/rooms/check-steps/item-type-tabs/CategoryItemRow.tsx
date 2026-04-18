@@ -359,7 +359,7 @@ export function CategoryItemRow({
               {statusLabel || statusInfo.label}
             </span>
             {/* Stepper inline cho mọi action có quantity (ngoại trừ ok) */}
-            {!isOk && status !== 'pending' && onUpdateQuantity && (
+            {!isOk && onUpdateQuantity && (
               <div className="flex items-center gap-0.5 border rounded-md bg-background">
                 <Button
                   type="button"
