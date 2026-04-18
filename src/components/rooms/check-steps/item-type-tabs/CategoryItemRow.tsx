@@ -4,13 +4,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '@/components/ui/drawer'
 import { cn } from '@/lib/utils'
-import { formatCurrency } from '@/lib/utils'
 import type { RoomItemWithDetails, ConsumedItem, DamagedItem, LostItem, LaundryItem } from '@/types/rooms.types'
 import type { ItemType } from '@/types/items.types'
 
@@ -90,8 +88,6 @@ export function CategoryItemRow({
   const [expanded, setExpanded] = useState(false)
   const [pendingType, setPendingType] = useState<'lost' | 'damaged' | 'consumed' | null>(null)
   const [quantity, setQuantity] = useState(item.standard_quantity || 1)
-  const [damageType, setDamageType] = useState<'repairable' | 'replacement_needed'>('repairable')
-  const [damageCost, setDamageCost] = useState(Math.round(unitPrice * 0.5))
   const [actionNotes, setActionNotes] = useState('')
   const [needRefill, setNeedRefill] = useState(true)
   const [consumedQty, setConsumedQty] = useState(1)
@@ -138,7 +134,6 @@ export function CategoryItemRow({
         break
       case 'damaged':
         setPendingType('damaged')
-        setDamageCost(Math.round(unitPrice * 0.5))
         setExpanded(true)
         break
     }
@@ -152,9 +147,11 @@ export function CategoryItemRow({
 
   const handleConfirmLostDamaged = () => {
     if (pendingType === 'lost') {
-      onAction({ type: 'lost', quantity: 1, estimatedValue: unitPrice, notes: actionNotes || undefined })
+      // Mất = mặc định bổ sung + báo cáo. Không hỏi chi phí.
+      onAction({ type: 'lost', quantity: 1, estimatedValue: 0, notes: actionNotes || undefined })
     } else if (pendingType === 'damaged') {
-      onAction({ type: 'damaged', damageType, damageCost, notes: actionNotes || undefined })
+      // Hỏng = cần thay. Không phân biệt sửa/thay, không hỏi chi phí.
+      onAction({ type: 'damaged', damageType: 'replacement_needed', damageCost: 0, notes: actionNotes || undefined })
     }
     setPendingType(null)
     setExpanded(false)
@@ -237,11 +234,7 @@ export function CategoryItemRow({
     if (status === 'damaged' && damagedInfo) {
       return (
         <div className="px-3 pb-2 text-xs text-muted-foreground">
-          <span className="text-amber-600 font-medium">
-            {damagedInfo.damage_type === 'repairable' ? 'Cần sửa' : 'Cần thay'}
-          </span>
-          <span className="mx-1">•</span>
-          <span className="font-mono">{formatCurrency(damagedInfo.damage_cost)}</span>
+          <span className="text-amber-600 font-medium">Cần thay</span>
           {damagedInfo.notes && (
             <p className="mt-0.5 text-muted-foreground/80 italic">"{damagedInfo.notes}"</p>
           )}
@@ -253,9 +246,10 @@ export function CategoryItemRow({
     if (status === 'lost' && lostInfo) {
       return (
         <div className="px-3 pb-2 text-xs text-muted-foreground">
-          <span className="text-destructive font-medium">Mất</span>
-          <span className="mx-1">•</span>
-          <span className="font-mono">{formatCurrency(lostInfo.estimated_value || unitPrice)}</span>
+          <span className="text-destructive font-medium">Mất — cần bổ sung</span>
+          {lostInfo.notes && (
+            <p className="mt-0.5 text-muted-foreground/80 italic">"{lostInfo.notes}"</p>
+          )}
         </div>
       )
     }
@@ -504,23 +498,23 @@ export function CategoryItemRow({
 
     </div>
 
-    {/* Bottom Drawer - Lost Form */}
+    {/* Bottom Drawer - Lost Form (đơn giản: chỉ ghi chú, mất = bổ sung + báo cáo) */}
     <Drawer open={expanded && pendingType === 'lost'} onOpenChange={(open) => { if (!open) { setPendingType(null); setExpanded(false) } }}>
       <DrawerContent>
         <DrawerHeader>
-          <DrawerTitle className="text-base">Đánh dấu mất — {item.item_name}</DrawerTitle>
+          <DrawerTitle className="text-base">Báo mất — {item.item_name}</DrawerTitle>
         </DrawerHeader>
         <div className="px-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Chi phí đền bù</span>
-            <span className="text-base font-mono font-semibold text-destructive">
-              {formatCurrency(unitPrice)}
-            </span>
-          </div>
+          <Alert className="py-2 border-destructive/30 bg-destructive/5">
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+            <AlertDescription className="text-xs">
+              Hệ thống sẽ tự gửi yêu cầu bổ sung cho kho và ghi nhận báo cáo mất.
+            </AlertDescription>
+          </Alert>
           <Textarea
             value={actionNotes}
             onChange={(e) => setActionNotes(e.target.value)}
-            placeholder="Lý do mất (tùy chọn)..."
+            placeholder="Ghi chú ngắn (tùy chọn)..."
             className="h-20 text-sm resize-none"
           />
         </div>
@@ -531,7 +525,7 @@ export function CategoryItemRow({
             className="h-11 w-full"
             onClick={handleConfirmLostDamaged}
           >
-            Xác nhận mất
+            Báo mất — cần bổ sung
           </Button>
           <Button
             type="button"
@@ -545,43 +539,19 @@ export function CategoryItemRow({
       </DrawerContent>
     </Drawer>
 
-    {/* Bottom Drawer - Damaged Form */}
+    {/* Bottom Drawer - Damaged Form (đơn giản: hỏng = cần thay, không hỏi chi phí) */}
     <Drawer open={expanded && pendingType === 'damaged'} onOpenChange={(open) => { if (!open) { setPendingType(null); setExpanded(false) } }}>
       <DrawerContent>
         <DrawerHeader>
-          <DrawerTitle className="text-base">Đánh dấu hỏng — {item.item_name}</DrawerTitle>
+          <DrawerTitle className="text-base">Báo hỏng — {item.item_name}</DrawerTitle>
         </DrawerHeader>
-        <div className="px-4 space-y-4">
-          <RadioGroup 
-            value={damageType} 
-            onValueChange={(v) => {
-              setDamageType(v as 'repairable' | 'replacement_needed')
-              setDamageCost(v === 'repairable' ? Math.round(unitPrice * 0.5) : unitPrice)
-            }}
-            className="flex gap-4"
-          >
-            <label className="flex items-center gap-2 cursor-pointer">
-              <RadioGroupItem value="repairable" id={`r-${item.item_id}`} />
-              <span className="text-sm">Sửa chữa (50%)</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <RadioGroupItem value="replacement_needed" id={`rn-${item.item_id}`} />
-              <span className="text-sm">Thay thế (100%)</span>
-            </label>
-          </RadioGroup>
-          
-          <div className="flex items-center gap-2">
-            <Label className="text-sm shrink-0">Chi phí:</Label>
-            <Input
-              type="text"
-              inputMode="numeric"
-              className="h-10 w-32 text-right font-mono"
-              value={damageCost > 0 ? damageCost.toLocaleString('vi-VN') : ''}
-              onChange={(e) => setDamageCost(parseInt(e.target.value.replace(/\D/g, '')) || 0)}
-            />
-            <span className="text-sm text-muted-foreground">đ</span>
-          </div>
-          
+        <div className="px-4 space-y-3">
+          <Alert className="py-2 border-amber-500/40 bg-amber-500/10">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-xs text-amber-700">
+              Hệ thống sẽ tự tạo phiếu bảo trì "cần thay" cho bộ phận bảo trì.
+            </AlertDescription>
+          </Alert>
           <Textarea
             value={actionNotes}
             onChange={(e) => setActionNotes(e.target.value)}
@@ -595,7 +565,7 @@ export function CategoryItemRow({
             className="h-11 w-full bg-amber-600 hover:bg-amber-700"
             onClick={handleConfirmLostDamaged}
           >
-            Xác nhận hỏng
+            Báo hỏng — cần thay
           </Button>
           <Button
             type="button"
