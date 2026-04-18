@@ -332,10 +332,46 @@ function GuidanceSection({
         </div>
       )
     }
+    // Không phải assignee — hiện thông báo + (tuỳ chọn) nút "Xác nhận thay nhân viên" cho leader/storekeeper
     return (
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Truck className="h-4 w-4 shrink-0" />
-        <p className="text-sm">Đang chờ {assignedToName || 'nhân viên'} xác nhận nhận hàng</p>
+      <div className="space-y-2">
+        <div className="flex items-start gap-2 text-amber-600">
+          <Clock className="h-4 w-4 shrink-0 mt-0.5" />
+          <p className="text-sm">
+            Đang chờ <strong>{assignedToName || 'nhân viên'}</strong> mở phiếu này và bấm "Xác nhận đã nhận hàng".
+            {canConfirmOnBehalf && ' Bạn có thể xác nhận thay nếu đã trao hàng trực tiếp.'}
+          </p>
+        </div>
+        {canConfirmOnBehalf && onConfirmReceiveOnBehalf && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isConfirmingReceive}
+                className="gap-1.5"
+              >
+                <UserCheck className="h-3.5 w-3.5" />
+                {isConfirmingReceive ? 'Đang xử lý...' : 'Xác nhận thay nhân viên'}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Xác nhận thay nhân viên?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Bạn xác nhận đã trao tay hàng trực tiếp cho <strong>{assignedToName || 'nhân viên'}</strong>?
+                  Hành động này sẽ chuyển phiếu sang trạng thái "Đang giao" và được ghi log.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Hủy</AlertDialogCancel>
+                <AlertDialogAction onClick={onConfirmReceiveOnBehalf}>
+                  Xác nhận đã trao hàng
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
     )
   }
