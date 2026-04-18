@@ -79,8 +79,8 @@ export const CHECK_TYPE_CONFIG: Record<CheckType, CheckTypeConfig> = {
     description: 'Đảm bảo phòng sẵn sàng cho khách',
     headerColor: 'bg-green-50 border-green-200',
     headerTextColor: 'text-green-700',
-    linenActions: ['ok', 'missing', 'add'],   // OK, Thiếu, Thêm
-    consumableActions: ['ok', 'missing'],     // OK hoặc Thiếu
+    linenActions: ['ok', 'missing', 'add', 'damaged'],   // OK / Thiếu / Thêm / Hỏng
+    consumableActions: ['ok', 'missing'],                // OK / Thiếu (chưa cần "hết" vì khách chưa vào)
     equipmentActions: ['ok', 'missing', 'damaged'],      // OK / Thiếu / Hỏng
     furnitureActions: ['ok', 'missing', 'damaged'],
     showBookingInfo: true,
