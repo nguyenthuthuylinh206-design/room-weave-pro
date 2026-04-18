@@ -11,6 +11,17 @@
 
 export type CheckType = 'daily' | 'checkin' | 'checkout' | 'maintenance' | 'delivery' | 'replenish'
 
+/**
+ * PHÂN BIỆT QUAN TRỌNG: "Thiếu" (missing) vs "Mất" (lost)
+ * - missing = thiếu so với chuẩn, chưa rõ ai làm mất → báo cáo nội bộ + sinh phiếu bổ sung.
+ *   Chỉ dùng ở Daily/Checkin (khi KHÔNG có khách trong phòng).
+ * - lost    = khách đã ở và đồ biến mất → tính phí khách. CHỈ dùng ở Checkout.
+ *
+ * PHÂN BIỆT: "Hết" (empty) vs "Đã dùng" (consumed) — chỉ với consumable
+ * - empty    = hết sạch, cần bổ sung. Dùng ở Daily.
+ * - consumed = khách đã tiêu thụ (minibar, đồ ăn) → tính phí nếu chargeable. Dùng ở Checkout.
+ */
+
 // Linen actions
 export type LinenAction = 'ok' | 'laundry' | 'add' | 'change' | 'lost' | 'missing' | 'damaged'
 
@@ -68,8 +79,8 @@ export const CHECK_TYPE_CONFIG: Record<CheckType, CheckTypeConfig> = {
     description: 'Đảm bảo phòng sẵn sàng cho khách',
     headerColor: 'bg-green-50 border-green-200',
     headerTextColor: 'text-green-700',
-    linenActions: ['ok', 'missing', 'add'],   // OK, Thiếu, Thêm
-    consumableActions: ['ok', 'missing'],     // OK hoặc Thiếu
+    linenActions: ['ok', 'missing', 'add', 'damaged'],   // OK / Thiếu / Thêm / Hỏng
+    consumableActions: ['ok', 'missing'],                // OK / Thiếu (chưa cần "hết" vì khách chưa vào)
     equipmentActions: ['ok', 'missing', 'damaged'],      // OK / Thiếu / Hỏng
     furnitureActions: ['ok', 'missing', 'damaged'],
     showBookingInfo: true,
