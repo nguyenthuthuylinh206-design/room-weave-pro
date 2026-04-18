@@ -93,9 +93,10 @@ export function UnifiedRoomList({
   const retryStop = useRetryStop()
   const returnToStock = useReturnToStock()
   const handoverStop = useHandoverStop()
+  const confirmReceiveOrder = useConfirmReceiveOrder()
 
-  // Assignee có thể giao ngay khi phiếu đã released (chưa cần bấm "Xác nhận nhận hàng" riêng)
-  // Manager/Storekeeper chỉ giao thay khi đã in_progress (NV đã xác nhận hoặc leader xác nhận thay)
+  // Assignee có thể giao ngay khi phiếu đã released (sẽ tự xác nhận nhận hàng)
+  // Manager/Storekeeper chỉ giao thay khi đã in_progress
   const canDeliverStops =
     (isAssignee && (orderStatus === 'released' || orderStatus === 'in_progress')) ||
     (canDeliverAsManager && orderStatus === 'in_progress')
@@ -126,7 +127,7 @@ export function UnifiedRoomList({
     }
   }, [stops])
 
-  const handleDeliver = (stop: RouteStop) => {
+  const performDeliver = (stop: RouteStop) => {
     deliverStop.mutate(
       {
         roomOrderId: stop.id,
@@ -151,6 +152,20 @@ export function UnifiedRoomList({
         } 
       }
     )
+  }
+
+  const handleDeliver = (stop: RouteStop) => {
+    // Nếu phiếu mới released và user là assignee → tự xác nhận nhận hàng trước rồi giao
+    if (orderStatus === 'released' && isAssignee) {
+      confirmReceiveOrder.mutate(
+        { orderId: stop.distribution_order_id, silent: true },
+        {
+          onSuccess: () => performDeliver(stop),
+        }
+      )
+      return
+    }
+    performDeliver(stop)
   }
 
   const openCannotAccessDialog = (stop: RouteStop, quickType?: ExceptionType) => {
