@@ -1175,6 +1175,26 @@ export function RoomCheckPage() {
                     <div className="text-muted-foreground">Hệ thống chỉ ghi nhận lượt kiểm tra hôm nay.</div>
                     <div className="text-muted-foreground">Khách vẫn ở phòng → phòng giữ nguyên trạng thái <strong className="text-blue-600">Đang sử dụng</strong>.</div>
                   </div>
+                  {(() => {
+                    const missingCount = (form.watch('items_missing') || []).length
+                    const damagedCount = (form.watch('items_damaged') || []).length
+                    if (missingCount === 0 && damagedCount === 0) return null
+                    return (
+                      <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm space-y-1">
+                        <div className="font-medium text-amber-700">⚠️ Vẫn có việc cần xử lý song song:</div>
+                        {missingCount > 0 && (
+                          <div className="text-amber-700">
+                            • {missingCount} món thiếu/cần bổ sung → sẽ gửi yêu cầu cho <strong>kho</strong>
+                          </div>
+                        )}
+                        {damagedCount > 0 && (
+                          <div className="text-amber-700">
+                            • {damagedCount} món hỏng → sẽ gửi yêu cầu cho <strong>bảo trì</strong>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
                 </>
               ) : watchedCheckType === 'daily' && form.watch('room_condition') && form.watch('room_condition') !== 'clean' ? (
                 <>

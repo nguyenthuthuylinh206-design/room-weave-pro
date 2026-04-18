@@ -158,7 +158,30 @@ async function processDailyCheck(params: {
     }
   }
 
-  // 6. Auto-create cleaning task nếu phòng cần lau dọn (room_condition !== 'clean')
+  // 6. Auto-create maintenance request nếu có đồ hỏng (damaged) trong daily check
+  const damagedItems = data.items_damaged || []
+  if (damagedItems.length > 0 && tenantId && userId && checkId) {
+    try {
+      console.log('[processDailyCheck] Creating maintenance request for damaged items...', {
+        count: damagedItems.length,
+      })
+      await createMaintenanceForDamagedItems({
+        roomId,
+        roomNumber,
+        tenantId,
+        hotelId,
+        userId,
+        userName: userName || 'Nhân viên',
+        checkId,
+        damagedItems,
+      })
+      console.log('[processDailyCheck] Maintenance request created successfully')
+    } catch (err) {
+      console.error('[processDailyCheck] Failed to create maintenance request:', err)
+    }
+  }
+
+  // 7. Auto-create cleaning task nếu phòng cần lau dọn (room_condition !== 'clean')
   const roomCondition = (data as any).room_condition || 'clean'
   if (roomCondition !== 'clean' && tenantId && userId && checkId) {
     try {

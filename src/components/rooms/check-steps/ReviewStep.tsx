@@ -167,6 +167,39 @@ export function ReviewStep({ form, room, checkType, currentBooking }: ReviewStep
         </div>
       )}
       
+      {/* Daily — Hygiene summary block: hiển thị tình trạng vệ sinh đã chọn ở step 2 */}
+      {checkType === 'daily' && (() => {
+        const cond = form.watch('room_condition') as 'clean' | 'dirty' | 'very_dirty' | undefined
+        if (!cond) return null
+        const condLabel = cond === 'clean' ? 'Sạch' : cond === 'dirty' ? 'Bẩn nhẹ' : 'Rất bẩn'
+        const condColor = cond === 'clean' ? 'text-green-600' : cond === 'dirty' ? 'text-amber-600' : 'text-red-600'
+        const willCreateCleaning = cond !== 'clean'
+        const willCreateMaintenance = itemsDamaged.length > 0
+        return (
+          <div className="rounded-lg border p-3 space-y-1.5">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Tình trạng vệ sinh phòng:</span>
+              <strong className={condColor}>{condLabel}</strong>
+            </div>
+            {willCreateCleaning && (
+              <div className="text-xs text-amber-600">
+                → Sẽ tự tạo phiếu lau dọn cho bộ phận buồng phòng
+              </div>
+            )}
+            {willCreateMaintenance && (
+              <div className="text-xs text-red-600">
+                → Sẽ tự tạo phiếu báo hỏng cho bộ phận bảo trì ({itemsDamaged.length} món)
+              </div>
+            )}
+            {!willCreateCleaning && !willCreateMaintenance && (
+              <div className="text-xs text-green-600">
+                → Chỉ ghi nhận lượt kiểm tra, không tạo phiếu nào
+              </div>
+            )}
+          </div>
+        )
+      })()}
+
       {/* Cleanliness Score - Auto-filled from room condition, still editable */}
       <FormField
         control={form.control}
