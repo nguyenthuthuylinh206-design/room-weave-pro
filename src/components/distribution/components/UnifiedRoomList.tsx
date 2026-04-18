@@ -377,6 +377,7 @@ export function UnifiedRoomList({
 interface RoomCardProps {
   stop: RouteStop
   orderStatus: string
+  isAssignee: boolean
   canDeliver: boolean
   canMarkCannotAccess: boolean
   canRetry: boolean
@@ -399,6 +400,7 @@ interface RoomCardProps {
 function RoomCard({
   stop,
   orderStatus,
+  isAssignee,
   canDeliver,
   canMarkCannotAccess,
   canRetry,
