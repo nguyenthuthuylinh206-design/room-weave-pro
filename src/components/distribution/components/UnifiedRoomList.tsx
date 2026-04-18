@@ -93,7 +93,7 @@ export function UnifiedRoomList({
   const returnToStock = useReturnToStock()
   const handoverStop = useHandoverStop()
 
-  const canDeliverStops = isAssignee && orderStatus === 'in_progress'
+  const canDeliverStops = (isAssignee || canDeliverAsManager) && orderStatus === 'in_progress'
 
   const { groupedStops, hasMultipleBatches } = useMemo(() => {
     const batches = new Map<number, RouteStop[]>()
