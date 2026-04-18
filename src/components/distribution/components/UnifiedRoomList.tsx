@@ -4,6 +4,12 @@ import { CheckCircle, ChevronDown, AlertTriangle, RotateCcw, Undo2, ArrowRightLe
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -231,6 +237,7 @@ export function UnifiedRoomList({
                 key={stop.id}
                 stop={stop}
                 orderStatus={orderStatus}
+                isAssignee={isAssignee}
                 canDeliver={canDeliverStops && stop.stop_status === 'pending'}
                 canMarkCannotAccess={canDeliverStops && stop.stop_status === 'pending'}
                 canRetry={canDeliverStops && stop.stop_status === 'cannot_access'}
@@ -370,6 +377,7 @@ export function UnifiedRoomList({
 interface RoomCardProps {
   stop: RouteStop
   orderStatus: string
+  isAssignee: boolean
   canDeliver: boolean
   canMarkCannotAccess: boolean
   canRetry: boolean
@@ -392,6 +400,7 @@ interface RoomCardProps {
 function RoomCard({
   stop,
   orderStatus,
+  isAssignee,
   canDeliver,
   canMarkCannotAccess,
   canRetry,
@@ -484,6 +493,36 @@ function RoomCard({
             <CheckCircle className="h-4 w-4" />
             {isDelivering ? '...' : 'GIAO'}
           </Button>
+        )}
+
+        {/* Disabled deliver button with tooltip when pending but blocked by status */}
+        {!canDeliver && stop.stop_status === 'pending' && orderStatus !== 'completed' && orderStatus !== 'closed' && (
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="shrink-0">
+                  <Button
+                    disabled
+                    size={isMobile ? 'default' : 'sm'}
+                    variant="outline"
+                    className={cn(
+                      'shrink-0 gap-1.5 pointer-events-none',
+                      isMobile && 'h-11 px-5 text-sm font-semibold'
+                    )}
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    GIAO
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="max-w-[240px]">
+                {orderStatus === 'pending' && 'Phiếu chưa được giao từ kho.'}
+                {orderStatus === 'released' && !isAssignee && 'Chờ nhân viên xác nhận nhận hàng. Bạn không phải người được phân công.'}
+                {orderStatus === 'released' && isAssignee && 'Bấm "Xác nhận đã nhận đủ hàng" ở phía trên trước khi giao.'}
+                {orderStatus === 'in_progress' && !isAssignee && 'Chỉ nhân viên được phân công mới có thể giao phòng.'}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
         
         {/* Cannot access icon button */}

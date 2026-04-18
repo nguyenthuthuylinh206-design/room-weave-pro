@@ -118,6 +118,12 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
     await confirmReceive.mutateAsync({ orderId: route.id })
   }, [route, confirmReceive])
 
+  const handleConfirmReceiveOnBehalf = useCallback(async () => {
+    if (!route) return
+    await confirmReceive.mutateAsync({ orderId: route.id })
+    toast.success(`Đã xác nhận trao hàng thay ${route.assigned_to_name || 'nhân viên'}`)
+  }, [route, confirmReceive])
+
   const handleEditOrder = useCallback(() => {
     setAdjustDialogOpen(false)
     toast.info('Vui lòng chỉnh sửa phiếu và thử lại')
@@ -192,6 +198,12 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
             : undefined
         }
         onConfirmReceive={route.status === 'released' && isAssignee ? handleConfirmReceive : undefined}
+        canConfirmOnBehalf={route.status === 'released' && !isAssignee && (isLeader || isStorekeeper)}
+        onConfirmReceiveOnBehalf={
+          route.status === 'released' && !isAssignee && (isLeader || isStorekeeper)
+            ? handleConfirmReceiveOnBehalf
+            : undefined
+        }
         onCloseRoute={canClose ? () => closeRoute.mutate({ orderId: route.id }) : undefined}
         isHandingOver={handoverBatch.isPending}
         isConfirmingReceive={confirmReceive.isPending}
