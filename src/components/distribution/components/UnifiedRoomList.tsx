@@ -93,7 +93,11 @@ export function UnifiedRoomList({
   const returnToStock = useReturnToStock()
   const handoverStop = useHandoverStop()
 
-  const canDeliverStops = (isAssignee || canDeliverAsManager) && orderStatus === 'in_progress'
+  // Assignee có thể giao ngay khi phiếu đã released (chưa cần bấm "Xác nhận nhận hàng" riêng)
+  // Manager/Storekeeper chỉ giao thay khi đã in_progress (NV đã xác nhận hoặc leader xác nhận thay)
+  const canDeliverStops =
+    (isAssignee && (orderStatus === 'released' || orderStatus === 'in_progress')) ||
+    (canDeliverAsManager && orderStatus === 'in_progress')
 
   const { groupedStops, hasMultipleBatches } = useMemo(() => {
     const batches = new Map<number, RouteStop[]>()
