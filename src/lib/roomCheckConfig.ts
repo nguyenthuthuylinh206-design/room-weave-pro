@@ -54,9 +54,9 @@ export const CHECK_TYPE_CONFIG: Record<CheckType, CheckTypeConfig> = {
     description: 'Kiểm tra vệ sinh và đồ dùng thường ngày',
     headerColor: 'bg-blue-50 border-blue-200',
     headerTextColor: 'text-blue-700',
-    linenActions: ['ok', 'change'],           // Chỉ OK hoặc Đổi (giặt + thay)
-    consumableActions: ['ok', 'empty'],       // Chỉ OK hoặc Hết
-    equipmentActions: ['ok', 'damaged'],      // Chỉ OK hoặc Hỏng
+    linenActions: ['ok', 'missing', 'damaged'],         // OK / Thiếu / Hỏng
+    consumableActions: ['ok', 'missing', 'empty'],      // OK / Thiếu / Hết
+    equipmentActions: ['ok', 'damaged'],                // OK / Hỏng
     furnitureActions: ['ok', 'damaged'],
     showBookingInfo: false,
     allowDamageCharges: false,

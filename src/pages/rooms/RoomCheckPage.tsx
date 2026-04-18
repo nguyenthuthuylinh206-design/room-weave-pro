@@ -1342,7 +1342,7 @@ export function RoomCheckPage() {
                   ) : watchedCheckType === 'daily' ? (
                     <>
                       <p className="font-medium text-foreground">Kiểm tra vệ sinh & đồ dùng hàng ngày</p>
-                      <p className="text-xs mt-0.5">Duyệt nhanh từng món. Còn dùng được bấm ✓. Đồ vải cần <strong>đổi</strong> thì bấm Đổi. Đồ tiêu hao <strong>hết</strong> thì đánh dấu.</p>
+                      <p className="text-xs mt-0.5">Xem từng món. Còn nguyên & dùng được → ✓. <strong>Thiếu / Hỏng / Hết</strong> → bấm nút tương ứng. Đánh giá thêm vệ sinh tổng thể bên dưới.</p>
                     </>
                   ) : (
                     <>
