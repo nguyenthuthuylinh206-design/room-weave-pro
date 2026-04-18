@@ -1,73 +1,73 @@
-## Vấn đề: Báo "Thiếu" nhưng không nhập số lượng → không tạo được phiếu giao bổ sung
 
-Cô nói đúng — hiện tại bấm **Thiếu** chỉ là 1 nút toggle, không hỏi thiếu mấy cái. Hệ thống không biết cần bổ sung bao nhiêu → phiếu giao sinh ra sai hoặc không sinh được.
 
-## Phân tích hiện trạng
+## Lỗi: `handover_batch` RPC viết sai schema → insert NULL vào `item_id`
 
-Đọc nhanh `CategoryItemRow.tsx` + `CategoryBasedItemsCheck.tsx`:
+### Nguyên nhân chính xác
 
-- Khi bấm **Thiếu**, code set `status = 'missing'` cho item nhưng KHÔNG hỏi số lượng
-- Mặc định coi như thiếu = thiếu toàn bộ `expected_quantity` của item trong phòng
-- → Sai khi phòng có 4 khăn, chỉ thiếu 1 cái → hệ thống tưởng thiếu cả 4
+File `supabase/migrations/20260131024728_99ac130a-0514-4896-8d84-f725be76e49b.sql` (RPC `handover_batch`) có 3 lỗi:
 
-## Kế hoạch sửa — UX nhập số lượng thiếu
+1. **Insert sai cấu trúc** vào `inventory_transactions`:
+   ```sql
+   INSERT INTO inventory_transactions (
+     tenant_id, hotel_id, transaction_code, transaction_type,
+     reference_type, reference_id, notes, created_by, status
+   ) VALUES (...)  -- THIẾU item_id, quantity, quantity_before, quantity_after
+   ```
+   → `item_id` là **NOT NULL** → lỗi `null value in column "item_id"`.
 
-### A. Cách hỏi số lượng (UX đề xuất)
+2. **Tham chiếu bảng KHÔNG TỒN TẠI**: `inventory_transaction_items` không có trong DB. Mỗi item phải là **1 dòng riêng** trong `inventory_transactions` (theo pattern `create_outbound_transaction` đã có).
 
-Khi bấm **Thiếu** lần đầu → hiện inline ngay cạnh nút:
+3. **Hệ quả**: Bấm "Giao batch" → RPC fail → phiếu kẹt ở trạng thái `pending`, kho không trừ.
 
+### Cách sửa — tạo migration mới viết lại `handover_batch`
+
+**File mới**: `supabase/migrations/<timestamp>_fix_handover_batch_inventory_transactions.sql`
+
+Sửa logic insert: thay vì 1 dòng "header" + nhiều rows ở bảng phụ, tạo **1 dòng `inventory_transactions` cho mỗi item** đã giao, theo đúng schema:
+
+```sql
+-- Trong vòng FOR LOOP qua từng item (line 90-135):
+INSERT INTO inventory_transactions (
+  tenant_id, hotel_id, transaction_code, transaction_type,
+  transaction_category, item_id, quantity, 
+  quantity_before, quantity_after, unit_price, total_value,
+  related_type, related_id, from_warehouse_id,
+  notes, created_by, status, transaction_date
+) VALUES (
+  v_order.tenant_id, v_order.hotel_id, 
+  v_transaction_code || '-' || row_number,  -- mỗi item có suffix riêng
+  'out', 'staff_assign',
+  v_item.item_id, v_qty_actual,
+  v_item.quantity_in_stock,                 -- before
+  GREATEST(0, v_item.quantity_in_stock - v_qty_actual),  -- after
+  v_item.unit_price, v_item.unit_price * v_qty_actual,
+  'distribution_handover', v_order.id, v_order.from_warehouse_id,
+  'Giao hàng cho NV - ' || v_order.order_code,
+  v_actor_id, 'completed', now()
+);
 ```
-[OK] [Thiếu: 1 ▲▼ / 4] [Hỏng]
-              ↑ stepper nhỏ, mặc định = 1
-```
 
-- Stepper compact `h-7 w-7`, max = `expected_quantity`
-- Bấm lại nút **Thiếu** → reset về OK
-- Bấm **OK** hoặc **Hỏng** → bỏ trạng thái thiếu
+Đồng thời:
+- **Bỏ insert vào `inventory_transaction_items`** (bảng không tồn tại)
+- **Trừ `items.quantity_in_stock`** giữ nguyên như cũ
+- **Trừ `warehouse_stock.quantity`** nếu có warehouse (đồng bộ với pattern outbound)
+- **`v_transaction_id` cuối cùng** dùng dòng đầu tiên (hoặc bỏ field `transaction_id` trên `distribution_orders` nếu không bắt buộc) để gán vào `distribution_orders.transaction_id`
 
-**Áp dụng tương tự cho:**
+### Phạm vi
 
-- `missing` (linen/consumable/equipment/furniture) ở Daily/Checkin
-- `empty` (consumable) ở Daily — "hết mấy chai?"
-- `damaged` (linen/equipment/furniture) — "hỏng mấy cái?"
-- `lost` (checkout) — "mất mấy cái?"
-- `consumed` (consumable, checkout) — "khách dùng mấy chai?"
+- **1 file migration mới** — chỉ `CREATE OR REPLACE FUNCTION handover_batch`
+- Không sửa client code (`useRouteBatch.ts` đã gọi đúng)
+- Không sửa UI
+- Không sửa bảng — chỉ sửa hàm
 
-→ Mọi action **không phải OK** đều cần hỏi số lượng (vì 1 phòng có thể có 4 khăn nhưng chỉ 2 bẩn, 1 mất).
+### Sau khi sửa
 
-### B. Lưu trữ
+Bấm **"Giao batch này"** → RPC chạy thành công:
+- Tạo N dòng `inventory_transactions` (N = số item)
+- Trừ `items.quantity_in_stock` 
+- Đổi batch sang `handed_over`
+- Đổi order sang `released`
+- Toast xanh "Đã giao hàng cho nhân viên thành công"
 
-Schema hiện tại `room_check_items` đã có cột `quantity_affected` (hoặc tương đương). Cần verify khi vào default mode — nếu chưa có thì migration thêm cột `affected_quantity int default 0`.
+Cô bấm thử lại nút "Giao batch này" sẽ chạy ngon.
 
-### C. Phiếu giao bổ sung
-
-Khi finalize check:
-
-- Group items có `status IN ('missing', 'empty')` theo item_id
-- Sinh `inventory_distribution_orders` với `quantity = sum(affected_quantity)` thay vì `expected_quantity`
-- Phiếu giao chính xác đúng số cần bổ sung
-
-### D. Tính phí khách (checkout)
-
-- `lost` × `unit_price` × `affected_quantity` → phụ phí
-- `damaged` × `replacement_cost` × `affected_quantity` → phụ phí
-- `consumed` (chargeable) × `sale_price` × `affected_quantity` → phụ phí
-
-## File cần sửa (dự kiến)
-
-
-| File                                                          | Thay đổi                                                                        |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `CategoryItemRow.tsx`                                         | Thêm stepper inline khi action != 'ok'; expose `onQuantityChange`               |
-| `CategoryBasedItemsCheck.tsx`                                 | Lưu `affected_quantity` vào state item, truyền vào submit                       |
-| `useRoomCheckSubmit` (hoặc edge function `submit-room-check`) | Map `affected_quantity` vào `room_check_items` + tính phiếu giao + tính phụ phí |
-| Migration DB (nếu chưa có)                                    | `ALTER TABLE room_check_items ADD COLUMN affected_quantity int DEFAULT 1`       |
-
-
-## Câu hỏi xác nhận trước khi code
-
-1. **UX nhập số**: stepper inline (▲▼) hay popup nhỏ? Cô thích cách nào? (▲▼)
-2. **Mặc định khi bấm Thiếu**: số 1 hay full `expected_quantity`? số 1
-3. **Áp dụng cho tất cả action ≠ OK** hay chỉ riêng `missing/empty/lost/consumed/damaged`? **Áp dụng cho tất cả action ≠ OK** 
-
-Cô chọn xong tôi viết plan chi tiết hơn rồi code.
