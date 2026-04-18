@@ -55,7 +55,7 @@ interface CategoryBasedItemsCheckProps {
   onLinenStatusChange: (item: RoomItemWithDetails, status: 'ok' | 'laundry' | 'add' | 'change' | 'lost' | 'missing', quantity: number) => void
   onMarkConsumed: (item: RoomItemWithDetails, quantity: number, needRefill: boolean) => void
   onEquipmentLost: (item: RoomItemWithDetails, quantity: number, estimatedValue?: number) => void
-  onMarkDamaged: (item: RoomItemWithDetails, damageInfo: { damage_type: 'repairable' | 'replacement_needed'; damage_cost: number; notes?: string; item_type?: ItemType }) => void
+  onMarkDamaged: (item: RoomItemWithDetails, damageInfo: { damage_type: 'repairable' | 'replacement_needed'; damage_cost: number; notes?: string; quantity?: number; item_type?: ItemType }) => void
   onResetLinen: (itemId: string) => void
   onRemoveFromLaundry: (itemId: string) => void
   onRemoveFromLost: (itemId: string) => void
