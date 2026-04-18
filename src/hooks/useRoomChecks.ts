@@ -120,19 +120,27 @@ async function processDailyCheck(params: {
     }
   }
   
-  // 5. Auto-create supplement request nếu có đồ tiêu hao
+  // 5. Auto-create supplement request nếu có đồ tiêu hao HOẶC đồ thiếu (shortage)
+  const shortageItems = ((data.items_missing || []) as any[])
+    .filter(it => it?.reason === 'shortage' && (it.shortage || 0) > 0)
+    .map(it => ({
+      item_id: it.item_id,
+      item_name: it.item_name,
+      item_code: it.item_code,
+      quantity: Number(it.shortage || 0),
+      need_refill: true,
+    })) as ConsumedItem[]
+
   const hasConsumed = consumedItems.length > 0
-  console.log('[processDailyCheck] Consumed check:', { 
-    hasConsumed, 
-    tenantId: !!tenantId, 
-    userId: !!userId, 
-    checkId: !!checkId,
-    consumedItemsCount: consumedItems.length 
-  })
-  
-  if (hasConsumed && tenantId && userId && checkId) {
+  const hasShortage = shortageItems.length > 0
+
+  if ((hasConsumed || hasShortage) && tenantId && userId && checkId) {
     try {
-      console.log('[processDailyCheck] Creating supplement request...')
+      console.log('[processDailyCheck] Creating supplement request (consumed + shortage)...', {
+        consumed: consumedItems.length,
+        shortage: shortageItems.length,
+      })
+      // Gộp consumed + shortage thành 1 phiếu yêu cầu bổ sung
       await createSupplementRequestFromCheck({
         roomId,
         roomNumber,
@@ -141,16 +149,51 @@ async function processDailyCheck(params: {
         userId,
         userName: userName || 'Nhân viên',
         checkId,
-        consumedItems,
-        lostItems: [], // Daily check không track lost items
+        consumedItems: [...consumedItems, ...shortageItems],
+        lostItems: [],
       })
       console.log('[processDailyCheck] Supplement request created successfully')
     } catch (err) {
       console.error('[processDailyCheck] Failed to create supplement request:', err)
-      // Không throw - cho phép room check vẫn thành công
     }
   }
-  
+
+  // 6. Auto-create cleaning task nếu phòng cần lau dọn (room_condition !== 'clean')
+  const roomCondition = (data as any).room_condition || 'clean'
+  if (roomCondition !== 'clean' && tenantId && userId && checkId) {
+    try {
+      const priorityMap: Record<string, string> = {
+        'very_dirty': 'high',
+        'dirty': 'medium',
+      }
+      const taskPriority = (data as any).cleaning_priority || priorityMap[roomCondition] || 'medium'
+      const conditionLabel = roomCondition === 'very_dirty' ? 'Rất bẩn' : 'Bẩn nhẹ'
+
+      const { error: taskError } = await supabase
+        .from('housekeeping_tasks')
+        .insert({
+          tenant_id: tenantId,
+          hotel_id: hotelId,
+          room_id: roomId,
+          task_type: 'cleaning',
+          title: `Lau dọn phòng ${roomNumber}`,
+          description: (data as any).cleaning_notes || `Yêu cầu lau dọn từ kiểm tra hằng ngày. Tình trạng: ${conditionLabel}`,
+          priority: taskPriority,
+          requested_by: userId,
+          room_check_id: checkId,
+          status: 'pending'
+        })
+
+      if (taskError) {
+        console.error('[processDailyCheck] Error creating cleaning task:', taskError)
+      } else {
+        console.log('[processDailyCheck] Auto-created cleaning task for room', roomNumber)
+      }
+    } catch (err) {
+      console.error('[processDailyCheck] Failed to create cleaning task:', err)
+    }
+  }
+
   return { quantityChanges }
 }
 
