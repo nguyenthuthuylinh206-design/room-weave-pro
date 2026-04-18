@@ -172,25 +172,31 @@ export function CategoryItemRow({
     setNeedRefill(true)
   }
 
-  // Build actions based on item_type and allowedActions
+  // Build actions: giao điểm của (action hợp lệ cho itemType) × (allowedActions từ config) × (thứ tự ưu tiên)
   const getActionsForItemType = (): string[] => {
-    const actions: string[] = []
-    
-    if (itemType === 'linen') {
-      if (allowedActions.includes('laundry')) actions.push('laundry')
-      if (allowedActions.includes('change')) actions.push('change')
-      if (allowedActions.includes('add')) actions.push('add')
-      if (allowedActions.includes('lost')) actions.push('lost')
-    } else if (itemType === 'consumable') {
-      if (allowedActions.includes('missing') || allowedActions.includes('empty') || allowedActions.includes('consumed')) {
-        actions.push('consumed')
-      }
-    } else if (itemType === 'equipment' || itemType === 'furniture') {
-      if (allowedActions.includes('damaged')) actions.push('damaged')
-      if (allowedActions.includes('lost')) actions.push('lost')
+    const ITEM_TYPE_ALLOWED_ACTIONS: Record<ItemType, string[]> = {
+      linen:      ['laundry', 'change', 'add', 'missing', 'damaged', 'lost'],
+      consumable: ['consumed', 'empty', 'missing', 'lost'],
+      equipment:  ['damaged', 'missing', 'lost'],
+      furniture:  ['damaged', 'missing', 'lost'],
     }
-    
-    return actions
+    const PRIORITY_ORDER = ['missing', 'damaged', 'empty', 'consumed', 'lost', 'laundry', 'change', 'add']
+
+    const allowedForType = ITEM_TYPE_ALLOWED_ACTIONS[itemType] || []
+    let result = PRIORITY_ORDER.filter(
+      (a) => allowedForType.includes(a) && allowedActions.includes(a)
+    )
+
+    // Gộp empty → consumed (cùng drawer, cùng nghiệp vụ "cần bổ sung")
+    // Nếu config chỉ cho 'empty' (không có 'consumed') thì hiển thị nút "Hết" nhưng route qua flow consumed
+    if (result.includes('empty') && !result.includes('consumed')) {
+      result = result.map((a) => (a === 'empty' ? 'consumed' : a))
+    } else if (result.includes('empty') && result.includes('consumed')) {
+      // tránh trùng nút
+      result = result.filter((a) => a !== 'empty')
+    }
+
+    return result
   }
 
   const itemActions = getActionsForItemType()
