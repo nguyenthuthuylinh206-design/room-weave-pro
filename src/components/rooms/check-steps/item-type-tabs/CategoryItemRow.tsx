@@ -89,7 +89,14 @@ export function CategoryItemRow({
 }: CategoryItemRowProps) {
   const [expanded, setExpanded] = useState(false)
   const [pendingType, setPendingType] = useState<'lost' | 'damaged' | 'consumed' | null>(null)
-  const [quantity, setQuantity] = useState(item.standard_quantity || 1)
+  // Quantity hiển thị trong stepper inline. Khởi tạo theo info đã có (resume) hoặc 1.
+  const initialQty =
+    laundryInfo?.quantity ??
+    consumedInfo?.quantity ??
+    lostInfo?.quantity ??
+    damagedInfo?.quantity ??
+    1
+  const [quantity, setQuantity] = useState(initialQty)
   const [actionNotes, setActionNotes] = useState('')
   const [needRefill, setNeedRefill] = useState(true)
   const [consumedQty, setConsumedQty] = useState(1)
