@@ -4,6 +4,12 @@ import { CheckCircle, ChevronDown, AlertTriangle, RotateCcw, Undo2, ArrowRightLe
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
