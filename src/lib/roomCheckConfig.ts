@@ -18,8 +18,8 @@ export type LinenAction = 'ok' | 'laundry' | 'add' | 'change' | 'lost' | 'missin
 export type ConsumableAction = 'ok' | 'empty' | 'consumed' | 'missing' | 'lost'
 
 // Equipment/Furniture actions
-export type EquipmentAction = 'ok' | 'lost' | 'damaged'
-export type FurnitureAction = 'ok' | 'lost' | 'damaged'
+export type EquipmentAction = 'ok' | 'missing' | 'lost' | 'damaged'
+export type FurnitureAction = 'ok' | 'missing' | 'lost' | 'damaged'
 
 // Phase actions for 2-phase checkout
 export interface PhaseActions {
