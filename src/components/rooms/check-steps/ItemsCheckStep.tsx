@@ -293,6 +293,7 @@ const handleMarkDamaged = (item: RoomItemWithDetails, damageInfo: { damage_type:
       lostItems={lostItems}
       replacedItems={replacedItems}
       damagedItems={damagedItems}
+      missingItems={missingItems.map(m => ({ item_id: m.item_id, missing_quantity: m.missing_quantity }))}
       onLinenStatusChange={handleLinenStatusChange}
       onMarkConsumed={handleMarkConsumed}
       onEquipmentLost={handleEquipmentLost}

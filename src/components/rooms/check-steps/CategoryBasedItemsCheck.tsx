@@ -51,6 +51,7 @@ interface CategoryBasedItemsCheckProps {
   lostItems: LostItem[]
   replacedItems: ReplacedItem[]
   damagedItems: DamagedItem[]
+  missingItems?: { item_id: string; quantity?: number; missing_quantity?: number }[]
   onLinenStatusChange: (item: RoomItemWithDetails, status: 'ok' | 'laundry' | 'add' | 'change' | 'lost' | 'missing', quantity: number) => void
   onMarkConsumed: (item: RoomItemWithDetails, quantity: number, needRefill: boolean) => void
   onEquipmentLost: (item: RoomItemWithDetails, quantity: number, estimatedValue?: number) => void
@@ -76,6 +77,7 @@ export function CategoryBasedItemsCheck({
   lostItems,
   replacedItems,
   damagedItems,
+  missingItems = [],
   onLinenStatusChange,
   onMarkConsumed,
   onEquipmentLost,
@@ -363,6 +365,9 @@ export function CategoryBasedItemsCheck({
           <div className="flex items-center gap-2 text-xs">
             {laundryItems.length > 0 && (
               <span className="text-blue-600 font-medium">{laundryItems.length} giặt</span>
+            )}
+            {missingItems.length > 0 && (
+              <span className="text-yellow-600 font-medium">{missingItems.length} thiếu</span>
             )}
             {lostItems.length > 0 && (
               <span className="text-destructive font-medium">{lostItems.length} mất</span>

@@ -1342,7 +1342,7 @@ export function RoomCheckPage() {
                   ) : watchedCheckType === 'daily' ? (
                     <>
                       <p className="font-medium text-foreground">Kiểm tra vệ sinh & đồ dùng hàng ngày</p>
-                      <p className="text-xs mt-0.5">Duyệt nhanh từng món. Còn dùng được bấm ✓. Đồ vải cần <strong>đổi</strong> thì bấm Đổi. Đồ tiêu hao <strong>hết</strong> thì đánh dấu.</p>
+                      <p className="text-xs mt-0.5">Xem từng món. Còn nguyên & dùng được → ✓. <strong>Thiếu / Hỏng / Hết</strong> → bấm nút tương ứng. Đánh giá thêm vệ sinh tổng thể bên dưới.</p>
                     </>
                   ) : (
                     <>
@@ -1398,17 +1398,23 @@ export function RoomCheckPage() {
               )}
               {/* Regular types (daily, checkin, maintenance) - step 2 */}
               {currentStep === 2 && !quickMode && !isCheckoutType && !isDeliveryType && !isReplenishType && (
-                <ItemsCheckStep 
-                  form={form} 
-                  items={items} 
-                  roomId={id!}
-                  hotelId={room.hotel_id}
-                  tenantId={room.tenant_id}
-                  bookingId={currentBooking?.id || null}
-                  checkType={watchedCheckType as 'daily' | 'checkin' | 'checkout' | 'maintenance'}
-                  phase={undefined}
-                  onQuantitiesChange={setItemQuantities}
-                />
+                <div className="space-y-6">
+                  <ItemsCheckStep 
+                    form={form} 
+                    items={items} 
+                    roomId={id!}
+                    hotelId={room.hotel_id}
+                    tenantId={room.tenant_id}
+                    bookingId={currentBooking?.id || null}
+                    checkType={watchedCheckType as 'daily' | 'checkin' | 'checkout' | 'maintenance'}
+                    phase={undefined}
+                    onQuantitiesChange={setItemQuantities}
+                  />
+                  {/* Daily check: thêm đánh giá vệ sinh tổng thể */}
+                  {watchedCheckType === 'daily' && (
+                    <CleaningRequestStep form={form} />
+                  )}
+                </div>
               )}
               {currentStep === 2 && !quickMode && isCheckoutType && (
                 <ItemsCheckStep 
