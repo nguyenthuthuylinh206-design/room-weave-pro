@@ -364,6 +364,9 @@ export function CategoryBasedItemsCheck({
             {laundryItems.length > 0 && (
               <span className="text-blue-600 font-medium">{laundryItems.length} giặt</span>
             )}
+            {missingItems.length > 0 && (
+              <span className="text-yellow-600 font-medium">{missingItems.length} thiếu</span>
+            )}
             {lostItems.length > 0 && (
               <span className="text-destructive font-medium">{lostItems.length} mất</span>
             )}
