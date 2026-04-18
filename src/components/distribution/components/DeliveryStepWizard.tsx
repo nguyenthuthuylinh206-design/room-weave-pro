@@ -1,6 +1,18 @@
-import { CheckCircle, Package, Truck, Lock, Clock, UserX } from 'lucide-react'
+import { useState } from 'react'
+import { CheckCircle, Package, Truck, Lock, Clock, UserX, UserCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
 import type { RouteStatus } from '@/types/route-batch.types'
 
@@ -14,8 +26,10 @@ interface DeliveryStepWizardProps {
   isAssignee: boolean
   hasAssignee?: boolean
   isCreatorSameAsAssignee?: boolean
+  canConfirmOnBehalf?: boolean
   onHandoverBatch?: () => void
   onConfirmReceive?: () => void
+  onConfirmReceiveOnBehalf?: () => void
   onCloseRoute?: () => void
   isHandingOver?: boolean
   isConfirmingReceive?: boolean
