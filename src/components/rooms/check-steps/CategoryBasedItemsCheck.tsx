@@ -113,7 +113,7 @@ export function CategoryBasedItemsCheck({
       
       const { data } = await supabase
         .from('items')
-        .select('id, item_type, quantity_in_stock, unit_price, category_id, item_categories(id, name, color, icon)')
+        .select('id, item_type, quantity_in_stock, unit_price, category_id, item_categories(id, name, color, icon, default_item_type)')
         .in('id', itemIds)
       
       if (data) {
@@ -122,14 +122,16 @@ export function CategoryBasedItemsCheck({
         
         const enrichedItems = items.map(item => {
           const itemData = data.find(d => d.id === item.item_id)
-          const category = itemData?.item_categories as { id: string; name: string; color: string | null; icon: string | null } | null
+          const category = itemData?.item_categories as { id: string; name: string; color: string | null; icon: string | null; default_item_type: ItemType | null } | null
           
           newStockMap[item.item_id] = itemData?.quantity_in_stock || 0
           newPriceMap[item.item_id] = itemData?.unit_price || 0
           
           return {
             ...item,
-            item_type: (itemData?.item_type as ItemType) || 'equipment',
+            item_type: (itemData?.item_type as ItemType)
+              ?? (category?.default_item_type as ItemType)
+              ?? 'equipment',
             category_name: category?.name || 'Khác',
             category_id: category?.id || null,
             item_thumbnail: (item as any).item_thumbnail || null,
