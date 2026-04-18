@@ -109,34 +109,35 @@ export function CategoryItemRow({
   const handleQuickAction = (actionType: string) => {
     switch (actionType) {
       case 'laundry':
-        onAction({ type: 'laundry', quantity })
-        setExpanded(true)
+        onAction({ type: 'laundry', quantity: 1 })
+        setQuantity(1)
         break
       case 'add':
-        onAction({ type: 'add', quantity })
-        setExpanded(true)
+        onAction({ type: 'add', quantity: 1 })
+        setQuantity(1)
         break
       case 'change':
-        onAction({ type: 'change', quantity })
-        setExpanded(true)
+        onAction({ type: 'change', quantity: 1 })
+        setQuantity(1)
         break
       case 'missing':
-        onAction({ type: 'missing', quantity })
+        onAction({ type: 'missing', quantity: 1 })
+        setQuantity(1)
         break
       case 'consumed':
-        // Open form to enter quantity and need_refill
-        setPendingType('consumed')
-        setConsumedQty(1)
-        setNeedRefill(true)
-        setExpanded(true)
+        // Quick: mặc định 1 cái, cần bổ sung. Cô có thể chỉnh stepper inline sau.
+        onAction({ type: 'consumed', quantity: 1, needRefill: true })
+        setQuantity(1)
         break
       case 'lost':
-        setPendingType('lost')
-        setExpanded(true)
+        // Quick: mặc định 1 cái mất, không hỏi chi phí.
+        onAction({ type: 'lost', quantity: 1, estimatedValue: 0 })
+        setQuantity(1)
         break
       case 'damaged':
-        setPendingType('damaged')
-        setExpanded(true)
+        // Quick: mặc định 1 cái hỏng, cần thay.
+        onAction({ type: 'damaged', damageType: 'replacement_needed', damageCost: 0 })
+        setQuantity(1)
         break
     }
   }
