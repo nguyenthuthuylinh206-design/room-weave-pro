@@ -56,8 +56,8 @@ export const CHECK_TYPE_CONFIG: Record<CheckType, CheckTypeConfig> = {
     headerTextColor: 'text-blue-700',
     linenActions: ['ok', 'missing', 'damaged'],         // OK / Thiếu / Hỏng
     consumableActions: ['ok', 'missing', 'empty'],      // OK / Thiếu / Hết
-    equipmentActions: ['ok', 'damaged'],                // OK / Hỏng
-    furnitureActions: ['ok', 'damaged'],
+    equipmentActions: ['ok', 'missing', 'damaged'],    // OK / Thiếu / Hỏng
+    furnitureActions: ['ok', 'missing', 'damaged'],
     showBookingInfo: false,
     allowDamageCharges: false,
     blockOnDamaged: false,
@@ -70,8 +70,8 @@ export const CHECK_TYPE_CONFIG: Record<CheckType, CheckTypeConfig> = {
     headerTextColor: 'text-green-700',
     linenActions: ['ok', 'missing', 'add'],   // OK, Thiếu, Thêm
     consumableActions: ['ok', 'missing'],     // OK hoặc Thiếu
-    equipmentActions: ['ok', 'damaged'],      // OK hoặc Hỏng (block check-in)
-    furnitureActions: ['ok', 'damaged'],
+    equipmentActions: ['ok', 'missing', 'damaged'],      // OK / Thiếu / Hỏng
+    furnitureActions: ['ok', 'missing', 'damaged'],
     showBookingInfo: true,
     allowDamageCharges: false,
     blockOnDamaged: true,                     // Cảnh báo nếu có đồ hỏng
@@ -140,8 +140,8 @@ export const CHECK_TYPE_CONFIG: Record<CheckType, CheckTypeConfig> = {
     headerTextColor: 'text-teal-700',
     linenActions: ['ok', 'missing', 'add'],        // OK, Thiếu, Thêm
     consumableActions: ['ok', 'empty', 'missing'], // OK, Hết, Thiếu
-    equipmentActions: ['ok', 'damaged'],           // OK, Hỏng (báo cáo)
-    furnitureActions: ['ok', 'damaged'],
+    equipmentActions: ['ok', 'missing', 'damaged'],   // OK, Thiếu, Hỏng (báo cáo)
+    furnitureActions: ['ok', 'missing', 'damaged'],
     showBookingInfo: false,
     allowDamageCharges: false,
     blockOnDamaged: false,
