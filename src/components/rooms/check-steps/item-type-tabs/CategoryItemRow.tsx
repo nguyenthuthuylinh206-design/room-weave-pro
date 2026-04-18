@@ -37,6 +37,7 @@ export interface CategoryItemRowProps {
   allowedActions: string[]
   onAction: (action: ItemAction) => void
   onReset: () => void
+  onUpdateQuantity?: (newQuantity: number) => void
   isSaving?: boolean
   // Additional info for displaying after action
   consumedInfo?: ConsumedItem | null
@@ -80,6 +81,7 @@ export function CategoryItemRow({
   onAction,
   onReset,
   isSaving = false,
+  onUpdateQuantity,
   consumedInfo,
   damagedInfo,
   lostInfo,
@@ -87,7 +89,14 @@ export function CategoryItemRow({
 }: CategoryItemRowProps) {
   const [expanded, setExpanded] = useState(false)
   const [pendingType, setPendingType] = useState<'lost' | 'damaged' | 'consumed' | null>(null)
-  const [quantity, setQuantity] = useState(item.standard_quantity || 1)
+  // Quantity hiển thị trong stepper inline. Khởi tạo theo info đã có (resume) hoặc 1.
+  const initialQty =
+    laundryInfo?.quantity ??
+    consumedInfo?.quantity ??
+    lostInfo?.quantity ??
+    damagedInfo?.quantity ??
+    1
+  const [quantity, setQuantity] = useState(initialQty)
   const [actionNotes, setActionNotes] = useState('')
   const [needRefill, setNeedRefill] = useState(true)
   const [consumedQty, setConsumedQty] = useState(1)
@@ -107,34 +116,35 @@ export function CategoryItemRow({
   const handleQuickAction = (actionType: string) => {
     switch (actionType) {
       case 'laundry':
-        onAction({ type: 'laundry', quantity })
-        setExpanded(true)
+        onAction({ type: 'laundry', quantity: 1 })
+        setQuantity(1)
         break
       case 'add':
-        onAction({ type: 'add', quantity })
-        setExpanded(true)
+        onAction({ type: 'add', quantity: 1 })
+        setQuantity(1)
         break
       case 'change':
-        onAction({ type: 'change', quantity })
-        setExpanded(true)
+        onAction({ type: 'change', quantity: 1 })
+        setQuantity(1)
         break
       case 'missing':
-        onAction({ type: 'missing', quantity })
+        onAction({ type: 'missing', quantity: 1 })
+        setQuantity(1)
         break
       case 'consumed':
-        // Open form to enter quantity and need_refill
-        setPendingType('consumed')
-        setConsumedQty(1)
-        setNeedRefill(true)
-        setExpanded(true)
+        // Quick: mặc định 1 cái, cần bổ sung. Cô có thể chỉnh stepper inline sau.
+        onAction({ type: 'consumed', quantity: 1, needRefill: true })
+        setQuantity(1)
         break
       case 'lost':
-        setPendingType('lost')
-        setExpanded(true)
+        // Quick: mặc định 1 cái mất, không hỏi chi phí.
+        onAction({ type: 'lost', quantity: 1, estimatedValue: 0 })
+        setQuantity(1)
         break
       case 'damaged':
-        setPendingType('damaged')
-        setExpanded(true)
+        // Quick: mặc định 1 cái hỏng, cần thay.
+        onAction({ type: 'damaged', damageType: 'replacement_needed', damageCost: 0 })
+        setQuantity(1)
         break
     }
   }
@@ -351,16 +361,56 @@ export function CategoryItemRow({
             })}
           </div>
         ) : (
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             <span className={cn("text-xs font-medium", statusColor || statusInfo.color)}>
               {statusLabel || statusInfo.label}
-              {needsQuantity && status !== 'ok' && ` ×${quantity}`}
+            </span>
+            {/* Stepper inline cho mọi action có quantity (ngoại trừ ok) */}
+            {!isOk && onUpdateQuantity && (
+              <div className="flex items-center gap-0.5 border rounded-md bg-background">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  disabled={quantity <= 1}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const newQty = Math.max(1, quantity - 1)
+                    setQuantity(newQty)
+                    onUpdateQuantity(newQty)
+                  }}
+                >
+                  <Minus className="h-3 w-3" />
+                </Button>
+                <span className="text-xs font-semibold tabular-nums w-6 text-center">
+                  {quantity}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  disabled={quantity >= standardQuantity}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const newQty = Math.min(standardQuantity, quantity + 1)
+                    setQuantity(newQty)
+                    onUpdateQuantity(newQty)
+                  }}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+            <span className="text-[10px] text-muted-foreground tabular-nums">
+              /{standardQuantity}
             </span>
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
               onClick={(e) => {
                 e.stopPropagation()
                 handleReset()
