@@ -38,6 +38,7 @@ import {
   useRetryStop,
   useReturnToStock,
   useHandoverStop,
+  useConfirmReceiveOrder,
 } from '@/hooks/useRouteBatch'
 import type { RouteStop, ExceptionType, ShiftCode } from '@/types/route-batch.types'
 import { EXCEPTION_TYPE_LABELS, SHIFT_LABELS } from '@/types/route-batch.types'
@@ -92,8 +93,13 @@ export function UnifiedRoomList({
   const retryStop = useRetryStop()
   const returnToStock = useReturnToStock()
   const handoverStop = useHandoverStop()
+  const confirmReceiveOrder = useConfirmReceiveOrder()
 
-  const canDeliverStops = (isAssignee || canDeliverAsManager) && orderStatus === 'in_progress'
+  // Assignee có thể giao ngay khi phiếu đã released (sẽ tự xác nhận nhận hàng)
+  // Manager/Storekeeper chỉ giao thay khi đã in_progress
+  const canDeliverStops =
+    (isAssignee && (orderStatus === 'released' || orderStatus === 'in_progress')) ||
+    (canDeliverAsManager && orderStatus === 'in_progress')
 
   const { groupedStops, hasMultipleBatches } = useMemo(() => {
     const batches = new Map<number, RouteStop[]>()
@@ -121,7 +127,7 @@ export function UnifiedRoomList({
     }
   }, [stops])
 
-  const handleDeliver = (stop: RouteStop) => {
+  const performDeliver = (stop: RouteStop) => {
     deliverStop.mutate(
       {
         roomOrderId: stop.id,
@@ -146,6 +152,20 @@ export function UnifiedRoomList({
         } 
       }
     )
+  }
+
+  const handleDeliver = (stop: RouteStop) => {
+    // Nếu phiếu mới released và user là assignee → tự xác nhận nhận hàng trước rồi giao
+    if (orderStatus === 'released' && isAssignee) {
+      confirmReceiveOrder.mutate(
+        { orderId: stop.distribution_order_id, silent: true },
+        {
+          onSuccess: () => performDeliver(stop),
+        }
+      )
+      return
+    }
+    performDeliver(stop)
   }
 
   const openCannotAccessDialog = (stop: RouteStop, quickType?: ExceptionType) => {
