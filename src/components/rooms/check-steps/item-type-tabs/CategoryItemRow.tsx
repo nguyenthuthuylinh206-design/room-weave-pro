@@ -81,6 +81,7 @@ export function CategoryItemRow({
   onAction,
   onReset,
   isSaving = false,
+  onUpdateQuantity,
   consumedInfo,
   damagedInfo,
   lostInfo,
