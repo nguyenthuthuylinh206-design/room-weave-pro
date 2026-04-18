@@ -51,6 +51,7 @@ interface UnifiedRoomListProps {
   hotelId?: string
   orderStatus: string
   isAssignee: boolean
+  canDeliverAsManager?: boolean
   onRefresh?: () => void
 }
 
@@ -61,6 +62,7 @@ export function UnifiedRoomList({
   hotelId,
   orderStatus,
   isAssignee,
+  canDeliverAsManager = false,
   onRefresh,
 }: UnifiedRoomListProps) {
   const isMobile = useIsMobile()
@@ -91,7 +93,7 @@ export function UnifiedRoomList({
   const returnToStock = useReturnToStock()
   const handoverStop = useHandoverStop()
 
-  const canDeliverStops = isAssignee && orderStatus === 'in_progress'
+  const canDeliverStops = (isAssignee || canDeliverAsManager) && orderStatus === 'in_progress'
 
   const { groupedStops, hasMultipleBatches } = useMemo(() => {
     const batches = new Map<number, RouteStop[]>()

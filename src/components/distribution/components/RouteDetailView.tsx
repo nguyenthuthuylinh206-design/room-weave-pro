@@ -252,6 +252,7 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
         hotelId={route.hotel_id}
         orderStatus={route.status}
         isAssignee={isAssignee}
+        canDeliverAsManager={isStorekeeper || isLeader}
         onRefresh={handleRefresh}
       />
 
