@@ -1226,7 +1226,13 @@ export function RoomCheckPage() {
               ) : (
                 <>
                   <Check className="mr-2 h-4 w-4" />
-                  {isCheckoutType ? 'Xong - Tạo phiếu cho ca sau' : 'Xác nhận hoàn tất'}
+                  {(() => {
+                    if (isCheckoutType) return 'Xong - Tạo phiếu cho ca sau'
+                    const cond = form.watch('room_condition')
+                    if (watchedCheckType === 'daily' && cond === 'clean') return 'Xong - Chỉ ghi nhận'
+                    if (watchedCheckType === 'daily' && cond && cond !== 'clean') return 'Xong - Tạo phiếu lau dọn'
+                    return 'Xác nhận hoàn tất'
+                  })()}
                 </>
               )}
             </AlertDialogAction>
