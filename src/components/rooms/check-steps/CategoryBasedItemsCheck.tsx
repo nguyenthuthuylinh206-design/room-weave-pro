@@ -258,6 +258,61 @@ export function CategoryBasedItemsCheck({
     }
   }
 
+  // Cập nhật quantity cho item đã đánh dấu (qua stepper inline)
+  // Cách: remove rồi add lại với quantity mới, qua chính các handler đã có.
+  const handleUpdateQuantity = (item: ExtendedRoomItem, newQuantity: number) => {
+    const status = getItemStatus(item.item_id, item.item_type)
+    const qty = Math.max(1, newQuantity)
+
+    switch (status) {
+      case 'laundry': {
+        onResetLinen(item.item_id)
+        onLinenStatusChange(item, 'laundry', qty)
+        break
+      }
+      case 'add': {
+        onResetLinen(item.item_id)
+        onLinenStatusChange(item, 'add', qty)
+        break
+      }
+      case 'change': {
+        onResetLinen(item.item_id)
+        onLinenStatusChange(item, 'change', qty)
+        break
+      }
+      case 'missing': {
+        onResetLinen(item.item_id)
+        onLinenStatusChange(item, 'missing', qty)
+        break
+      }
+      case 'lost': {
+        onRemoveFromLost(item.item_id)
+        onEquipmentLost(item, qty)
+        break
+      }
+      case 'damaged': {
+        const existing = damagedItems.find(d => d.item_id === item.item_id)
+        onRemoveFromDamaged(item.item_id)
+        onMarkDamaged(item, {
+          damage_type: existing?.damage_type || 'replacement_needed',
+          damage_cost: existing?.damage_cost || 0,
+          notes: existing?.notes,
+          item_type: item.item_type,
+        })
+        // Lưu ý: handler onMarkDamaged hiện không nhận quantity → cần parent hỗ trợ.
+        // Tạm thời cập nhật qua remove + thêm với qty=1 (giữ nguyên hành vi cũ).
+        // Để stepper hoạt động đúng cho damaged, parent cần expose qty.
+        break
+      }
+      case 'consumed': {
+        const existing = consumedItems.find(c => c.item_id === item.item_id)
+        onRemoveFromConsumed(item.item_id)
+        onMarkConsumed(item, qty, existing?.need_refill ?? true)
+        break
+      }
+    }
+  }
+
   // Handle reset item
   const handleResetItem = (item: ExtendedRoomItem) => {
     const status = getItemStatus(item.item_id, item.item_type)
