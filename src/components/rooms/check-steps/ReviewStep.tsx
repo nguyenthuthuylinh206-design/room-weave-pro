@@ -88,9 +88,6 @@ export function ReviewStep({ form, room, checkType, currentBooking }: ReviewStep
   const totalLost = itemsLost.reduce((sum, i) => sum + i.quantity, 0)
   const totalReplaced = itemsReplaced.reduce((sum, i) => sum + i.quantity, 0)
   const totalDamaged = itemsDamaged.length
-  const estimatedLossValue = itemsLost.reduce((sum, i) => sum + (i.estimated_value || 0), 0)
-  const damageCostTotal = itemsDamaged.reduce((sum: number, i: any) => sum + (i.damage_cost || 0), 0)
-  const totalCharge = estimatedLossValue + damageCostTotal
   const totalMissing = itemsMissing.reduce((sum, i) => sum + (i.shortage || 0), 0)
   const hasActions = totalLaundry > 0 || totalConsumed > 0 || totalLost > 0 || totalReplaced > 0 || totalDamaged > 0 || totalMissing > 0
   
@@ -157,11 +154,15 @@ export function ReviewStep({ form, room, checkType, currentBooking }: ReviewStep
             </div>
           </div>
           
-          {/* Charges for checkout */}
-          {checkType === 'checkout' && totalCharge > 0 && (
+          {/* Checkout summary: số đồ cần xử lý (không hiển thị chi phí — quản lý xử lý sau) */}
+          {checkType === 'checkout' && (totalLost > 0 || totalDamaged > 0) && (
             <div className="mt-2 pt-2 border-t border-orange-200 flex items-center justify-between">
-              <span className="text-xs text-orange-700">Phí phát sinh:</span>
-              <span className="font-bold text-orange-700">{formatCurrency(totalCharge)}</span>
+              <span className="text-xs text-orange-700">Cần xử lý:</span>
+              <span className="font-medium text-orange-700 text-xs">
+                {totalLost > 0 && `${totalLost} mất`}
+                {totalLost > 0 && totalDamaged > 0 && ' • '}
+                {totalDamaged > 0 && `${totalDamaged} hỏng (cần thay)`}
+              </span>
             </div>
           )}
         </div>
@@ -362,11 +363,10 @@ export function ReviewStep({ form, room, checkType, currentBooking }: ReviewStep
                     </div>
                   )}
                   
-                  {/* Total Loss Value */}
-                  {(estimatedLossValue > 0 || damageCostTotal > 0) && (
-                    <div className="pt-2 border-t flex items-center justify-between text-xs">
-                      <span className="font-medium text-destructive">Tổng thiệt hại:</span>
-                      <span className="font-bold text-destructive">{formatCurrency(estimatedLossValue + damageCostTotal)}</span>
+                  {/* Footer: ghi chú nghiệp vụ (không hiển thị chi phí trong luồng kiểm tra) */}
+                  {(totalLost > 0 || totalDamaged > 0) && (
+                    <div className="pt-2 border-t text-xs text-muted-foreground italic">
+                      Đồ mất sẽ được bổ sung và báo cáo. Đồ hỏng sẽ tự sinh phiếu bảo trì "cần thay".
                     </div>
                   )}
                 </>
