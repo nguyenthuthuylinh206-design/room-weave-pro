@@ -1,75 +1,60 @@
 
 
-## Vấn đề thực: Data legacy phân loại sai (không phải bug code)
+## Vấn đề: Migration trước bỏ sót 3 items trong phòng đang xem
 
-**Bằng chứng từ DB cho phòng `997ffb2a-...`:**
+**Bằng chứng từ DB cho phòng `997ffb2a`:**
 
-| room_item | items.item_type | category | default_item_type | Đúng? |
-|---|---|---|---|---|
-| Khăn tắm lớn | `equipment` | Đồ vải | NULL | ❌ phải là `linen` |
-| Ấm đun nước | `equipment` | Thiết bị | NULL | ✅ đúng |
-| Bàn chải đánh răng | `equipment` | **Tiêu hao** | NULL | ❌ phải là `consumable` |
+| Item | item_type | category | default_item_type |
+|---|---|---|---|
+| Khăn tắm lớn | `equipment` ❌ | Đồ vải | **NULL** ❌ |
+| Ấm đun nước | `equipment` ✅ | Thiết bị | **NULL** ❌ |
+| Bàn chải đánh răng | `equipment` ❌ | Tiêu hao | **NULL** ❌ |
 
-→ Code đã đúng (sửa fallback ở plan trước rồi). Nhưng **fallback không kích hoạt** vì `items.item_type` đã có giá trị 'equipment' rõ ràng → fallback chain `?? category.default_item_type` bị bỏ qua.
+→ Migration trước chỉ UPDATE khi `default_item_type IS NOT NULL` → 3 category này có NULL nên bị skip → 3 items giữ nguyên `equipment` sai.
 
-→ Daily + equipment = chỉ có **OK + Hỏng** (đúng theo `roomCheckConfig.equipmentActions: ['ok', 'damaged']`).
+**Bằng chứng category bị duplicate**: Có nhiều bản ghi cùng tên ("Đồ vải", "Tiêu hao", "Thiết bị") — một số đã có `default_item_type`, một số NULL. 3 items trong phòng đang trỏ tới đúng các bản NULL.
 
-→ Hiển thị 0/3 sai loại tab: Khăn tắm lớn nằm ở tab "Đồ vải" (đúng theo category) nhưng nội bộ vẫn xử lý là equipment → render thiếu nút Thiếu.
-
-## Có 2 nguồn gốc data sai cần sửa
-
-**A. Data items (15+ record có `item_type` sai, `default_item_type` NULL):**
-- 1 × Khăn tắm lớn (equipment) — phải là linen
-- 1 × Bàn chải đánh răng (equipment) — phải là consumable
-- Cô owner đã có 4 record Khăn tắm khác đã đúng `linen`, chứng tỏ đã từng sửa đúng nhưng record cũ chưa update
-
-**B. Data item_categories (default_item_type NULL):**
-- Category "Đồ vải" có 1 record `default_item_type = NULL`
-- Category "Tiêu hao" có 1 record `default_item_type = NULL`
-- Category "Thiết bị" có 1 record `default_item_type = NULL`
-
-## Kế hoạch sửa — 2 migration data nhỏ, không đụng code
+## Kế hoạch sửa — 1 migration data triệt để hơn
 
 | # | Bảng | Hành động |
 |---|---|---|
-| 1 | `item_categories` | UPDATE `default_item_type` cho các record NULL theo tên category: "Đồ vải" → `linen`, "Tiêu hao"/"Phòng tắm" → `consumable`, "Thiết bị"/"Phòng khách"/"Phòng ngủ" → `equipment`, "Nội thất" → `furniture` |
-| 2 | `items` | UPDATE `items.item_type` = `category.default_item_type` cho mọi item có `item_type` không khớp với `category.default_item_type` (sau khi bước 1 đã chuẩn hoá) |
+| 1 | `item_categories` | UPDATE `default_item_type` cho TẤT CẢ category còn NULL theo tên: "Đồ vải"→`linen`, "Tiêu hao"/"Phòng tắm"→`consumable`, "Thiết bị"/"Phòng khách"/"Phòng ngủ"/"Tiện nghi"→`equipment`, "Nội thất"→`furniture` |
+| 2 | `items` | UPDATE `items.item_type` = `category.default_item_type` cho mọi item bị lệch — sau khi bước 1 đã chuẩn hoá hết |
 
-### SQL dự kiến (dùng RPC migration)
+### SQL dự kiến
 
 ```sql
--- Bước 1: chuẩn hoá default_item_type cho category NULL
-UPDATE item_categories SET default_item_type = 'linen' 
+-- Bước 1: chuẩn hoá toàn bộ category NULL còn sót
+UPDATE item_categories SET default_item_type = 'linen'
   WHERE default_item_type IS NULL AND name ILIKE '%đồ vải%';
-UPDATE item_categories SET default_item_type = 'consumable' 
+UPDATE item_categories SET default_item_type = 'consumable'
   WHERE default_item_type IS NULL AND (name ILIKE '%tiêu hao%' OR name ILIKE '%phòng tắm%');
-UPDATE item_categories SET default_item_type = 'equipment' 
-  WHERE default_item_type IS NULL AND name ILIKE '%thiết bị%';
+UPDATE item_categories SET default_item_type = 'equipment'
+  WHERE default_item_type IS NULL AND (name ILIKE '%thiết bị%' OR name ILIKE '%phòng khách%' OR name ILIKE '%phòng ngủ%' OR name ILIKE '%tiện nghi%');
+UPDATE item_categories SET default_item_type = 'furniture'
+  WHERE default_item_type IS NULL AND name ILIKE '%nội thất%';
 
 -- Bước 2: đồng bộ items.item_type theo category
-UPDATE items i SET item_type = c.default_item_type
+UPDATE items i SET item_type = c.default_item_type::text::item_type
 FROM item_categories c
-WHERE i.category_id = c.id 
-  AND c.default_item_type IS NOT NULL 
+WHERE i.category_id = c.id
+  AND c.default_item_type IS NOT NULL
   AND (i.item_type IS NULL OR i.item_type::text != c.default_item_type::text);
 ```
 
 ## Quy tắc giữ nguyên
 
 - Tiếng Việt thuần
-- Không đổi code (`CategoryItemRow`, `CategoryBasedItemsCheck`, `roomCheckConfig` đã đúng)
-- Không phá nghiệp vụ: chỉ chuẩn hoá `item_type` theo category — đúng spec `category-driven-classification-spec`
-- Cảnh báo: bước 2 sẽ ảnh hưởng đến cách items render ở mọi nơi (inventory, laundry, room check). Nhưng đây là kết quả MONG MUỐN — phân loại đúng theo category mà owner đã chọn.
+- Không đổi code
+- Tuân thủ spec `category-driven-classification-spec`
+- Không xoá category duplicate (để owner tự dọn nếu muốn)
 
-## Kết quả mong đợi
+## Kết quả mong đợi sau migration
 
-Sau migration:
-- Khăn tắm lớn → `linen` → daily check hiện **OK / Thiếu / Hỏng**
-- Bàn chải đánh răng → `consumable` → daily check hiện **OK / Thiếu / Hết**
-- Ấm đun nước → vẫn `equipment` → daily check hiện **OK / Hỏng** (đúng nghiệp vụ)
-- Tất cả phòng khác trong tenant tự động được "fix" theo
+Phòng `997ffb2a` sẽ render:
+- **Khăn tắm lớn** → `linen` → Daily hiện **OK / Thiếu / Hỏng** ✅
+- **Ấm đun nước** → `equipment` → Daily hiện **OK / Hỏng** (đúng nghiệp vụ)
+- **Bàn chải đánh răng** → `consumable` → Daily hiện **OK / Thiếu / Hết** ✅
 
-## Ngoài migration, có cần sửa code thêm không?
-
-Không. Plan trước đã sửa fallback chain trong `CategoryBasedItemsCheck.tsx`, plan trước nữa đã sửa `getActionsForItemType` trong `CategoryItemRow.tsx`. Cả hai đều hoạt động đúng — chỉ là data legacy đang "thắng" fallback. Sau khi data sạch, cả 2 lớp fix code vẫn còn giá trị bảo vệ cho dữ liệu mới.
+Tất cả phòng khác trong tenant cũng tự động được fix.
 
