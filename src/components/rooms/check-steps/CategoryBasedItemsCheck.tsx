@@ -299,11 +299,9 @@ export function CategoryBasedItemsCheck({
           damage_type: existing?.damage_type || 'replacement_needed',
           damage_cost: existing?.damage_cost || 0,
           notes: existing?.notes,
+          quantity: qty,
           item_type: item.item_type,
         })
-        // Lưu ý: handler onMarkDamaged hiện không nhận quantity → cần parent hỗ trợ.
-        // Tạm thời cập nhật qua remove + thêm với qty=1 (giữ nguyên hành vi cũ).
-        // Để stepper hoạt động đúng cho damaged, parent cần expose qty.
         break
       }
       case 'consumed': {
