@@ -198,6 +198,12 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
             : undefined
         }
         onConfirmReceive={route.status === 'released' && isAssignee ? handleConfirmReceive : undefined}
+        canConfirmOnBehalf={route.status === 'released' && !isAssignee && (isLeader || isStorekeeper)}
+        onConfirmReceiveOnBehalf={
+          route.status === 'released' && !isAssignee && (isLeader || isStorekeeper)
+            ? handleConfirmReceiveOnBehalf
+            : undefined
+        }
         onCloseRoute={canClose ? () => closeRoute.mutate({ orderId: route.id }) : undefined}
         isHandingOver={handoverBatch.isPending}
         isConfirmingReceive={confirmReceive.isPending}
