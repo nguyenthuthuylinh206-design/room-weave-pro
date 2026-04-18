@@ -53,15 +53,19 @@ export function DeliveryStepWizard({
   isAssignee,
   hasAssignee = true,
   isCreatorSameAsAssignee = false,
+  canConfirmOnBehalf = false,
   onHandoverBatch,
   onConfirmReceive,
+  onConfirmReceiveOnBehalf,
   onCloseRoute,
   isHandingOver,
   isConfirmingReceive,
   isClosing,
 }: DeliveryStepWizardProps) {
   const progressPercent = totalStops > 0 ? Math.round((completedStops / totalStops) * 100) : 0
-  
+
+  // released = "Nhận hàng" vẫn current (chưa xong cho đến khi assignee xác nhận)
+  // in_progress = "Giao hàng" mới là current
   const getCurrentStep = (): number => {
     switch (status) {
       case 'pending': return 1
