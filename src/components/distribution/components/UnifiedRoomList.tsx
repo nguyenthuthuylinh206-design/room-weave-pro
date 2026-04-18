@@ -237,6 +237,7 @@ export function UnifiedRoomList({
                 key={stop.id}
                 stop={stop}
                 orderStatus={orderStatus}
+                isAssignee={isAssignee}
                 canDeliver={canDeliverStops && stop.stop_status === 'pending'}
                 canMarkCannotAccess={canDeliverStops && stop.stop_status === 'pending'}
                 canRetry={canDeliverStops && stop.stop_status === 'cannot_access'}
