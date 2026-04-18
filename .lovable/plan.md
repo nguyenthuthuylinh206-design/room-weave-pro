@@ -1,74 +1,89 @@
 
 
-## Vấn đề: `CategoryItemRow.getActionsForItemType()` không khớp với `roomCheckConfig`
+## Vấn đề: Chỉ thấy nút "Hỏng" cho khăn tắm trong Daily check
 
-Cấu hình `roomCheckConfig.ts` đã định nghĩa đúng các action theo nghiệp vụ cho từng `checkType` × `itemType`, nhưng `CategoryItemRow.tsx` dòng 175-194 **hardcode danh sách action theo itemType** và **bỏ qua `allowedActions` thực tế** truyền từ config:
+Đã trace kỹ luồng — gốc rễ là **item type bị mặc định sai về `equipment`** khi `items.item_type` NULL.
 
-| Loại đồ | Config (daily) | CategoryItemRow render | Thiếu nút |
-|---|---|---|---|
-| **Linen** | ok, missing, damaged | laundry, change, add, lost | ❌ Thiếu **Thiếu**, **Hỏng** |
-| **Consumable** | ok, missing, empty | consumed (gộp tất cả) | ❌ Không tách **Thiếu** vs **Hết** |
-| **Equipment** | ok, damaged | damaged, lost | ❌ Render thừa **Mất** (daily không có) |
-| **Furniture** | ok, damaged | damaged, lost | ❌ Render thừa **Mất** |
+### Bằng chứng từ DB
 
-→ Cô bấm tab Linen trong daily check → chỉ thấy nút OK (vì laundry/change/add/lost không có trong daily) → không báo được Thiếu/Hỏng.
+```
+Khăn tắm lớn × 6 records:
+  - 4 records: default_item_type = 'linen' (đúng)
+  - 2 records: default_item_type = NULL (sai)
+  - Khăn tắm nhỏ × 3 records: category 'Phòng khách' → default_item_type = 'equipment' (sai)
+```
 
-## Nguyên nhân
+### Bằng chứng từ code
 
-`getActionsForItemType()` đang **whitelist cứng** theo itemType:
+`CategoryBasedItemsCheck.tsx` dòng 114-136:
 ```ts
-if (itemType === 'linen') {
-  if (allowedActions.includes('laundry')) actions.push('laundry')
-  // ... chỉ check 4 action: laundry/change/add/lost
-  // → BỎ SÓT missing, damaged dù allowedActions có
+const { data } = await supabase
+  .from('items')
+  .select('id, item_type, quantity_in_stock, ..., item_categories(...)')  // ❌ KHÔNG select category.default_item_type
+  
+return {
+  ...item,
+  item_type: (itemData?.item_type as ItemType) || 'equipment',  // ❌ NULL → fallback 'equipment'
+  ...
 }
 ```
 
-Nó chỉ "cho phép" 1 tập con cứng, dù `allowedActions` từ config có nhiều hơn.
+Daily check + equipment per `roomCheckConfig`:
+```ts
+equipment: { equipmentActions: ['ok', 'damaged'] }
+```
 
-## Kế hoạch sửa — chỉ 1 file, 1 hàm
+→ Khăn tắm bị treat as equipment → chỉ render nút **Hỏng**, mất nút **Thiếu** đáng lẽ có cho linen.
+
+### Vi phạm spec đã có
+
+Memory `category-driven-classification-spec` nói rõ: **item type phải lấy từ `item_categories.default_item_type` khi item.item_type NULL**. Code hiện tại đang bỏ qua bước fallback này.
+
+## Kế hoạch sửa — 1 file, logic fallback
 
 | # | File | Thay đổi |
-|---|---|---|
-| 1 | `CategoryItemRow.tsx` `getActionsForItemType()` (dòng 175-194) | Viết lại theo hướng **dynamic**: lặp qua tất cả action trong `allowedActions`, lọc ra action hợp lệ cho itemType, giữ thứ tự ưu tiên hiển thị |
-| 2 | `CategoryItemRow.tsx` `ACTION_CONFIG` (dòng 60-69) | Thêm cấu hình cho `empty` (đồng bộ với `consumed` về bản chất nhưng label "Hết") nếu thiếu — kiểm tra lại |
-| 3 | `CategoryItemRow.tsx` `handleQuickAction` switch | Thêm case `empty` → xử lý như `consumed` (mở drawer chọn số lượng + cần bổ sung), hoặc gộp missing/empty/consumed về cùng 1 flow drawer với label động |
+|---|------|---------|
+| 1 | `CategoryBasedItemsCheck.tsx` query (dòng 116) | Bổ sung `default_item_type` vào select của `item_categories(...)` |
+| 2 | `CategoryBasedItemsCheck.tsx` enrichment (dòng 132) | Đổi fallback chain: `itemData.item_type ?? category.default_item_type ?? 'equipment'` |
+| 3 | `CategoryBasedItemsCheck.tsx` (dòng 145) | Tương tự cho fallback nhánh data null |
 
-### Logic mới đề xuất cho `getActionsForItemType()`
+### Logic mới đề xuất
 
 ```ts
-const ITEM_TYPE_ALLOWED_ACTIONS: Record<ItemType, string[]> = {
-  linen:     ['laundry', 'change', 'add', 'missing', 'damaged', 'lost'],
-  consumable:['consumed', 'empty', 'missing', 'lost'],
-  equipment: ['damaged', 'missing', 'lost'],
-  furniture: ['damaged', 'missing', 'lost'],
+const category = itemData?.item_categories as { 
+  id: string; name: string; color: string | null; icon: string | null;
+  default_item_type: ItemType | null  // ← thêm
+} | null
+
+return {
+  ...item,
+  item_type: (itemData?.item_type as ItemType) 
+          ?? (category?.default_item_type as ItemType) 
+          ?? 'equipment',
+  ...
 }
-
-const PRIORITY_ORDER = ['missing', 'damaged', 'lost', 'consumed', 'empty', 'laundry', 'change', 'add']
-
-const allowed = ITEM_TYPE_ALLOWED_ACTIONS[itemType] || []
-return PRIORITY_ORDER.filter(a => allowed.includes(a) && allowedActions.includes(a))
 ```
 
-→ Giao điểm 3 tập: cấu hình check type × giới hạn theo loại đồ × thứ tự hiển thị.
+### Tuỳ chọn: Cleanup data (không bắt buộc, có thể làm sau)
+
+Có thể chạy 1 migration nhỏ:
+- Xét `Khăn tắm` đang ở category 'Phòng khách' với `default_item_type = 'equipment'` → đây là **lỗi phân loại category**, để cô owner tự sửa qua UI Item categories
+- Hoặc chỉ update `items.item_type` cho các record NULL bằng `category.default_item_type` (an toàn, không phá UI cũ)
+
+→ **Không làm trong plan này** để khỏi đụng dữ liệu owner. Code fallback đã giải quyết 95% case.
 
 ## Quy tắc giữ nguyên
 
 - Tiếng Việt thuần
-- Không sửa `roomCheckConfig.ts` (đã đúng nghiệp vụ)
-- Không sửa schema/types
-- Drawer/popup hỏng/mất giữ nguyên (đã bỏ chi phí ở plan trước)
-- `consumed` và `empty` cùng dùng drawer chọn số lượng + cần bổ sung (đã có sẵn)
-- Mặc định khi cô bấm "Thiếu" → tạo supplement request (đã có downstream)
-- Mặc định khi cô bấm "Hỏng" → tạo maintenance request (đã có downstream)
-- Mặc định khi cô bấm "Mất" → bổ sung + báo cáo (đã có downstream)
+- Không sửa `roomCheckConfig.ts`
+- Không sửa `CategoryItemRow.tsx` (logic mapping action đã đúng)
+- Không migration DB
+- Tuân thủ spec `category-driven-classification-spec`
 
 ## Kết quả mong đợi
 
-- **Daily + Linen**: thấy nút Thiếu, Hỏng (đúng nghiệp vụ)
-- **Daily + Consumable**: thấy nút Thiếu, Hết
-- **Daily + Equipment/Furniture**: thấy nút Hỏng (không thừa nút Mất)
-- **Checkout + Linen**: thấy đầy đủ Giặt, Đổi, Mất, Hỏng
-- **Replenish + Equipment**: thấy nút Hỏng để báo cáo
-- Mọi check type khác đều render đúng theo `roomCheckConfig` — không cần sửa thêm
+- Khăn tắm (NULL item_type, category 'Đồ vải' → default_item_type 'linen') → render đúng linen → daily hiện **Thiếu** + **Hỏng**
+- Khăn tắm (NULL item_type, category 'Phòng khách' → equipment) → vẫn render equipment (đúng theo cấu hình category, owner cần sửa category nếu muốn)
+- Items có `item_type` set rõ → giữ nguyên hành vi
+- Mọi check type khác không ảnh hưởng
 
