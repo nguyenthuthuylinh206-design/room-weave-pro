@@ -1,123 +1,73 @@
+## Vấn đề: Báo "Thiếu" nhưng không nhập số lượng → không tạo được phiếu giao bổ sung
 
+Cô nói đúng — hiện tại bấm **Thiếu** chỉ là 1 nút toggle, không hỏi thiếu mấy cái. Hệ thống không biết cần bổ sung bao nhiêu → phiếu giao sinh ra sai hoặc không sinh được.
 
-## Mục tiêu: Logic kiểm tra phòng chuẩn — không bỏ sót case nào
+## Phân tích hiện trạng
 
-Ba loại check phục vụ ba **mục đích nghiệp vụ khác nhau**, nên phải có **bộ action khác nhau**. Hiện tại logic đã gần đúng nhưng còn lẫn lộn — plan này chốt lại rõ ràng.
+Đọc nhanh `CategoryItemRow.tsx` + `CategoryBasedItemsCheck.tsx`:
 
----
+- Khi bấm **Thiếu**, code set `status = 'missing'` cho item nhưng KHÔNG hỏi số lượng
+- Mặc định coi như thiếu = thiếu toàn bộ `expected_quantity` của item trong phòng
+- → Sai khi phòng có 4 khăn, chỉ thiếu 1 cái → hệ thống tưởng thiếu cả 4
 
-## A. Phân tích nghiệp vụ — ai làm, khi nào, mục đích gì
+## Kế hoạch sửa — UX nhập số lượng thiếu
 
-| Loại check | Người làm | Khi nào | Mục đích chính |
-|---|---|---|---|
-| **Daily** (hàng ngày) | Buồng phòng | Mỗi sáng / phòng trống | Phát hiện thiếu/hỏng SỚM để xử lý trước khi khách vào |
-| **Checkin** (trước nhận phòng) | Lễ tân + buồng phòng | Trước khi khách đến | Đảm bảo phòng SẴN SÀNG — không thiếu, không hỏng |
-| **Checkout** (sau trả phòng) | Buồng phòng | Khách vừa trả phòng | Tính phí khách (mất/hỏng) + báo dọn dẹp |
+### A. Cách hỏi số lượng (UX đề xuất)
 
----
+Khi bấm **Thiếu** lần đầu → hiện inline ngay cạnh nút:
 
-## B. Các trường hợp có thể xảy ra với từng loại đồ
-
-### 1. Đồ vải (linen) — khăn, ga, vỏ gối...
-| Tình huống thực tế | Daily | Checkin | Checkout |
-|---|:---:|:---:|:---:|
-| Còn nguyên, sạch | OK | OK | OK |
-| Bẩn → cần giặt | — | — | **Giặt** |
-| Cần thay mới (sờn/cũ) | — | — | **Đổi** (giặt + bù mới) |
-| Thiếu so với chuẩn (NV trước quên trả) | **Thiếu** | **Thiếu** | — |
-| Cần bổ sung thêm (theo yêu cầu khách) | — | **Thêm** | — |
-| Hỏng/rách (do dùng thường) | **Hỏng** | **Hỏng** | **Hỏng** (tính phí khách) |
-| Mất hẳn (khách lấy) | — | — | **Mất** (tính phí) |
-
-### 2. Đồ tiêu hao (consumable) — bàn chải, dầu gội, nước...
-| Tình huống | Daily | Checkin | Checkout |
-|---|:---:|:---:|:---:|
-| Còn đủ | OK | OK | OK |
-| Hết → cần bổ sung | **Hết** | — | — |
-| Thiếu (chưa được cấp) | **Thiếu** | **Thiếu** | — |
-| Khách đã dùng (nước, đồ ăn minibar) | — | — | **Đã dùng** (tính phí nếu chargeable) |
-| Mất nguyên hộp (hiếm — khách lấy) | — | — | **Mất** (tính phí) |
-
-### 3. Thiết bị (equipment) — ấm đun, điều khiển, máy sấy...
-| Tình huống | Daily | Checkin | Checkout |
-|---|:---:|:---:|:---:|
-| Hoạt động tốt | OK | OK | OK |
-| Hỏng (không hoạt động) | **Hỏng** | **Hỏng** | **Hỏng** (xét tính phí khách) |
-| Thiếu (NV trước mượn, chưa trả lại) | **Thiếu** | **Thiếu** | — |
-| Mất hẳn (khách lấy) | — | — | **Mất** (tính phí) |
-
-### 4. Nội thất (furniture) — bàn, ghế, đèn...
-Giống equipment.
-
----
-
-## C. Cấu hình chốt cho `roomCheckConfig.ts`
-
-```ts
-daily: {
-  linenActions:      ['ok', 'missing', 'damaged'],         // OK / Thiếu / Hỏng
-  consumableActions: ['ok', 'missing', 'empty'],           // OK / Thiếu / Hết
-  equipmentActions:  ['ok', 'missing', 'damaged'],         // OK / Thiếu / Hỏng
-  furnitureActions:  ['ok', 'missing', 'damaged'],
-}
-
-checkin: {
-  linenActions:      ['ok', 'missing', 'add', 'damaged'],  // + Thêm + Hỏng (lễ tân biết)
-  consumableActions: ['ok', 'missing'],                    // OK / Thiếu (chưa cần "hết" vì khách chưa vào)
-  equipmentActions:  ['ok', 'missing', 'damaged'],
-  furnitureActions:  ['ok', 'missing', 'damaged'],
-}
-
-checkout: {
-  linenActions:      ['ok', 'laundry', 'change', 'damaged', 'lost'],  // Giặt / Đổi / Hỏng / Mất
-  consumableActions: ['ok', 'consumed', 'lost'],                       // Đã dùng / Mất
-  equipmentActions:  ['ok', 'damaged', 'lost'],                        // Hỏng / Mất (KHÔNG có "thiếu")
-  furnitureActions:  ['ok', 'damaged', 'lost'],
-}
+```
+[OK] [Thiếu: 1 ▲▼ / 4] [Hỏng]
+              ↑ stepper nhỏ, mặc định = 1
 ```
 
-### Phân biệt **Thiếu** vs **Mất** (cốt lõi)
-- **Thiếu** (`missing`) = thiếu so với chuẩn, **chưa rõ ai làm mất** → báo cáo nội bộ + tự sinh phiếu bổ sung. Dùng ở Daily/Checkin (khi không có khách).
-- **Mất** (`lost`) = khách đã dùng phòng và đồ biến mất → **tính phí khách**. Chỉ dùng ở Checkout.
+- Stepper compact `h-7 w-7`, max = `expected_quantity`
+- Bấm lại nút **Thiếu** → reset về OK
+- Bấm **OK** hoặc **Hỏng** → bỏ trạng thái thiếu
 
-→ Vì vậy **checkout không có nút "Thiếu"** — đã có khách, mất là phải tính phí.
+**Áp dụng tương tự cho:**
 
-### Phân biệt **Hết** vs **Đã dùng** (consumable)
-- **Hết** (`empty`) = hết sạch, cần bổ sung. Dùng ở Daily.
-- **Đã dùng** (`consumed`) = khách đã tiêu thụ → tính phí nếu là minibar/đồ ăn. Dùng ở Checkout.
+- `missing` (linen/consumable/equipment/furniture) ở Daily/Checkin
+- `empty` (consumable) ở Daily — "hết mấy chai?"
+- `damaged` (linen/equipment/furniture) — "hỏng mấy cái?"
+- `lost` (checkout) — "mất mấy cái?"
+- `consumed` (consumable, checkout) — "khách dùng mấy chai?"
 
----
+→ Mọi action **không phải OK** đều cần hỏi số lượng (vì 1 phòng có thể có 4 khăn nhưng chỉ 2 bẩn, 1 mất).
 
-## D. Thay đổi cần làm — chỉ 1 file
+### B. Lưu trữ
 
-**File**: `src/lib/roomCheckConfig.ts`
+Schema hiện tại `room_check_items` đã có cột `quantity_affected` (hoặc tương đương). Cần verify khi vào default mode — nếu chưa có thì migration thêm cột `affected_quantity int default 0`.
 
-| # | Thay đổi |
-|---|---|
-| 1 | `checkin.linenActions` thêm `'damaged'` → `['ok', 'missing', 'add', 'damaged']` (lễ tân cần biết khăn rách trước khi khách vào) |
-| 2 | `checkout.equipmentActions` bỏ `'missing'` nếu có (giữ `['ok', 'damaged', 'lost']`) — đã đúng |
-| 3 | `checkout.furnitureActions` giữ `['ok', 'damaged', 'lost']` — đã đúng |
-| 4 | Cập nhật comment trong file để giải thích rõ "missing vs lost" cho lập trình viên sau này |
-| 5 | Phase 1 (checkout) — phần báo cáo cho khách: chỉ `lost` + `damaged` (đã đúng), bỏ `missing` |
-| 6 | Phase 2 (checkout) — phần báo bổ sung sau khi khách đi: `linen.add`, `consumable.empty` (đã đúng) |
+### C. Phiếu giao bổ sung
 
-**Không sửa**:
-- `CategoryItemRow.tsx` — `getActionsForItemType` đã có `'missing'` cho cả 4 loại đồ → tự động render đúng khi config mở rộng.
-- `CategoryBasedItemsCheck.tsx` — đã handle action `'missing'` đúng (route qua `onLinenStatusChange` → cộng vào `missingItems`).
-- DB / Edge Function — không đụng.
+Khi finalize check:
 
----
+- Group items có `status IN ('missing', 'empty')` theo item_id
+- Sinh `inventory_distribution_orders` với `quantity = sum(affected_quantity)` thay vì `expected_quantity`
+- Phiếu giao chính xác đúng số cần bổ sung
 
-## E. Sau khi sửa — kết quả mong đợi
+### D. Tính phí khách (checkout)
 
-**Phòng `997ffb2a` cô đang xem (Daily check):**
-- Khăn tắm lớn (linen) → **OK / Thiếu / Hỏng** ✅
-- Bàn chải (consumable) → **OK / Thiếu / Hết** ✅
-- Ấm đun (equipment) → **OK / Thiếu / Hỏng** ✅
+- `lost` × `unit_price` × `affected_quantity` → phụ phí
+- `damaged` × `replacement_cost` × `affected_quantity` → phụ phí
+- `consumed` (chargeable) × `sale_price` × `affected_quantity` → phụ phí
 
-**Khi chuyển sang Checkin**: thêm "Thêm" (linen), giữ nguyên "Hỏng".
+## File cần sửa (dự kiến)
 
-**Khi chuyển sang Checkout**: bỏ "Thiếu" toàn bộ (vì khách đã dùng phòng), thay bằng "Mất" (tính phí); linen có thêm "Giặt"/"Đổi"; consumable có "Đã dùng".
 
-**Tiếng Việt thuần, không icon thừa, tuân thủ spec đã có.**
+| File                                                          | Thay đổi                                                                        |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `CategoryItemRow.tsx`                                         | Thêm stepper inline khi action != 'ok'; expose `onQuantityChange`               |
+| `CategoryBasedItemsCheck.tsx`                                 | Lưu `affected_quantity` vào state item, truyền vào submit                       |
+| `useRoomCheckSubmit` (hoặc edge function `submit-room-check`) | Map `affected_quantity` vào `room_check_items` + tính phiếu giao + tính phụ phí |
+| Migration DB (nếu chưa có)                                    | `ALTER TABLE room_check_items ADD COLUMN affected_quantity int DEFAULT 1`       |
 
+
+## Câu hỏi xác nhận trước khi code
+
+1. **UX nhập số**: stepper inline (▲▼) hay popup nhỏ? Cô thích cách nào? (▲▼)
+2. **Mặc định khi bấm Thiếu**: số 1 hay full `expected_quantity`? số 1
+3. **Áp dụng cho tất cả action ≠ OK** hay chỉ riêng `missing/empty/lost/consumed/damaged`? **Áp dụng cho tất cả action ≠ OK** 
+
+Cô chọn xong tôi viết plan chi tiết hơn rồi code.
