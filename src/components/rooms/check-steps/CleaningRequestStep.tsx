@@ -8,6 +8,11 @@ import type { RoomCheckFormData } from '@/types/rooms.types'
 
 interface CleaningRequestStepProps {
   form: UseFormReturn<RoomCheckFormData>
+  /**
+   * 'checkout' — luôn tạo phiếu dọn (vì phải thay ga sau mỗi khách)
+   * 'daily'    — chỉ tạo phiếu khi phòng KHÔNG sạch (khách vẫn ở)
+   */
+  mode?: 'checkout' | 'daily'
 }
 
 const ROOM_CONDITIONS = [
@@ -16,28 +21,69 @@ const ROOM_CONDITIONS = [
   { value: 'very_dirty', label: 'Rất bẩn', icon: AlertTriangle, color: 'text-red-600', selectedBg: 'bg-red-50 border-red-500 text-red-700' },
 ] as const
 
-export function CleaningRequestStep({ form }: CleaningRequestStepProps) {
+export function CleaningRequestStep({ form, mode = 'checkout' }: CleaningRequestStepProps) {
   const roomCondition = form.watch('room_condition')
 
-  // Mọi checkout đều cần dọn — chỉ khác mức độ ưu tiên
   useEffect(() => {
-    form.setValue('needs_cleaning', true)
-    if (!roomCondition) return
-    const priority = roomCondition === 'clean' ? 'low'
-      : roomCondition === 'very_dirty' ? 'high'
-      : 'medium'
-    form.setValue('cleaning_priority', priority)
-  }, [roomCondition, form])
+    if (mode === 'checkout') {
+      // Checkout: luôn cần dọn, mức bẩn quyết định độ ưu tiên
+      form.setValue('needs_cleaning', true)
+      if (!roomCondition) return
+      const priority = roomCondition === 'clean' ? 'low'
+        : roomCondition === 'very_dirty' ? 'high'
+        : 'medium'
+      form.setValue('cleaning_priority', priority)
+    } else {
+      // Daily: chỉ cần dọn khi phòng KHÔNG sạch
+      const needsCleaning = !!roomCondition && roomCondition !== 'clean'
+      form.setValue('needs_cleaning', needsCleaning)
+      if (needsCleaning) {
+        const priority = roomCondition === 'very_dirty' ? 'high' : 'medium'
+        form.setValue('cleaning_priority', priority)
+      }
+    }
+  }, [roomCondition, mode, form])
 
   const handleConditionChange = (value: 'clean' | 'dirty' | 'very_dirty') => {
     form.setValue('room_condition', value)
   }
 
-  const summaryText =
-    roomCondition === 'clean' ? 'Ca sau sẽ dọn nhẹ — thay ga giường, bổ sung đồ tiêu hao (~15 phút)'
-    : roomCondition === 'dirty' ? 'Ca sau sẽ dọn bình thường — thay ga + lau dọn (~30 phút)'
-    : roomCondition === 'very_dirty' ? 'Ca sau sẽ dọn kỹ — quản lý nhận thông báo ưu tiên (~45-60 phút)'
-    : 'Chọn mức bẩn để biết khối lượng việc của ca sau'
+  // Summary text — phụ thuộc vào mode + tình trạng
+  const summaryText = (() => {
+    if (!roomCondition) {
+      return mode === 'checkout'
+        ? 'Chọn mức bẩn để biết khối lượng việc của ca sau'
+        : 'Chọn tình trạng vệ sinh hiện tại của phòng'
+    }
+    if (mode === 'checkout') {
+      return roomCondition === 'clean' ? 'Ca sau sẽ dọn nhẹ — thay ga giường, bổ sung đồ tiêu hao (~15 phút)'
+        : roomCondition === 'dirty' ? 'Ca sau sẽ dọn bình thường — thay ga + lau dọn (~30 phút)'
+        : 'Ca sau sẽ dọn kỹ — quản lý nhận thông báo ưu tiên (~45-60 phút)'
+    }
+    // daily
+    return roomCondition === 'clean' ? 'Phòng vẫn ổn — chỉ ghi nhận kiểm tra, không cần dọn lại'
+      : roomCondition === 'dirty' ? 'Sẽ tạo phiếu lau dọn cho bộ phận buồng phòng (~30 phút)'
+      : 'Sẽ tạo phiếu lau dọn ƯU TIÊN cho bộ phận buồng phòng (~45-60 phút)'
+  })()
+
+  // Footer text — daily không đổi trạng thái phòng
+  const footerText = (() => {
+    if (mode === 'checkout') {
+      return <>Sau khi hoàn tất → Phòng chuyển sang <strong className="text-amber-600">Đang chờ dọn</strong></>
+    }
+    if (roomCondition === 'clean') {
+      return <>Khách vẫn đang ở → Phòng giữ nguyên trạng thái <strong className="text-blue-600">Đang sử dụng</strong></>
+    }
+    return <>Khách vẫn đang ở → Phòng <strong className="text-blue-600">không đổi trạng thái</strong>, chỉ tạo task riêng cho buồng phòng</>
+  })()
+
+  const conditionLabel = mode === 'daily'
+    ? 'Tình trạng vệ sinh phòng hiện tại'
+    : 'Tình trạng phòng khi khách trả'
+
+  const notesLabel = mode === 'daily'
+    ? 'Ghi chú cho buồng phòng (tuỳ chọn)'
+    : 'Ghi chú cho ca sau (tuỳ chọn)'
 
   return (
     <div className="space-y-4">
@@ -47,7 +93,7 @@ export function CleaningRequestStep({ form }: CleaningRequestStepProps) {
         name="room_condition"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className="text-sm font-medium">Tình trạng phòng khi khách trả</FormLabel>
+            <FormLabel className="text-sm font-medium">{conditionLabel}</FormLabel>
             <FormControl>
               <div className="grid grid-cols-3 gap-2 pt-1">
                 {ROOM_CONDITIONS.map((condition) => {
@@ -83,7 +129,7 @@ export function CleaningRequestStep({ form }: CleaningRequestStepProps) {
         name="cleaning_notes"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className="text-sm">Ghi chú cho ca sau (tuỳ chọn)</FormLabel>
+            <FormLabel className="text-sm">{notesLabel}</FormLabel>
             <FormControl>
               <Textarea
                 {...field}
@@ -96,10 +142,10 @@ export function CleaningRequestStep({ form }: CleaningRequestStepProps) {
         )}
       />
 
-      {/* Summary — luôn tạo phiếu dọn, chỉ khác mức độ */}
+      {/* Summary */}
       <div className="px-3 py-2 rounded-lg border bg-muted/20 text-xs text-muted-foreground space-y-1">
         <p>{summaryText}</p>
-        <p>Sau khi hoàn tất → Phòng chuyển sang <strong className="text-amber-600">Đang chờ dọn</strong></p>
+        <p>{footerText}</p>
       </div>
     </div>
   )
