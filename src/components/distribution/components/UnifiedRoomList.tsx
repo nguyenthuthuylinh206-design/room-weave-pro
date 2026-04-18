@@ -51,6 +51,7 @@ interface UnifiedRoomListProps {
   hotelId?: string
   orderStatus: string
   isAssignee: boolean
+  canDeliverAsManager?: boolean
   onRefresh?: () => void
 }
 
@@ -61,6 +62,7 @@ export function UnifiedRoomList({
   hotelId,
   orderStatus,
   isAssignee,
+  canDeliverAsManager = false,
   onRefresh,
 }: UnifiedRoomListProps) {
   const isMobile = useIsMobile()
