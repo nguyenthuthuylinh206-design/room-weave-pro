@@ -354,16 +354,56 @@ export function CategoryItemRow({
             })}
           </div>
         ) : (
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             <span className={cn("text-xs font-medium", statusColor || statusInfo.color)}>
               {statusLabel || statusInfo.label}
-              {needsQuantity && status !== 'ok' && ` ×${quantity}`}
+            </span>
+            {/* Stepper inline cho mọi action có quantity (ngoại trừ ok) */}
+            {!isOk && status !== 'pending' && onUpdateQuantity && (
+              <div className="flex items-center gap-0.5 border rounded-md bg-background">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  disabled={quantity <= 1}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const newQty = Math.max(1, quantity - 1)
+                    setQuantity(newQty)
+                    onUpdateQuantity(newQty)
+                  }}
+                >
+                  <Minus className="h-3 w-3" />
+                </Button>
+                <span className="text-xs font-semibold tabular-nums w-6 text-center">
+                  {quantity}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  disabled={quantity >= standardQuantity}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const newQty = Math.min(standardQuantity, quantity + 1)
+                    setQuantity(newQty)
+                    onUpdateQuantity(newQty)
+                  }}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+            <span className="text-[10px] text-muted-foreground tabular-nums">
+              /{standardQuantity}
             </span>
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
               onClick={(e) => {
                 e.stopPropagation()
                 handleReset()
