@@ -623,6 +623,7 @@ export function CategoryBasedItemsCheck({
                       allowedActions={allowedActions}
                       onAction={(action) => handleItemAction(item, action)}
                       onReset={() => handleResetItem(item)}
+                      onUpdateQuantity={(qty) => handleUpdateQuantity(item, qty)}
                       consumedInfo={consumedInfo}
                       damagedInfo={damagedInfo}
                       lostInfo={lostInfo}
