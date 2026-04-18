@@ -1,60 +1,51 @@
 
 
-## Vấn đề: Migration trước bỏ sót 3 items trong phòng đang xem
+## Yêu cầu: Equipment/Furniture cũng cần nút "Thiếu"
 
-**Bằng chứng từ DB cho phòng `997ffb2a`:**
+Hợp lý — thực tế ấm đun, điều khiển, móc treo... có thể bị thiếu (mất, chưa cấp, NV trước quên trả) chứ không chỉ hỏng.
 
-| Item | item_type | category | default_item_type |
-|---|---|---|---|
-| Khăn tắm lớn | `equipment` ❌ | Đồ vải | **NULL** ❌ |
-| Ấm đun nước | `equipment` ✅ | Thiết bị | **NULL** ❌ |
-| Bàn chải đánh răng | `equipment` ❌ | Tiêu hao | **NULL** ❌ |
+## Vấn đề hiện tại
 
-→ Migration trước chỉ UPDATE khi `default_item_type IS NOT NULL` → 3 category này có NULL nên bị skip → 3 items giữ nguyên `equipment` sai.
-
-**Bằng chứng category bị duplicate**: Có nhiều bản ghi cùng tên ("Đồ vải", "Tiêu hao", "Thiết bị") — một số đã có `default_item_type`, một số NULL. 3 items trong phòng đang trỏ tới đúng các bản NULL.
-
-## Kế hoạch sửa — 1 migration data triệt để hơn
-
-| # | Bảng | Hành động |
-|---|---|---|
-| 1 | `item_categories` | UPDATE `default_item_type` cho TẤT CẢ category còn NULL theo tên: "Đồ vải"→`linen`, "Tiêu hao"/"Phòng tắm"→`consumable`, "Thiết bị"/"Phòng khách"/"Phòng ngủ"/"Tiện nghi"→`equipment`, "Nội thất"→`furniture` |
-| 2 | `items` | UPDATE `items.item_type` = `category.default_item_type` cho mọi item bị lệch — sau khi bước 1 đã chuẩn hoá hết |
-
-### SQL dự kiến
-
-```sql
--- Bước 1: chuẩn hoá toàn bộ category NULL còn sót
-UPDATE item_categories SET default_item_type = 'linen'
-  WHERE default_item_type IS NULL AND name ILIKE '%đồ vải%';
-UPDATE item_categories SET default_item_type = 'consumable'
-  WHERE default_item_type IS NULL AND (name ILIKE '%tiêu hao%' OR name ILIKE '%phòng tắm%');
-UPDATE item_categories SET default_item_type = 'equipment'
-  WHERE default_item_type IS NULL AND (name ILIKE '%thiết bị%' OR name ILIKE '%phòng khách%' OR name ILIKE '%phòng ngủ%' OR name ILIKE '%tiện nghi%');
-UPDATE item_categories SET default_item_type = 'furniture'
-  WHERE default_item_type IS NULL AND name ILIKE '%nội thất%';
-
--- Bước 2: đồng bộ items.item_type theo category
-UPDATE items i SET item_type = c.default_item_type::text::item_type
-FROM item_categories c
-WHERE i.category_id = c.id
-  AND c.default_item_type IS NOT NULL
-  AND (i.item_type IS NULL OR i.item_type::text != c.default_item_type::text);
+`roomCheckConfig.ts` chỉ cho equipment/furniture 2 action ở daily check:
+```ts
+equipmentActions: ['ok', 'damaged']    // ❌ thiếu 'missing'
+furnitureActions: ['ok', 'damaged']    // ❌ thiếu 'missing'
 ```
 
-## Quy tắc giữ nguyên
+Type `EquipmentAction` / `FurnitureAction` cũng chưa có `'missing'`:
+```ts
+export type EquipmentAction = 'ok' | 'lost' | 'damaged'   // ❌
+```
 
-- Tiếng Việt thuần
-- Không đổi code
-- Tuân thủ spec `category-driven-classification-spec`
-- Không xoá category duplicate (để owner tự dọn nếu muốn)
+## Kế hoạch sửa — 1 file `roomCheckConfig.ts`
 
-## Kết quả mong đợi sau migration
+| # | Thay đổi |
+|---|---|
+| 1 | Mở rộng type: `EquipmentAction = 'ok' \| 'missing' \| 'lost' \| 'damaged'`, tương tự `FurnitureAction` |
+| 2 | `daily.equipmentActions` → `['ok', 'missing', 'damaged']` (OK / Thiếu / Hỏng) |
+| 3 | `daily.furnitureActions` → `['ok', 'missing', 'damaged']` |
+| 4 | `checkin.equipmentActions` → `['ok', 'missing', 'damaged']` (lễ tân cần biết phòng thiếu đồ trước check-in) |
+| 5 | `checkin.furnitureActions` → `['ok', 'missing', 'damaged']` |
+| 6 | `replenish.equipmentActions` → `['ok', 'missing', 'damaged']` (vốn dùng để báo bổ sung) |
+| 7 | `replenish.furnitureActions` → `['ok', 'missing', 'damaged']` |
+| 8 | `maintenance.equipmentActions` → giữ `['ok', 'damaged']` (chỉ verify sau sửa, không cần) |
 
-Phòng `997ffb2a` sẽ render:
-- **Khăn tắm lớn** → `linen` → Daily hiện **OK / Thiếu / Hỏng** ✅
-- **Ấm đun nước** → `equipment` → Daily hiện **OK / Hỏng** (đúng nghiệp vụ)
-- **Bàn chải đánh răng** → `consumable` → Daily hiện **OK / Thiếu / Hết** ✅
+**Không sửa**:
+- `checkout` — đã có `lost` (mất hẳn → tính phí), khác với `missing` (thiếu tạm). Checkout không nên có "thiếu" vì khách đã trả phòng.
+- `delivery` — chỉ xác nhận giao hàng, không kiểm thiếu.
 
-Tất cả phòng khác trong tenant cũng tự động được fix.
+## Downstream cần kiểm tra (nếu phát sinh)
+
+- `CategoryItemRow.tsx` — đã render theo `allowedActions` từ config nên tự động hiện nút Thiếu ngay khi config mở rộng. Không cần sửa.
+- `ACTION_LABELS['missing'] = 'Thiếu'` — đã có sẵn dòng 165. ✅
+- `ACTION_COLORS['missing']` — đã có dòng 178. ✅
+- Logic xử lý khi cô bấm "Thiếu" cho equipment → giống linen/consumable: cộng vào `items_missing` để báo cáo + tự sinh phiếu bổ sung. Nếu hiện tại chỉ linen/consumable handle `missing`, cần kiểm tra nhánh equipment trong `CategoryBasedItemsCheck.tsx` / `ItemsCheckStep.tsx` có treat `'missing'` action đúng không. Sẽ verify khi vào default mode; nếu thiếu sẽ map sang `items_missing` (giống linen).
+
+## Kết quả mong đợi
+
+- Daily check: ấm đun, điều khiển → hiện **OK / Thiếu / Hỏng** ✅
+- Checkin: lễ tân thấy ngay phòng thiếu thiết bị → xử lý trước khi khách vào
+- Replenish: cô buồng phòng báo thiếu thiết bị để cấp bù
+- Checkout vẫn dùng `lost` (mất → tính phí khách) như cũ
+- Tiếng Việt thuần, không đụng DB, không đụng UI component
 
