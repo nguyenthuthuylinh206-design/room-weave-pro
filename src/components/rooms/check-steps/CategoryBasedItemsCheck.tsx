@@ -210,6 +210,7 @@ export function CategoryBasedItemsCheck({
     const inLost = lostItems.some(i => i.item_id === itemId)
     const inDamaged = damagedItems.some(i => i.item_id === itemId)
     const inConsumed = consumedItems.some(i => i.item_id === itemId)
+    const inMissing = missingItems.some(i => i.item_id === itemId)
     
     if (inLaundry && inReplaced) return 'change' as const
     if (inLaundry && !inReplaced) return 'laundry' as const
@@ -217,6 +218,7 @@ export function CategoryBasedItemsCheck({
     if (inLost) return 'lost' as const
     if (inDamaged) return 'damaged' as const
     if (inConsumed) return 'consumed' as const
+    if (inMissing) return 'missing' as const
     if (checkedItems.has(itemId)) return 'ok' as const
     return 'pending' as const
   }
