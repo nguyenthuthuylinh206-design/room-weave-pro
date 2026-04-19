@@ -59,7 +59,7 @@ export function DocumentScanner({ onScanComplete }: DocumentScannerProps) {
       setStatus('scanning')
 
       const { data, error } = await supabase.functions.invoke('scan-guest-document', {
-        body: { imageBase64: base64, documentType },
+        body: { imageBase64: base64, documentType, tenantId },
       })
 
       if (error) {

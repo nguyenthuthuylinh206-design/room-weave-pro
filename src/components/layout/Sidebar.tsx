@@ -46,6 +46,7 @@ import {
   MessageCircle,
   HelpCircle,
   PackageSearch,
+  Brain,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -202,6 +203,7 @@ const navigation: NavItem[] = [
       { titleKey: 'businessConfig', href: '/settings/business', icon: Briefcase, minMode: 'standard', group: 'Nghiệp vụ' },
       { titleKey: 'pricingRules', href: '/settings/pricing-rules', icon: DollarSign, minMode: 'standard', group: 'Nghiệp vụ' },
       { titleKey: 'automation', href: '/settings/workflows', icon: Zap, minMode: 'full', group: 'Nghiệp vụ' },
+      { titleKey: 'aiSettings', href: '/settings/ai', icon: Brain, group: 'Hệ thống' },
     ],
   },
 ]
