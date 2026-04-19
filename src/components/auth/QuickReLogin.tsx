@@ -38,12 +38,10 @@ export const QuickReLogin = ({ email, onSwitchAccount, onSuccess }: QuickReLogin
   const onSubmit = async (data: QuickLoginData) => {
     const { error } = await signIn(email, data.password);
     if (!error) {
-      // Chỉ gọi PasswordCredential API nếu trình duyệt hỗ trợ (Chrome/Edge desktop).
-      // iOS Safari/PWA tự động prompt lưu vào iCloud Keychain dựa vào form HTML chuẩn.
-      if ('PasswordCredential' in window) {
-        await storeCredential(email, data.password);
-      }
-      onSuccess();
+      // Lưu credential vào local store (mọi platform) + native API nếu có
+      await storeCredential(email, data.password);
+      // Full-page navigation để iOS/Android nhận diện "successful login submit"
+      window.location.assign('/auth/callback');
     }
   };
 
@@ -70,8 +68,8 @@ export const QuickReLogin = ({ email, onSwitchAccount, onSuccess }: QuickReLogin
 
       <Form {...form}>
         <form id="quick-login-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          {/* Hidden email field cho iOS Keychain biết đang đăng nhập tài khoản nào.
-              Dùng style ẩn (không sr-only) để iOS vẫn nhận diện đây là input thật. */}
+          {/* Hidden email field cho iOS Keychain / Google Password biết tài khoản đang đăng nhập.
+              Dùng sr-only để vẫn được mobile browser nhận diện là input thật. */}
           <input 
             type="email"
             name="email"
@@ -80,9 +78,8 @@ export const QuickReLogin = ({ email, onSwitchAccount, onSuccess }: QuickReLogin
             value={email}
             readOnly
             tabIndex={-1}
-            aria-hidden="true"
             onChange={() => {}}
-            style={{ position: 'absolute', opacity: 0, height: 0, width: 0, pointerEvents: 'none' }}
+            className="sr-only"
           />
           
           {/* Password */}
