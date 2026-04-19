@@ -471,9 +471,12 @@ export function RoomCheckPage() {
           if (Date.now() - timestamp < 3600000) {
             // Auto-resume if query param is set, otherwise show dialog
             if (shouldAutoResume) {
-              form.reset(data)
-              setCurrentStep(step)
-              setQuickMode(savedQuickMode)
+              // Force check_type to match prefilledType (URL is source of truth for assigned tasks)
+              const restoredData = shouldAutoSkip ? { ...data, check_type: prefilledType } : data
+              form.reset(restoredData)
+              // Force step >= 2 when type is pre-assigned (cannot return to type-selection step)
+              setCurrentStep(shouldAutoSkip ? Math.max(2, step) : step)
+              setQuickMode(shouldAutoSkip ? false : savedQuickMode)
               setHasResumed(true) // Mark as resumed to prevent conflicts
             } else {
               setShowResumeDialog(true)
