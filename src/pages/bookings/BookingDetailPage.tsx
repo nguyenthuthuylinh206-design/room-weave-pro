@@ -490,15 +490,25 @@ export function BookingDetailPage() {
               remaining > 0 ? 'border-red-500/40 bg-red-50/40 dark:bg-red-950/10' : 'border-green-500/40',
             )}
           >
-            <span className="font-semibold">{remaining > 0 ? 'CÒN PHẢI THU' : 'ĐÃ THU ĐỦ'}</span>
-            <span
-              className={cn(
-                'text-2xl font-bold font-mono',
-                remaining > 0 ? 'text-red-600' : 'text-green-600',
+            <div className="flex flex-col">
+              <span className="font-semibold">{remaining > 0 ? 'CÒN PHẢI THU' : 'ĐÃ THU ĐỦ'}</span>
+              {remaining <= 0 && totalReceived > 0 && (
+                <span className="text-xs text-muted-foreground mt-0.5">
+                  Tổng đã thu {formatCurrency(totalReceived)}
+                </span>
               )}
-            >
-              {formatCurrency(remaining)}
-            </span>
+            </div>
+            {remaining > 0 ? (
+              <span className="text-2xl font-bold font-mono text-red-600">
+                {formatCurrency(remaining)}
+              </span>
+            ) : (
+              <span className="text-2xl font-bold text-green-600 flex items-center gap-2">
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </span>
+            )}
           </div>
 
           {/* Lịch sử giao dịch */}
