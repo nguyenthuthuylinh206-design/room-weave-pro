@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import { useUser } from './useUser'
-import { sendTelegramNotification, createInAppNotification } from './useNotificationTriggers'
+import { sendTelegramNotification, createInAppNotification, sendPushNotification } from './useNotificationTriggers'
 import type { CheckoutInspectionRequest, CheckoutInspectionRequestWithDetails } from '@/types/checkout-inspection.types'
 
 export function useCheckoutInspection(bookingId: string | undefined) {
