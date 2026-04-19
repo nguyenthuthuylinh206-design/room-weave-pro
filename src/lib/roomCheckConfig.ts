@@ -164,10 +164,10 @@ export const CHECK_TYPE_CONFIG: Record<CheckType, CheckTypeConfig> = {
  * Get action labels for UI display
  */
 export const ACTION_LABELS: Record<string, string> = {
-  ok: 'OK',
-  laundry: 'Giặt',
-  add: 'Thêm',
-  change: 'Đổi',
+  ok: 'Đạt',
+  laundry: 'Đã giặt',
+  add: 'Đã thêm',
+  change: 'Đã thay',
   lost: 'Mất',
   damaged: 'Hỏng',
   missing: 'Thiếu',
