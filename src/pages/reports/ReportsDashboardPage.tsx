@@ -3,26 +3,18 @@ import { useNavigate } from 'react-router-dom'
 import {
   Package,
   DollarSign,
-  ArrowRightLeft,
-  Shirt,
   Home,
-  Wrench,
   TrendingUp,
-  BarChart3,
-  FileText,
-  Download,
-  Calendar,
   RefreshCw,
-  LogOut,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PageHeader } from '@/components/shared/PageHeader'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { QuickReportMetrics } from '@/components/reports/QuickReportMetrics'
 import { MobileReportsDashboard } from '@/components/reports/MobileReportsDashboard'
+import { HotelFilterCard } from '@/components/reports/HotelFilterCard'
 import { StatCard } from '@/components/ui/stat-card'
 import { useQuickReport } from '@/hooks/useReports'
 import { useBreakpoint } from '@/lib/breakpoints'
@@ -43,157 +35,63 @@ export function ReportsDashboardPage() {
   const [isRefreshing, setIsRefreshing] = useState(false)
 
   const reportCategories = [
-    {
-      id: 'inventory',
-      title: t('types.inventory.title'),
-      icon: Package,
-      color: 'bg-blue-500',
-      bgColor: 'bg-blue-500/10',
-      textColor: 'text-blue-600',
-      description: t('types.inventory.description'),
-      path: '/reports/inventory',
-      stats: t('types.inventory.stats', { returnObjects: true }) as string[],
-    },
-    {
-      id: 'financial',
-      title: t('types.financial.title'),
-      icon: DollarSign,
-      color: 'bg-emerald-500',
-      bgColor: 'bg-emerald-500/10',
-      textColor: 'text-emerald-600',
-      description: t('types.financial.description'),
-      path: '/reports/financial',
-      stats: t('types.financial.stats', { returnObjects: true }) as string[],
-    },
-    {
-      id: 'operations',
-      title: t('types.operations.title'),
-      icon: ArrowRightLeft,
-      color: 'bg-violet-500',
-      bgColor: 'bg-violet-500/10',
-      textColor: 'text-violet-600',
-      description: t('types.operations.description'),
-      path: '/reports/operations',
-      stats: t('types.operations.stats', { returnObjects: true }) as string[],
-    },
-    {
-      id: 'laundry',
-      title: t('types.laundry.title'),
-      icon: Shirt,
-      color: 'bg-cyan-500',
-      bgColor: 'bg-cyan-500/10',
-      textColor: 'text-cyan-600',
-      description: t('types.laundry.description'),
-      path: '/reports/laundry',
-      stats: t('types.laundry.stats', { returnObjects: true }) as string[],
-    },
-    {
-      id: 'rooms',
-      title: t('types.rooms.title'),
-      icon: Home,
-      color: 'bg-amber-500',
-      bgColor: 'bg-amber-500/10',
-      textColor: 'text-amber-600',
-      description: t('types.rooms.description'),
-      path: '/reports/rooms',
-      stats: t('types.rooms.stats', { returnObjects: true }) as string[],
-    },
-    {
-      id: 'maintenance',
-      title: t('types.maintenance.title'),
-      icon: Wrench,
-      color: 'bg-rose-500',
-      bgColor: 'bg-rose-500/10',
-      textColor: 'text-rose-600',
-      description: t('types.maintenance.description'),
-      path: '/reports/maintenance',
-      stats: t('types.maintenance.stats', { returnObjects: true }) as string[],
-    },
-    {
-      id: 'revenue',
-      title: t('types.revenue.title', 'Báo cáo Doanh thu'),
-      icon: TrendingUp,
-      color: 'bg-green-500',
-      bgColor: 'bg-green-500/10',
-      textColor: 'text-green-600',
-      description: t('types.revenue.description', 'Phân tích doanh thu theo thời gian'),
-      path: '/reports/revenue',
-      stats: [],
-    },
-    {
-      id: 'damages',
-      title: t('types.damages.title', 'Báo cáo Hỏng/Mất'),
-      icon: BarChart3,
-      color: 'bg-red-500',
-      bgColor: 'bg-red-500/10',
-      textColor: 'text-red-600',
-      description: t('types.damages.description', 'Thống kê tổn thất tài sản'),
-      path: '/reports/damages',
-      stats: [],
-    },
-    {
-      id: 'stock-audit',
-      title: t('types.stockAudit.title', 'Kiểm kê Kho'),
-      icon: FileText,
-      color: 'bg-indigo-500',
-      bgColor: 'bg-indigo-500/10',
-      textColor: 'text-indigo-600',
-      description: t('types.stockAudit.description', 'Báo cáo kiểm kê kho chi tiết'),
-      path: '/reports/stock-audit',
-      stats: [],
-    },
-    {
-      id: 'outbound',
-      title: t('types.outbound.title', 'Báo cáo Xuất kho'),
-      icon: LogOut,
-      color: 'bg-teal-500',
-      bgColor: 'bg-teal-500/10',
-      textColor: 'text-teal-600',
-      description: t('types.outbound.description', 'Phân tích chi tiết xuất kho theo loại'),
-      path: '/reports/outbound',
-      stats: [],
-    },
+    { id: 'inventory', title: t('types.inventory.title'), description: t('types.inventory.description'), path: '/reports/inventory' },
+    { id: 'financial', title: t('types.financial.title'), description: t('types.financial.description'), path: '/reports/financial' },
+    { id: 'operations', title: t('types.operations.title'), description: t('types.operations.description'), path: '/reports/operations' },
+    { id: 'laundry', title: t('types.laundry.title'), description: t('types.laundry.description'), path: '/reports/laundry' },
+    { id: 'rooms', title: t('types.rooms.title'), description: t('types.rooms.description'), path: '/reports/rooms' },
+    { id: 'maintenance', title: t('types.maintenance.title'), description: t('types.maintenance.description'), path: '/reports/maintenance' },
+    { id: 'revenue', title: t('types.revenue.title', 'Báo cáo Doanh thu'), description: t('types.revenue.description', 'Phân tích doanh thu theo thời gian'), path: '/reports/revenue' },
+    { id: 'damages', title: t('types.damages.title', 'Báo cáo Hỏng/Mất'), description: t('types.damages.description', 'Thống kê tổn thất tài sản'), path: '/reports/damages' },
+    { id: 'stock-audit', title: t('types.stockAudit.title', 'Kiểm kê Kho'), description: t('types.stockAudit.description', 'Báo cáo kiểm kê kho chi tiết'), path: '/reports/stock-audit' },
+    { id: 'outbound', title: t('types.outbound.title', 'Báo cáo Xuất kho'), description: t('types.outbound.description', 'Phân tích chi tiết xuất kho theo loại'), path: '/reports/outbound' },
   ]
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
-    await queryClient.invalidateQueries({ queryKey: ['quick-report'] })
-    await queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['quick-report'] }),
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] }),
+      queryClient.invalidateQueries({ queryKey: ['revenue-report'] }),
+      queryClient.invalidateQueries({ queryKey: ['inventory-report'] }),
+      queryClient.invalidateQueries({ queryKey: ['financial-report'] }),
+      queryClient.invalidateQueries({ queryKey: ['laundry-report'] }),
+      queryClient.invalidateQueries({ queryKey: ['operations-report'] }),
+      queryClient.invalidateQueries({ queryKey: ['maintenance-report'] }),
+      queryClient.invalidateQueries({ queryKey: ['maintenance-dashboard'] }),
+      queryClient.invalidateQueries({ queryKey: ['outbound-report'] }),
+      queryClient.invalidateQueries({ queryKey: ['damages-report'] }),
+    ])
     toast.success(t('dataRefreshed'))
     setIsRefreshing(false)
   }
 
-  // Mobile view
   if (isMobile) {
     return <MobileReportsDashboard />
   }
-  
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <PageHeader
           title={t('title')}
           description={isAllHotelsMode ? t('allHotels') : `${t('hotel')}: ${selectedHotel?.name || t('notSelected')}`}
         />
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {t('refresh')}
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            {t('exportAll')}
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          {t('refresh')}
+        </Button>
       </div>
 
+      <HotelFilterCard />
+
       {/* Overview Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title={t('stats.totalItems')}
           value={dashboardStats?.total_items?.toLocaleString() || '0'}
@@ -211,109 +109,68 @@ export function ReportsDashboardPage() {
         <StatCard
           title={t('stats.lowStock')}
           value={dashboardStats?.low_stock_count?.toLocaleString() || '0'}
-          icon={Wrench}
+          icon={Package}
           description={t('stats.lowStockDesc')}
           isLoading={isLoadingStats}
         />
         <StatCard
           title={t('stats.activeBatches')}
           value={dashboardStats?.active_laundry_batches?.toLocaleString() || '0'}
-          icon={Shirt}
+          icon={Package}
           description={t('stats.activeBatchesDesc')}
           isLoading={isLoadingStats}
         />
       </div>
-      
+
       {/* Report Categories */}
       <div>
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-3">
           <div>
-            <h2 className="text-xl font-semibold">{t('selectReportType')}</h2>
-            <p className="text-sm text-muted-foreground mt-1">
+            <h2 className="text-base font-semibold">{t('selectReportType')}</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
               {t('selectReportTypeDesc')}
             </p>
           </div>
-          <Badge variant="secondary" className="text-sm">
-            <BarChart3 className="h-3 w-3 mr-1" />
+          <Badge variant="secondary" className="text-xs">
             {reportCategories.length} {t('reportTypes')}
           </Badge>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {reportCategories.map((category) => {
-            const Icon = category.icon
-            
-            return (
-              <Card
-                key={category.id}
-                className="group cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-2 border-transparent hover:border-primary/20 overflow-hidden"
-                onClick={() => navigate(category.path)}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className={`rounded-xl p-3 ${category.bgColor} transition-transform group-hover:scale-110`}>
-                      <Icon className={`h-6 w-6 ${category.textColor}`} />
-                    </div>
-                    <div className={`h-1.5 w-12 rounded-full ${category.color} opacity-50 group-hover:opacity-100 transition-opacity`} />
-                  </div>
-                  <CardTitle className="mt-4 text-lg group-hover:text-primary transition-colors">
-                    {category.title}
-                  </CardTitle>
-                  <CardDescription className="text-sm">
-                    {category.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {Array.isArray(category.stats) && category.stats.map((stat, index) => (
-                      <Badge 
-                        key={index} 
-                        variant="outline" 
-                        className={`text-xs ${category.textColor} border-current/30`}
-                      >
-                        {stat}
-                      </Badge>
-                    ))}
-                  </div>
-                  <div className="mt-4 flex items-center text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                    <FileText className="h-4 w-4 mr-1" />
-                    {t('viewReport')} →
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {reportCategories.map((category) => (
+            <button
+              key={category.id}
+              onClick={() => navigate(category.path)}
+              className="text-left border rounded-lg p-4 hover:border-primary/50 hover:bg-muted/30 transition-colors"
+            >
+              <div className="font-medium text-sm">{category.title}</div>
+              <div className="text-xs text-muted-foreground mt-1">{category.description}</div>
+              <div className="text-xs text-primary mt-3 font-medium">
+                {t('viewReport')} →
+              </div>
+            </button>
+          ))}
         </div>
       </div>
-      
+
       {/* Quick Reports */}
-      <Card className="border-2">
-        <CardHeader className="bg-muted/30">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <TrendingUp className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <CardTitle className="text-lg">{t('quickReport.title')}</CardTitle>
-                <CardDescription>{t('quickReport.description')}</CardDescription>
-              </div>
-            </div>
-            <Tabs value={period} onValueChange={(v) => setPeriod(v as any)}>
-              <TabsList className="bg-background">
-                <TabsTrigger value="today" className="gap-1">
-                  <Calendar className="h-3 w-3" />
-                  {t('quickReport.today')}
-                </TabsTrigger>
-                <TabsTrigger value="week">{t('quickReport.week')}</TabsTrigger>
-                <TabsTrigger value="month">{t('quickReport.month')}</TabsTrigger>
-              </TabsList>
-            </Tabs>
+      <div className="border rounded-lg">
+        <div className="p-3 border-b flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">{t('quickReport.title')}</span>
           </div>
-        </CardHeader>
-        <CardContent className="pt-6">
+          <Tabs value={period} onValueChange={(v) => setPeriod(v as any)}>
+            <TabsList className="h-8">
+              <TabsTrigger value="today" className="text-xs h-6">{t('quickReport.today')}</TabsTrigger>
+              <TabsTrigger value="week" className="text-xs h-6">{t('quickReport.week')}</TabsTrigger>
+              <TabsTrigger value="month" className="text-xs h-6">{t('quickReport.month')}</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+        <div className="p-4">
           <QuickReportMetrics data={quickReport} period={period} isLoading={isLoadingQuickReport} />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }
