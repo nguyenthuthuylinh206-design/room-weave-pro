@@ -12,7 +12,7 @@ import type {
   DamagedItem
 } from '@/types/rooms.types';
 import type { ItemType } from '@/types/items.types';
-import { CategoryBasedItemsCheck } from './CategoryBasedItemsCheck';
+import { DefaultOkItemsCheck } from './DefaultOkItemsCheck';
 import { type CheckType } from '@/lib/roomCheckConfig';
 
 interface ItemsCheckStepProps {
@@ -280,12 +280,8 @@ const handleMarkDamaged = (item: RoomItemWithDetails, damageInfo: { damage_type:
   };
 
   return (
-    <CategoryBasedItemsCheck
+    <DefaultOkItemsCheck
       items={items}
-      roomId={roomId}
-      hotelId={hotelId}
-      tenantId={tenantId}
-      bookingId={bookingId}
       checkType={checkType}
       phase={phase}
       laundryItems={laundryItems}
@@ -299,9 +295,7 @@ const handleMarkDamaged = (item: RoomItemWithDetails, damageInfo: { damage_type:
       onEquipmentLost={handleEquipmentLost}
       onMarkDamaged={handleMarkDamaged}
       onResetLinen={resetLinenStatus}
-      onRemoveFromLaundry={removeFromLaundry}
       onRemoveFromLost={removeFromLost}
-      onRemoveFromReplaced={removeFromReplaced}
       onRemoveFromConsumed={removeFromConsumed}
       onRemoveFromDamaged={removeFromDamaged}
     />
