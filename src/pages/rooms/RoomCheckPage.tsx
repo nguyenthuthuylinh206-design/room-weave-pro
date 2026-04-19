@@ -503,9 +503,12 @@ export function RoomCheckPage() {
       if (saved) {
         try {
           const { data, step, quickMode: savedQuickMode } = JSON.parse(saved)
-          form.reset(data)
-          setCurrentStep(step)
-          setQuickMode(savedQuickMode)
+          // Force check_type to match prefilledType (URL is source of truth for assigned tasks)
+          const restoredData = shouldAutoSkip ? { ...data, check_type: prefilledType } : data
+          form.reset(restoredData)
+          // Force step >= 2 when type is pre-assigned (cannot return to type-selection step)
+          setCurrentStep(shouldAutoSkip ? Math.max(2, step) : step)
+          setQuickMode(shouldAutoSkip ? false : savedQuickMode)
           setHasResumed(true) // Mark as resumed to prevent conflicts
         } catch (e) {
           // If error, start from beginning with check_type from session
@@ -521,8 +524,8 @@ export function RoomCheckPage() {
   const startFresh = () => {
     clearSavedProgress()
     
-    // Keep check_type from existingSession if available
-    const checkType = existingSession?.check_type || 'daily'
+    // Keep check_type from URL (assigned task) > existingSession > default
+    const checkType = prefilledType || existingSession?.check_type || 'daily'
     
     form.reset({
       check_type: checkType,
@@ -533,7 +536,8 @@ export function RoomCheckPage() {
       notes: '',
       photos: [],
     })
-    setCurrentStep(1)
+    // When task type is pre-assigned via URL, skip step 1 (type selection)
+    setCurrentStep(shouldAutoSkip ? 2 : 1)
     setQuickMode(false)
     setShowResumeDialog(false)
   }
@@ -749,6 +753,10 @@ export function RoomCheckPage() {
   
   const handleBack = () => {
     if (currentStep > 1) {
+      // CHẶN: Khi task được giao với type cố định (URL có ?type=...), không cho quay về step 1 (chọn loại)
+      if (shouldAutoSkip && currentStep <= 2) {
+        return
+      }
       // CHẶN: Sau khi đã báo lễ tân (phase1Submitted = true), KHÔNG cho quay về step 3 (màn confirm) hay step trước đó
       // Quy trình bắt buộc: báo lễ tân xong → tiếp tục ghi đồ cần thay & dọn, không có lựa chọn quay lui
       if (isCheckoutType && phase1Submitted && currentStep <= 4) {
@@ -1528,7 +1536,9 @@ export function RoomCheckPage() {
               <div className="sticky bottom-0 z-10 bg-background border-t p-3 -mx-2 md:relative md:mx-0 md:p-0 md:pt-6 md:border-t">
                 <div className="flex items-center justify-between">
                 <div className="flex gap-2">
-                  {currentStep > 1 && !(currentStep === 4 && isCheckoutType && phase1Submitted) && (
+                  {currentStep > 1
+                    && !(currentStep === 2 && shouldAutoSkip)
+                    && !(currentStep === 4 && isCheckoutType && phase1Submitted) && (
                     <Button
                       type="button"
                       variant="outline"
