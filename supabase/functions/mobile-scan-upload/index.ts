@@ -131,8 +131,10 @@ serve(async (req) => {
     const models = buildModelChain(settings);
 
     // 2. Call OCR via Beeknoee
+    const validationRule = `VALIDATION RULE: Set is_valid_document=true if the image shows ANY identity-style document (ID card, citizen card, passport page, visa, driver license) — even if blurry, partially visible, angled, or low quality. As long as you can see SOME text/fields/photo that look like a document, treat it as valid and extract whatever you can read (leave unknown fields empty). ONLY set is_valid_document=false if the image is clearly a pure selfie with no document, a landscape, food, screenshot of an app, or completely unrelated content.`;
+
     const prompts: Record<string, string> = {
-      cccd: `IMPORTANT: First determine if the image actually shows an identity document. If the image is a selfie, random photo, or does not clearly show an ID card/passport/visa, set is_valid_document to false.
+      cccd: `${validationRule}
 
 Analyze this Vietnamese Citizen ID Card (CCCD/CMND) image. Extract all visible information accurately.
 For Vietnamese names, keep the original Vietnamese characters with diacritics.
@@ -140,7 +142,7 @@ The ID number is a 12-digit number on the card.
 Date format on card is typically DD/MM/YYYY - convert to YYYY-MM-DD format.
 Gender: "Nam" = male, "Nữ" = female.
 Nationality is usually "Việt Nam" for CCCD.`,
-      passport: `IMPORTANT: First determine if the image actually shows an identity document. If the image is a selfie, random photo, or does not clearly show an ID card/passport/visa, set is_valid_document to false.
+      passport: `${validationRule}
 
 Analyze this passport image. Extract all visible information accurately.
 Keep the full name as shown on the passport.
@@ -148,7 +150,7 @@ The passport number is usually alphanumeric (e.g., B1234567).
 Date of birth format: convert to YYYY-MM-DD.
 Gender: M = male, F = female.
 Extract nationality/country of origin.`,
-      visa: `IMPORTANT: First determine if the image actually shows an identity document. If the image is a selfie, random photo, or does not clearly show an ID card/passport/visa, set is_valid_document to false.
+      visa: `${validationRule}
 
 Analyze this visa document image. Extract all visible information accurately.
 Keep the full name as shown.
