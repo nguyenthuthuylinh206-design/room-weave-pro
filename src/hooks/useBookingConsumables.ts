@@ -269,7 +269,6 @@ export function useBookingIssues(roomId: string | undefined, checkInDate: string
         .select('*')
         .eq('room_id', roomId)
         .gte('checked_at', checkInDate)
-        .or('items_damaged.gt.0,items_lost.gt.0')
         .order('checked_at', { ascending: false })
 
       if (checkOutDate) {
@@ -283,7 +282,28 @@ export function useBookingIssues(roomId: string | undefined, checkInDate: string
         return []
       }
 
-      return data
+      // Lọc các check có item hỏng/mất (JSONB array length > 0)
+      const filtered = (data || []).filter((rc: any) => {
+        const damaged = Array.isArray(rc.items_damaged) ? rc.items_damaged : []
+        const lost = Array.isArray(rc.items_lost) ? rc.items_lost : []
+        return damaged.length > 0 || lost.length > 0
+      })
+
+      // Lấy thêm tên người báo cáo
+      const userIds = [...new Set(filtered.map((rc: any) => rc.checked_by).filter(Boolean))]
+      let userMap: Record<string, string> = {}
+      if (userIds.length > 0) {
+        const { data: users } = await supabase
+          .from('users')
+          .select('id, full_name')
+          .in('id', userIds)
+        userMap = Object.fromEntries((users || []).map((u: any) => [u.id, u.full_name]))
+      }
+
+      return filtered.map((rc: any) => ({
+        ...rc,
+        checked_by_name: userMap[rc.checked_by] || null,
+      }))
     },
     enabled: !!roomId && !!checkInDate,
   })
