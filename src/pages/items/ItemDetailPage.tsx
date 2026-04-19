@@ -40,7 +40,7 @@ import { useBreakpoint } from '@/lib/breakpoints'
 import { PermissionGate } from '@/components/auth/PermissionGate'
 
 export default function ItemDetailPage() {
-  const { t } = useTranslation(['items', 'common'])
+  const { t } = useTranslation(['items', 'common', 'inventory'])
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { isMobile } = useBreakpoint()
@@ -274,7 +274,9 @@ export default function ItemDetailPage() {
                                     <TrendingDown className="h-4 w-4 text-warning" />
                                   )}
                                   <Badge variant={isInbound ? 'default' : 'secondary'}>
-                                    {txn.transaction_category}
+                                    {txn.transaction_category
+                                      ? t(`inventory:category.${txn.transaction_category}`, { defaultValue: txn.transaction_category })
+                                      : t(`inventory:type.${txn.transaction_type}`, { defaultValue: txn.transaction_type })}
                                   </Badge>
                                 </div>
                               </TableCell>
