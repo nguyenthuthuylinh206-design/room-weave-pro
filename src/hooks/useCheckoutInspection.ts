@@ -127,12 +127,62 @@ export function useCheckoutInspection(bookingId: string | undefined) {
         // Không throw - vẫn trả về inspection để flow hoàn thành
       }
       
+      // 3. Lấy thông tin phòng + booking để build message thông báo
+      const [roomRes, bookingRes] = await Promise.all([
+        supabase.from('rooms').select('room_number').eq('id', roomId).single(),
+        supabase.from('room_bookings').select('guest_name').eq('id', bookingId).single(),
+      ])
+      const roomNumber = roomRes.data?.room_number || ''
+      const guestName = bookingRes.data?.guest_name || 'Khách'
+
+      // 4. Gửi 4 thông báo song song (push + in-app + telegram cá nhân + telegram nhóm)
+      await Promise.allSettled([
+        sendPushNotification({
+          userId: assignedTo,
+          tenantId,
+          title: `Yêu cầu kiểm tra phòng ${roomNumber}`,
+          body: `Khách ${guestName} sắp checkout. Vui lòng kiểm tra phòng.`,
+          actionUrl: '/my-tasks',
+          notificationType: 'room_checkout',
+        }),
+        createInAppNotification({
+          userId: assignedTo,
+          tenantId,
+          title: `Yêu cầu kiểm tra phòng ${roomNumber}`,
+          body: `Khách ${guestName} sắp checkout. Vui lòng kiểm tra phòng.`,
+          type: 'room_checkout',
+          actionUrl: '/my-tasks',
+        }),
+        sendTelegramNotification({
+          tenantId,
+          hotelId,
+          userIds: [assignedTo],
+          title: `🔍 Yêu cầu kiểm tra phòng ${roomNumber}`,
+          message: `Khách: ${guestName}\nVui lòng kiểm tra phòng trước khi checkout.`,
+          notificationType: 'checkout',
+          actionUrl: '/my-tasks',
+        }),
+        sendTelegramNotification({
+          tenantId,
+          hotelId,
+          sendToStaffGroups: true,
+          title: `🔍 Yêu cầu kiểm tra phòng ${roomNumber}`,
+          message: `Khách: ${guestName}\n👤 Đã giao cho nhân viên kiểm tra.`,
+          notificationType: 'checkout',
+          actionUrl: '/my-tasks',
+        }),
+      ])
+      
       return inspection
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['checkout-inspection', bookingId] })
       queryClient.invalidateQueries({ queryKey: ['my-tasks'] })
       queryClient.invalidateQueries({ queryKey: ['housekeeping-tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['hotel-housekeeping-tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
       toast.success('Đã gửi yêu cầu kiểm tra phòng')
     },
     onError: (error: Error) => {
