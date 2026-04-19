@@ -1,85 +1,111 @@
 
 
-## Mục tiêu
+## Tổng kết các lỗi phát hiện ở module Báo cáo
 
-Biến tab **Vấn đề** thành một sổ ghi nhận sự cố thực tế: từng món bị hỏng/mất, **nguyên nhân**, **ai gây ra**, **quyết định xử lý** (thu khách / đền bù / miễn phí / bảo hành), và **liên kết sang phụ thu** trong Thanh toán.
+### 🔴 LỖI NGHIÊM TRỌNG (sai dữ liệu / hiển thị 0)
 
-## Hiện trạng cần sửa
-
-1. `BookingIssuesCard` đang sum `items_damaged`/`items_lost` như **number** nhưng thực tế DB là **JSONB array** — đếm sai (luôn ra 0 hoặc NaN).
-2. Mỗi `room_checks.items_damaged` đã có sẵn: `item_name`, `quantity`, `damage_type` (repairable/replacement_needed), `damage_cost`, `item_code`. **CHƯA hiển thị**.
-3. Không thấy **nguyên nhân** (reason), **ai báo cáo** (checked_by → user name), **ảnh** (photos[]), **trạng thái xử lý** (đã thu khách / miễn / chuyển bảo trì).
-4. Không có cách **thêm/sửa ghi chú nguyên nhân** trực tiếp trên trang Booking — phải mở dialog chỉnh sửa.
-5. `damage_charges` & `damage_notes` ở booking-level rời rạc với từng item trong `room_checks`.
-
-## Thiết kế mới — Tab Vấn đề
-
-### 1. Header tóm tắt (giữ 3 ô — sửa logic đếm)
-
+#### 1. `DamagesReportPage.tsx` — **Đếm sai hoàn toàn, luôn ra 0**
+DB lưu `items_damaged` / `items_lost` là **JSONB array** (mảng object có `item_id`, `item_name`, `quantity`, `notes`...):
+```json
+[{ "item_id": "...", "item_name": "Ấm đun nước", "notes": "cháy" }]
 ```
-ĐỒ HỎNG: 1 món     ĐỒ MẤT: 0     PHỤ THU: 350.000 ₫
+Nhưng code (dòng 38, 111-115, 120-125, 335, 340) lại coi là **`Record<string, number>`** (object dạng `{itemId: qty}`):
+```ts
+items_damaged: Record<string, number>
+const damagedCount = Object.values(damaged).reduce((sum, v) => sum + v, 0)
 ```
-Đếm `length` của array thay vì sum giá trị JSONB.
+→ Khi gặp array, `Object.values([{...}])` trả `[{...}]`, sum → `NaN` hoặc `[object Object]`. **Tất cả số liệu Hỏng/Mất ở trang này đều sai**.
 
-### 2. Danh sách sự cố — mỗi item là 1 hàng chi tiết
+Đây cùng vấn đề đã sửa cho `BookingIssuesCard` nhưng `DamagesReportPage` chưa được sửa.
 
-Duyệt qua tất cả `room_checks` trong khoảng booking, **flatten** từng item trong `items_damaged` + `items_lost` thành 1 dòng:
+#### 2. `MaintenanceReportPage.tsx` — **3 mục bị bỏ trống**
+Code hard-code `costByType = []`, `monthlyTrend = []`, `recurringIssues = []` (dòng 73-80) với comment "not available from current hook" → 3 chart/table này hiển thị rỗng. Cần dùng `useRecurringIssues` (đã có) + tạo RPC chi phí theo loại + xu hướng theo tháng.
 
+#### 3. `useRevenueReport.ts` — **Tính `pendingRevenue` sai khi có cọc**
+Dòng 146:
+```ts
+pendingRevenue = total_amount - amount_paid - deposit_amount
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ Ấm đun nước (×1)              [HỎNG] [Cần thay mới]         │
-│ 19/04 10:27 • Checkout • Người báo: Nguyễn Văn A            │
-│ Nguyên nhân: [_________________________] [Lưu]              │
-│ Xử lý: ● Thu khách 350.000₫  ○ Miễn  ○ Bảo hành/Nội bộ      │
-│ [📷 1 ảnh]                            → Đã thêm vào phụ thu │
-└─────────────────────────────────────────────────────────────┘
+Nhưng `paidRevenue` (dòng 144) chỉ cộng `amount_paid`, **không cộng `deposit_amount`** → `paidRevenue + pendingRevenue ≠ totalRevenue`. Theo memory `checkout-and-payment-logic`: số đã thu = `amount_paid + deposit_amount`. Dẫn đến doanh thu tổng bị thiếu phần cọc đã thu.
+
+#### 4. `useRevenueReport.ts` — **`netRevenue` bị trừ commission 2 lần**
+Dòng 151:
+```ts
+netRevenue = sum(b.net_revenue || b.total_amount) - otaCommission
 ```
+Nếu DB đã lưu `net_revenue` (đã trừ commission), trừ thêm `otaCommission` → âm. Nếu chỉ có `total_amount`, trừ 1 lần là đúng. Logic mixed gây sai khi có dữ liệu hỗn hợp.
 
-**Thao tác inline:**
-- **Nguyên nhân** (reason): textarea ngắn, lưu vào `room_checks.items_damaged[i].reason` (cập nhật JSONB) — KHÔNG cần migration.
-- **Quyết định xử lý** (3 lựa chọn): `charge_guest` / `waive` / `internal` — lưu vào `items_damaged[i].resolution` (JSONB).
-- **Ảnh**: hiển thị thumbnails từ `room_checks.photos[]` (nếu có), click mở lightbox.
-- **Người báo cáo**: join `checked_by` → `users.full_name`.
+#### 5. `MobileMaintenanceReportPage.tsx` & các trang Mobile — không truyền `dateRange`
+`MaintenanceReportPage` desktop có `dateRange` state nhưng `useMaintenanceDashboard()` không nhận tham số → date picker không có tác dụng, luôn lấy mặc định.
 
-### 3. Liên kết Thanh toán
+---
 
-- Khi resolution = `charge_guest` → tổng `damage_charges` của booking phải khớp với sum `damage_cost × quantity` của các item đã chọn thu.
-- Hiển thị badge "→ Đã thêm vào phụ thu" hoặc "⚠ Chưa cộng vào hóa đơn" nếu lệch.
-- Nút "Đồng bộ phụ thu" cập nhật `room_bookings.damage_charges` + `damage_items` + `total_amount`.
+### 🟡 LỖI TRUNG BÌNH (UI/UX hoặc edge case)
 
-### 4. Ghi chú thiệt hại tổng (giữ nguyên)
+#### 6. `useOutboundReport.ts` — Chỉ filter theo `tenant_id`, **bỏ `hotel_id` khi `isAllHotelsMode`**
+Dòng 90: `if (!isAllHotelsMode && selectedHotel?.id)` — đúng. Nhưng dòng 104 không bao gồm category mới (vd `room_check`, `transfer`...) → `transactions` có category lạ bị nhồi vào `'other'` mà không tổng hợp lại. (Minor)
 
-Vẫn hiển thị `booking.damage_notes` ở dưới — dành cho note tổng (không gắn 1 item cụ thể).
+#### 7. `useOperationsReport.ts` — `total_value` của `out` đôi khi âm
+Code (dòng 125) dùng `Math.abs(t.total_value)` cho outbound — đúng cho trường hợp DB lưu âm. Nhưng `net_change_value` (dòng 126) lại sum `total_value` raw → có thể ra âm nếu out lưu âm, hoặc dương nếu out lưu dương → không nhất quán.
 
-### 5. Empty state — gọn
+#### 8. `ReportsDashboardPage.tsx` — **Vi phạm chuẩn UI dự án**
+Dùng `Card`, `bg-blue-500/10`, `bg-emerald-500/10`, icons trong tabs/cards (memory `enterprise-saas-and-localization-standards-spec`, `minimalist-ui-icon-reduction-spec`). Nút "Xuất tất cả" (dòng 188) chưa có handler.
 
-Bỏ icon tròn xanh lớn, dùng 1 dòng text-muted-foreground: "Không có vấn đề nào được ghi nhận trong thời gian khách lưu trú."
+#### 9. `OutboundReportPage.tsx` — Tabs có icons (vi phạm chuẩn)
+Dòng 281-304: 6 tabs đều có `<Package/>`, `<Users/>`, `<WashingMachine/>`... → vi phạm "no icons in tabs".
 
-## Files thay đổi
+#### 10. `MaintenanceReportPage.tsx` — Nút "PDF" và "Excel" disabled mãi
+Dòng 99-104: cả 2 nút export `disabled={isExporting}` nhưng **không có `onClick`** → bấm không có gì xảy ra.
 
-| File | Thay đổi |
-|---|---|
-| `src/components/bookings/BookingIssuesCard.tsx` | Rewrite — flatten items, render per-item card với reason/resolution/photos, fix logic đếm |
-| `src/hooks/useBookingConsumables.ts` | `useBookingIssues`: trả thêm `checked_by_name` (join users), parse JSONB chính xác |
-| `src/hooks/useBookingIssues.ts` | **MỚI** — hook riêng `useUpdateRoomCheckItem` để update reason/resolution trong JSONB array |
-| `src/components/bookings/IssueItemRow.tsx` | **MỚI** — component 1 dòng sự cố với edit reason + radio resolution + ảnh |
-| `src/pages/bookings/BookingDetailPage.tsx` | Truyền thêm `bookingId`, `damageItems` (parsed từ booking.damage_items) vào `BookingIssuesCard` để hiển thị badge đồng bộ |
+#### 11. `ReportsDashboardPage` — Nút Refresh không invalidate đủ
+Chỉ invalidate `quick-report` + `dashboard-stats`, không invalidate `revenue-report`, `inventory-report`, `laundry-report`... → bấm refresh các trang con không reload.
 
-## Schema DB
+#### 12. `useRevenueReport` — Không filter theo `tenant_id` khi `tenantId` undefined
+Dòng 131: `if (tenantId) query = query.eq('tenant_id', tenantId)` — nếu `tenantId` undefined ngay sau login, query sẽ lấy **của mọi tenant** (RLS chặn nhưng vẫn nguy hiểm về performance + memory `tenant-isolation-filtering-standard` yêu cầu BẮT BUỘC filter).
 
-**Không cần migration** — tận dụng JSONB sẵn có:
-- `room_checks.items_damaged[i]` thêm field `reason: string` và `resolution: 'charge_guest'|'waive'|'internal'` (JSONB tự do).
-- `room_bookings.damage_charges` + `damage_items` + `damage_notes` đã có sẵn.
+---
+
+### 🟢 LỖI NHỎ
+
+#### 13. `RevenueReportPage` & các trang report khác chưa có `<HotelFilterCard />`
+Người dùng không biết đang xem hotel nào, không đổi được trừ khi vào sidebar.
+
+#### 14. `useReports.useQuickReport` — `inventoryQuery.eq(...)` không reassign
+Dòng 177-179: `inventoryQuery.eq('hotel_id', hotelId)` — Supabase builder cần reassign `inventoryQuery = inventoryQuery.eq(...)`. Cách này có thể vẫn work do mutation, nhưng không an toàn.
+
+#### 15. `DamagesReportPage.tsx` — Chỉ filter hotel sau khi query, không filter ở DB
+Dòng 87-92: query lấy toàn bộ checks tenant, rồi filter trong JS. Hotel có nhiều phòng → chậm + lãng phí băng thông.
+
+---
+
+## Đề xuất sửa (theo độ ưu tiên)
+
+| # | File | Mức | Sửa gì |
+|---|---|---|---|
+| 1 | `DamagesReportPage.tsx` | 🔴 | Parse JSONB array thay vì Record. Đếm `length`, lấy `notes` làm nguyên nhân, hiển thị tên item |
+| 2 | `useRevenueReport.ts` | 🔴 | `paidRevenue += deposit_amount`; sửa logic `netRevenue` không trừ 2 lần |
+| 3 | `MaintenanceReportPage.tsx` | 🔴 | Thêm RPC `get_maintenance_report(tenant, hotel, from, to)` → cost by type + monthly trend + recurring; gắn handler PDF/Excel |
+| 4 | `useOperationsReport.ts` | 🟡 | Chuẩn hoá: outbound luôn dương, `net_change = inbound - outbound` |
+| 5 | `ReportsDashboardPage.tsx` | 🟡 | Bỏ `Card` → `border rounded-lg`, bỏ bg màu, bỏ icon trong tabs; thêm hotel filter; bỏ nút "Xuất tất cả" hoặc thêm logic |
+| 6 | `useReports.ts` (`useQuickReport`) | 🟡 | Reassign builder; bắt buộc tenant filter |
+| 7 | `OutboundReportPage.tsx` | 🟡 | Bỏ icons trong tabs |
+| 8 | Tất cả report pages | 🟢 | Thêm `<HotelFilterCard />` ở trên cùng |
+
+---
 
 ## Câu hỏi xác nhận
 
-1. **Khi đổi "Quyết định xử lý" sang `charge_guest`**:
-   - A: **Tự động** cộng vào `booking.damage_charges` + `total_amount` ngay
-   - B: Chỉ ghi nhận, nút "Đồng bộ phụ thu" thủ công sau khi review xong tất cả
-   - C: Hiển thị cảnh báo "Cần đồng bộ" nhưng KHÔNG động vào booking đã trả phòng (vì đã thu tiền rồi)
+1. **Phạm vi sửa**:
+   - A: Chỉ sửa 3 lỗi 🔴 nghiêm trọng (DamagesReport sai số liệu, RevenueReport sai công thức, MaintenanceReport rỗng) — nhanh, ~3 file
+   - B: Sửa hết 🔴 + 🟡 (8 file) — bao gồm cả chuẩn hoá UI
+   - C: Sửa toàn bộ 15 lỗi (làm sạch hoàn toàn module Báo cáo)
 
-2. **Booking đã `paid_status = paid`** (đã thanh toán xong) mà phát sinh hỏng sau:
-   - A: Chặn — chỉ cho ghi nhận, không sửa được damage_charges
-   - B: Cho phép tạo "Phụ thu bổ sung" → tăng `total_amount`, đẩy về `partial`
-   - C: Tách thành booking phụ phí riêng (phức tạp — bỏ qua giai đoạn này)
+2. **Báo cáo Bảo trì** — bạn muốn có những phân tích nào? (hiện đang rỗng 3 mục)
+   - A: Cả 3: Chi phí theo loại + Xu hướng theo tháng + Vấn đề lặp lại
+   - B: Chỉ Xu hướng theo tháng + Chi phí theo loại
+   - C: Bỏ luôn 3 mục đó, chỉ giữ thống kê tổng
+
+3. **`paidRevenue` trong báo cáo doanh thu** — có nên cộng `deposit_amount` không?
+   - A: Có — đúng theo memory `checkout-and-payment-logic` (đã thu = amount_paid + deposit_amount)
+   - B: Không — coi cọc là chưa "ghi nhận doanh thu" cho đến khi checkout
 
