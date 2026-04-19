@@ -1,23 +1,6 @@
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { 
-  Package, 
-  ArrowLeft, 
-  Edit, 
-  QrCode,
-  TrendingUp,
-  TrendingDown,
-  Boxes,
-  Home,
-  ShoppingCart,
-  Shirt,
-  AlertTriangle,
-  MapPin,
-  Clock,
-  User,
-  Activity,
-} from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ArrowLeft, Edit } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -52,9 +35,9 @@ export default function ItemDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="container py-6 space-y-6">
+      <div className="container py-6 space-y-4">
         <Skeleton className="h-8 w-64" />
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3">
           <Skeleton className="h-96 md:col-span-2" />
           <Skeleton className="h-96" />
         </div>
@@ -66,19 +49,16 @@ export default function ItemDetailPage() {
   if (!data || !detailDataCheck?.item) {
     return (
       <div className="container py-6">
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Package className="h-12 w-12 text-muted-foreground/50" />
-            <p className="mt-4 text-lg font-medium">{t('items:notFound')}</p>
-            <Button
-              variant="outline"
-              className="mt-4"
-              onClick={() => navigate('/items')}
-            >
-              {t('items:backToList')}
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="border rounded-lg p-8 flex flex-col items-center justify-center">
+          <p className="text-base font-medium">{t('items:notFound')}</p>
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => navigate('/items')}
+          >
+            {t('items:backToList')}
+          </Button>
+        </div>
       </div>
     )
   }
@@ -90,141 +70,99 @@ export default function ItemDetailPage() {
   const recentTransactions = detailData.recent_transactions || []
   const roomAllocations = detailData.room_allocations || []
 
-  const stockStatus = 
+  const stockStatus =
     item.quantity_in_stock === 0 ? 'out_of_stock' :
     item.quantity_in_stock < item.minimum_stock ? 'low_stock' : 'in_stock'
 
-  const stockStatusConfig = {
-    in_stock: { label: t('items:status.inStock'), variant: 'default' as const, color: 'text-success' },
-    low_stock: { label: t('items:status.lowStock'), variant: 'secondary' as const, color: 'text-warning' },
-    out_of_stock: { label: t('items:status.outOfStock'), variant: 'destructive' as const, color: 'text-destructive' },
-  }
+  const stockStatusText = {
+    in_stock: { label: t('items:status.inStock'), color: 'text-green-600' },
+    low_stock: { label: t('items:status.lowStock'), color: 'text-amber-600' },
+    out_of_stock: { label: t('items:status.outOfStock'), color: 'text-red-600' },
+  }[stockStatus]
+
+  const formatVnd = (n: number) =>
+    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n)
+
+  const stockColor =
+    item.quantity_in_stock === 0 ? 'text-red-600' :
+    item.quantity_in_stock < item.minimum_stock ? 'text-amber-600' : 'text-foreground'
 
   return (
-    <div className="container py-6 space-y-6">
+    <div className="container py-6 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
+            className="h-8 w-8"
             onClick={() => navigate('/items')}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">{item.name}</h1>
-            <p className="text-muted-foreground">
-              {item.code} • {category?.name || t('items:detail.noCategory')}
+            <h1 className="text-xl font-semibold leading-tight">{item.name}</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              <span className="font-mono">{item.code}</span>
+              {category?.name && <> • {category.name}</>}
+              {hotel?.name && <> • {hotel.name}</>}
             </p>
           </div>
         </div>
         <PermissionGate module="items" action="update">
-          <Button onClick={() => navigate(`/items/${id}/edit`)}>
-            <Edit className="mr-2 h-4 w-4" />
+          <Button size="sm" onClick={() => navigate(`/items/${id}/edit`)}>
+            <Edit className="mr-2 h-3.5 w-3.5" />
             {t('items:edit')}
           </Button>
         </PermissionGate>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        {/* Main Info */}
-        <div className="md:col-span-2 space-y-6">
-          {/* Images */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('items:detail.images')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {item.item_images && item.item_images.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {item.item_images.map((img: any, idx: number) => (
-                    <div key={img.id} className="relative">
-                      <img
-                        src={img.url}
-                        alt={`${item.name} ${idx + 1}`}
-                        className="aspect-square w-full rounded-lg object-cover"
-                      />
-                      {img.is_primary && (
-                        <Badge className="absolute top-2 left-2" variant="default">
-                          {t('items:detail.primaryImage')}
-                        </Badge>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex h-48 items-center justify-center rounded-lg bg-muted">
-                  <Package className="h-12 w-12 text-muted-foreground/50" />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Inventory Stats */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('items:detail.inventoryStats')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Boxes className="h-4 w-4" />
-                    <span className="text-sm">{t('items:fields.quantityTotal')}</span>
-                  </div>
-                  <p className="text-2xl font-bold">{item.quantity_total}</p>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Package className="h-4 w-4" />
-                    <span className="text-sm">{t('items:fields.quantityInStock')}</span>
-                  </div>
-                  <p className={cn("text-2xl font-bold", stockStatusConfig[stockStatus].color)}>
-                    {item.quantity_in_stock}
-                  </p>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Home className="h-4 w-4" />
-                    <span className="text-sm">{t('items:fields.quantityInUse')}</span>
-                  </div>
-                  <p className="text-2xl font-bold">{item.quantity_in_use}</p>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Shirt className="h-4 w-4" />
-                    <span className="text-sm">{t('items:fields.quantityInLaundry')}</span>
-                  </div>
-                  <p className="text-2xl font-bold text-blue-600">{item.quantity_in_laundry}</p>
-                </div>
-              </div>
-
-              {(item.quantity_damaged > 0 || item.quantity_lost > 0) && (
-                <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
-                  {item.quantity_damaged > 0 && (
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-orange-50">
-                      <span className="text-sm text-orange-700">{t('items:fields.quantityDamaged')}</span>
-                      <span className="text-lg font-bold text-orange-600">
-                        {item.quantity_damaged}
-                      </span>
-                    </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        {/* Main */}
+        <div className="md:col-span-2 space-y-4">
+          {/* Image thumbnails */}
+          {item.item_images && item.item_images.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {item.item_images.map((img: any, idx: number) => (
+                <a
+                  key={img.id}
+                  href={img.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    "relative h-20 w-20 rounded-md overflow-hidden border",
+                    img.is_primary && "ring-2 ring-primary"
                   )}
-                  {item.quantity_lost > 0 && (
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-red-50">
-                      <span className="text-sm text-red-700">{t('items:fields.quantityLost')}</span>
-                      <span className="text-lg font-bold text-red-600">
-                        {item.quantity_lost}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                >
+                  <img
+                    src={img.url}
+                    alt={`${item.name} ${idx + 1}`}
+                    className="h-full w-full object-cover"
+                  />
+                </a>
+              ))}
+            </div>
+          )}
+
+          {/* Inventory KPI */}
+          <div className="border rounded-lg p-4">
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
+              <KpiCell label={t('items:fields.quantityTotal')} value={item.quantity_total} />
+              <KpiCell label={t('items:fields.quantityInStock')} value={item.quantity_in_stock} valueClass={stockColor} />
+              <KpiCell label={t('items:fields.quantityInUse')} value={item.quantity_in_use} />
+              <KpiCell label={t('items:fields.quantityInLaundry')} value={item.quantity_in_laundry} />
+              <KpiCell
+                label={t('items:fields.quantityDamaged')}
+                value={item.quantity_damaged || 0}
+                valueClass={item.quantity_damaged > 0 ? 'text-red-600' : 'text-muted-foreground'}
+              />
+              <KpiCell
+                label={t('items:fields.quantityLost')}
+                value={item.quantity_lost || 0}
+                valueClass={item.quantity_lost > 0 ? 'text-red-600' : 'text-muted-foreground'}
+              />
+            </div>
+          </div>
 
           {/* Tabs */}
           <Tabs defaultValue="transactions" className="w-full">
@@ -237,136 +175,109 @@ export default function ItemDetailPage() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="transactions" className="mt-4">
-              <Card>
-                <CardContent className="pt-6">
-                  {recentTransactions.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-8">
-                      <Activity className="h-12 w-12 text-muted-foreground/50" />
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {t('items:detail.noTransactions')}
-                      </p>
-                    </div>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>{t('items:detail.transactionCode')}</TableHead>
-                          <TableHead>{t('items:detail.type')}</TableHead>
-                          <TableHead className="text-right">{t('items:fields.quantity')}</TableHead>
-                          <TableHead>{t('items:detail.performer')}</TableHead>
-                          <TableHead>{t('items:detail.time')}</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {recentTransactions.map((txn: any) => {
-                          const isInbound = txn.transaction_type === 'in'
-                          return (
-                            <TableRow key={txn.id}>
-                              <TableCell className="font-medium">
-                                {txn.transaction_code}
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  {isInbound ? (
-                                    <TrendingUp className="h-4 w-4 text-success" />
-                                  ) : (
-                                    <TrendingDown className="h-4 w-4 text-warning" />
-                                  )}
-                                  <Badge variant={isInbound ? 'default' : 'secondary'}>
-                                    {txn.transaction_category
-                                      ? t(`inventory:category.${txn.transaction_category}`, { defaultValue: txn.transaction_category })
-                                      : t(`inventory:type.${txn.transaction_type}`, { defaultValue: txn.transaction_type })}
-                                  </Badge>
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <span className={cn(
-                                  'font-bold',
-                                  isInbound ? 'text-success' : 'text-warning'
-                                )}>
-                                  {isInbound ? '+' : '-'}{txn.quantity}
-                                </span>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <User className="h-4 w-4 text-muted-foreground" />
-                                  <span className="text-sm">{txn.created_by_name}</span>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <Clock className="h-4 w-4" />
-                                  {formatDistanceToNow(new Date(txn.transaction_date), {
-                                    addSuffix: true,
-                                    locale: vi,
-                                  })}
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          )
-                        })}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
+            <TabsContent value="transactions" className="mt-3">
+              <div className="border rounded-lg">
+                {recentTransactions.length === 0 ? (
+                  <div className="py-10 text-center text-sm text-muted-foreground">
+                    {t('items:detail.noTransactions')}
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t('items:detail.transactionCode')}</TableHead>
+                        <TableHead>{t('items:detail.type')}</TableHead>
+                        <TableHead className="text-right">{t('items:fields.quantity')}</TableHead>
+                        <TableHead>{t('items:detail.performer')}</TableHead>
+                        <TableHead>{t('items:detail.time')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {recentTransactions.map((txn: any) => {
+                        const isInbound = txn.transaction_type === 'in'
+                        return (
+                          <TableRow key={txn.id}>
+                            <TableCell className="font-mono text-xs">
+                              {txn.transaction_code}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="font-normal">
+                                {txn.transaction_category
+                                  ? t(`inventory:category.${txn.transaction_category}`, { defaultValue: txn.transaction_category })
+                                  : t(`inventory:type.${txn.transaction_type}`, { defaultValue: txn.transaction_type })}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span className={cn(
+                                'font-medium',
+                                isInbound ? 'text-green-600' : 'text-amber-600'
+                              )}>
+                                {isInbound ? '+' : '-'}{txn.quantity}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-sm">{txn.created_by_name}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {formatDistanceToNow(new Date(txn.transaction_date), {
+                                addSuffix: true,
+                                locale: vi,
+                              })}
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
             </TabsContent>
 
-            <TabsContent value="rooms" className="mt-4">
-              <Card>
-                <CardContent className="pt-6">
-                  {roomAllocations.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-8">
-                      <Home className="h-12 w-12 text-muted-foreground/50" />
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {t('items:detail.noRoomAllocation')}
-                      </p>
-                    </div>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>{t('items:detail.room')}</TableHead>
-                          <TableHead>{t('items:detail.roomType')}</TableHead>
-                          <TableHead className="text-center">{t('items:fields.quantity')}</TableHead>
-                          <TableHead>{t('items:detail.condition')}</TableHead>
-                          <TableHead>{t('items:detail.allocatedAt')}</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {roomAllocations.map((allocation: any) => (
+            <TabsContent value="rooms" className="mt-3">
+              <div className="border rounded-lg">
+                {roomAllocations.length === 0 ? (
+                  <div className="py-10 text-center text-sm text-muted-foreground">
+                    {t('items:detail.noRoomAllocation')}
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t('items:detail.room')}</TableHead>
+                        <TableHead>{t('items:detail.roomType')}</TableHead>
+                        <TableHead className="text-center">{t('items:fields.quantity')}</TableHead>
+                        <TableHead>{t('items:detail.condition')}</TableHead>
+                        <TableHead>{t('items:detail.allocatedAt')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {roomAllocations.map((allocation: any) => {
+                        const conditionColor =
+                          allocation.condition === 'good' ? 'text-green-600' :
+                          allocation.condition === 'damaged' ? 'text-red-600' :
+                          allocation.condition === 'poor' ? 'text-amber-600' :
+                          'text-muted-foreground'
+                        return (
                           <TableRow key={allocation.id}>
                             <TableCell>
                               <Link
                                 to={`/rooms/${allocation.room_id}`}
                                 className="font-medium hover:underline"
                               >
-                                <div className="flex items-center gap-2">
-                                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                                  {allocation.room_number}
-                                </div>
+                                {allocation.room_number}
                               </Link>
                             </TableCell>
-                            <TableCell>
-                              <Badge variant="outline">{allocation.room_type}</Badge>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {allocation.room_type}
                             </TableCell>
-                            <TableCell className="text-center font-bold">
+                            <TableCell className="text-center font-medium">
                               {allocation.quantity}
                             </TableCell>
                             <TableCell>
-                              <Badge
-                                variant={
-                                  allocation.condition === 'good' ? 'default' :
-                                  allocation.condition === 'damaged' ? 'destructive' :
-                                  'secondary'
-                                }
-                              >
+                              <span className={cn('text-sm', conditionColor)}>
                                 {allocation.condition === 'good' && t('items:detail.conditionGood')}
                                 {allocation.condition === 'fair' && t('items:detail.conditionFair')}
                                 {allocation.condition === 'poor' && t('items:detail.conditionPoor')}
                                 {allocation.condition === 'damaged' && t('items:detail.conditionDamaged')}
-                              </Badge>
+                              </span>
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
                               {formatDistanceToNow(new Date(allocation.assigned_at), {
@@ -375,179 +286,141 @@ export default function ItemDetailPage() {
                               })}
                             </TableCell>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
             </TabsContent>
           </Tabs>
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Basic Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('items:detail.basicInfo')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground">{t('items:detail.stockStatus')}</p>
-                <Badge className="mt-1" variant={stockStatusConfig[stockStatus].variant}>
-                  {stockStatusConfig[stockStatus].label}
-                </Badge>
-              </div>
+        <div className="space-y-4">
+          {/* Info */}
+          <div className="border rounded-lg p-4 space-y-2.5">
+            <h3 className="text-sm font-semibold mb-3">{t('items:detail.basicInfo')}</h3>
 
-              {item.minimum_stock > 0 && (
-                <div>
-                  <p className="text-sm text-muted-foreground">{t('items:detail.minStock')}</p>
-                  <p className="font-medium">{item.minimum_stock} {item.unit}</p>
-                </div>
-              )}
+            <InfoRow label={t('items:detail.stockStatus')}>
+              <span className={cn('text-sm font-medium', stockStatusText.color)}>
+                {stockStatusText.label}
+              </span>
+            </InfoRow>
 
-              {item.reorder_point > 0 && (
-                <div>
-                  <p className="text-sm text-muted-foreground">{t('items:detail.reorderPoint')}</p>
-                  <p className="font-medium">{item.reorder_point} {item.unit}</p>
-                </div>
-              )}
+            {item.minimum_stock > 0 && (
+              <InfoRow label={t('items:detail.minStock')}>
+                <span className="text-sm">{item.minimum_stock} {item.unit}</span>
+              </InfoRow>
+            )}
 
-              <div>
-                <p className="text-sm text-muted-foreground">{t('items:fields.unit')}</p>
-                <p className="font-medium">{item.unit}</p>
-              </div>
+            {item.reorder_point > 0 && (
+              <InfoRow label={t('items:detail.reorderPoint')}>
+                <span className="text-sm">{item.reorder_point} {item.unit}</span>
+              </InfoRow>
+            )}
 
-              <div>
-                <p className="text-sm text-muted-foreground">{t('items:fields.unitPrice')}</p>
-                <p className="text-lg font-bold">
-                  {new Intl.NumberFormat('vi-VN', {
-                    style: 'currency',
-                    currency: 'VND',
-                  }).format(item.unit_price)}
-                </p>
-              </div>
+            <InfoRow label={t('items:fields.unit')}>
+              <span className="text-sm">{item.unit}</span>
+            </InfoRow>
 
-              <div>
-                <p className="text-sm text-muted-foreground">{t('items:detail.stockValue')}</p>
-                <p className="text-lg font-bold text-primary">
-                  {new Intl.NumberFormat('vi-VN', {
-                    style: 'currency',
-                    currency: 'VND',
-                  }).format(item.quantity_in_stock * item.unit_price)}
-                </p>
-              </div>
+            <InfoRow label={t('items:fields.unitPrice')}>
+              <span className="text-sm font-medium">{formatVnd(item.unit_price)}</span>
+            </InfoRow>
 
-              {item.brand && (
-                <div>
-                  <p className="text-sm text-muted-foreground">{t('items:fields.brand')}</p>
-                  <p className="font-medium">{item.brand}</p>
-                </div>
-              )}
+            <InfoRow label={t('items:detail.stockValue')}>
+              <span className="text-base font-semibold">
+                {formatVnd(item.quantity_in_stock * item.unit_price)}
+              </span>
+            </InfoRow>
 
-              {item.model && (
-                <div>
-                  <p className="text-sm text-muted-foreground">{t('items:fields.model')}</p>
-                  <p className="font-medium">{item.model}</p>
-                </div>
-              )}
+            {item.brand && (
+              <InfoRow label={t('items:fields.brand')}>
+                <span className="text-sm">{item.brand}</span>
+              </InfoRow>
+            )}
 
-              {hotel && (
-                <div>
-                  <p className="text-sm text-muted-foreground">{t('items:detail.hotel')}</p>
-                  <p className="font-medium">{hotel.name}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            {item.model && (
+              <InfoRow label={t('items:fields.model')}>
+                <span className="text-sm">{item.model}</span>
+              </InfoRow>
+            )}
 
-          {/* QR Code */}
-          {item.qr_code && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <QrCode className="h-5 w-5" />
-                  {t('items:detail.qrCode')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <QRCodeDisplay value={item.qr_code} size={200} />
-                <p className="mt-2 text-center text-sm text-muted-foreground">
-                  {item.qr_code}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Lifecycle */}
-          {(item.expected_lifetime_days || item.max_wash_cycles) && (
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('items:detail.lifecycle')}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            {(item.expected_lifetime_days || item.max_wash_cycles) && (
+              <div className="pt-3 mt-3 border-t space-y-2.5">
                 {item.expected_lifetime_days && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">{t('items:detail.expectedLifetime')}</p>
-                    <p className="font-medium">{t('items:detail.days', { count: item.expected_lifetime_days })}</p>
-                  </div>
+                  <InfoRow label={t('items:detail.expectedLifetime')}>
+                    <span className="text-sm">
+                      {t('items:detail.days', { count: item.expected_lifetime_days })}
+                    </span>
+                  </InfoRow>
                 )}
-
                 {item.max_wash_cycles && (
                   <div>
-                    <p className="text-sm text-muted-foreground">{t('items:detail.washCycles')}</p>
-                    <p className="font-medium">
-                      {item.current_wash_cycles} / {item.max_wash_cycles}
-                    </p>
-                    <div className="mt-2 h-2 rounded-full bg-muted overflow-hidden">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-muted-foreground">
+                        {t('items:detail.washCycles')}
+                      </span>
+                      <span className="text-sm font-medium">
+                        {item.current_wash_cycles} / {item.max_wash_cycles}
+                      </span>
+                    </div>
+                    <div className="mt-1.5 h-1.5 rounded-full bg-muted overflow-hidden">
                       <div
                         className="h-full bg-primary transition-all"
                         style={{
-                          width: `${Math.min((item.current_wash_cycles / item.max_wash_cycles) * 100, 100)}%`
+                          width: `${Math.min((item.current_wash_cycles / item.max_wash_cycles) * 100, 100)}%`,
                         }}
                       />
                     </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          )}
+              </div>
+            )}
+          </div>
 
-          {/* Alerts */}
-          {stockStatus === 'low_stock' && (
-            <Card className="border-warning bg-warning/5">
-              <CardContent className="pt-6">
-                <div className="flex gap-3">
-                  <AlertTriangle className="h-5 w-5 text-warning shrink-0" />
-                  <div>
-                    <p className="font-medium text-warning">{t('items:detail.alerts.lowStock')}</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {t('items:detail.alerts.lowStockDesc')}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {stockStatus === 'out_of_stock' && (
-            <Card className="border-destructive bg-destructive/5">
-              <CardContent className="pt-6">
-                <div className="flex gap-3">
-                  <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
-                  <div>
-                    <p className="font-medium text-destructive">{t('items:detail.alerts.outOfStock')}</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {t('items:detail.alerts.outOfStockDesc')}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* QR Code */}
+          {item.qr_code && (
+            <div className="border rounded-lg p-3 flex flex-col items-center">
+              <h3 className="text-xs uppercase tracking-wide text-muted-foreground mb-2 self-start">
+                {t('items:detail.qrCode')}
+              </h3>
+              <QRCodeDisplay value={item.qr_code} size={140} />
+              <p className="mt-2 text-xs font-mono text-muted-foreground text-center break-all">
+                {item.qr_code}
+              </p>
+            </div>
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+function KpiCell({
+  label,
+  value,
+  valueClass,
+}: {
+  label: string
+  value: number
+  valueClass?: string
+}) {
+  return (
+    <div>
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+        {label}
+      </p>
+      <p className={cn('text-2xl font-semibold mt-1', valueClass)}>{value}</p>
+    </div>
+  )
+}
+
+function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex justify-between items-center gap-2">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      {children}
     </div>
   )
 }
