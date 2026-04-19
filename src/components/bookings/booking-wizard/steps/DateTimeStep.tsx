@@ -79,7 +79,7 @@ export function DateTimeStep({ state, computed, onUpdate }: DateTimeStepProps) {
                   "transition-all"
                 )}
               >
-                <div className="flex items-center gap-2 font-medium">
+                <div className="flex items-center gap-2 font-medium text-secondary-foreground">
                   {option.icon}
                   {option.label}
                 </div>
