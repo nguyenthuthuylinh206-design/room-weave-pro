@@ -116,14 +116,17 @@ export function useOperationsReport(dateRange: DateRange) {
       const outbound = transactions.filter(t => t.transaction_type === 'out')
       const adjustmentTx = transactions.filter(t => t.transaction_type === 'adjustment')
 
+      // Standardise: inbound/outbound values always positive; net = inbound - outbound
+      const inboundValue = inbound.reduce((s, t) => s + Math.abs(t.total_value || 0), 0)
+      const outboundValue = outbound.reduce((s, t) => s + Math.abs(t.total_value || 0), 0)
       const txSummary: OperationsTransactionSummary = {
         inbound_count: inbound.length,
         outbound_count: outbound.length,
         adjustment_count: adjustmentTx.length,
         total_transactions: transactions.length,
-        inbound_value: inbound.reduce((s, t) => s + (t.total_value || 0), 0),
-        outbound_value: outbound.reduce((s, t) => s + Math.abs(t.total_value || 0), 0),
-        net_change_value: transactions.reduce((s, t) => s + (t.total_value || 0), 0),
+        inbound_value: inboundValue,
+        outbound_value: outboundValue,
+        net_change_value: inboundValue - outboundValue,
       }
 
       // Monthly trend

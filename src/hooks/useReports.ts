@@ -152,31 +152,31 @@ export function useQuickReport(period: 'today' | 'week' | 'month') {
       const hotelId = isAllHotelsMode ? null : selectedHotel?.id
       if (!isAllHotelsMode && !hotelId) throw new Error('No hotel selected')
       
-      // Get quick metrics
-      const inventoryQuery = supabase
+      // Get quick metrics — Supabase builders are immutable, must reassign
+      let inventoryQuery = supabase
         .from('inventory_transactions')
         .select('transaction_type, quantity, total_value')
         .eq('tenant_id', tenantId)
         .gte('created_at', dateRange.start.toISOString())
         .lte('created_at', dateRange.end.toISOString())
-      
-      const laundryQuery = supabase
+
+      let laundryQuery = supabase
         .from('laundry_batches')
         .select('total_items, estimated_cost')
         .eq('tenant_id', tenantId)
         .gte('delivery_date', dateRange.start.toISOString())
         .lte('delivery_date', dateRange.end.toISOString())
-      
-      const adjustmentsQuery = supabase
+
+      let adjustmentsQuery = supabase
         .from('stock_adjustments')
         .select('id')
         .eq('tenant_id', tenantId)
         .eq('status', 'completed')
-      
+
       if (!isAllHotelsMode && hotelId) {
-        inventoryQuery.eq('hotel_id', hotelId)
-        laundryQuery.eq('hotel_id', hotelId)
-        adjustmentsQuery.eq('hotel_id', hotelId)
+        inventoryQuery = inventoryQuery.eq('hotel_id', hotelId)
+        laundryQuery = laundryQuery.eq('hotel_id', hotelId)
+        adjustmentsQuery = adjustmentsQuery.eq('hotel_id', hotelId)
       }
       
       const [
