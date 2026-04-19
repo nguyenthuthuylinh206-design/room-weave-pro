@@ -350,6 +350,7 @@ export function BookingDetailPage() {
         {/* ============ TAB 3: VẤN ĐỀ ============ */}
         <TabsContent value="issues">
           <BookingIssuesCard
+            bookingId={booking.id}
             roomId={booking.room_id}
             checkInDate={booking.check_in_date}
             checkOutDate={booking.actual_check_out || booking.check_out_date}
