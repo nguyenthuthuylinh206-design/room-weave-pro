@@ -193,6 +193,7 @@ export function useItem(itemId: string | undefined) {
           quantity,
           condition,
           assigned_at,
+          last_checked_at,
           room_id,
           rooms (
             id,
@@ -203,6 +204,32 @@ export function useItem(itemId: string | undefined) {
         .eq('item_id', itemId)
         .order('assigned_at', { ascending: false })
         .limit(20)
+      
+      // Fetch recent room checks (last 30 days) to count issues per room
+      const issuesByRoom: Record<string, number> = {}
+      if (roomAllocations && roomAllocations.length > 0) {
+        const roomIds = roomAllocations.map(r => r.room_id)
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+        
+        const { data: checks } = await supabase
+          .from('room_checks')
+          .select('room_id, items_damaged, items_lost')
+          .in('room_id', roomIds)
+          .gte('checked_at', thirtyDaysAgo)
+        
+        if (checks) {
+          for (const check of checks) {
+            const damaged = (check.items_damaged as any[]) || []
+            const lost = (check.items_lost as any[]) || []
+            const allIssues = [...damaged, ...lost]
+            for (const issue of allIssues) {
+              if (issue?.item_id === itemId) {
+                issuesByRoom[check.room_id] = (issuesByRoom[check.room_id] || 0) + 1
+              }
+            }
+          }
+        }
+      }
       
       // Format the response to match ItemDetailPage expectations
       return {
@@ -216,7 +243,8 @@ export function useItem(itemId: string | undefined) {
         room_allocations: roomAllocations?.map(ra => ({
           ...ra,
           room_number: ra.rooms?.room_number,
-          room_type: ra.rooms?.room_type
+          room_type: ra.rooms?.room_type,
+          recent_issues_count: issuesByRoom[ra.room_id] || 0,
         })) || []
       }
     },
