@@ -332,7 +332,14 @@
     "deleteNote": "Note: Rooms with items or check history cannot be deleted.",
     "cancel": "Cancel",
     "deleting": "Deleting...",
-    "deleteConfirm": "Delete {{count}} rooms"
+    "deleteConfirm": "Delete {{count}} rooms",
+    "selectAll": "Select all ({{count}})",
+    "deselectAll": "Deselect all",
+    "applyStandards": "Apply standards ({{count}})",
+    "applyStandardsTitle": "Apply standards to {{count}} rooms",
+    "applyStandardsDescription": "Each room will be applied according to its room type standards. Missing items will be added, existing items will be kept.",
+    "applyStandardsConfirm": "Apply",
+    "applyStandardsProcessing": "Processing {{current}}/{{total}}..."
   },
   "check": {
     "pageTitle": "Check Room {{roomNumber}}",

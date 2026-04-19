@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Plus, Grid3x3, List, Map, FileSpreadsheet } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RoomFilters } from '@/components/rooms/RoomFilters'
 import { RoomGrid } from '@/components/rooms/RoomGrid'
@@ -88,6 +89,36 @@ export function RoomsPage() {
         onClearSelection={() => setSelectedRoomIds([])}
         rooms={rooms?.map(r => ({ id: r.id, room_number: r.room_number, hotel_id: r.hotel_id })) || []}
       />
+
+      {viewMode === 'grid' && rooms && rooms.length > 0 && (
+        <div className="flex items-center gap-2 px-1">
+          <Checkbox
+            id="select-all-rooms"
+            checked={
+              selectedRoomIds.length === rooms.length
+                ? true
+                : selectedRoomIds.length > 0
+                ? 'indeterminate'
+                : false
+            }
+            onCheckedChange={(checked) => {
+              if (checked) {
+                setSelectedRoomIds(rooms.map(r => r.id))
+              } else {
+                setSelectedRoomIds([])
+              }
+            }}
+          />
+          <label
+            htmlFor="select-all-rooms"
+            className="text-sm text-muted-foreground cursor-pointer select-none"
+          >
+            {selectedRoomIds.length === rooms.length
+              ? t('bulkActions.deselectAll')
+              : t('bulkActions.selectAll', { count: rooms.length })}
+          </label>
+        </div>
+      )}
 
       {viewMode === 'grid' && (
         <RoomGrid
