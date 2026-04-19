@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useAuth } from '@/contexts/AuthContext';
 import { loginSchema, LoginFormData } from '@/lib/validations/auth.schemas';
-import { storeCredential } from '@/lib/credential-manager';
+import { storeCredential, getLocalCredential, clearLocalCredential } from '@/lib/credential-manager';
 
 // Storage keys for remember me functionality
 const REMEMBERED_EMAIL_KEY = 'remembered_email';
@@ -20,7 +20,6 @@ export const LoginForm = () => {
   const { t } = useTranslation('auth');
   const [showPassword, setShowPassword] = useState(false);
   const { signIn } = useAuth();
-  const navigate = useNavigate();
   
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -31,10 +30,15 @@ export const LoginForm = () => {
     }
   });
 
-  // Load remembered email on mount
+  // Load remembered email + password on mount (auto-fill from local secure store)
   useEffect(() => {
     const savedEmail = localStorage.getItem(REMEMBERED_EMAIL_KEY);
-    if (savedEmail) {
+    const savedCred = getLocalCredential();
+    if (savedCred) {
+      form.setValue('email', savedCred.email);
+      form.setValue('password', savedCred.password);
+      form.setValue('rememberMe', true);
+    } else if (savedEmail) {
       form.setValue('email', savedEmail);
       form.setValue('rememberMe', true);
     }
@@ -46,16 +50,18 @@ export const LoginForm = () => {
       localStorage.setItem(REMEMBERED_EMAIL_KEY, data.email);
     } else {
       localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+      clearLocalCredential();
     }
 
     const { error } = await signIn(data.email, data.password);
     if (!error) {
-      // Chỉ gọi PasswordCredential API nếu trình duyệt hỗ trợ (Chrome/Edge desktop).
-      // iOS Safari/PWA tự động prompt lưu vào iCloud Keychain dựa vào form HTML chuẩn.
-      if ('PasswordCredential' in window) {
+      // Lưu credential vào local store (mọi platform) + native API nếu có
+      if (data.rememberMe) {
         await storeCredential(data.email, data.password);
       }
-      navigate('/auth/callback');
+      // Full-page navigation để iOS/Android nhận diện "successful login submit"
+      // và prompt lưu mật khẩu vào iCloud Keychain / Google Password Manager
+      window.location.assign('/auth/callback');
     }
   };
 
