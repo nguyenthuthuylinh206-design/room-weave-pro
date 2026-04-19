@@ -7,6 +7,80 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const BEEKNOEE_URL = "https://platform.beeknoee.com/api/v1/chat/completions";
+
+const DEFAULT_FALLBACK_MODELS = [
+  { name: "gemini-2.5-flash", timeout: 55000 },
+  { name: "gemini-3-flash", timeout: 45000 },
+  { name: "glm-4.7-flash", timeout: 30000 },
+  { name: "glm-4.5-flash", timeout: 30000 },
+  { name: "openai/gpt-oss-120b", timeout: 30000 },
+];
+
+async function getAiSettings(supabase: any, tenantId: string | null) {
+  if (!tenantId) return {} as Record<string, string>;
+  const { data } = await supabase
+    .from("ai_settings")
+    .select("config_key, config_value")
+    .eq("tenant_id", tenantId);
+  const map: Record<string, string> = {};
+  for (const row of data || []) map[row.config_key] = row.config_value;
+  return map;
+}
+
+function buildModelChain(settings: Record<string, string>) {
+  const primary = settings.ocr_model;
+  const chain = [...DEFAULT_FALLBACK_MODELS];
+  if (primary) {
+    const idx = chain.findIndex((m) => m.name === primary);
+    if (idx >= 0) {
+      const [m] = chain.splice(idx, 1);
+      chain.unshift(m);
+    } else {
+      chain.unshift({ name: primary, timeout: 55000 });
+    }
+  }
+  return chain;
+}
+
+async function callBeeknoeeWithFallback(
+  apiKey: string,
+  body: Record<string, unknown>,
+  models: Array<{ name: string; timeout: number }>,
+) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    for (const { name: model, timeout } of models) {
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), timeout);
+      try {
+        console.log(`[beeknoee] try ${model} (attempt ${attempt + 1})`);
+        const resp = await fetch(BEEKNOEE_URL, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ ...body, model }),
+          signal: controller.signal,
+        });
+        clearTimeout(tid);
+        if (resp.ok) {
+          const json = await resp.json();
+          return { ok: true as const, data: json, model };
+        }
+        const text = await resp.text();
+        console.warn(`[beeknoee] ${model} failed (${resp.status}): ${text.substring(0, 150)}`);
+        if (resp.status === 401 || resp.status === 403) {
+          return { ok: false as const, error: "Beeknoee API key không hợp lệ", status: resp.status };
+        }
+        if (resp.status === 429) await new Promise((r) => setTimeout(r, 3000));
+      } catch (e) {
+        clearTimeout(tid);
+        console.warn(`[beeknoee] ${model} error:`, e instanceof Error ? e.message : e);
+      }
+    }
+    if (attempt === 0) await new Promise((r) => setTimeout(r, 4000));
+  }
+  return { ok: false as const, error: "Tất cả model AI đều không phản hồi" };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -15,20 +89,19 @@ serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const BEEKNOEE_API_KEY = Deno.env.get("BEEKNOEE_API_KEY");
 
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    if (!BEEKNOEE_API_KEY) {
+      throw new Error("BEEKNOEE_API_KEY chưa được cấu hình");
     }
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
-
     const { sessionId, imageBase64, documentType } = await req.json();
 
     if (!sessionId || !imageBase64) {
       return new Response(
         JSON.stringify({ error: "sessionId and imageBase64 are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
@@ -42,24 +115,26 @@ serve(async (req) => {
     if (sessionError || !session) {
       return new Response(
         JSON.stringify({ error: "Phiên quét không tồn tại" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     if (session.status !== "pending" && session.status !== "failed") {
       return new Response(
         JSON.stringify({ error: "Phiên quét đã hoàn thành hoặc hết hạn" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     const docType = documentType || session.document_type || "cccd";
+    const settings = await getAiSettings(supabase, session.tenant_id);
+    const models = buildModelChain(settings);
 
-    // 2. Call OCR via AI gateway
+    // 2. Call OCR via Beeknoee
     const prompts: Record<string, string> = {
       cccd: `IMPORTANT: First determine if the image actually shows an identity document. If the image is a selfie, random photo, or does not clearly show an ID card/passport/visa, set is_valid_document to false.
 
-Analyze this Vietnamese Citizen ID Card (CCCD/CMND) image. Extract all visible information accurately. 
+Analyze this Vietnamese Citizen ID Card (CCCD/CMND) image. Extract all visible information accurately.
 For Vietnamese names, keep the original Vietnamese characters with diacritics.
 The ID number is a 12-digit number on the card.
 Date format on card is typically DD/MM/YYYY - convert to YYYY-MM-DD format.
@@ -84,15 +159,10 @@ Extract nationality.`,
     const systemPrompt = prompts[docType] || prompts.cccd;
     const base64Data = imageBase64.replace(/^data:image\/[a-z]+;base64,/, "");
 
-    console.log("[mobile-scan-upload] Calling OCR...");
-    const ocrResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+    console.log("[mobile-scan-upload] Calling Beeknoee OCR...");
+    const result = await callBeeknoeeWithFallback(
+      BEEKNOEE_API_KEY,
+      {
         messages: [
           {
             role: "user",
@@ -111,14 +181,14 @@ Extract nationality.`,
               parameters: {
                 type: "object",
                 properties: {
-                  is_valid_document: { type: "boolean", description: "true if the image clearly shows an identity document (ID card, passport, visa). false if it's a selfie, random photo, or unclear image." },
-                  rejection_reason: { type: "string", description: "If is_valid_document is false, explain why" },
-                  full_name: { type: "string", description: "Full name of the person" },
-                  id_number: { type: "string", description: "Document number" },
-                  date_of_birth: { type: "string", description: "Date of birth in YYYY-MM-DD format" },
-                  gender: { type: "string", enum: ["male", "female"], description: "Gender" },
-                  nationality: { type: "string", description: "Nationality" },
-                  address: { type: "string", description: "Address if available" },
+                  is_valid_document: { type: "boolean" },
+                  rejection_reason: { type: "string" },
+                  full_name: { type: "string" },
+                  id_number: { type: "string" },
+                  date_of_birth: { type: "string" },
+                  gender: { type: "string", enum: ["male", "female"] },
+                  nationality: { type: "string" },
+                  address: { type: "string" },
                 },
                 required: ["is_valid_document", "full_name", "id_number"],
                 additionalProperties: false,
@@ -127,64 +197,58 @@ Extract nationality.`,
           },
         ],
         tool_choice: { type: "function", function: { name: "extract_document_info" } },
-      }),
-    });
+      },
+      models,
+    );
 
-    if (!ocrResponse.ok) {
-      const status = ocrResponse.status;
-      if (status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Hệ thống đang bận, vui lòng thử lại sau." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      console.error("OCR error:", status, await ocrResponse.text());
-      throw new Error("Lỗi xử lý ảnh, vui lòng thử lại.");
+    if (!result.ok) {
+      const status = result.status === 401 || result.status === 403 ? 401 : 503;
+      return new Response(
+        JSON.stringify({ error: result.error || "Lỗi xử lý ảnh, vui lòng thử lại." }),
+        { status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
-    const ocrResult = await ocrResponse.json();
-    const toolCall = ocrResult.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall || toolCall.function.name !== "extract_document_info") {
+    const toolCall = result.data.choices?.[0]?.message?.tool_calls?.[0];
+    if (!toolCall || toolCall.function?.name !== "extract_document_info") {
       return new Response(
         JSON.stringify({ error: "Không thể trích xuất thông tin. Vui lòng chụp lại rõ hơn." }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     const scannedData = JSON.parse(toolCall.function.arguments);
-    console.log("[mobile-scan-upload] OCR result:", scannedData);
+    console.log("[mobile-scan-upload] OCR result via", result.model, scannedData);
 
     if (!scannedData.is_valid_document) {
-      // Update session as failed
       await supabase
         .from("document_scan_sessions")
         .update({ status: "failed", scanned_data: { rejection_reason: scannedData.rejection_reason } })
         .eq("id", sessionId);
 
       return new Response(
-        JSON.stringify({ error: "Ảnh không phải giấy tờ tùy thân. Vui lòng chụp rõ mặt trước hoặc mặt sau của CCCD, Hộ chiếu hoặc Visa." }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error:
+            "Ảnh không phải giấy tờ tùy thân. Vui lòng chụp rõ mặt trước hoặc mặt sau của CCCD, Hộ chiếu hoặc Visa.",
+        }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // 3. Upload image to storage using service role (bypasses RLS)
+    // 3. Upload image to storage
     let imageUrl: string | null = null;
     try {
       const fileName = `${session.tenant_id}/${Date.now()}-${docType}.jpg`;
       const binaryStr = atob(base64Data);
       const bytes = new Uint8Array(binaryStr.length);
-      for (let i = 0; i < binaryStr.length; i++) {
-        bytes[i] = binaryStr.charCodeAt(i);
-      }
+      for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("guest-documents")
         .upload(fileName, bytes.buffer, { contentType: "image/jpeg" });
 
       if (!uploadError && uploadData) {
-        const { data: urlData } = supabase.storage
-          .from("guest-documents")
-          .getPublicUrl(uploadData.path);
+        const { data: urlData } = supabase.storage.from("guest-documents").getPublicUrl(uploadData.path);
         imageUrl = urlData.publicUrl;
         console.log("[mobile-scan-upload] Image uploaded:", imageUrl);
       } else if (uploadError) {
@@ -210,16 +274,15 @@ Extract nationality.`,
       throw new Error("Lỗi cập nhật phiên quét");
     }
 
-    console.log("[mobile-scan-upload] Complete!");
     return new Response(
-      JSON.stringify({ success: true, data: scannedData, imageUrl }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ success: true, data: scannedData, imageUrl, model: result.model }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
     console.error("[mobile-scan-upload] Error:", e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });
