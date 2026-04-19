@@ -88,6 +88,7 @@ const WorkflowsPage = lazy(() => import("./pages/settings/WorkflowsPage"));
 const WarehouseListPage = lazy(() => import("./pages/settings/WarehouseListPage"));
 const ChangePasswordPage = lazy(() => import("./pages/settings/ChangePasswordPage"));
 const PricingRulesPage = lazy(() => import("./pages/settings/PricingRulesPage"));
+const AISettingsPage = lazy(() => import("./pages/settings/AISettingsPage"));
 
 // Reports
 const ReportsDashboardPage = lazyNamed(() => import("./pages/reports/ReportsDashboardPage"), "ReportsDashboardPage");
@@ -400,6 +401,7 @@ const router = createBrowserRouter([
       { path: "settings/business", element: <PermissionRoute module="settings"><BusinessConfigurationPage /></PermissionRoute> },
       { path: "settings/workflows", element: <PermissionRoute module="settings" action="manage"><WorkflowsPage /></PermissionRoute> },
       { path: "settings/pricing-rules", element: <PermissionRoute module="settings"><PricingRulesPage /></PermissionRoute> },
+      { path: "settings/ai", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><AISettingsPage /></RoleGuard> },
 
       // Profile
       { path: "profile", element: <ProfilePage /> },
