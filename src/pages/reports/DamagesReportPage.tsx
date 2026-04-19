@@ -106,26 +106,22 @@ export function DamagesReportPage() {
         }
       }
 
-      let query: any = supabase
-        .from('room_checks')
+      const baseQuery = (supabase.from('room_checks') as any)
         .select('id, check_type, items_damaged, items_lost, checked_at, room_id')
         .eq('tenant_id', tenantId)
         .gte('checked_at', dateRange.start.toISOString())
         .lte('checked_at', dateRange.end.toISOString())
         .order('checked_at', { ascending: false })
 
-      if (roomIdsForHotel) {
-        query = query.in('room_id', roomIdsForHotel)
-      }
-
+      const query = roomIdsForHotel ? baseQuery.in('room_id', roomIdsForHotel) : baseQuery
       const { data: roomChecks, error } = await query
       if (error) throw error
 
       // Map rooms for display
-      const roomIds = [...new Set((roomChecks || []).map((c: any) => c.room_id).filter(Boolean))]
+      const roomIds = ([...new Set((roomChecks || []).map((c: any) => c.room_id).filter(Boolean))] as string[])
       const { data: rooms } = roomIds.length > 0
         ? await supabase.from('rooms').select('id, room_number').in('id', roomIds)
-        : { data: [] }
+        : { data: [] as any[] }
       const roomMap = new Map((rooms || []).map(r => [r.id, r.room_number]))
 
       // Items map for price lookups
