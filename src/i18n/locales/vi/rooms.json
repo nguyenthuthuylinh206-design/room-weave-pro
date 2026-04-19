@@ -333,7 +333,14 @@
     "deleteNote": "Lưu ý: Phòng có đồ dùng hoặc lịch sử kiểm tra sẽ không thể xóa.",
     "cancel": "Hủy",
     "deleting": "Đang xóa...",
-    "deleteConfirm": "Xóa {{count}} phòng"
+    "deleteConfirm": "Xóa {{count}} phòng",
+    "selectAll": "Chọn tất cả ({{count}})",
+    "deselectAll": "Bỏ chọn tất cả",
+    "applyStandards": "Áp dụng tiêu chuẩn ({{count}})",
+    "applyStandardsTitle": "Áp dụng tiêu chuẩn cho {{count}} phòng",
+    "applyStandardsDescription": "Mỗi phòng sẽ được áp dụng theo tiêu chuẩn của hạng phòng tương ứng. Item bị thiếu sẽ được bổ sung, item đã có sẽ giữ nguyên.",
+    "applyStandardsConfirm": "Áp dụng",
+    "applyStandardsProcessing": "Đang xử lý {{current}}/{{total}}..."
   },
   "check": {
     "pageTitle": "Kiểm tra phòng {{roomNumber}}",

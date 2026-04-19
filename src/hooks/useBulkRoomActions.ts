@@ -5,6 +5,80 @@ import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers
 import { useUser } from '@/hooks/useUser'
 import type { RoomStatus } from '@/types/rooms.types'
 
+export function useBulkApplyStandards() {
+  const queryClient = useQueryClient()
+  const { user } = useUser()
+
+  return useMutation({
+    mutationFn: async ({
+      roomIds,
+      onProgress,
+    }: {
+      roomIds: string[]
+      onProgress?: (current: number, total: number) => void
+    }) => {
+      let totalAdded = 0
+      let totalUpdated = 0
+      const failedRooms: string[] = []
+      const skippedRooms: string[] = []
+
+      for (let i = 0; i < roomIds.length; i++) {
+        const roomId = roomIds[i]
+        onProgress?.(i + 1, roomIds.length)
+        try {
+          const { data, error } = await supabase.rpc('apply_room_standards', {
+            p_room_id: roomId,
+            p_user_id: user?.id,
+          })
+          if (error) throw error
+          const result = data as { added?: number; updated?: number; skipped?: boolean } | null
+          if (result?.skipped) {
+            skippedRooms.push(roomId)
+          } else {
+            totalAdded += result?.added ?? 0
+            totalUpdated += result?.updated ?? 0
+          }
+        } catch (err) {
+          console.error('Apply standards failed for room', roomId, err)
+          failedRooms.push(roomId)
+        }
+      }
+
+      return {
+        total: roomIds.length,
+        success: roomIds.length - failedRooms.length,
+        totalAdded,
+        totalUpdated,
+        failedRooms,
+        skippedRooms,
+      }
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['rooms'] })
+      queryClient.invalidateQueries({ queryKey: ['room-stats'] })
+
+      const parts: string[] = []
+      parts.push(`${result.success}/${result.total} phòng`)
+      if (result.totalAdded > 0) parts.push(`${result.totalAdded} thêm mới`)
+      if (result.totalUpdated > 0) parts.push(`${result.totalUpdated} cập nhật`)
+      if (result.failedRooms.length > 0) parts.push(`${result.failedRooms.length} thất bại`)
+
+      toast({
+        title: result.failedRooms.length > 0 ? 'Hoàn tất với cảnh báo' : 'Áp dụng tiêu chuẩn thành công',
+        description: parts.join(' · '),
+        variant: result.failedRooms.length > 0 ? 'destructive' : 'default',
+      })
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Lỗi áp dụng tiêu chuẩn',
+        description: error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+}
+
 export function useBulkDeleteRooms() {
   const queryClient = useQueryClient()
 

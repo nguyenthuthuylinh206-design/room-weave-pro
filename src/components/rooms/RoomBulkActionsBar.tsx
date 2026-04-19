@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation, Trans } from 'react-i18next'
-import { X, Trash2, RefreshCw, CheckCircle, ClipboardList } from 'lucide-react'
+import { X, Trash2, RefreshCw, CheckCircle, ClipboardList, ListChecks } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PermissionGate } from '@/components/auth/PermissionGate'
 import {
@@ -21,7 +21,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { BulkCreateTaskDialog } from '@/components/housekeeping/BulkCreateTaskDialog'
-import { useBulkDeleteRooms, useBulkUpdateRoomStatus } from '@/hooks/useBulkRoomActions'
+import { useBulkDeleteRooms, useBulkUpdateRoomStatus, useBulkApplyStandards } from '@/hooks/useBulkRoomActions'
 import { useUser } from '@/hooks/useUser'
 import { canCreateHousekeepingTask } from '@/lib/userAccess'
 import type { RoomStatus } from '@/types/rooms.types'
@@ -51,12 +51,15 @@ const statusKeys: RoomStatus[] = [
 export function RoomBulkActionsBar({ selectedIds, onClearSelection, rooms = [] }: RoomBulkActionsBarProps) {
   const { t } = useTranslation('rooms')
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showApplyDialog, setShowApplyDialog] = useState(false)
   const [showBulkTaskDialog, setShowBulkTaskDialog] = useState(false)
   const [selectedStatus, setSelectedStatus] = useState<RoomStatus | ''>('')
+  const [applyProgress, setApplyProgress] = useState<{ current: number; total: number } | null>(null)
   
   const { user } = useUser()
   const bulkDelete = useBulkDeleteRooms()
   const bulkUpdateStatus = useBulkUpdateRoomStatus()
+  const bulkApplyStandards = useBulkApplyStandards()
   
   const canCreateTask = canCreateHousekeepingTask(user)
   
@@ -80,6 +83,26 @@ export function RoomBulkActionsBar({ selectedIds, onClearSelection, rooms = [] }
         onSuccess: () => {
           setSelectedStatus('')
           onClearSelection()
+        },
+      }
+    )
+  }
+
+  const handleApplyStandards = () => {
+    setApplyProgress({ current: 0, total: selectedIds.length })
+    bulkApplyStandards.mutate(
+      {
+        roomIds: selectedIds,
+        onProgress: (current, total) => setApplyProgress({ current, total }),
+      },
+      {
+        onSuccess: () => {
+          setShowApplyDialog(false)
+          setApplyProgress(null)
+          onClearSelection()
+        },
+        onError: () => {
+          setApplyProgress(null)
         },
       }
     )
@@ -145,6 +168,19 @@ export function RoomBulkActionsBar({ selectedIds, onClearSelection, rooms = [] }
             </Button>
           )}
 
+          {/* Apply standards button */}
+          <PermissionGate module="rooms" action="edit">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowApplyDialog(true)}
+              disabled={bulkApplyStandards.isPending}
+            >
+              <ListChecks className="mr-2 h-4 w-4" />
+              {t('bulkActions.applyStandards', { count: selectedIds.length })}
+            </Button>
+          </PermissionGate>
+
           {/* Delete button */}
           <PermissionGate module="rooms" action="delete">
             <Button
@@ -196,6 +232,47 @@ export function RoomBulkActionsBar({ selectedIds, onClearSelection, rooms = [] }
               {bulkDelete.isPending 
                 ? t('bulkActions.deleting') 
                 : t('bulkActions.deleteConfirm', { count: selectedIds.length })}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Apply standards confirmation dialog */}
+      <AlertDialog open={showApplyDialog} onOpenChange={(open) => !bulkApplyStandards.isPending && setShowApplyDialog(open)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t('bulkActions.applyStandardsTitle', { count: selectedIds.length })}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('bulkActions.applyStandardsDescription')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {bulkApplyStandards.isPending && applyProgress && (
+            <div className="text-sm text-muted-foreground">
+              {t('bulkActions.applyStandardsProcessing', {
+                current: applyProgress.current,
+                total: applyProgress.total,
+              })}
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkApplyStandards.isPending}>
+              {t('bulkActions.cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                handleApplyStandards()
+              }}
+              disabled={bulkApplyStandards.isPending}
+            >
+              {bulkApplyStandards.isPending
+                ? t('bulkActions.applyStandardsProcessing', {
+                    current: applyProgress?.current ?? 0,
+                    total: applyProgress?.total ?? selectedIds.length,
+                  })
+                : t('bulkActions.applyStandardsConfirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
