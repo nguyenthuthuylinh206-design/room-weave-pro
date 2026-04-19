@@ -9157,6 +9157,15 @@ export type Database = {
         Args: { p_hotel_id?: string; p_tenant_id: string }
         Returns: Json
       }
+      get_maintenance_report: {
+        Args: {
+          p_end_date?: string
+          p_hotel_id?: string
+          p_start_date?: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
       get_missing_items_for_rooms: {
         Args: { p_room_ids: string[] }
         Returns: {
