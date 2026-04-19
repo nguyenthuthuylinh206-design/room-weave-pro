@@ -11,9 +11,10 @@ interface BookingIssuesCardProps {
   roomId: string
   checkInDate: string
   checkOutDate?: string | null
+  damageCharges?: number | null
 }
 
-export function BookingIssuesCard({ roomId, checkInDate, checkOutDate }: BookingIssuesCardProps) {
+export function BookingIssuesCard({ roomId, checkInDate, checkOutDate, damageCharges }: BookingIssuesCardProps) {
   const { data: issues, isLoading } = useBookingIssues(roomId, checkInDate, checkOutDate || undefined)
 
   if (isLoading) {
@@ -35,7 +36,10 @@ export function BookingIssuesCard({ roomId, checkInDate, checkOutDate }: Booking
 
   const totalDamaged = issues?.reduce((sum, i) => sum + (typeof i.items_damaged === 'number' ? i.items_damaged : 0), 0) || 0
   const totalLost = issues?.reduce((sum, i) => sum + (typeof i.items_lost === 'number' ? i.items_lost : 0), 0) || 0
-  const hasIssues = totalDamaged > 0 || totalLost > 0
+  const totalCharges = damageCharges || 0
+  const hasIssues = totalDamaged > 0 || totalLost > 0 || totalCharges > 0
+  const formatVND = (v: number) =>
+    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(v)
 
   return (
     <Card className={cn(
@@ -69,42 +73,32 @@ export function BookingIssuesCard({ roomId, checkInDate, checkOutDate }: Booking
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Summary */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className={cn(
-                'p-3 rounded-lg',
-                totalDamaged > 0 ? 'bg-orange-50 dark:bg-orange-950/30' : 'bg-muted/50'
-              )}>
-                <div className="flex items-center gap-2 mb-1">
-                  <AlertCircle className={cn(
-                    'h-4 w-4',
-                    totalDamaged > 0 ? 'text-orange-600' : 'text-muted-foreground'
-                  )} />
+            {/* Summary - 3 cột không nền màu */}
+            <div className="grid grid-cols-3 divide-x divide-border rounded-lg border">
+              <div className="p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <AlertCircle className={cn('h-3.5 w-3.5', totalDamaged > 0 ? 'text-orange-600' : 'text-muted-foreground')} />
                   <span className="text-xs text-muted-foreground">Đồ hỏng</span>
                 </div>
-                <p className={cn(
-                  'text-xl font-bold',
-                  totalDamaged > 0 ? 'text-orange-600' : 'text-muted-foreground'
-                )}>
+                <p className={cn('text-lg font-bold', totalDamaged > 0 ? 'text-orange-600' : 'text-muted-foreground')}>
                   {totalDamaged}
                 </p>
               </div>
-              <div className={cn(
-                'p-3 rounded-lg',
-                totalLost > 0 ? 'bg-red-50 dark:bg-red-950/30' : 'bg-muted/50'
-              )}>
-                <div className="flex items-center gap-2 mb-1">
-                  <AlertTriangle className={cn(
-                    'h-4 w-4',
-                    totalLost > 0 ? 'text-red-600' : 'text-muted-foreground'
-                  )} />
+              <div className="p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <AlertTriangle className={cn('h-3.5 w-3.5', totalLost > 0 ? 'text-red-600' : 'text-muted-foreground')} />
                   <span className="text-xs text-muted-foreground">Đồ mất</span>
                 </div>
-                <p className={cn(
-                  'text-xl font-bold',
-                  totalLost > 0 ? 'text-red-600' : 'text-muted-foreground'
-                )}>
+                <p className={cn('text-lg font-bold', totalLost > 0 ? 'text-red-600' : 'text-muted-foreground')}>
                   {totalLost}
+                </p>
+              </div>
+              <div className="p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-xs text-muted-foreground">Chi phí đền bù</span>
+                </div>
+                <p className={cn('text-base font-bold font-mono', totalCharges > 0 ? 'text-red-600' : 'text-muted-foreground')}>
+                  {formatVND(totalCharges)}
                 </p>
               </div>
             </div>
