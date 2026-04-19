@@ -244,17 +244,24 @@ export default function ItemDetailPage() {
                         <TableHead>{t('items:detail.room')}</TableHead>
                         <TableHead>{t('items:detail.roomType')}</TableHead>
                         <TableHead className="text-center">{t('items:fields.quantity')}</TableHead>
-                        <TableHead>{t('items:detail.condition')}</TableHead>
+                        <TableHead>{t('items:detail.lastChecked', { defaultValue: 'Lần kiểm tra cuối' })}</TableHead>
+                        <TableHead>{t('items:detail.recentIssues', { defaultValue: 'Vấn đề gần đây' })}</TableHead>
                         <TableHead>{t('items:detail.allocatedAt')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {roomAllocations.map((allocation: any) => {
-                        const conditionColor =
-                          allocation.condition === 'good' ? 'text-green-600' :
-                          allocation.condition === 'damaged' ? 'text-red-600' :
-                          allocation.condition === 'poor' ? 'text-amber-600' :
-                          'text-muted-foreground'
+                        const lastChecked = allocation.last_checked_at
+                          ? new Date(allocation.last_checked_at)
+                          : null
+                        const daysSinceCheck = lastChecked
+                          ? Math.floor((Date.now() - lastChecked.getTime()) / (1000 * 60 * 60 * 24))
+                          : null
+                        const checkColor =
+                          !lastChecked ? 'text-muted-foreground' :
+                          daysSinceCheck! > 30 ? 'text-amber-600' :
+                          'text-foreground'
+                        const issuesCount = allocation.recent_issues_count || 0
                         return (
                           <TableRow key={allocation.id}>
                             <TableCell>
@@ -272,12 +279,23 @@ export default function ItemDetailPage() {
                               {allocation.quantity}
                             </TableCell>
                             <TableCell>
-                              <span className={cn('text-sm', conditionColor)}>
-                                {allocation.condition === 'good' && t('items:detail.conditionGood')}
-                                {allocation.condition === 'fair' && t('items:detail.conditionFair')}
-                                {allocation.condition === 'poor' && t('items:detail.conditionPoor')}
-                                {allocation.condition === 'damaged' && t('items:detail.conditionDamaged')}
+                              <span className={cn('text-sm', checkColor)}>
+                                {lastChecked
+                                  ? formatDistanceToNow(lastChecked, { addSuffix: true, locale: vi })
+                                  : t('items:detail.neverChecked', { defaultValue: 'Chưa kiểm tra' })}
                               </span>
+                            </TableCell>
+                            <TableCell>
+                              {issuesCount > 0 ? (
+                                <span className="text-sm text-red-600 font-medium">
+                                  {t('items:detail.issuesCount', {
+                                    count: issuesCount,
+                                    defaultValue: `${issuesCount} lần hỏng/mất`,
+                                  })}
+                                </span>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">—</span>
+                              )}
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
                               {formatDistanceToNow(new Date(allocation.assigned_at), {
