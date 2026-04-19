@@ -1,76 +1,65 @@
 
 
-## Mục tiêu
+## Vấn đề
 
-Làm lại trang `/items/:id` theo chuẩn **Enterprise SaaS minimalist** của dự án: gọn, dễ đọc, ít icons, bỏ trùng lặp.
+Cột "Tình trạng" trong tab "Phân bổ phòng" hiện **chưa có logic thật**:
 
-## Vấn đề hiện tại
+- DB: `room_items.condition` default `'good'`, có 4 giá trị (`good|fair|poor|damaged`)
+- **636/636 records** trong DB đều = `'good'` → cột này luôn hiển thị "Tốt" cho mọi phòng
+- **Không có UI nào** để cập nhật condition
+- Khi room check phát hiện đồ hỏng/mất, dữ liệu được ghi vào `room_checks.items_damaged` / `items_lost` (JSONB) — **không hề đụng đến `room_items.condition`**
+- Trigger `room_items_update_inventory` chỉ sync số lượng, không sync tình trạng
 
-1. **Quá nhiều `Card`** với `CardHeader/CardTitle` to → tốn không gian dọc, vi phạm chuẩn (phải dùng `border rounded-lg`)
-2. **Quá nhiều icons** trong tabs, header sidebar, KPI tiles, table cells (Boxes, Package, Home, Shirt, MapPin, Clock, User, TrendingUp...) → vi phạm `minimalist-ui-icon-reduction-spec`
-3. **Trùng thông tin**: "Trạng thái kho" hiện ở cả KPI (con số đỏ) lẫn Sidebar (Badge) — chỉ cần 1 chỗ
-4. **2 Cảnh báo cuối sidebar** lặp lại điều mà KPI tile đã hiển thị bằng màu → bỏ
-5. **Hình ảnh chiếm 1 Card riêng to** ngay đầu — nên thu lại thành thumbnail nhỏ cạnh tên
-6. **Sidebar dài**: Basic Info có 8 mục rời rạc, mỗi mục là 1 block lớn — gộp thành grid 2 cột compact
-7. **Tabs chỉ có 2 tab** nhưng wrap trong Card → bỏ Card, dùng border đơn giản
-8. **QR code** chiếm cả Card 200×200 — thu xuống 140px hoặc đưa vào popover
-9. **Lifecycle** card hiếm khi có dữ liệu — nếu có thì gộp vào Basic Info
-10. Header dùng `text-3xl` quá to so với phần còn lại
+→ Cột này là **field chết**, gây hiểu nhầm cho người dùng.
 
-## Thiết kế mới
+## Hướng sửa — Đề xuất phương án A (khuyên dùng)
 
-### Layout 2 cột (giữ tỉ lệ 2:1)
+**Bỏ cột "Tình trạng"** ở bảng phân bổ phòng, thay bằng cột có nghĩa hơn dựa trên dữ liệu thực:
 
+### Cột mới: "Lần kiểm tra cuối" (Last checked)
+- Lấy từ `room_items.last_checked_at` (đã có sẵn trong DB)
+- Hiển thị thời gian tương đối (`5 ngày trước`)
+- Nếu > 30 ngày → màu `text-amber-600` (cần kiểm tra)
+- Nếu chưa từng check → "Chưa kiểm tra" màu `text-muted-foreground`
+
+### Bổ sung cột "Vấn đề gần đây"
+- Đếm số lần item này bị ghi nhận trong `room_checks.items_damaged` / `items_lost` của phòng đó trong **30 ngày gần nhất**
+- Nếu = 0 → "—"
+- Nếu > 0 → "X lần hỏng/mất" màu `text-red-600`, click → mở dialog chi tiết (optional, có thể giai đoạn 2)
+
+### Bảng mới sẽ là:
 ```
-┌────────────────────────────────────────────────────────────┐
-│ ← Khăn tắm Mollis                              [Sửa]       │
-│   ITEM-...  •  Khăn tắm  •  Khách sạn Phương Đông          │
-├──────────────────────────────────────┬─────────────────────┤
-│ [thumb] [thumb] [thumb] [+]          │ Thông tin           │
-│                                      │ ─────────────────   │
-│ ┌─ KHO ───────────────────────────┐  │ Trạng thái  Còn hàng│
-│ │ Tổng    Trong kho  Đang dùng    │  │ Tối thiểu   20 Cái  │
-│ │  100      56         41         │  │ Đặt lại     30 Cái  │
-│ │ Đang giặt  Hỏng   Mất           │  │ Đơn vị      Cái     │
-│ │   2        0       0            │  │ Đơn giá     50.000₫ │
-│ └─────────────────────────────────┘  │ Giá trị tồn 2.8M ₫  │
-│                                      │ Thương hiệu Mollis  │
-│ [Lịch sử (1)] [Phân bổ phòng (20)]   │ Model       MT-01   │
-│ ─────────────────────────────────    │                     │
-│ Mã GD     Loại    SL  Người  Thời gian│ ─── Mã QR ────      │
-│ TXN-...   Giao... -1  ...    18h trước│ [QR 140px]          │
-│                                      │ ITEM-...            │
-└──────────────────────────────────────┴─────────────────────┘
+Phòng | Loại phòng | SL | Lần kiểm tra cuối | Vấn đề gần đây | Phân bổ lúc
+101   | Standard   | 2  | 5 ngày trước      | —              | 2 tháng trước
+102   | Standard   | 2  | 45 ngày trước ⚠   | 1 lần hỏng     | 3 tháng trước
 ```
 
-### Thay đổi cụ thể
+## Phương án B (nếu muốn giữ cột Tình trạng "thật")
 
-1. **Header**: `text-3xl` → `text-xl font-semibold`. Bỏ "noCategory". Gộp `code • category • hotel` vào 1 dòng `text-xs text-muted-foreground font-mono` (riêng phần code).
+Làm cho cột Tình trạng có ý nghĩa bằng cách **tự động cập nhật `room_items.condition`** từ room_checks:
 
-2. **Hình ảnh**: Bỏ Card. Thành dải thumbnail 80×80 ngang phía trên KPI. Click → lightbox (giữ logic hiện tại). Nếu không có ảnh → ẩn hoàn toàn (không hiện placeholder Package to).
+1. Tạo trigger `sync_room_item_condition_from_check`:
+   - Sau mỗi `room_checks` insert/update
+   - Parse `items_damaged` JSONB → set `condition = 'damaged'` cho `room_items` tương ứng
+   - Parse `items_lost` JSONB → giảm quantity, log thành transaction
+2. Backfill dữ liệu cũ: chạy 1 migration quét tất cả `room_checks` để cập nhật condition hiện tại
+3. Giữ nguyên UI hiện tại, lúc đó "Tốt/Hỏng/Mất" sẽ phản ánh đúng
 
-3. **KPI Kho**: 1 `border rounded-lg p-4` duy nhất, 6 ô grid (Tổng, Trong kho, Đang dùng, Đang giặt, Hỏng, Mất). Bỏ icon từng ô. Dùng `text-2xl font-semibold`, label `text-xs uppercase tracking-wide text-muted-foreground`. Số dùng màu semantic: trong kho thấp → `text-amber-600`, hết → `text-red-600`, hỏng/mất > 0 → `text-red-600`. Bỏ block "bg-orange-50/bg-red-50" riêng.
+**Phức tạp hơn**, cần migration + trigger + backfill. Nhưng đem lại "tình trạng từng món ở từng phòng" đúng nghĩa.
 
-4. **Tabs**: Bỏ `Card` wrapper. Dùng `Tabs` với border trực tiếp. Bỏ icon trong table cells (TrendingUp/Down, User, Clock, MapPin). Giữ Badge category nhưng `variant="outline"`.
+## Phương án C (đơn giản nhất)
 
-5. **Sidebar — Thông tin** (gộp Basic Info + Lifecycle):
-   - Bỏ `Card`, dùng `border rounded-lg p-4`
-   - List dạng `flex justify-between` cho mỗi field: `<span class="text-xs text-muted-foreground">Label</span><span class="text-sm font-medium">Value</span>`
-   - Trạng thái kho: dùng `text-green-600/amber-600/red-600` (chữ semantic), không dùng Badge
-   - Giá trị tồn kho: highlight `text-base font-semibold`
-   - Lifecycle (lifetime, wash cycles + progress bar) — nếu có thì append vào cuối box này
+Chỉ **ẩn cột "Tình trạng"** vì nó vô nghĩa, không thêm gì khác.
 
-6. **QR Code**: `border rounded-lg p-3`, QR 140px, mã code `text-xs font-mono` ở dưới.
+## Files thay đổi
 
-7. **Bỏ hoàn toàn**:
-   - 2 Card cảnh báo "Hết hàng / Sắp hết" cuối sidebar (đã thể hiện qua màu chữ ở KPI + sidebar)
-   - Icon trong CardTitle / Tabs / Table
-
-### Files thay đổi
-
-| File | Thay đổi |
+| Phương án | Files |
 |---|---|
-| `src/pages/items/ItemDetailPage.tsx` | **Rewrite toàn bộ phần render** (giữ nguyên logic load data, permission, mobile redirect). Thay `Card` → `border rounded-lg`, bỏ icons, gộp blocks, compact spacing. |
+| A | `src/pages/items/ItemDetailPage.tsx` (đổi cột) + `src/hooks/useItems.ts` (query thêm `last_checked_at` + count vấn đề từ `room_checks`) |
+| B | Migration mới (trigger + backfill) + giữ nguyên FE |
+| C | Chỉ `src/pages/items/ItemDetailPage.tsx` (xóa 1 cột) |
 
-Không cần file mới, không thay đổi DB, không sửa hook.
+## Câu hỏi
+
+Bạn chọn phương án nào? **A** (gợi ý — thông tin có ý nghĩa nhất với data hiện có), **B** (làm cột Tình trạng đúng nghĩa, phức tạp hơn), hay **C** (chỉ ẩn đi)?
 
