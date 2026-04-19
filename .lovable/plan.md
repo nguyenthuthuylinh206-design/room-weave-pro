@@ -2,91 +2,57 @@
 
 ## Vấn đề
 
-Khi giao việc "Kiểm tra checkout" từ `CheckoutSummaryDialog` (single booking) → `useCheckoutInspection.createInspection`:
+Khi nhân viên nhấn "Bắt đầu" task từ dashboard:
+- Đã navigate đúng URL: `/rooms/:id/check?type=checkout|checkin|replenish`
+- Code đã có `shouldAutoSkip = !!prefilledType` → `initialStep = 2` (skip step chọn loại)
 
-1. ✅ Insert vào `checkout_inspection_requests` 
-2. ✅ Insert vào `housekeeping_tasks` (đầy đủ `title`, `booking_id`, `assigned_to`, `checkout_inspection_id`)
-3. ❌ **KHÔNG gửi `sendPushNotification`** (push thật)
-4. ❌ **KHÔNG gửi `createInAppNotification`** (chuông trong app)
-5. ❌ **KHÔNG gửi `sendTelegramNotification`** (Telegram)
-6. ❌ **KHÔNG gọi `triggerWorkflow(HOUSEKEEPING_TASK_CREATED)`** (bỏ workflow auto)
+**NHƯNG vẫn lộ ra step 1 ("Chọn loại kiểm tra") trong các tình huống:**
 
-→ Nhân viên chỉ "nhận thấy" task **NẾU đang mở app & đang ở tab visible** (qua realtime của `useUnifiedTasks`). Nếu app bị nền/đóng → **không có thông báo nào** và task vẫn nằm trong DB nhưng nhân viên không biết.
+1. **Nút "Quay lại"** ở step 2 đưa nhân viên về step 1 → thấy lại 6 ô chọn loại (cho phép nhân viên đổi loại task khác → sai logic, vì task đã chỉ định rõ ràng).
+2. **Resume từ localStorage**: Nếu lần trước đã thoát ở step 1, mở lại sẽ load `step=1` từ localStorage thay vì áp dụng `prefilledType`.
+3. **Quick mode toggle** nằm trong CheckTypeStep — có cần riêng cho task được giao không?
 
-So sánh với 2 flow khác đã làm đúng:
-- `GroupCheckoutDialog.handleBatchInspectionRequest` (lines 471-476): gọi đầy đủ 4 notification (push + in-app + telegram cá nhân + telegram nhóm)
-- `useHousekeepingTasks.useCreateTask` (lines 235-265): gọi `triggerHousekeepingTaskAssignedNotification` + `triggerWorkflow`
-
-→ Phải đồng bộ `useCheckoutInspection.createInspection` theo chuẩn của 2 flow trên.
+→ Khi đã được giao task xác định loại (`?type=...` trong URL), **bước "Chọn loại kiểm tra" KHÔNG được phép xuất hiện** và **không được phép back về**.
 
 ## Hướng sửa
 
-Mở rộng `mutationFn` của `createInspection` trong `src/hooks/useCheckoutInspection.ts`:
+Trong `src/pages/rooms/RoomCheckPage.tsx`:
 
-### Sau khi insert thành công, gửi 4 thông báo song song:
+### 1. Khóa step 1 khi có `prefilledType`
 
-```ts
-// 3. Lấy thông tin phòng + booking để build message
-const { data: roomData } = await supabase
-  .from('rooms').select('room_number').eq('id', roomId).single()
-const { data: bookingData } = await supabase
-  .from('room_bookings').select('guest_name').eq('id', bookingId).single()
+Khi `shouldAutoSkip = true` (URL có `?type=...`):
+- **Không cho phép `setCurrentStep(1)`** ở bất kỳ đường nào (back, resume, fresh).
+- `handleBack`: chặn nếu `currentStep === 2 && shouldAutoSkip` → ẩn nút "Quay lại" trên step 2 luôn (đã có nút X để hủy task).
+- `startFresh` & resume từ localStorage: dùng `Math.max(2, savedStep)` thay vì set thẳng `step`.
 
-const roomNumber = roomData?.room_number || ''
-const guestName = bookingData?.guest_name || 'Khách'
+### 2. Quick mode toggle
 
-// 4. Gửi notification song song (không block insert flow)
-await Promise.allSettled([
-  sendPushNotification({
-    userId: assignedTo, tenantId,
-    title: `Yêu cầu kiểm tra phòng ${roomNumber}`,
-    body: `Khách ${guestName} sắp checkout. Vui lòng kiểm tra phòng.`,
-    actionUrl: `/my-tasks`,
-    notificationType: 'room_checkout',
-  }),
-  createInAppNotification({
-    userId: assignedTo, tenantId,
-    title: `Yêu cầu kiểm tra phòng ${roomNumber}`,
-    body: `Khách ${guestName} sắp checkout. Vui lòng kiểm tra phòng.`,
-    type: 'room_checkout',
-    actionUrl: `/my-tasks`,
-  }),
-  sendTelegramNotification({
-    tenantId, hotelId, userIds: [assignedTo],
-    title: `🔍 Yêu cầu kiểm tra phòng ${roomNumber}`,
-    message: `Khách: ${guestName}\nVui lòng kiểm tra phòng trước khi checkout.`,
-    notificationType: 'checkout',
-    actionUrl: `/my-tasks`,
-  }),
-  // Telegram nhóm để manager biết ai được giao
-  sendTelegramNotification({
-    tenantId, hotelId, sendToStaffGroups: true,
-    title: `🔍 Yêu cầu kiểm tra phòng ${roomNumber}`,
-    message: `Khách: ${guestName}\n👤 Giao cho nhân viên`,
-    notificationType: 'checkout',
-    actionUrl: `/my-tasks`,
-  }),
-])
+Quick mode hiện nằm trong CheckTypeStep (step 1). Khi ẩn step 1:
+- **Bỏ quick mode toggle hoàn toàn** khi vào từ task được giao (vì task được giao luôn yêu cầu kiểm tra chi tiết).
+- Hoặc: chuyển toggle ra header (nếu cần giữ).
+→ Đề xuất: **Bỏ luôn** khi `shouldAutoSkip = true`.
+
+### 3. Đảm bảo `check_type` không bị ghi đè
+
+- Khi `prefilledType` tồn tại, **luôn force** `form.setValue('check_type', prefilledType)` sau resume/restore session, kể cả localStorage có giá trị khác.
+- Khi resume từ localStorage, override `data.check_type = prefilledType` trước khi `form.reset(data)`.
+
+### 4. Ẩn nút "Quay lại" trên step 2 khi auto-skip
+
+Sửa điều kiện hiển thị nút Back (line 1528):
+```tsx
+{currentStep > 1 
+  && !(currentStep === 2 && shouldAutoSkip)  // ← thêm
+  && !(currentStep === 4 && isCheckoutType && phase1Submitted) && (...)}
 ```
 
-### Bổ sung trong `onSuccess`:
-
-- Invalidate thêm `['unified-tasks']` để trigger refresh ở `HousekeepingStaffDashboard` của các nhân viên khác đang mở app (chưa kích hoạt realtime cho tenant đó).
-
-```ts
-queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })
-queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
-queryClient.invalidateQueries({ queryKey: ['hotel-housekeeping-tasks'] })
-queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
-```
-
-(Lưu ý: invalidate ở client của người giao việc không tự refresh client của nhân viên — nhưng `useUnifiedTasks` đã subscribe realtime trên `housekeeping_tasks` filter `assigned_to=eq.${userId}`, INSERT mới sẽ tự bay sang client nhân viên nếu họ đang online và visible).
+Và trong `handleBack`: chặn `if (shouldAutoSkip && currentStep <= 2) return`.
 
 ## Files thay đổi
 
 | File | Thay đổi |
 |---|---|
-| `src/hooks/useCheckoutInspection.ts` | Trong `createInspection.mutationFn` (sau insert housekeeping_tasks): fetch `room_number` + `guest_name`, gửi 4 notification (push + in-app + telegram cá nhân + telegram nhóm) song song. Thêm các invalidate queries còn thiếu. |
+| `src/pages/rooms/RoomCheckPage.tsx` | (1) `handleBack`: chặn về step 1 khi `shouldAutoSkip`. (2) `useEffect` resume localStorage: ép step ≥ 2 và override `check_type = prefilledType`. (3) `startFresh`: nếu `shouldAutoSkip` → set step 2 thay vì 1. (4) Ẩn nút "Quay lại" ở step 2 khi `shouldAutoSkip`. (5) Force-set `check_type` = `prefilledType` sau khi restore session. |
 
-Không cần migration, không sửa edge function, không sửa schema. Reuse `sendPushNotification`, `createInAppNotification`, `sendTelegramNotification` đã import sẵn.
+Không sửa `CheckTypeStep.tsx`, không sửa hook, không migration. Đồng thời giữ flow cũ (vào trang trực tiếp không qua task vẫn thấy step 1 chọn loại bình thường).
 
