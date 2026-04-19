@@ -1,126 +1,85 @@
-## Đánh giá hiện trạng `/bookings/:id`
 
-### Vấn đề chung
 
-1. **Header rời rạc**: Tên khách, status, phòng, số đêm tách rời — không có thông tin "tóm tắt" quan trọng (tổng tiền, còn nợ, hành động nhanh)
-2. **Tabs dùng icons** — vi phạm chuẩn "Minimalist Enterprise SaaS" của dự án (no icons in tabs)
-3. **Card style** — dùng `Card` thay vì `border rounded-lg` chuẩn dự án
-4. **Background màu** cho Check-in/Check-out (`bg-blue-50`, `bg-orange-50`) — vi phạm "no colored backgrounds, only semantic text colors"
+## Mục tiêu
 
----
+Biến tab **Vấn đề** thành một sổ ghi nhận sự cố thực tế: từng món bị hỏng/mất, **nguyên nhân**, **ai gây ra**, **quyết định xử lý** (thu khách / đền bù / miễn phí / bảo hành), và **liên kết sang phụ thu** trong Thanh toán.
 
-### Tab 1: Thông tin — **THIẾU**
+## Hiện trạng cần sửa
 
-- ❌ Không có **mã booking** (rất cần để tra cứu, in hóa đơn)
-- ❌ Không có **giấy tờ tùy thân** đã scan (CCCD/Passport) — đã có trong DB nhưng không hiển thị
-- ❌ Không hiển thị **địa chỉ khách**, **quốc tịch**
-- ❌ Không hiển thị **booking source** (Walk-in/Booking.com/Agoda...)
-- ❌ Không hiển thị **booking type** (Daily/Hourly/Monthly)
-- ❌ Không hiển thị **thời gian đặt phòng** (created_at), **người tạo**
-- ❌ Không có **ảnh giấy tờ thumbnails**
-- ❌ Số khách chỉ là số — thiếu adult/children breakdown nếu có
-- ❌ Không có **lịch sử lưu trú** (CRM link nếu khách quay lại)
+1. `BookingIssuesCard` đang sum `items_damaged`/`items_lost` như **number** nhưng thực tế DB là **JSONB array** — đếm sai (luôn ra 0 hoặc NaN).
+2. Mỗi `room_checks.items_damaged` đã có sẵn: `item_name`, `quantity`, `damage_type` (repairable/replacement_needed), `damage_cost`, `item_code`. **CHƯA hiển thị**.
+3. Không thấy **nguyên nhân** (reason), **ai báo cáo** (checked_by → user name), **ảnh** (photos[]), **trạng thái xử lý** (đã thu khách / miễn / chuyển bảo trì).
+4. Không có cách **thêm/sửa ghi chú nguyên nhân** trực tiếp trên trang Booking — phải mở dialog chỉnh sửa.
+5. `damage_charges` & `damage_notes` ở booking-level rời rạc với từng item trong `room_checks`.
 
-### Tab 2: Đồ dùng — **THIẾU**
+## Thiết kế mới — Tab Vấn đề
 
-- ❌ Không có **filter/search** khi danh sách dài
-- ❌ Không **link sang phiên kiểm tra phòng** (room_check_session) tương ứng
-- ❌ Không phân biệt rõ **đồ tiêu hao có tính phí vs miễn phí** (nước suối free vs minibar)
-
-### Tab 3: Vấn đề — **THIẾU**
-
-- ❌ Không hiển thị **chi phí đền bù** (`damage_charges`) — quan trọng nhất
-- ❌ Không có **ảnh đồ hỏng/mất** (nếu có upload)
-- ❌ Không **link sang Maintenance request** nếu vấn đề đã chuyển thành yêu cầu sửa chữa
-- ❌ Không có **người báo cáo** (staff name) cho từng issue
-- ❌ Không hiển thị **tên item cụ thể** bị hỏng/mất — chỉ thấy số lượng tổng
-
-### Tab 4: Thanh toán — **THIẾU**
-
-- ❌ Không có **lịch sử giao dịch** (`booking_payments`) — ai thu, lúc nào, phương thức gì
-- ❌ Không hiển thị **damage_charges** trong tổng cộng (đã có cột trong DB nhưng không cộng vào)
-- ❌ Không có **nút thao tác**: "Thu tiền", "Hoàn tiền", "Tạo QR thanh toán", "In hóa đơn", "Gửi email hóa đơn"
-- ❌ Không có **link tải/xem hóa đơn PDF** (`guest_invoices`)
-- ❌ Không hiển thị **invoice number** đã tạo
-- ❌ Service charges chỉ hiện tổng — thiếu **breakdown từng dịch vụ** (đã có `BookingServiceCharges` component)
-- ❌ Khi `paid_status = partial`, không nổi bật số **còn nợ**
-
----
-
-## Đề xuất cải tiến
-
-### A. Header gọn — Sticky Summary Bar
+### 1. Header tóm tắt (giữ 3 ô — sửa logic đếm)
 
 ```
-[←] TRẦN THỊ THANH HOAN  #BK-2026-0419-P101  [Đã trả phòng]
-    P101 • Standard • 1 đêm • 19→20/04/2026
-                                    Tổng: 850.000 ₫  •  Đã thu đủ ✓
-                              [In HĐ] [Chỉnh sửa]
+ĐỒ HỎNG: 1 món     ĐỒ MẤT: 0     PHỤ THU: 350.000 ₫
+```
+Đếm `length` của array thay vì sum giá trị JSONB.
+
+### 2. Danh sách sự cố — mỗi item là 1 hàng chi tiết
+
+Duyệt qua tất cả `room_checks` trong khoảng booking, **flatten** từng item trong `items_damaged` + `items_lost` thành 1 dòng:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Ấm đun nước (×1)              [HỎNG] [Cần thay mới]         │
+│ 19/04 10:27 • Checkout • Người báo: Nguyễn Văn A            │
+│ Nguyên nhân: [_________________________] [Lưu]              │
+│ Xử lý: ● Thu khách 350.000₫  ○ Miễn  ○ Bảo hành/Nội bộ      │
+│ [📷 1 ảnh]                            → Đã thêm vào phụ thu │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### B. Tabs phẳng, không icon, có badge số
+**Thao tác inline:**
+- **Nguyên nhân** (reason): textarea ngắn, lưu vào `room_checks.items_damaged[i].reason` (cập nhật JSONB) — KHÔNG cần migration.
+- **Quyết định xử lý** (3 lựa chọn): `charge_guest` / `waive` / `internal` — lưu vào `items_damaged[i].resolution` (JSONB).
+- **Ảnh**: hiển thị thumbnails từ `room_checks.photos[]` (nếu có), click mở lightbox.
+- **Người báo cáo**: join `checked_by` → `users.full_name`.
 
-```
-Thông tin   Đồ dùng (12)   Vấn đề (2)   Thanh toán (Đã thu)
-```
+### 3. Liên kết Thanh toán
 
-### C. Tab Thông tin — bố cục 2 cột chặt chẽ
+- Khi resolution = `charge_guest` → tổng `damage_charges` của booking phải khớp với sum `damage_cost × quantity` của các item đã chọn thu.
+- Hiển thị badge "→ Đã thêm vào phụ thu" hoặc "⚠ Chưa cộng vào hóa đơn" nếu lệch.
+- Nút "Đồng bộ phụ thu" cập nhật `room_bookings.damage_charges` + `damage_items` + `total_amount`.
 
-- **Cột trái**: Khách hàng (full info + giấy tờ scan thumbnail có click xem) + Lịch sử lưu trú
-- **Cột phải**: Phòng & Thời gian (KHÔNG dùng background xanh/cam, dùng border + text-blue-600/text-orange-600) + Booking metadata (mã, nguồn, loại, người tạo, ngày tạo)
-- **Hàng dưới**: Ghi chú (full width)
+### 4. Ghi chú thiệt hại tổng (giữ nguyên)
 
-### D. Tab Đồ dùng — gộp 2 card hiện có + thêm
+Vẫn hiển thị `booking.damage_notes` ở dưới — dành cho note tổng (không gắn 1 item cụ thể).
 
-- Section 1: **Phụ thu Minibar/Dịch vụ** (giữ ChargeableConsumablesCard) — nổi bật vì liên quan tiền
-- Section 2: **Đồ tiêu hao tiêu chuẩn** (giữ BookingConsumablesCard)
-- Section 3 mới: **Dịch vụ cộng thêm** (BookingServiceCharges read-only)
-- Thêm link "Xem phiên kiểm tra phòng →"
+### 5. Empty state — gọn
 
-### E. Tab Vấn đề — bổ sung chi phí + chi tiết item
+Bỏ icon tròn xanh lớn, dùng 1 dòng text-muted-foreground: "Không có vấn đề nào được ghi nhận trong thời gian khách lưu trú."
 
-- Card tóm tắt: Đồ hỏng / Đồ mất / **Chi phí đền bù** (3 cột thay vì 2)
-- Timeline: Mỗi issue hiện **tên item cụ thể** + **người báo cáo** + **link maintenance request** nếu có
-- Empty state: gọn hơn, bỏ icon tròn xanh lớn
+## Files thay đổi
 
-### F. Tab Thanh toán — thêm action + lịch sử
+| File | Thay đổi |
+|---|---|
+| `src/components/bookings/BookingIssuesCard.tsx` | Rewrite — flatten items, render per-item card với reason/resolution/photos, fix logic đếm |
+| `src/hooks/useBookingConsumables.ts` | `useBookingIssues`: trả thêm `checked_by_name` (join users), parse JSONB chính xác |
+| `src/hooks/useBookingIssues.ts` | **MỚI** — hook riêng `useUpdateRoomCheckItem` để update reason/resolution trong JSONB array |
+| `src/components/bookings/IssueItemRow.tsx` | **MỚI** — component 1 dòng sự cố với edit reason + radio resolution + ảnh |
+| `src/pages/bookings/BookingDetailPage.tsx` | Truyền thêm `bookingId`, `damageItems` (parsed từ booking.damage_items) vào `BookingIssuesCard` để hiển thị badge đồng bộ |
 
-- Giữ breakdown hiện tại, **bổ sung damage_charges** vào section "Phụ thu"
-- Thêm **section "Lịch sử giao dịch"** — từng lần thu (deposit, partial, final) với phương thức + người thu + thời gian
-- Thêm **section "Hóa đơn"** — link xem/tải PDF nếu đã phát hành
-- **Action buttons sticky bottom**: `[Thu tiền]` `[Tạo QR]` `[In hóa đơn]` `[Gửi email]` `[Hoàn tiền]` (theo trạng thái)
-- Highlight số "Còn phải thu" lớn + đỏ khi >0
+## Schema DB
 
----
-
-## Files cần thay đổi
-
-
-| File                                                | Thay đổi                                                                                   |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `src/pages/bookings/BookingDetailPage.tsx`          | Rewrite — sticky header, tab badges, bố cục mới, bỏ Card → border, bỏ icon tabs, bỏ bg màu |
-| `src/components/bookings/BookingIssuesCard.tsx`     | Thêm cột chi phí đền bù, tên item, người báo cáo, link maintenance                         |
-| `src/components/bookings/BookingPaymentHistory.tsx` | **MỚI** — list `booking_payments`                                                          |
-| `src/components/bookings/BookingDocumentsCard.tsx`  | **MỚI** — hiển thị ảnh giấy tờ scan                                                        |
-| `src/components/bookings/BookingMetadataCard.tsx`   | **MỚI** — mã BK, nguồn, loại, người tạo                                                    |
-| `src/components/bookings/BookingActionBar.tsx`      | **MỚI** — Thu tiền/QR/In/Email/Hoàn tiền                                                   |
-| `src/hooks/useBookingPayments.ts`                   | **MỚI** (nếu chưa có) — query `booking_payments`                                           |
-| `src/hooks/useGuestStayHistory.ts`                  | **MỚI** — query lịch sử lưu trú theo phone/guest_id                                        |
-
-
----
+**Không cần migration** — tận dụng JSONB sẵn có:
+- `room_checks.items_damaged[i]` thêm field `reason: string` và `resolution: 'charge_guest'|'waive'|'internal'` (JSONB tự do).
+- `room_bookings.damage_charges` + `damage_items` + `damage_notes` đã có sẵn.
 
 ## Câu hỏi xác nhận
 
-1. **Phạm vi cải tiến**:
-  - A: Làm **toàn bộ** 4 tabs + header + sticky action bar (lớn, ~8 file)
-    &nbsp;
-2. **Action buttons trong tab Thanh toán** — bạn muốn có những nút nào?
-  &nbsp;
-  - B: Cơ bản: Thu tiền, In hóa đơn
-    &nbsp;
-3. **Hiển thị giấy tờ tùy thân (CCCD scan)**:
-  - B: Không cần — bảo mật
-4. **Lịch sử giao dịch & lịch sử lưu trú**:
-  - A: Có cả hai
-    &nbsp;
+1. **Khi đổi "Quyết định xử lý" sang `charge_guest`**:
+   - A: **Tự động** cộng vào `booking.damage_charges` + `total_amount` ngay
+   - B: Chỉ ghi nhận, nút "Đồng bộ phụ thu" thủ công sau khi review xong tất cả
+   - C: Hiển thị cảnh báo "Cần đồng bộ" nhưng KHÔNG động vào booking đã trả phòng (vì đã thu tiền rồi)
+
+2. **Booking đã `paid_status = paid`** (đã thanh toán xong) mà phát sinh hỏng sau:
+   - A: Chặn — chỉ cho ghi nhận, không sửa được damage_charges
+   - B: Cho phép tạo "Phụ thu bổ sung" → tăng `total_amount`, đẩy về `partial`
+   - C: Tách thành booking phụ phí riêng (phức tạp — bỏ qua giai đoạn này)
+
