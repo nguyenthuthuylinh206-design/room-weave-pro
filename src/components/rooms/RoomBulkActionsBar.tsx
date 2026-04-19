@@ -169,7 +169,7 @@ export function RoomBulkActionsBar({ selectedIds, onClearSelection, rooms = [] }
           )}
 
           {/* Apply standards button */}
-          <PermissionGate module="rooms" action="edit">
+          <PermissionGate module="rooms" action="update">
             <Button
               variant="outline"
               size="sm"
