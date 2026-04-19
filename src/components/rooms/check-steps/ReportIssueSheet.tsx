@@ -1,15 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Minus, Plus, AlertTriangle } from 'lucide-react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 import type { ItemType } from '@/types/items.types'
 
-export type IssueAction = 
+export type IssueAction =
   | { type: 'laundry'; quantity: number }
   | { type: 'add'; quantity: number }
   | { type: 'change'; quantity: number }
@@ -30,26 +28,25 @@ export interface ReportIssueSheetProps {
   onSubmit: (action: IssueAction) => void
 }
 
-// Catalog các loại sự cố — gom hợp lý theo type
-const ISSUE_CATALOG: Record<string, { label: string; emoji: string; color: string }> = {
-  laundry:  { label: 'Cần giặt',     emoji: '🧺', color: 'border-blue-500 bg-blue-50 text-blue-700' },
-  change:   { label: 'Đổi mới',      emoji: '🔄', color: 'border-primary bg-primary/10 text-primary' },
-  add:      { label: 'Thêm',          emoji: '➕', color: 'border-green-500 bg-green-50 text-green-700' },
-  missing:  { label: 'Thiếu',         emoji: '🚫', color: 'border-amber-500 bg-amber-50 text-amber-700' },
-  damaged:  { label: 'Hỏng / Bẩn',   emoji: '🛠️', color: 'border-amber-600 bg-amber-50 text-amber-700' },
-  lost:     { label: 'Mất',           emoji: '⛔', color: 'border-destructive bg-destructive/10 text-destructive' },
-  consumed: { label: 'Đã dùng',      emoji: '📦', color: 'border-cyan-500 bg-cyan-50 text-cyan-700' },
-  empty:    { label: 'Hết',           emoji: '📭', color: 'border-cyan-500 bg-cyan-50 text-cyan-700' },
+// Catalog tình trạng — không emoji, chỉ chữ + màu chữ semantic khi chọn
+const ISSUE_CATALOG: Record<string, { label: string; color: string }> = {
+  laundry:  { label: 'Bẩn (cần giặt)', color: 'border-blue-500 text-blue-700' },
+  change:   { label: 'Đã thay',         color: 'border-primary text-primary' },
+  add:      { label: 'Đã thêm',         color: 'border-green-500 text-green-700' },
+  missing:  { label: 'Thiếu',           color: 'border-amber-500 text-amber-700' },
+  damaged:  { label: 'Hỏng',            color: 'border-amber-600 text-amber-700' },
+  lost:     { label: 'Mất',             color: 'border-destructive text-destructive' },
+  consumed: { label: 'Đã dùng',         color: 'border-cyan-500 text-cyan-700' },
+  empty:    { label: 'Hết',             color: 'border-cyan-500 text-cyan-700' },
 }
 
-// Giao của (action hợp lệ cho item type) × (allowedActions config) × (priority)
 const ITEM_TYPE_ACTIONS: Record<ItemType, string[]> = {
   linen:      ['laundry', 'change', 'add', 'missing', 'damaged', 'lost'],
   consumable: ['consumed', 'empty', 'missing', 'lost'],
   equipment:  ['damaged', 'missing', 'lost'],
   furniture:  ['damaged', 'missing', 'lost'],
 }
-const PRIORITY = ['missing', 'damaged', 'empty', 'consumed', 'laundry', 'change', 'add', 'lost']
+const PRIORITY = ['missing', 'damaged', 'laundry', 'empty', 'consumed', 'change', 'add', 'lost']
 
 export function ReportIssueSheet({
   open,
@@ -66,7 +63,6 @@ export function ReportIssueSheet({
   const [needRefill, setNeedRefill] = useState(true)
   const [notes, setNotes] = useState('')
 
-  // Reset khi mở/đóng
   useEffect(() => {
     if (open) {
       setSelectedType(null)
@@ -76,14 +72,14 @@ export function ReportIssueSheet({
     }
   }, [open])
 
-  // Build danh sách action khả dụng cho item này
+  // Linen: nếu config cho phép `laundry` thì luôn cho hiện "Bẩn (cần giặt)" map sang laundry
   const allowed = ITEM_TYPE_ACTIONS[itemType] || []
   const issueTypes = PRIORITY.filter(a => allowed.includes(a) && allowedActions.includes(a))
 
   const handleConfirm = () => {
     if (!selectedType) return
     const qty = Math.max(1, Math.min(quantity, standardQuantity))
-    
+
     switch (selectedType) {
       case 'laundry':  onSubmit({ type: 'laundry', quantity: qty }); break
       case 'change':   onSubmit({ type: 'change', quantity: qty }); break
@@ -111,22 +107,22 @@ export function ReportIssueSheet({
         className="rounded-t-2xl p-0 max-h-[85vh] overflow-y-auto"
       >
         <div className="mx-auto w-10 h-1 bg-muted rounded-full mt-2 mb-3" />
-        <SheetHeader className="px-4 pb-3">
-          <SheetTitle className="text-lg font-bold leading-tight">{itemName}</SheetTitle>
+        <SheetHeader className="px-4 pb-3 text-left">
+          <SheetTitle className="text-base font-bold leading-tight">{itemName}</SheetTitle>
           <p className="text-xs text-muted-foreground">
-            Tiêu chuẩn: {standardQuantity} • Báo sự cố để xử lý.
+            Tiêu chuẩn: {standardQuantity} · Cập nhật tình trạng thực tế.
           </p>
         </SheetHeader>
 
-        <div className="px-4 pb-4 space-y-5">
-          {/* Loại sự cố */}
+        <div className="px-4 pb-6 space-y-4">
+          {/* Tình trạng */}
           <div>
             <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-              Loại sự cố
+              Tình trạng
             </Label>
             {issueTypes.length === 0 ? (
               <p className="mt-2 text-sm text-muted-foreground italic">
-                Không có hành động khả dụng cho loại đồ này.
+                Không có tình trạng khả dụng cho loại đồ này.
               </p>
             ) : (
               <div className="grid grid-cols-2 gap-2 mt-2">
@@ -140,12 +136,13 @@ export function ReportIssueSheet({
                       type="button"
                       onClick={() => setSelectedType(type)}
                       className={cn(
-                        'h-14 rounded-xl border-2 font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.97]',
-                        isSelected ? cfg.color : 'border-border bg-background text-foreground hover:bg-muted/50'
+                        'h-11 rounded-md border-2 font-semibold text-sm transition-colors active:bg-muted/50',
+                        isSelected
+                          ? cfg.color
+                          : 'border-border bg-background text-foreground hover:bg-muted/40'
                       )}
                     >
-                      <span className="text-lg">{cfg.emoji}</span>
-                      <span>{cfg.label}</span>
+                      {cfg.label}
                     </button>
                   )
                 })}
@@ -157,75 +154,60 @@ export function ReportIssueSheet({
           {selectedType && (
             <div>
               <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                Số lượng ảnh hưởng
+                Số lượng
               </Label>
-              <div className="mt-2 flex items-center gap-3 bg-muted/40 rounded-xl p-3">
-                <span className="flex-1 text-sm font-medium">Số lượng:</span>
-                <div className="flex items-center border rounded-lg overflow-hidden bg-background">
-                  <Button
+              <div className="mt-2 flex items-center gap-3 border rounded-md p-2">
+                <span className="flex-1 text-sm">Số lượng ảnh hưởng</span>
+                <div className="flex items-center border rounded-md overflow-hidden">
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-10 w-10 rounded-none"
+                    className="h-9 w-9 text-lg font-semibold hover:bg-muted disabled:opacity-40"
                     onClick={() => setQuantity(q => Math.max(1, q - 1))}
                     disabled={quantity <= 1}
                   >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  <div className="w-14 text-center text-base font-bold tabular-nums">
+                    −
+                  </button>
+                  <div className="w-14 text-center text-sm font-bold tabular-nums">
                     {quantity} / {standardQuantity}
                   </div>
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-10 w-10 rounded-none"
+                    className="h-9 w-9 text-lg font-semibold hover:bg-muted"
                     onClick={() => setQuantity(q => q + 1)}
                   >
-                    <Plus className="h-4 w-4" />
-                  </Button>
+                    +
+                  </button>
                 </div>
               </div>
               {isOverStandard && (
                 <p className="mt-1.5 text-[11px] text-amber-600 px-1">
-                  ⚠ Vượt tiêu chuẩn ({standardQuantity})
+                  Vượt tiêu chuẩn ({standardQuantity})
                 </p>
               )}
             </div>
           )}
 
-          {/* Cần bổ sung từ kho */}
+          {/* Tạo phiếu bổ sung */}
           {selectedType && showRefillSwitch && (
-            <div className="flex items-center justify-between bg-muted/40 rounded-xl p-3">
-              <div>
-                <Label className="text-sm font-semibold">Cần bổ sung từ kho</Label>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Tự tạo phiếu yêu cầu bổ sung
-                </p>
-              </div>
+            <div className="flex items-center justify-between border rounded-md p-3">
+              <Label className="text-sm font-medium">Tạo phiếu bổ sung từ kho</Label>
               <Switch checked={needRefill} onCheckedChange={setNeedRefill} />
             </div>
           )}
 
-          {/* Cảnh báo kho */}
+          {/* Cảnh báo kho — chỉ text, không icon */}
           {selectedType && showStockWarning && isOutOfStock && (needRefill || !showRefillSwitch) && (
-            <Alert variant="destructive" className="py-2">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-xs">
-                Hết hàng trong kho! Cần nhập kho mới có thể bổ sung.
-              </AlertDescription>
-            </Alert>
+            <p className="text-xs text-destructive px-1">
+              Hết hàng trong kho. Cần nhập kho mới có thể bổ sung.
+            </p>
           )}
           {selectedType && showStockWarning && isLowStock && (
-            <Alert className="py-2 border-amber-500/50 bg-amber-500/10">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="text-xs text-amber-700">
-                Tồn kho thấp: chỉ còn {availableStock}
-              </AlertDescription>
-            </Alert>
+            <p className="text-xs text-amber-600 px-1">
+              Tồn kho thấp: chỉ còn {availableStock}.
+            </p>
           )}
 
-          {/* Ghi chú cho hỏng/mất */}
+          {/* Ghi chú */}
           {selectedType && showNotes && (
             <div>
               <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
@@ -234,7 +216,7 @@ export function ReportIssueSheet({
               <Textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder={selectedType === 'damaged' ? 'Mô tả hư hỏng...' : 'Lý do/hoàn cảnh...'}
+                placeholder={selectedType === 'damaged' ? 'Mô tả tình trạng hư hỏng...' : 'Lý do/hoàn cảnh...'}
                 className="mt-2 h-20 text-sm resize-none"
               />
             </div>
@@ -244,24 +226,19 @@ export function ReportIssueSheet({
           <div className="flex gap-2 pt-2">
             <Button
               type="button"
-              variant="secondary"
-              className="flex-1 h-12 rounded-xl font-bold"
+              variant="outline"
+              className="flex-1 h-11"
               onClick={() => onOpenChange(false)}
             >
               Huỷ
             </Button>
             <Button
               type="button"
-              className={cn(
-                'flex-1 h-12 rounded-xl font-bold',
-                selectedType === 'lost' || selectedType === 'damaged' || selectedType === 'missing'
-                  ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground'
-                  : ''
-              )}
+              className="flex-1 h-11 font-semibold"
               disabled={!selectedType}
               onClick={handleConfirm}
             >
-              Lưu sự cố
+              Lưu
             </Button>
           </div>
         </div>

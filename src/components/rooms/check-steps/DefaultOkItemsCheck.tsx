@@ -1,10 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Search, Check, AlertCircle, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { supabase } from '@/integrations/supabase/client'
 import { ReportIssueSheet, type IssueAction } from './ReportIssueSheet'
 import type {
@@ -34,14 +31,12 @@ export interface DefaultOkItemsCheckProps {
   items: RoomItemWithDetails[]
   checkType: CheckType
   phase?: 1 | 2
-  // State from parent
   laundryItems: LaundryItem[]
   consumedItems: ConsumedItem[]
   lostItems: LostItem[]
   replacedItems: ReplacedItem[]
   damagedItems: DamagedItem[]
   missingItems?: { item_id: string; quantity?: number; missing_quantity?: number }[]
-  // Handlers (mirror CategoryBasedItemsCheck)
   onLinenStatusChange: (item: RoomItemWithDetails, status: 'ok' | 'laundry' | 'add' | 'change' | 'lost' | 'missing', quantity: number) => void
   onMarkConsumed: (item: RoomItemWithDetails, quantity: number, needRefill: boolean) => void
   onEquipmentLost: (item: RoomItemWithDetails, quantity: number, estimatedValue?: number) => void
@@ -54,15 +49,16 @@ export interface DefaultOkItemsCheckProps {
 
 type ItemStatus = 'ok' | 'laundry' | 'add' | 'change' | 'lost' | 'damaged' | 'missing' | 'consumed'
 
-const STATUS_LABELS: Record<ItemStatus, { label: string; color: string }> = {
-  ok:       { label: 'OK',     color: 'text-green-600' },
-  laundry:  { label: 'Giặt',   color: 'text-blue-600' },
-  add:      { label: 'Thêm',   color: 'text-green-600' },
-  change:   { label: 'Đổi',    color: 'text-primary' },
-  lost:     { label: 'Mất',    color: 'text-destructive' },
-  damaged:  { label: 'Hỏng',   color: 'text-amber-600' },
-  missing:  { label: 'Thiếu',  color: 'text-amber-700' },
-  consumed: { label: 'Đã dùng', color: 'text-cyan-600' },
+// Tag trạng thái — chuẩn ngôn ngữ "đã + động từ" cho hành động đã thực hiện
+const STATUS_LABELS: Record<ItemStatus, { label: string; color: string; bar: string }> = {
+  ok:       { label: 'Đạt',     color: 'text-green-600',      bar: 'border-l-transparent' },
+  laundry:  { label: 'Đã giặt', color: 'text-blue-600',       bar: 'border-l-blue-500' },
+  add:      { label: 'Đã thêm', color: 'text-green-600',      bar: 'border-l-green-500' },
+  change:   { label: 'Đã thay', color: 'text-primary',        bar: 'border-l-primary' },
+  lost:     { label: 'Mất',     color: 'text-destructive',    bar: 'border-l-destructive' },
+  damaged:  { label: 'Hỏng',    color: 'text-amber-600',      bar: 'border-l-amber-500' },
+  missing:  { label: 'Thiếu',   color: 'text-amber-700',      bar: 'border-l-amber-600' },
+  consumed: { label: 'Đã dùng', color: 'text-cyan-600',       bar: 'border-l-cyan-500' },
 }
 
 export function DefaultOkItemsCheck({
@@ -91,7 +87,6 @@ export function DefaultOkItemsCheck({
   const [search, setSearch] = useState('')
   const [sheetItem, setSheetItem] = useState<ExtendedRoomItem | null>(null)
 
-  // Fetch item details
   useEffect(() => {
     const fetchDetails = async () => {
       if (items.length === 0) {
@@ -124,7 +119,6 @@ export function DefaultOkItemsCheck({
     fetchDetails()
   }, [items])
 
-  // Group by category
   const groups = useMemo<CategoryGroup[]>(() => {
     const map = new Map<string, CategoryGroup>()
     enriched.forEach(item => {
@@ -136,7 +130,6 @@ export function DefaultOkItemsCheck({
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'vi'))
   }, [enriched])
 
-  // Compute status per item
   const getStatus = (itemId: string): ItemStatus | null => {
     const inLaundry = laundryItems.some(i => i.item_id === itemId)
     const inReplaced = replacedItems.some(i => i.item_id === itemId)
@@ -147,7 +140,7 @@ export function DefaultOkItemsCheck({
     if (damagedItems.some(i => i.item_id === itemId)) return 'damaged'
     if (consumedItems.some(i => i.item_id === itemId)) return 'consumed'
     if (missingItems.some(i => i.item_id === itemId)) return 'missing'
-    return null // null = mặc định OK
+    return null
   }
 
   const getReportedQty = (itemId: string, status: ItemStatus): number => {
@@ -163,7 +156,6 @@ export function DefaultOkItemsCheck({
     }
   }
 
-  // Get allowed actions per item
   const getAllowedActions = (itemType: ItemType): string[] => {
     if (checkType === 'checkout' && phase && config.phase1Actions && config.phase2Actions) {
       const p = phase === 1 ? config.phase1Actions : config.phase2Actions
@@ -177,7 +169,6 @@ export function DefaultOkItemsCheck({
     }
   }
 
-  // Reset item về OK
   const resetItem = (item: ExtendedRoomItem) => {
     const status = getStatus(item.item_id)
     if (!status) return
@@ -191,9 +182,7 @@ export function DefaultOkItemsCheck({
     if (status === 'missing') onResetLinen(item.item_id)
   }
 
-  // Apply issue from sheet
   const applyIssue = (item: ExtendedRoomItem, action: IssueAction) => {
-    // Reset trước nếu đã có sự cố trước đó (cho phép sửa)
     const existing = getStatus(item.item_id)
     if (existing) resetItem(item)
 
@@ -217,16 +206,12 @@ export function DefaultOkItemsCheck({
         })
         break
       case 'consumed':
-        onMarkConsumed(item, action.quantity, action.needRefill)
-        break
       case 'empty':
-        // 'empty' = consumable hết, dùng cùng flow consumed
         onMarkConsumed(item, action.quantity, action.needRefill)
         break
     }
   }
 
-  // Filter by search
   const filterItems = (list: ExtendedRoomItem[]) => {
     if (!search) return list
     const q = search.toLowerCase()
@@ -236,10 +221,8 @@ export function DefaultOkItemsCheck({
     )
   }
 
-  // Stats
   const totalItems = enriched.length
   const reportedCount = enriched.filter(i => getStatus(i.item_id) !== null).length
-  const okCount = totalItems - reportedCount
 
   if (isLoading) {
     return (
@@ -261,73 +244,61 @@ export function DefaultOkItemsCheck({
 
   return (
     <div className="space-y-3">
-      {/* Banner trạng thái */}
+      {/* Banner trạng thái — minimalist, border-l, không icon */}
       {reportedCount === 0 ? (
-        <div className="flex items-start gap-3 p-3 rounded-xl bg-green-50 border border-green-200">
-          <div className="w-9 h-9 rounded-full bg-green-500 text-white flex items-center justify-center flex-shrink-0">
-            <Check className="h-5 w-5" strokeWidth={3} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-green-900">Mặc định: Tất cả OK</p>
-            <p className="text-xs text-green-700 mt-0.5 leading-snug">
-              Chạm vào món nào để báo sự cố. Không có vấn đề? Nhấn "Xác nhận phòng OK" bên dưới.
-            </p>
-          </div>
+        <div className="border-l-4 border-green-500 bg-muted/30 px-3 py-2.5 rounded-r-md">
+          <p className="text-sm font-semibold text-green-700">Mặc định đạt chuẩn</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Chạm vào mục cần xử lý để cập nhật tình trạng.
+          </p>
         </div>
       ) : (
-        <div className="flex items-start gap-3 p-3 rounded-xl bg-destructive/10 border border-destructive/30">
-          <div className="w-9 h-9 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center flex-shrink-0">
-            <AlertCircle className="h-5 w-5" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-destructive">
-              Đã ghi nhận {reportedCount} sự cố
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
-              Các món khác mặc định OK. Chạm vào sự cố để sửa, hoặc tiếp tục.
-            </p>
-          </div>
+        <div className="border-l-4 border-amber-500 bg-muted/30 px-3 py-2.5 rounded-r-md">
+          <p className="text-sm font-semibold text-amber-700">
+            {reportedCount} mục cần xử lý
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Các mục còn lại đạt chuẩn. Chạm để chỉnh sửa.
+          </p>
         </div>
       )}
 
-      {/* Search khi nhiều đồ */}
+      {/* Search — không icon */}
       {totalItems > 8 && (
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Tìm đồ dùng..."
-            className="pl-9 h-10"
-          />
-        </div>
+        <Input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Tìm theo tên hoặc mã..."
+          className="h-9"
+        />
       )}
 
-      {/* Groups by category */}
+      {/* Groups */}
       {groups.map(group => {
         const filtered = filterItems(group.items)
         if (filtered.length === 0) return null
         const groupReported = group.items.filter(i => getStatus(i.item_id) !== null).length
 
         return (
-          <div key={group.id} className="space-y-2">
+          <div key={group.id} className="space-y-1.5">
             <div className="flex items-center justify-between px-1">
               <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                 {group.name}
               </h3>
               <span className="text-[11px] text-muted-foreground tabular-nums">
-                {groupReported > 0 ? `${groupReported} sự cố` : `${group.items.length} món`}
+                {groupReported > 0
+                  ? `${groupReported}/${group.items.length} cần xử lý`
+                  : `${group.items.length} mục`}
               </span>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {filtered.map(item => {
                 const status = getStatus(item.item_id)
                 const isOk = status === null
                 const reportedQty = status ? getReportedQty(item.item_id, status) : 0
                 const stdQty = item.standard_quantity || 1
                 const statusInfo = status ? STATUS_LABELS[status] : null
-                const allowedActions = getAllowedActions(item.item_type)
 
                 return (
                   <button
@@ -335,87 +306,50 @@ export function DefaultOkItemsCheck({
                     type="button"
                     onClick={() => setSheetItem(item)}
                     className={cn(
-                      'w-full flex items-center gap-3 px-3 py-3 min-h-[64px] rounded-xl border text-left transition-all active:scale-[0.99]',
-                      isOk && 'bg-card border-border hover:bg-muted/40',
-                      !isOk && (status === 'damaged' || status === 'missing'
-                        ? 'bg-amber-50/60 border-amber-300'
-                        : status === 'lost'
-                        ? 'bg-destructive/5 border-destructive/40'
-                        : 'bg-blue-50/40 border-blue-300')
+                      'w-full flex items-center gap-3 pl-3 pr-2 py-3 min-h-[56px] rounded-md border bg-card text-left transition-colors active:bg-muted/50 hover:bg-muted/30',
+                      'border-l-4',
+                      isOk ? 'border-l-transparent' : statusInfo?.bar
                     )}
                   >
-                    {/* Status circle */}
-                    <div
-                      className={cn(
-                        'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border-2',
-                        isOk && 'bg-green-50 border-green-500 text-green-600',
-                        !isOk && (status === 'damaged' || status === 'missing'
-                          ? 'bg-amber-100 border-amber-500 text-amber-700'
-                          : status === 'lost'
-                          ? 'bg-destructive/10 border-destructive text-destructive'
-                          : 'bg-blue-100 border-blue-500 text-blue-700')
-                      )}
-                    >
-                      {isOk ? (
-                        <Check className="h-4 w-4" strokeWidth={3} />
-                      ) : status === 'lost' ? (
-                        <X className="h-4 w-4" strokeWidth={3} />
-                      ) : (
-                        <AlertCircle className="h-4 w-4" strokeWidth={2.5} />
-                      )}
-                    </div>
-
-                    {/* Body */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-2">
-                        <p className="text-[15px] font-semibold leading-tight truncate">
+                        <p className="text-sm font-medium leading-tight truncate">
                           {item.item_name}
                         </p>
                         {stdQty > 1 && (
-                          <span className="text-xs text-muted-foreground shrink-0">
+                          <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
                             ×{stdQty}
                           </span>
                         )}
                       </div>
-                      {isOk ? (
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          Mặc định OK · Chạm để báo sự cố
-                        </p>
-                      ) : (
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              'h-5 px-1.5 text-[10px] font-bold border-current',
-                              statusInfo?.color
-                            )}
-                          >
-                            {statusInfo?.label}
-                          </Badge>
-                          <span className="text-[11px] text-muted-foreground">
+                      {!isOk && statusInfo && (
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className={cn('text-xs font-semibold', statusInfo.color)}>
+                            {statusInfo.label}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground tabular-nums">
                             {reportedQty}/{stdQty}
                           </span>
                         </div>
                       )}
                     </div>
 
-                    {/* Right: action hint or reset */}
                     {isOk ? (
-                      <div className="text-[11px] text-muted-foreground bg-muted/60 px-2 py-1 rounded-md shrink-0">
-                        Báo sự cố
-                      </div>
+                      <span className="text-xs text-muted-foreground shrink-0 px-2">
+                        Cập nhật
+                      </span>
                     ) : (
-                      <div
+                      <span
                         role="button"
-                        aria-label="Bỏ báo cáo"
+                        aria-label="Bỏ"
                         onClick={(e) => {
                           e.stopPropagation()
                           resetItem(item)
                         }}
-                        className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-muted active:bg-muted/80"
+                        className="text-xs font-medium text-muted-foreground hover:text-foreground px-2 py-1 shrink-0"
                       >
-                        <X className="h-4 w-4" />
-                      </div>
+                        Bỏ
+                      </span>
                     )}
                   </button>
                 )
@@ -425,12 +359,6 @@ export function DefaultOkItemsCheck({
         )
       })}
 
-      {/* Tóm tắt cuối */}
-      <div className="text-center text-[11px] text-muted-foreground py-2">
-        {okCount} món OK · {reportedCount} sự cố · Tổng {totalItems}
-      </div>
-
-      {/* Bottom sheet báo sự cố */}
       <ReportIssueSheet
         open={!!sheetItem}
         onOpenChange={(open) => !open && setSheetItem(null)}
