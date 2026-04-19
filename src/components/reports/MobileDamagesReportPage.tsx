@@ -37,13 +37,11 @@ interface DamageRecord {
 function totalQty(raw: unknown): number {
   if (!raw) return 0
   if (Array.isArray(raw)) {
-    return raw.reduce((s: number, it: any) => s + (Number(it?.quantity) || 1), 0)
+    return (raw as any[]).reduce((s: number, it: any) => s + (Number(it?.quantity) || 1), 0)
   }
   if (typeof raw === 'object') {
-    return Object.values(raw as Record<string, unknown>).reduce(
-      (s: number, v) => s + (Number(v) || 0),
-      0
-    )
+    return (Object.values(raw as Record<string, unknown>) as unknown[])
+      .reduce<number>((s, v) => s + (Number(v) || 0), 0)
   }
   return 0
 }

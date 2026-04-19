@@ -106,7 +106,7 @@ export function DamagesReportPage() {
         }
       }
 
-      let query = supabase
+      let query: any = supabase
         .from('room_checks')
         .select('id, check_type, items_damaged, items_lost, checked_at, room_id')
         .eq('tenant_id', tenantId)
