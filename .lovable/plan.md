@@ -1,58 +1,109 @@
 
 
-## Vấn đề
+## Vấn đề hiện tại
 
-Khi nhân viên nhấn "Bắt đầu" task từ dashboard:
-- Đã navigate đúng URL: `/rooms/:id/check?type=checkout|checkin|replenish`
-- Code đã có `shouldAutoSkip = !!prefilledType` → `initialStep = 2` (skip step chọn loại)
+Trang `/rooms/:id/check` (DefaultOkItemsCheck + ReportIssueSheet) còn nhiều điểm chưa hợp lý:
 
-**NHƯNG vẫn lộ ra step 1 ("Chọn loại kiểm tra") trong các tình huống:**
+### 1. Lạm dụng icon (vi phạm chuẩn minimalist)
+- Vòng tròn có icon `Check` (✓) / `AlertCircle` (!) / `X` ở mỗi item
+- Banner trên cùng có icon tròn lớn (Check / AlertCircle)
+- Sheet "Báo sự cố" mỗi nút có emoji: 🧺 🔄 ➕ 🚫 🛠️ ⛔ 📦 📭
+- Ô tìm kiếm có icon `Search`
+- Nút bỏ báo cáo dùng icon `X`
 
-1. **Nút "Quay lại"** ở step 2 đưa nhân viên về step 1 → thấy lại 6 ô chọn loại (cho phép nhân viên đổi loại task khác → sai logic, vì task đã chỉ định rõ ràng).
-2. **Resume từ localStorage**: Nếu lần trước đã thoát ở step 1, mở lại sẽ load `step=1` từ localStorage thay vì áp dụng `prefilledType`.
-3. **Quick mode toggle** nằm trong CheckTypeStep — có cần riêng cho task được giao không?
+### 2. Ngôn từ tác vụ không chuẩn / không thống nhất
+- "OK" — viết tắt tiếng Anh, không đồng bộ với phần còn lại của app (đang dùng "Đạt", "Đầy đủ")
+- "Mặc định OK · Chạm để báo sự cố" — kỹ thuật, không tự nhiên
+- "Báo sự cố" — gay gắt; nên dùng "Ghi nhận tình trạng" / "Cập nhật"
+- "sự cố" — chỉ đúng cho đồ hỏng/mất, không phù hợp với "đã giặt", "đã thay", "đã dùng"
+- "Hỏng / Bẩn" gộp nhầm — bẩn ≠ hỏng (bẩn = cần giặt; hỏng = cần thay)
+- Sheet: "Loại sự cố" → nên là "Tình trạng"
+- "Cần bổ sung từ kho" + sub "Tự tạo phiếu yêu cầu bổ sung" — thừa, dài
+- Banner: "Đã ghi nhận N sự cố" + "Các món khác mặc định OK" — văn nói, không formal
+- Tag "Giặt / Thêm / Đổi / Mất / Hỏng / Thiếu / Đã dùng" — ngắn nhưng không đồng nhất với động từ ("Đã giặt / Đã thêm / Đã đổi / Mất / Hỏng / Thiếu / Đã dùng")
 
-→ Khi đã được giao task xác định loại (`?type=...` trong URL), **bước "Chọn loại kiểm tra" KHÔNG được phép xuất hiện** và **không được phép back về**.
+### 3. Thông tin trùng lặp
+- Banner trên cùng + dòng tổng kết cuối ("X món OK · Y sự cố · Tổng Z") nói cùng việc
+- Mỗi card OK lại có thêm hint "Báo sự cố" bên phải + dòng "Mặc định OK · Chạm để báo sự cố" bên dưới tên → 3 chỗ nói cùng 1 ý
+
+### 4. Chỉ báo trạng thái dựa vào màu nền sặc sỡ
+- Card hỏng: nền vàng; mất: nền đỏ; giặt: nền xanh — vi phạm chuẩn "chỉ dùng màu chữ semantic, không dùng màu nền cho status"
+
+---
 
 ## Hướng sửa
 
-Trong `src/pages/rooms/RoomCheckPage.tsx`:
+### A. Bỏ toàn bộ icon trang trí
+- **Vòng tròn trạng thái** → thay bằng **thanh dọc 3px bên trái card** (border-l-4) + chữ trạng thái. Card OK = không thanh; card có ghi nhận = thanh màu semantic (xanh/vàng/đỏ).
+- **Banner trên cùng** → bỏ icon tròn, chỉ còn 1 dòng text gọn (`text-sm`) căn trái với border-l-4.
+- **Search** → bỏ icon, đặt placeholder "Tìm theo tên hoặc mã..."
+- **Nút reset (X)** → đổi thành text "Bỏ"
+- **Sheet — bỏ toàn bộ emoji** trong các nút loại tình trạng. Chỉ giữ chữ.
 
-### 1. Khóa step 1 khi có `prefilledType`
+### B. Chuẩn hóa ngôn từ
 
-Khi `shouldAutoSkip = true` (URL có `?type=...`):
-- **Không cho phép `setCurrentStep(1)`** ở bất kỳ đường nào (back, resume, fresh).
-- `handleBack`: chặn nếu `currentStep === 2 && shouldAutoSkip` → ẩn nút "Quay lại" trên step 2 luôn (đã có nút X để hủy task).
-- `startFresh` & resume từ localStorage: dùng `Math.max(2, savedStep)` thay vì set thẳng `step`.
+| Cũ | Mới |
+|---|---|
+| OK | Đạt |
+| Mặc định OK · Chạm để báo sự cố | Đạt chuẩn |
+| Báo sự cố | Cập nhật tình trạng |
+| sự cố | mục cần xử lý |
+| Loại sự cố | Tình trạng |
+| Hỏng / Bẩn | tách thành **Hỏng** và **Bẩn (cần giặt)** |
+| Đã ghi nhận N sự cố | N mục cần xử lý |
+| Các món khác mặc định OK. Chạm vào sự cố để sửa, hoặc tiếp tục. | Các mục còn lại đạt chuẩn. Chạm để chỉnh sửa. |
+| Cần bổ sung từ kho / Tự tạo phiếu yêu cầu bổ sung | Tạo phiếu bổ sung từ kho |
+| Lưu sự cố | Lưu |
 
-### 2. Quick mode toggle
+**Tag trạng thái** (đồng nhất theo cấu trúc "đã + động từ" cho hành động đã thực hiện, danh từ cho tình trạng):
+- `laundry` → "Đã giặt" (giữ)
+- `add` → "Đã thêm"
+- `change` → "Đã thay"
+- `lost` → "Mất" (giữ)
+- `damaged` → "Hỏng" (giữ)
+- `missing` → "Thiếu" (giữ)
+- `consumed` → "Đã dùng" (giữ)
+- `empty` → "Hết"
 
-Quick mode hiện nằm trong CheckTypeStep (step 1). Khi ẩn step 1:
-- **Bỏ quick mode toggle hoàn toàn** khi vào từ task được giao (vì task được giao luôn yêu cầu kiểm tra chi tiết).
-- Hoặc: chuyển toggle ra header (nếu cần giữ).
-→ Đề xuất: **Bỏ luôn** khi `shouldAutoSkip = true`.
+### C. Đơn giản hóa card item
 
-### 3. Đảm bảo `check_type` không bị ghi đè
+Layout mới — 1 hàng duy nhất, không vòng tròn, không icon:
 
-- Khi `prefilledType` tồn tại, **luôn force** `form.setValue('check_type', prefilledType)` sau resume/restore session, kể cả localStorage có giá trị khác.
-- Khi resume từ localStorage, override `data.check_type = prefilledType` trước khi `form.reset(data)`.
-
-### 4. Ẩn nút "Quay lại" trên step 2 khi auto-skip
-
-Sửa điều kiện hiển thị nút Back (line 1528):
-```tsx
-{currentStep > 1 
-  && !(currentStep === 2 && shouldAutoSkip)  // ← thêm
-  && !(currentStep === 4 && isCheckoutType && phase1Submitted) && (...)}
+```text
+┃ Khăn tắm lớn         ×2          [Báo cáo]   ← OK (border-l xám nhạt)
+┃ 
+┃ Ấm đun nước                    Hỏng 1/1  Bỏ  ← border-l-4 amber
 ```
 
-Và trong `handleBack`: chặn `if (shouldAutoSkip && currentStep <= 2) return`.
+- Bỏ dòng phụ "Mặc định OK · Chạm để báo sự cố" (đã thể hiện qua banner + nút bên phải)
+- Bỏ nền màu sặc sỡ → chỉ giữ `border-l-4` semantic
+- Chữ tag trạng thái dùng `text-{color}-600` (chuẩn dự án), không có badge nền
+
+### D. Bỏ dòng tổng kết cuối
+
+Banner trên đã có "N mục cần xử lý" — không cần lặp lại "X đạt · Y cần xử lý · Tổng Z".
+
+### E. Sheet "Cập nhật tình trạng" — tinh gọn
+
+- Bỏ emoji ở các nút loại tình trạng (chỉ chữ, dùng `border-2` + `text-{color}-600` khi chọn)
+- Bỏ Alert icon (`AlertTriangle`) ở cảnh báo kho — chỉ dùng text màu cảnh báo
+- Đổi label theo bảng B
+- Tách "Bẩn (cần giặt)" thành lựa chọn riêng cho `linen` (map sang action `laundry`)
+
+### F. Cập nhật memory
+
+Cập nhật `mem://design/room-check-default-ok-ux-v1.md` để chốt: không icon, không emoji, dùng border-l-4 + màu chữ semantic, ngôn từ chuẩn theo bảng B.
+
+---
 
 ## Files thay đổi
 
 | File | Thay đổi |
 |---|---|
-| `src/pages/rooms/RoomCheckPage.tsx` | (1) `handleBack`: chặn về step 1 khi `shouldAutoSkip`. (2) `useEffect` resume localStorage: ép step ≥ 2 và override `check_type = prefilledType`. (3) `startFresh`: nếu `shouldAutoSkip` → set step 2 thay vì 1. (4) Ẩn nút "Quay lại" ở step 2 khi `shouldAutoSkip`. (5) Force-set `check_type` = `prefilledType` sau khi restore session. |
+| `src/components/rooms/check-steps/DefaultOkItemsCheck.tsx` | Bỏ import `Check/AlertCircle/X/Search/Badge`. Đổi banner thành 1 dòng text + border-l. Đổi card item thành layout hàng ngang, border-l-4 semantic, không vòng tròn icon. Đổi label theo bảng. Bỏ dòng tổng kết cuối. Nút reset thành text "Bỏ". |
+| `src/components/rooms/check-steps/ReportIssueSheet.tsx` | Bỏ emoji trong `ISSUE_CATALOG`, bỏ icon `AlertTriangle/Plus/Minus`. Đổi label "Loại sự cố" → "Tình trạng", "Lưu sự cố" → "Lưu", "Cần bổ sung từ kho" gọn lại. Tách "Bẩn (cần giặt)" cho linen → map sang `laundry`. Stepper +/- dùng chữ "+" "−" thay icon. |
+| `src/lib/roomCheckConfig.ts` | Cập nhật `ACTION_LABELS`: laundry → "Đã giặt", add → "Đã thêm", change → "Đã thay" (giữ ngắn gọn cho UI khác). |
+| `.lovable/memory/design/room-check-default-ok-ux-v1.md` | Bổ sung quy chuẩn: không icon/emoji, border-l-4 thay vòng tròn, ngôn từ "Đạt / cần xử lý / cập nhật tình trạng" thay "OK / sự cố / báo sự cố". |
 
-Không sửa `CheckTypeStep.tsx`, không sửa hook, không migration. Đồng thời giữ flow cũ (vào trang trực tiếp không qua task vẫn thấy step 1 chọn loại bình thường).
+Không sửa hook, không migration, không thay đổi logic tính toán — chỉ tinh chỉnh UI và ngôn từ để đúng chuẩn Enterprise SaaS minimalist + thuật ngữ nghiệp vụ Việt.
 
