@@ -67,6 +67,7 @@
   "businessConfig": "Business Configuration",
   "pricingRules": "Surcharges & Fees",
   "automation": "Automation",
+  "aiSettings": "AI Settings",
   "telegram": "Telegram",
   "notifications": "Notifications"
 }
