@@ -278,30 +278,12 @@ export function OutboundReportPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="overview">Tổng quan</TabsTrigger>
-          <TabsTrigger value="room_assign" className="flex items-center gap-1">
-            <Package className="h-4 w-4" />
-            <span className="hidden lg:inline">{t('categories.room_assign')}</span>
-          </TabsTrigger>
-          <TabsTrigger value="staff_assign" className="flex items-center gap-1">
-            <Users className="h-4 w-4" />
-            <span className="hidden lg:inline">{t('categories.staff_assign')}</span>
-          </TabsTrigger>
-          <TabsTrigger value="laundry" className="flex items-center gap-1">
-            <WashingMachine className="h-4 w-4" />
-            <span className="hidden lg:inline">{t('categories.laundry')}</span>
-          </TabsTrigger>
-          <TabsTrigger value="maintenance" className="flex items-center gap-1">
-            <Wrench className="h-4 w-4" />
-            <span className="hidden lg:inline">{t('categories.maintenance')}</span>
-          </TabsTrigger>
-          <TabsTrigger value="disposal" className="flex items-center gap-1">
-            <Trash2 className="h-4 w-4" />
-            <span className="hidden lg:inline">{t('categories.disposal')}</span>
-          </TabsTrigger>
-          <TabsTrigger value="other" className="flex items-center gap-1">
-            <MoreHorizontal className="h-4 w-4" />
-            <span className="hidden lg:inline">{t('categories.other')}</span>
-          </TabsTrigger>
+          <TabsTrigger value="room_assign">{t('categories.room_assign')}</TabsTrigger>
+          <TabsTrigger value="staff_assign">{t('categories.staff_assign')}</TabsTrigger>
+          <TabsTrigger value="laundry">{t('categories.laundry')}</TabsTrigger>
+          <TabsTrigger value="maintenance">{t('categories.maintenance')}</TabsTrigger>
+          <TabsTrigger value="disposal">{t('categories.disposal')}</TabsTrigger>
+          <TabsTrigger value="other">{t('categories.other')}</TabsTrigger>
         </TabsList>
         
         {/* Overview Tab */}

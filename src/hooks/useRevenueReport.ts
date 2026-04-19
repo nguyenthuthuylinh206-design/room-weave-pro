@@ -68,6 +68,21 @@ export interface RevenueReport {
   topRooms: RoomRevenue[]
 }
 
+function emptyRevenueData(): RevenueData {
+  return {
+    totalRevenue: 0,
+    paidRevenue: 0,
+    pendingRevenue: 0,
+    refundedRevenue: 0,
+    bookingsCount: 0,
+    paidBookingsCount: 0,
+    averageBookingValue: 0,
+    netRevenue: 0,
+    otaCommission: 0,
+    surcharges: { earlyCheckin: 0, lateCheckout: 0, damageCharges: 0, total: 0 },
+  }
+}
+
 function getPeriodRange(period: ReportPeriod, today: Date) {
   switch (period) {
     case 'week':
@@ -123,12 +138,26 @@ export function useRevenueReport(period: ReportPeriod = 'month') {
       const sixMonthsAgo = subMonths(today, 6)
       const sixMonthsAgoISO = startOfDay(sixMonthsAgo).toISOString()
 
+      // CRITICAL: refuse to query without tenantId (avoid pulling all tenants)
+      if (!tenantId) {
+        return {
+          today: emptyRevenueData(),
+          currentPeriod: emptyRevenueData(),
+          previousPeriod: emptyRevenueData(),
+          monthlyTrends: [],
+          revenueGrowth: 0,
+          byType: [],
+          bySource: [],
+          topRooms: [],
+        }
+      }
+
       // Query bookings with only needed columns for revenue calculation
       let query = supabase.from('room_bookings').select('check_out_date, total_amount, amount_paid, deposit_amount, payment_status, booking_type, booking_source, ota_commission_amount, net_revenue, early_checkin_charge, late_checkout_charge, damage_charges, room_id, room:rooms!room_bookings_room_id_fkey(room_number, room_type)')
+        .eq('tenant_id', tenantId)
         .gte('check_out_date', sixMonthsAgoISO)
         .limit(10000)
 
-      if (tenantId) query = query.eq('tenant_id', tenantId)
       if (!isAllHotelsMode && selectedHotel?.id) query = query.eq('hotel_id', selectedHotel.id)
 
       const { data: allBookings, error } = await query
@@ -140,15 +169,26 @@ export function useRevenueReport(period: ReportPeriod = 'month') {
         const refunded = filtered.filter(b => b.payment_status === 'refunded')
         const nonRefunded = filtered.filter(b => b.payment_status !== 'refunded')
 
-        // paidRevenue = tổng amount_paid từ TẤT CẢ booking (không chỉ status 'paid')
-        const paidRevenue = nonRefunded.reduce((s, b) => s + (b.amount_paid || 0), 0)
-        // pendingRevenue = tổng số tiền chưa thu (total - paid) từ booking chưa thanh toán đủ
-        const pendingRevenue = nonRefunded.reduce((s, b) => s + Math.max(0, (b.total_amount || 0) - (b.amount_paid || 0) - (b.deposit_amount || 0)), 0)
+        // paidRevenue = tổng đã thu = amount_paid + deposit_amount (cọc cũng là tiền đã thu)
+        const paidRevenue = nonRefunded.reduce(
+          (s, b) => s + (b.amount_paid || 0) + (b.deposit_amount || 0),
+          0
+        )
+        // pendingRevenue = phần còn nợ
+        const pendingRevenue = nonRefunded.reduce(
+          (s, b) => s + Math.max(0, (b.total_amount || 0) - (b.amount_paid || 0) - (b.deposit_amount || 0)),
+          0
+        )
         const refundedRevenue = refunded.reduce((s, b) => s + (b.total_amount || 0), 0)
         const totalRevenue = paidRevenue + pendingRevenue
         const paidBookings = nonRefunded.filter(b => b.payment_status === 'paid')
         const otaCommission = filtered.reduce((s, b) => s + (b.ota_commission_amount || 0), 0)
-        const netRevenue = filtered.reduce((s, b) => s + (b.net_revenue || b.total_amount || 0), 0) - otaCommission
+        // netRevenue: nếu DB có net_revenue (đã trừ commission) thì dùng,
+        // ngược lại dùng total_amount rồi tự trừ commission của riêng booking đó
+        const netRevenue = filtered.reduce((s, b) => {
+          if (b.net_revenue != null) return s + (b.net_revenue || 0)
+          return s + ((b.total_amount || 0) - (b.ota_commission_amount || 0))
+        }, 0)
         const earlyCheckin = filtered.reduce((s, b) => s + (b.early_checkin_charge || 0), 0)
         const lateCheckout = filtered.reduce((s, b) => s + (b.late_checkout_charge || 0), 0)
         const damageCharges = filtered.reduce((s, b) => s + (b.damage_charges || 0), 0)
@@ -173,7 +213,7 @@ export function useRevenueReport(period: ReportPeriod = 'month') {
       const currentPeriodBookings = filterByDateRange(currentStart, currentEnd)
       const previousPeriodBookings = filterByDateRange(previousStart, previousEnd)
 
-      // Monthly trends (last 6 months)
+      // Monthly trends (last 6 months) — revenue = amount_paid + deposit_amount
       const monthlyTrends: RevenueTrend[] = []
       for (let i = 5; i >= 0; i--) {
         const m = subMonths(today, i)
@@ -183,7 +223,7 @@ export function useRevenueReport(period: ReportPeriod = 'month') {
         })
         monthlyTrends.push({
           month: format(m, 'MM/yyyy'),
-          revenue: mBookings.reduce((s, b) => s + (b.amount_paid || 0), 0),
+          revenue: mBookings.reduce((s, b) => s + (b.amount_paid || 0) + (b.deposit_amount || 0), 0),
           bookings: mBookings.length,
         })
       }

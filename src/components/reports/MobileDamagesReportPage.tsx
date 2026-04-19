@@ -16,14 +16,34 @@ import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
 
+interface DamageItem {
+  item_id?: string
+  item_name?: string
+  item_code?: string
+  quantity?: number
+  notes?: string
+}
+
 interface DamageRecord {
   id: string
   room_number: string
   check_type: string
-  items_damaged: Record<string, number>
-  items_lost: Record<string, number>
+  items_damaged: DamageItem[] | Record<string, number>
+  items_lost: DamageItem[] | Record<string, number>
   created_at: string
   estimated_value: number
+}
+
+function totalQty(raw: unknown): number {
+  if (!raw) return 0
+  if (Array.isArray(raw)) {
+    return (raw as any[]).reduce((s: number, it: any) => s + (Number(it?.quantity) || 1), 0)
+  }
+  if (typeof raw === 'object') {
+    return (Object.values(raw as Record<string, unknown>) as unknown[])
+      .reduce<number>((s, v) => s + (Number(v) || 0), 0)
+  }
+  return 0
 }
 
 interface MobileDamagesReportPageProps {
@@ -161,8 +181,8 @@ export function MobileDamagesReportPage({
           <div className="divide-y">
             {data?.records && data.records.length > 0 ? (
               data.records.slice(0, 10).map((record) => {
-                const damagedCount = Object.values(record.items_damaged).reduce((s: number, v) => s + (v as number), 0)
-                const lostCount = Object.values(record.items_lost).reduce((s: number, v) => s + (v as number), 0)
+                const damagedCount = totalQty(record.items_damaged)
+                const lostCount = totalQty(record.items_lost)
                 
                 return (
                   <div key={record.id} className="p-3">
