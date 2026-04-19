@@ -1,73 +1,65 @@
+## Vấn đề: iOS/Android Safari không lưu mật khẩu
 
+Hiện tại code dùng `PasswordCredential API` — **chỉ chạy trên Chrome/Edge desktop**. iOS Safari, iOS PWA, và Android Chrome PWA **không hỗ trợ** API này → cô bấm đăng nhập trên mobile xong, trình duyệt không hỏi "Lưu mật khẩu vào iCloud Keychain / Google Password Manager".
 
-## Bối cảnh từ ảnh
+### Lý do mobile không lưu
 
-Phiếu `DIS-20260418-075429-5747` đã ở trạng thái **"Đang giao"** (released), nhưng:
-- Toast đỏ: **"Hàng chưa được xác nhận nhận - vui lòng xác nhận nhận hàng trước"**
-- Nút **GIAO** ở phòng P101 vẫn bấm được → bấm vào báo lỗi trên
-- Wizard hiển thị: Chuẩn bị ✅ → Nhận hàng ✅ → Giao hàng (current) → Hoàn thành
+iOS Keychain & Google Password Manager **chỉ tự động prompt** khi:
 
-## Phân tích vấn đề
+1. Form là `<form>` HTML chuẩn ✅ (đã có)
+2. Có input `autocomplete="username"` + `autocomplete="current-password"` ✅ (đã có)
+3. Form **submit qua HTTP POST hoặc dispatch `submit` event không bị `preventDefault` ngay lập tức** ⚠️
+4. Trang sau submit phải **navigate** (đổi URL) — không chỉ re-render SPA ⚠️
 
-Đây là **luồng tự giao** (self-assign): cô vừa là người tạo phiếu vừa là người giao (Nguyễn Thị Thuỳ Linh — assignee, nhưng người tạo `nguyễn thành` ≠ assignee → KHÔNG phải self-assign thực sự).
+→ React Hook Form gọi `e.preventDefault()` ngay → mobile browser **không nhận diện được "user vừa submit credentials"** → không prompt lưu.
 
-→ Đúng quy trình:
-1. **Storekeeper bấm "Giao batch"** → trạng thái `pending` → `released` ✅ (đã làm)
-2. **Assignee (Thuỳ Linh) bấm "Xác nhận nhận hàng"** → `released` → `in_progress` ❌ **CHƯA LÀM**
-3. **Assignee bấm GIAO từng phòng** → đánh dấu delivered
+Ngoài ra trong PWA standalone trên iOS, Keychain chỉ prompt khi navigation thật sự xảy ra (không phải client-side routing bằng `react-router`).
 
-Vấn đề: Wizard đang hiển thị bước "Giao hàng" như đã active nhưng thực tế chưa qua bước "Xác nhận nhận hàng". UI cho phép bấm GIAO phòng → backend chặn → toast lỗi.
+## Giải pháp
 
-## Nguyên nhân code
+### 1. Trigger native "credential save" hint cho mobile
 
-Đọc `RouteDetailView.tsx`:
-```ts
-onConfirmReceive={route.status === 'released' && isAssignee ? handleConfirmReceive : undefined}
-```
+Thay vì chỉ dựa vào `PasswordCredential` (desktop), thêm fallback:
 
-Người đang xem (`nguyễn thành`) **KHÔNG phải assignee** (`Thuỳ Linh`) → `isAssignee = false` → nút "Xác nhận nhận hàng" KHÔNG hiện cho họ.
+- **Sau khi `signIn` thành công**: dispatch một form submit "ảo" tới trang chính bằng `window.location.assign()` hoặc dùng `<form action="/auth/callback" method="GET">` submit thật → trình duyệt thấy đây là "successful login form submission" → hỏi lưu mật khẩu.
+- Hoặc đơn giản hơn: thay `navigate('/auth/callback')` (SPA) bằng `window.location.href = '/auth/callback'` **chỉ trong lần đăng nhập thành công** → trigger full page navigation → iOS/Android nhận diện và prompt.
 
-Đồng thời `UnifiedRoomList` truyền `isAssignee={isAssignee}` xuống — nhưng nút GIAO ở P101 vẫn enable → có thể logic enable nút GIAO trong UnifiedRoomList/RoomCard chưa check trạng thái `in_progress` + `isAssignee` đúng → user creator (storekeeper) bấm vào → backend reject.
+### 2. Đảm bảo cấu trúc form đúng chuẩn cho mobile
 
-## Kế hoạch sửa
+- `LoginForm.tsx`: form đã chuẩn ✅
+- `QuickReLogin.tsx`: input email ẩn dùng `position: absolute; opacity: 0` — **iOS Safari đôi khi bỏ qua** input này. Đổi sang `sr-only` Tailwind class hoặc giữ visible nhưng `readonly` + style nhỏ.
 
-### 1. Disable nút GIAO khi chưa "Xác nhận nhận hàng"
+### 3. PWA-specific: enable iOS Keychain Associated Domains
 
-Trong `UnifiedRoomList.tsx` (và component con render nút GIAO của từng phòng):
-- Chỉ enable nút **GIAO** khi `orderStatus === 'in_progress'` **AND** `isAssignee === true`
-- Khi `orderStatus === 'released'`: hiển thị nút disabled + tooltip *"Chờ nhân viên xác nhận nhận hàng"*
+iOS PWA chỉ lưu password tự động khi:
 
-### 2. Thông báo rõ ràng cho người đang xem
+- App được cài qua "Add to Home Screen" với `manifest.json` đúng
+- Có `apple-app-site-association` (cho native app) — **không cần với web PWA**, chỉ cần form HTML chuẩn + full navigation sau submit
 
-Trong `DeliveryStepWizard` ở bước "Giao hàng" khi `status === 'released'`:
-- Nếu là **assignee** → hiện nút lớn **"Xác nhận đã nhận hàng"** (đã có)
-- Nếu là **creator/storekeeper** (không phải assignee) → hiện thông báo:
-  > *"Đang chờ Thuỳ Linh xác nhận nhận hàng. Bạn có thể nhắc nhân viên mở phiếu này và bấm 'Xác nhận đã nhận hàng'."*
-- Nếu là **người khác** → ẩn cả 2
+### 4. (Khuyến nghị) Thêm nút "Lưu mật khẩu trên thiết bị này"
 
-### 3. Sửa progress bar bước hiện tại
-
-Wizard đang tô bước "Giao hàng" như current khi `status === 'released'` — đúng về mặt flow nhưng gây hiểu lầm. Đổi:
-- `status === 'released'` → bước **"Nhận hàng"** vẫn là current (chưa hoàn thành đến khi assignee xác nhận)
-- `status === 'in_progress'` → bước **"Giao hàng"** mới là current
-
-### 4. (Optional) Cho phép storekeeper xác nhận thay nếu cần
-
-Thêm nút phụ ở DeliveryStepWizard: *"Xác nhận thay nhân viên"* cho storekeeper/manager — dùng khi nhân viên không có thiết bị truy cập. Confirm dialog: *"Bạn xác nhận đã trao tay hàng trực tiếp cho Thuỳ Linh? Hành động này sẽ ghi log."*
+Cho người dùng tự bật — UX rõ ràng hơn checkbox "Remember me" hiện tại (vốn chỉ lưu email).
 
 ## Files cần sửa
 
-| File | Thay đổi |
-|---|---|
-| `src/components/distribution/components/DeliveryStepWizard.tsx` | Sửa step active khi `released`; thêm message cho creator; thêm nút "Xác nhận thay" cho leader |
-| `src/components/distribution/components/UnifiedRoomList.tsx` (và RoomCard con) | Disable nút GIAO khi `orderStatus !== 'in_progress'` hoặc `!isAssignee`; thêm tooltip giải thích |
-| `src/components/distribution/components/RouteDetailView.tsx` | Truyền thêm prop `canConfirmOnBehalf` (leader) xuống wizard nếu chọn làm option 4 |
+
+| File                                   | Thay đổi                                                                                                                        |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `src/components/auth/LoginForm.tsx`    | Đổi `navigate('/auth/callback')` → `window.location.assign('/auth/callback')` sau login thành công (trigger native save prompt) |
+| `src/components/auth/QuickReLogin.tsx` | Tương tự + đổi style hidden email từ inline style sang `className="sr-only"` để iOS nhận diện                                   |
+| `src/pages/auth/Login.tsx`             | Bỏ điều hướng SPA `navigate` trong `handleLoginSuccess`, để LoginForm tự navigate full-page                                     |
+
 
 ## Câu hỏi xác nhận
 
-1. **Có cần option "Xác nhận thay nhân viên"** cho storekeeper/manager không?  
-   - Có → tiện khi NV không kịp bấm  
-   - Không → giữ luồng nghiêm ngặt, NV phải tự xác nhận
-2. **Disable nút GIAO khi chưa xác nhận** có OK không, hay vẫn cho bấm rồi hiện toast như hiện tại?  
-   (Khuyến nghị: disable + tooltip — tránh tạo lỗi không cần thiết)
-
+1. **Cô đang test trên thiết bị nào?**
+  - iPhone Safari (browser thường)
+  - iPhone PWA (đã "Add to Home Screen")
+  - Android Chrome
+  - Android PWA
+   *(Khác nhau: iOS PWA khó nhất, Android Chrome dễ nhất)*   
+  *Cô cần tất cả các phần trên* 
+2. **Mong muốn của cô là gì?**
+  - **A**: Trình duyệt tự hỏi "Lưu mật khẩu?" → dùng iCloud Keychain/Google Password (khuyến nghị, an toàn nhất)
+  - **B**: App tự lưu mật khẩu vào thiết bị (lưu vào localStorage mã hoá) → tự auto-fill khi mở lại — **kém an toàn hơn** nhưng chắc chắn hoạt động trên mọi mobile/PWA   
+  Tự động lưu đi 
