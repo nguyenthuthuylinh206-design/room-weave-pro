@@ -89,7 +89,7 @@ export function IssueItemRow({
             variant="outline"
             className={cn(
               'text-xs h-5',
-              isLost ? 'text-red-600 border-red-500/40' : 'text-orange-600 border-orange-500/40',
+              isLost ? 'text-destructive border-destructive/40' : 'text-orange-600 border-orange-500/40',
             )}
           >
             {isLost ? 'MẤT' : 'HỎNG'}
@@ -101,7 +101,7 @@ export function IssueItemRow({
           )}
         </div>
         {totalCost > 0 && (
-          <span className="text-sm font-mono font-semibold text-red-600">{formatVND(totalCost)}</span>
+          <span className="text-sm font-mono font-semibold text-destructive">{formatVND(totalCost)}</span>
         )}
       </div>
 

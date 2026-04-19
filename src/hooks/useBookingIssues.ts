@@ -89,7 +89,7 @@ export function useSyncBookingDamageCharges() {
       // Lấy booking hiện tại để tính lại total_amount
       const { data: booking, error: fetchError } = await supabase
         .from('room_bookings')
-        .select('id, total_amount, damage_charges, paid_status, amount_paid, deposit_amount')
+        .select('id, total_amount, damage_charges, payment_status, amount_paid, deposit_amount')
         .eq('id', bookingId)
         .single()
 
@@ -99,12 +99,12 @@ export function useSyncBookingDamageCharges() {
       const newTotal = (booking.total_amount || 0) - oldDamage + damageCharges
 
       // Nếu đã paid mà có thêm phụ thu → đẩy về partial
-      let newPaidStatus = booking.paid_status
+      let newPaymentStatus = booking.payment_status
       const totalPaid = (booking.amount_paid || 0) + (booking.deposit_amount || 0)
-      if (newTotal > totalPaid) {
-        newPaidStatus = 'partial'
-      } else if (newTotal <= totalPaid) {
-        newPaidStatus = 'paid'
+      if (newTotal > totalPaid && totalPaid > 0) {
+        newPaymentStatus = 'partial'
+      } else if (newTotal <= totalPaid && totalPaid > 0) {
+        newPaymentStatus = 'paid'
       }
 
       const { error: updateError } = await supabase
@@ -113,7 +113,7 @@ export function useSyncBookingDamageCharges() {
           damage_charges: damageCharges,
           damage_items: damageItems as any,
           total_amount: newTotal,
-          paid_status: newPaidStatus,
+          payment_status: newPaymentStatus,
         })
         .eq('id', bookingId)
 
