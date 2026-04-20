@@ -1,109 +1,48 @@
 
 
-## Vấn đề hiện tại
+## Vấn đề
 
-Trang `/rooms/:id/check` (DefaultOkItemsCheck + ReportIssueSheet) còn nhiều điểm chưa hợp lý:
+Trên dashboard task của nhân viên (`TaskCard`, `StaffTaskRow`, `TaskDetailDialog`):
 
-### 1. Lạm dụng icon (vi phạm chuẩn minimalist)
-- Vòng tròn có icon `Check` (✓) / `AlertCircle` (!) / `X` ở mỗi item
-- Banner trên cùng có icon tròn lớn (Check / AlertCircle)
-- Sheet "Báo sự cố" mỗi nút có emoji: 🧺 🔄 ➕ 🚫 🛠️ ⛔ 📦 📭
-- Ô tìm kiếm có icon `Search`
-- Nút bỏ báo cáo dùng icon `X`
+- Khi task ở trạng thái **"Đang làm"**, có **2 nút**: `[Tiếp]` (mở trang kiểm tra) và `[✓]` (đánh dấu hoàn thành ngay).
+- Nút `[✓]` gọi thẳng `updateStatus({ status: 'completed' })` → task chuyển thành "Hoàn thành" mà **không cần kiểm tra thực tế**, không có `room_check_id`, không lưu báo cáo nào.
+- Hiện chỉ task `cleaning` mới mở dialog xác nhận. Các task `checkout_inspection`, `checkin_prep`, `amenity_request` đều có thể tích hoàn thành chỉ bằng 1 click → **sai nghiệp vụ, có thể gian lận**.
 
-### 2. Ngôn từ tác vụ không chuẩn / không thống nhất
-- "OK" — viết tắt tiếng Anh, không đồng bộ với phần còn lại của app (đang dùng "Đạt", "Đầy đủ")
-- "Mặc định OK · Chạm để báo sự cố" — kỹ thuật, không tự nhiên
-- "Báo sự cố" — gay gắt; nên dùng "Ghi nhận tình trạng" / "Cập nhật"
-- "sự cố" — chỉ đúng cho đồ hỏng/mất, không phù hợp với "đã giặt", "đã thay", "đã dùng"
-- "Hỏng / Bẩn" gộp nhầm — bẩn ≠ hỏng (bẩn = cần giặt; hỏng = cần thay)
-- Sheet: "Loại sự cố" → nên là "Tình trạng"
-- "Cần bổ sung từ kho" + sub "Tự tạo phiếu yêu cầu bổ sung" — thừa, dài
-- Banner: "Đã ghi nhận N sự cố" + "Các món khác mặc định OK" — văn nói, không formal
-- Tag "Giặt / Thêm / Đổi / Mất / Hỏng / Thiếu / Đã dùng" — ngắn nhưng không đồng nhất với động từ ("Đã giặt / Đã thêm / Đã đổi / Mất / Hỏng / Thiếu / Đã dùng")
-
-### 3. Thông tin trùng lặp
-- Banner trên cùng + dòng tổng kết cuối ("X món OK · Y sự cố · Tổng Z") nói cùng việc
-- Mỗi card OK lại có thêm hint "Báo sự cố" bên phải + dòng "Mặc định OK · Chạm để báo sự cố" bên dưới tên → 3 chỗ nói cùng 1 ý
-
-### 4. Chỉ báo trạng thái dựa vào màu nền sặc sỡ
-- Card hỏng: nền vàng; mất: nền đỏ; giặt: nền xanh — vi phạm chuẩn "chỉ dùng màu chữ semantic, không dùng màu nền cho status"
-
----
+Trong khi đó, `RoomCheckPage` đã có sẵn logic auto-complete task khi nhân viên submit kiểm tra thật (dòng 895-937). Nghĩa là **chỉ cần buộc nhân viên đi qua trang kiểm tra**, task sẽ tự đánh dấu hoàn thành đúng quy trình.
 
 ## Hướng sửa
 
-### A. Bỏ toàn bộ icon trang trí
-- **Vòng tròn trạng thái** → thay bằng **thanh dọc 3px bên trái card** (border-l-4) + chữ trạng thái. Card OK = không thanh; card có ghi nhận = thanh màu semantic (xanh/vàng/đỏ).
-- **Banner trên cùng** → bỏ icon tròn, chỉ còn 1 dòng text gọn (`text-sm`) căn trái với border-l-4.
-- **Search** → bỏ icon, đặt placeholder "Tìm theo tên hoặc mã..."
-- **Nút reset (X)** → đổi thành text "Bỏ"
-- **Sheet — bỏ toàn bộ emoji** trong các nút loại tình trạng. Chỉ giữ chữ.
+### 1. Bỏ nút "✓" (hoàn thành nhanh) cho task cần kiểm tra
 
-### B. Chuẩn hóa ngôn từ
+Với các task type sau, **CHỈ hiển thị nút `[Tiếp tục kiểm tra →]`**, KHÔNG có nút check xanh:
+- `checkout_inspection`
+- `checkin_prep`
+- `amenity_request`
 
-| Cũ | Mới |
-|---|---|
-| OK | Đạt |
-| Mặc định OK · Chạm để báo sự cố | Đạt chuẩn |
-| Báo sự cố | Cập nhật tình trạng |
-| sự cố | mục cần xử lý |
-| Loại sự cố | Tình trạng |
-| Hỏng / Bẩn | tách thành **Hỏng** và **Bẩn (cần giặt)** |
-| Đã ghi nhận N sự cố | N mục cần xử lý |
-| Các món khác mặc định OK. Chạm vào sự cố để sửa, hoặc tiếp tục. | Các mục còn lại đạt chuẩn. Chạm để chỉnh sửa. |
-| Cần bổ sung từ kho / Tự tạo phiếu yêu cầu bổ sung | Tạo phiếu bổ sung từ kho |
-| Lưu sự cố | Lưu |
+Nhân viên muốn hoàn thành → bắt buộc bấm "Tiếp tục" → mở `/rooms/:id/check?type=...` → submit kiểm tra thật → task tự động chuyển sang `completed` (logic đã có sẵn ở `RoomCheckPage`).
 
-**Tag trạng thái** (đồng nhất theo cấu trúc "đã + động từ" cho hành động đã thực hiện, danh từ cho tình trạng):
-- `laundry` → "Đã giặt" (giữ)
-- `add` → "Đã thêm"
-- `change` → "Đã thay"
-- `lost` → "Mất" (giữ)
-- `damaged` → "Hỏng" (giữ)
-- `missing` → "Thiếu" (giữ)
-- `consumed` → "Đã dùng" (giữ)
-- `empty` → "Hết"
+### 2. Giữ nguyên cho các task không cần kiểm tra
 
-### C. Đơn giản hóa card item
+- `cleaning`: Giữ dialog `CleaningCompleteDialog` (đã có lựa chọn "Mở phòng ngay" / "Kiểm tra nhanh trước") — đây là dọn phòng đơn thuần, không bắt buộc kiểm tra.
+- `delivery_confirmation`: Giữ flow hiện tại — mở `DeliveryConfirmationModal` để nhân viên tick xác nhận từng món.
+- `other`: Giữ nút `[✓]` hoàn thành nhanh (task tự do, không gắn với quy trình).
 
-Layout mới — 1 hàng duy nhất, không vòng tròn, không icon:
+### 3. Đổi label nút "Tiếp" cho rõ nghĩa
 
-```text
-┃ Khăn tắm lớn         ×2          [Báo cáo]   ← OK (border-l xám nhạt)
-┃ 
-┃ Ấm đun nước                    Hỏng 1/1  Bỏ  ← border-l-4 amber
-```
+Khi task ở `in_progress` và là loại bắt buộc kiểm tra → nút duy nhất hiện text **"Tiếp tục kiểm tra"** (thay vì chỉ "Tiếp") để nhân viên hiểu phải vào trang kiểm tra mới hoàn thành được.
 
-- Bỏ dòng phụ "Mặc định OK · Chạm để báo sự cố" (đã thể hiện qua banner + nút bên phải)
-- Bỏ nền màu sặc sỡ → chỉ giữ `border-l-4` semantic
-- Chữ tag trạng thái dùng `text-{color}-600` (chuẩn dự án), không có badge nền
+### 4. Hệ quả
 
-### D. Bỏ dòng tổng kết cuối
-
-Banner trên đã có "N mục cần xử lý" — không cần lặp lại "X đạt · Y cần xử lý · Tổng Z".
-
-### E. Sheet "Cập nhật tình trạng" — tinh gọn
-
-- Bỏ emoji ở các nút loại tình trạng (chỉ chữ, dùng `border-2` + `text-{color}-600` khi chọn)
-- Bỏ Alert icon (`AlertTriangle`) ở cảnh báo kho — chỉ dùng text màu cảnh báo
-- Đổi label theo bảng B
-- Tách "Bẩn (cần giặt)" thành lựa chọn riêng cho `linen` (map sang action `laundry`)
-
-### F. Cập nhật memory
-
-Cập nhật `mem://design/room-check-default-ok-ux-v1.md` để chốt: không icon, không emoji, dùng border-l-4 + màu chữ semantic, ngôn từ chuẩn theo bảng B.
-
----
+- Task `checkout_inspection` / `checkin_prep` / `amenity_request` chỉ có thể chuyển `completed` qua đường duy nhất: submit room check → tự động complete kèm `room_check_id` (audit trail rõ ràng).
+- Quản lý có thể tra ngược: mỗi task completed → có check thực sự với danh sách items, ảnh, ghi chú.
 
 ## Files thay đổi
 
 | File | Thay đổi |
 |---|---|
-| `src/components/rooms/check-steps/DefaultOkItemsCheck.tsx` | Bỏ import `Check/AlertCircle/X/Search/Badge`. Đổi banner thành 1 dòng text + border-l. Đổi card item thành layout hàng ngang, border-l-4 semantic, không vòng tròn icon. Đổi label theo bảng. Bỏ dòng tổng kết cuối. Nút reset thành text "Bỏ". |
-| `src/components/rooms/check-steps/ReportIssueSheet.tsx` | Bỏ emoji trong `ISSUE_CATALOG`, bỏ icon `AlertTriangle/Plus/Minus`. Đổi label "Loại sự cố" → "Tình trạng", "Lưu sự cố" → "Lưu", "Cần bổ sung từ kho" gọn lại. Tách "Bẩn (cần giặt)" cho linen → map sang `laundry`. Stepper +/- dùng chữ "+" "−" thay icon. |
-| `src/lib/roomCheckConfig.ts` | Cập nhật `ACTION_LABELS`: laundry → "Đã giặt", add → "Đã thêm", change → "Đã thay" (giữ ngắn gọn cho UI khác). |
-| `.lovable/memory/design/room-check-default-ok-ux-v1.md` | Bổ sung quy chuẩn: không icon/emoji, border-l-4 thay vòng tròn, ngôn từ "Đạt / cần xử lý / cập nhật tình trạng" thay "OK / sự cố / báo sự cố". |
+| `src/components/housekeeping/TaskCard.tsx` | Trong nhánh `isInProgress`: ẩn nút check xanh khi `task_type ∈ {checkout_inspection, checkin_prep, amenity_request}`. Đổi label nút "Tiếp" → "Tiếp tục kiểm tra" cho các loại này. Bỏ `handleComplete` khỏi luồng các loại bắt buộc kiểm tra (nhưng giữ cho cleaning/delivery/other). |
+| `src/components/housekeeping/StaffTaskRow.tsx` | Áp dụng cùng logic: ẩn nút check xanh cho các task type bắt buộc kiểm tra; đổi label "Tiếp" thành "Tiếp tục kiểm tra". |
+| `src/components/housekeeping/TaskDetailDialog.tsx` | Trong khu vực action footer: ẩn nút "Hoàn thành" khi task ở `in_progress` và thuộc các loại bắt buộc kiểm tra. Chỉ giữ nút "Tiếp tục kiểm tra". |
 
-Không sửa hook, không migration, không thay đổi logic tính toán — chỉ tinh chỉnh UI và ngôn từ để đúng chuẩn Enterprise SaaS minimalist + thuật ngữ nghiệp vụ Việt.
+Không sửa hook, không migration, không ảnh hưởng `RoomCheckPage` (logic auto-complete đã đúng và sẽ tiếp tục hoạt động).
 
