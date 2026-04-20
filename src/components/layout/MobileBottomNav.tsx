@@ -1,12 +1,11 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Home, DoorOpen, Shirt, Wrench, ClipboardList, CalendarDays, MoreHorizontal } from 'lucide-react'
+import { Home, DoorOpen, Shirt, Wrench, ClipboardList, CalendarDays, Package, MoreHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { useUser } from '@/hooks/useUser'
-import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
+import { useUserModulePermissions, type PermissionSummary } from '@/hooks/useUserModulePermissions'
 import { usePendingTaskCount } from '@/hooks/useHousekeepingTasks'
 import { usePendingCounts, type PendingCounts } from '@/hooks/usePendingCounts'
-import { useUsageMode } from '@/hooks/useUsageMode'
 
 type PendingCountKey = keyof PendingCounts | 'tasks'
 
@@ -15,59 +14,81 @@ interface NavItem {
   label: string
   icon: typeof Home
   path: string
-  module?: string
+  /** Module(s) needed to display this tab. Multiple = OR (any one is enough). */
+  modules?: string[]
   badgeKey?: PendingCountKey
+  /** Always visible regardless of permission (Home, More) */
+  alwaysShow?: boolean
 }
+
+// Pool 8 tab — Home + 6 module + More. Sẽ filter theo permission rồi cắt còn tối đa 5 nút.
+const ALL_TABS: NavItem[] = [
+  { id: 'home', label: 'Home', icon: Home, path: '/', alwaysShow: true },
+  {
+    id: 'tasks',
+    label: 'Tasks',
+    icon: ClipboardList,
+    path: '/my-tasks',
+    badgeKey: 'tasks',
+    // Tasks là view tổng hợp — hiện nếu có quyền 1 trong các module sau
+    modules: ['housekeeping_tasks', 'room_checks', 'maintenance_requests', 'distribution_orders'],
+  },
+  { id: 'bookings', label: 'Đặt phòng', icon: CalendarDays, path: '/bookings', modules: ['bookings'] },
+  { id: 'rooms', label: 'Phòng', icon: DoorOpen, path: '/rooms', modules: ['rooms'] },
+  { id: 'laundry', label: 'Giặt là', icon: Shirt, path: '/laundry', modules: ['laundry'] },
+  { id: 'maintenance', label: 'Bảo trì', icon: Wrench, path: '/maintenance', modules: ['maintenance_requests', 'maintenance'] },
+  { id: 'inventory', label: 'Kho', icon: Package, path: '/inventory', modules: ['inventory', 'items'] },
+  { id: 'more', label: 'Thêm', icon: MoreHorizontal, path: '/more', alwaysShow: true },
+]
+
+const MAX_TABS = 5
 
 export const MobileBottomNav = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, role, tenantId } = useUser()
+  const { user, role } = useUser()
   const { data: modulePermissions } = useUserModulePermissions()
   const { data: pendingTaskCount = 0 } = usePendingTaskCount()
   const { data: pendingCounts } = usePendingCounts()
-  const { hasMode } = useUsageMode()
 
-  // Hide MobileBottomNav when on room check pages (staff needs full screen for check workflow)
+  // Hide MobileBottomNav khi đang trong room check (cần full screen)
   if (location.pathname.includes('/check')) {
     return null
   }
 
-  // Navigation items - 5 tabs max for mobile usability
-  // Determine tasks path based on user department
-  const tasksPath = user?.department === 'housekeeping' ? '/staff/housekeeping' : '/my-tasks'
+  const isPrivileged = role === 'super_admin' || role === 'owner'
 
-  const NAV_ITEMS: NavItem[] = [
-    { id: 'home', label: 'Home', icon: Home, path: '/' },
-    { id: 'my-tasks', label: 'Tasks', icon: ClipboardList, path: tasksPath, badgeKey: 'tasks' },
-    { id: 'bookings', label: 'Đặt phòng', icon: CalendarDays, path: '/bookings', module: 'bookings' },
-    { id: 'rooms', label: 'Phòng', icon: DoorOpen, path: '/rooms', module: 'rooms' },
-    { id: 'more', label: 'Thêm', icon: MoreHorizontal, path: '/more' },
-  ]
-
-  const effectiveNavItems = NAV_ITEMS
-
-  // Check if user has module access
-  const hasModuleAccess = (moduleCode?: string): boolean => {
-    if (!moduleCode) return true
-    if (role === 'super_admin' || role === 'owner') return true
-    
-    const modules = moduleCode.split(',')
-    return modules.some(module => {
-      const permission = modulePermissions?.find(p => p.module === module)
-      if (!permission) return false
-      return permission.can_view || permission.can_create || permission.can_update || permission.can_delete
+  const hasModuleAccess = (modules?: string[]): boolean => {
+    if (!modules || modules.length === 0) return true
+    if (isPrivileged) return true
+    if (!modulePermissions) return false
+    return modules.some((module) => {
+      const p = modulePermissions.find((x: PermissionSummary) => x.module === module)
+      if (!p) return false
+      return p.can_view || p.can_create || p.can_update || p.can_delete
     })
   }
 
+  // Determine tasks path based on department
+  const tasksPath = user?.department === 'housekeeping' ? '/staff/housekeeping' : '/my-tasks'
+
+  // Filter pool theo permission
+  const accessibleTabs = ALL_TABS
+    .filter((tab) => tab.alwaysShow || hasModuleAccess(tab.modules))
+    .map((tab) => (tab.id === 'tasks' ? { ...tab, path: tasksPath } : tab))
+
+  // Tách Home (đầu) + More (cuối) + module tabs ở giữa
+  const homeTab = accessibleTabs.find((t) => t.id === 'home')!
+  const moreTab = accessibleTabs.find((t) => t.id === 'more')!
+  const moduleTabs = accessibleTabs.filter((t) => t.id !== 'home' && t.id !== 'more')
+
+  // Lấy tối đa (MAX_TABS - 2) module tabs để chừa slot Home + More
+  const visibleModuleTabs = moduleTabs.slice(0, MAX_TABS - 2)
+  const effectiveNavItems: NavItem[] = [homeTab, ...visibleModuleTabs, moreTab]
+
   const isActive = (path: string) => {
-    if (path === '/') {
-      return location.pathname === '/'
-    }
-    if (path === '/more') {
-      return location.pathname === '/more'
-    }
-    // Handle both /my-tasks and /staff/housekeeping for Tasks tab
+    if (path === '/') return location.pathname === '/'
+    if (path === '/more') return location.pathname === '/more'
     if (path === tasksPath) {
       return location.pathname.startsWith('/my-tasks') || location.pathname.startsWith('/staff/housekeeping')
     }
@@ -87,7 +108,7 @@ export const MobileBottomNav = () => {
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="flex items-center justify-around h-16">
-        {effectiveNavItems.filter(item => hasModuleAccess(item.module) && (!item.module || hasMode('homestay'))).map((item) => {
+        {effectiveNavItems.map((item) => {
           const Icon = item.icon
           const active = isActive(item.path)
           const badgeCount = getBadgeCount(item.badgeKey)
@@ -107,8 +128,8 @@ export const MobileBottomNav = () => {
               <div className="relative">
                 <Icon className={cn('h-5 w-5', active && 'fill-primary/20')} />
                 {badgeCount > 0 && (
-                  <Badge 
-                    variant="destructive" 
+                  <Badge
+                    variant="destructive"
                     className="absolute -top-2 -right-2 h-4 min-w-4 px-1 text-[10px] flex items-center justify-center"
                   >
                     {badgeCount > 9 ? '9+' : badgeCount}

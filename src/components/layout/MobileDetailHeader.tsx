@@ -1,7 +1,8 @@
 import { ArrowLeft, LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+import { useUser } from '@/hooks/useUser'
 
 interface MobileDetailHeaderProps {
   title: string
@@ -16,6 +17,40 @@ interface MobileDetailHeaderProps {
   className?: string
 }
 
+// Trang root của các tab — luôn ẩn back ở đây
+const ROOT_PATHS = new Set<string>([
+  '/',
+  '/my-tasks',
+  '/staff/housekeeping',
+  '/bookings',
+  '/rooms',
+  '/laundry',
+  '/maintenance',
+  '/inventory',
+  '/items',
+  '/more',
+  '/settings',
+])
+
+// Suy ra module root từ pathname để fallback khi không có history
+const inferModuleRoot = (pathname: string, department?: string): string => {
+  // Room Check thường mở từ Tasks → ưu tiên về Tasks
+  if (/^\/rooms\/[^/]+\/check/.test(pathname)) {
+    return department === 'housekeeping' ? '/staff/housekeeping' : '/my-tasks'
+  }
+  if (pathname.startsWith('/rooms')) return '/rooms'
+  if (pathname.startsWith('/bookings')) return '/bookings'
+  if (pathname.startsWith('/laundry')) return '/laundry'
+  if (pathname.startsWith('/maintenance')) return '/maintenance'
+  if (pathname.startsWith('/inventory') || pathname.startsWith('/items')) return '/inventory'
+  if (pathname.startsWith('/my-tasks') || pathname.startsWith('/staff/housekeeping')) {
+    return department === 'housekeeping' ? '/staff/housekeeping' : '/my-tasks'
+  }
+  if (pathname.startsWith('/settings')) return '/settings'
+  if (pathname.startsWith('/more')) return '/more'
+  return '/'
+}
+
 export const MobileDetailHeader = ({
   title,
   showBack = true,
@@ -25,13 +60,29 @@ export const MobileDetailHeader = ({
   className,
 }: MobileDetailHeaderProps) => {
   const navigate = useNavigate()
+  const location = useLocation()
+  const { user } = useUser()
+
+  // Auto-hide back nếu đang ở trang root tab — bất kể prop showBack
+  const isRoot = ROOT_PATHS.has(location.pathname)
+  const shouldShowBack = showBack && !isRoot
 
   const handleBack = () => {
     if (onBack) {
       onBack()
-    } else {
-      navigate(-1)
+      return
     }
+
+    // Có history trong app → quay lại bình thường
+    const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0
+    if (idx > 0) {
+      navigate(-1)
+      return
+    }
+
+    // Không có history (deep link / thông báo / tab mới) → fallback module root
+    const fallback = inferModuleRoot(location.pathname, user?.department)
+    navigate(fallback, { replace: true })
   }
 
   return (
@@ -44,7 +95,7 @@ export const MobileDetailHeader = ({
       <div className="flex items-center justify-between px-4 h-14">
         {/* Left: Back Button + Title */}
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          {showBack && (
+          {shouldShowBack && (
             <Button
               variant="ghost"
               size="icon"
