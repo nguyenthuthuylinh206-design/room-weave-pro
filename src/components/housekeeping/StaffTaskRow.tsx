@@ -166,27 +166,35 @@ export function StaffTaskRow({ task, onTap }: StaffTaskRowProps) {
               Bắt đầu
             </Button>
           )}
-          {isInProgress && (
-            <>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 px-2.5 text-xs"
-                onClick={handleContinue}
-              >
-                <CornerDownRight className="h-3.5 w-3.5 mr-1" />
-                Tiếp
-              </Button>
-              <Button
-                size="sm"
-                className="h-8 px-2.5 text-xs bg-green-600 hover:bg-green-700 text-white"
-                onClick={handleComplete}
-                disabled={isUpdating}
-              >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-              </Button>
-            </>
-          )}
+          {isInProgress && (() => {
+            const requiresInspection =
+              task.task_type === 'checkout_inspection' ||
+              task.task_type === 'checkin_prep' ||
+              task.task_type === 'amenity_request'
+            return (
+              <>
+                <Button
+                  size="sm"
+                  variant={requiresInspection ? 'default' : 'outline'}
+                  className="h-8 px-2.5 text-xs"
+                  onClick={handleContinue}
+                >
+                  <CornerDownRight className="h-3.5 w-3.5 mr-1" />
+                  {requiresInspection ? 'Tiếp tục kiểm tra' : 'Tiếp'}
+                </Button>
+                {!requiresInspection && (
+                  <Button
+                    size="sm"
+                    className="h-8 px-2.5 text-xs bg-green-600 hover:bg-green-700 text-white"
+                    onClick={handleComplete}
+                    disabled={isUpdating}
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </>
+            )
+          })()}
         </div>
       </div>
 
