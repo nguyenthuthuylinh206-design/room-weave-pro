@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useUser } from '@/hooks/useUser'
 import { useTenantSubscription } from '@/hooks/useSubscription'
-import { isTenantOwner, isManager } from '@/lib/userAccess'
+import { isTenantOwner } from '@/lib/userAccess'
 import { Gift, Phone, Mail, Calendar, CheckCircle2 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 
@@ -24,7 +24,7 @@ export const FreeTrialPopup = () => {
   useEffect(() => {
     if (!user || !subscription) return
 
-    const isEligibleRole = isTenantOwner(user) || isManager(user)
+    const isEligibleRole = isTenantOwner(user)
     const isTrial = subscription.subscription_status === 'trial'
     const dismissed = localStorage.getItem(STORAGE_KEY)
 
