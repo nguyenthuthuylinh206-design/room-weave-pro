@@ -2,47 +2,69 @@
 
 ## Vấn đề
 
-Trên dashboard task của nhân viên (`TaskCard`, `StaffTaskRow`, `TaskDetailDialog`):
+1. **Bottom nav chứa tab dư thừa**: `MobileBottomNav` hard-code 5 tab (Home / Tasks / Đặt phòng / Phòng / Thêm) cho mọi user. User không có quyền vẫn thấy chip — và logic hiện tại còn buộc phải có quyền `homestay` mode mới hiện tab có module → vô tình ẩn nhầm các tab bookings/rooms ở mode standard/full khi user thực ra có quyền.
 
-- Khi task ở trạng thái **"Đang làm"**, có **2 nút**: `[Tiếp]` (mở trang kiểm tra) và `[✓]` (đánh dấu hoàn thành ngay).
-- Nút `[✓]` gọi thẳng `updateStatus({ status: 'completed' })` → task chuyển thành "Hoàn thành" mà **không cần kiểm tra thực tế**, không có `room_check_id`, không lưu báo cáo nào.
-- Hiện chỉ task `cleaning` mới mở dialog xác nhận. Các task `checkout_inspection`, `checkin_prep`, `amenity_request` đều có thể tích hoàn thành chỉ bằng 1 click → **sai nghiệp vụ, có thể gian lận**.
+2. **Nút Back cứng nhắc**: `MobileDetailHeader.handleBack` luôn dùng `navigate(-1)`. Hệ quả:
+   - Mở Room Check từ thông báo / deep link → back đưa ra ngoài app.
+   - Một số trang root (`/maintenance`, `/settings`) đã set `showBack={false}` nhưng nhiều trang root khác (`/laundry`, `/inventory`, `/items`, `/rooms`, `/bookings`) vẫn hiện back vô nghĩa khi đến từ bottom nav.
 
-Trong khi đó, `RoomCheckPage` đã có sẵn logic auto-complete task khi nhân viên submit kiểm tra thật (dòng 895-937). Nghĩa là **chỉ cần buộc nhân viên đi qua trang kiểm tra**, task sẽ tự đánh dấu hoàn thành đúng quy trình.
+---
 
 ## Hướng sửa
 
-### 1. Bỏ nút "✓" (hoàn thành nhanh) cho task cần kiểm tra
+### A. `MobileBottomNav` — chỉ hiện tab có thể thao tác
 
-Với các task type sau, **CHỈ hiển thị nút `[Tiếp tục kiểm tra →]`**, KHÔNG có nút check xanh:
-- `checkout_inspection`
-- `checkin_prep`
-- `amenity_request`
+**Quy tắc filter (theo "permission thuần"):**
+- Tab không có `module` (Home, More): luôn hiện.
+- Tab `Tasks`: hiện nếu user có ít nhất 1 trong các quyền `housekeeping_tasks`, `room_checks`, `maintenance_requests`, `distribution_orders` (vì Tasks là view tổng hợp).
+- Tab `Đặt phòng`, `Phòng`: hiện nếu user có quyền `bookings` / `rooms` tương ứng (`can_view || can_create || can_update || can_delete`).
+- **Bỏ điều kiện `hasMode('homestay')` sai logic hiện tại** — không gating theo usage mode ở bottom nav.
+- Owner / super_admin: luôn thấy đủ.
 
-Nhân viên muốn hoàn thành → bắt buộc bấm "Tiếp tục" → mở `/rooms/:id/check?type=...` → submit kiểm tra thật → task tự động chuyển sang `completed` (logic đã có sẵn ở `RoomCheckPage`).
+**Mở rộng tab pool theo permission**: Thay vì cứng 5 tab, định nghĩa `ALL_TABS` gồm: Home, Tasks, Đặt phòng, Phòng, Laundry, Bảo trì, Kho, Thêm. Filter theo permission → lấy **tối đa 4 tab module + 1 tab "Thêm"** (5 slots). Thứ tự ưu tiên: Home → Tasks → Đặt phòng → Phòng → Laundry → Bảo trì → Kho → More. Các tab bị tràn → gom vào "Thêm".
 
-### 2. Giữ nguyên cho các task không cần kiểm tra
+**Kết quả ví dụ:**
+- Lễ tân (chỉ có bookings/rooms): `Home / Đặt phòng / Phòng / Thêm` (4 tab)
+- Staff buồng phòng (housekeeping_tasks + room_checks): `Home / Tasks / Phòng / Thêm`
+- Staff bảo trì: `Home / Tasks / Bảo trì / Thêm`
+- Owner: `Home / Tasks / Đặt phòng / Phòng / Thêm` (đủ 5)
 
-- `cleaning`: Giữ dialog `CleaningCompleteDialog` (đã có lựa chọn "Mở phòng ngay" / "Kiểm tra nhanh trước") — đây là dọn phòng đơn thuần, không bắt buộc kiểm tra.
-- `delivery_confirmation`: Giữ flow hiện tại — mở `DeliveryConfirmationModal` để nhân viên tick xác nhận từng món.
-- `other`: Giữ nút `[✓]` hoàn thành nhanh (task tự do, không gắn với quy trình).
+### B. `MobileDetailHeader` — back behavior linh hoạt
 
-### 3. Đổi label nút "Tiếp" cho rõ nghĩa
+**1. Auto-hide back trên trang root tab**
+Thêm prop ngầm: nếu `pathname` thuộc danh sách `ROOT_PATHS` (`/`, `/my-tasks`, `/staff/housekeeping`, `/bookings`, `/rooms`, `/laundry`, `/maintenance`, `/inventory`, `/items`, `/more`, `/settings`) → tự ẩn back, bất kể `showBack` truyền vào. Loại bỏ việc phải đi từng trang sửa `showBack={false}`.
 
-Khi task ở `in_progress` và là loại bắt buộc kiểm tra → nút duy nhất hiện text **"Tiếp tục kiểm tra"** (thay vì chỉ "Tiếp") để nhân viên hiểu phải vào trang kiểm tra mới hoàn thành được.
+**2. Smart back — quay về nguồn vào**
+Logic mới của `handleBack`:
+1. Nếu có `onBack` prop (custom) → gọi nó.
+2. Nếu `window.history.state?.idx > 0` (có history trong app) → `navigate(-1)`.
+3. Nếu không có history (mở từ deep link / thông báo / tab mới) → fallback về **module root** suy ra từ pathname:
+   - `/rooms/...` → `/rooms`
+   - `/laundry/...` → `/laundry`
+   - `/bookings/...` → `/bookings`
+   - `/maintenance/...` → `/maintenance`
+   - `/inventory/...`, `/items/...` → `/inventory`
+   - mặc định → `/`
 
-### 4. Hệ quả
+**3. Bonus — Room Check ưu tiên về Tasks nếu mở từ task**
+`/rooms/:id/check` thường mở từ task. Khi không có history → fallback về `/my-tasks` (hoặc `/staff/housekeeping` cho staff buồng phòng) thay vì `/rooms`.
 
-- Task `checkout_inspection` / `checkin_prep` / `amenity_request` chỉ có thể chuyển `completed` qua đường duy nhất: submit room check → tự động complete kèm `room_check_id` (audit trail rõ ràng).
-- Quản lý có thể tra ngược: mỗi task completed → có check thực sự với danh sách items, ảnh, ghi chú.
+### C. Memory
+
+Cập nhật `mem://design/sidebar-navigation-architecture` (hoặc tạo mới `mem://ux/mobile-bottom-nav-and-back-behavior-v1`) để chốt 2 quy chuẩn:
+- Bottom nav chỉ hiện tab user có quyền (max 5, gom vào More).
+- Back tự ẩn ở root paths; smart fallback về module root khi không có history.
+
+---
 
 ## Files thay đổi
 
 | File | Thay đổi |
 |---|---|
-| `src/components/housekeeping/TaskCard.tsx` | Trong nhánh `isInProgress`: ẩn nút check xanh khi `task_type ∈ {checkout_inspection, checkin_prep, amenity_request}`. Đổi label nút "Tiếp" → "Tiếp tục kiểm tra" cho các loại này. Bỏ `handleComplete` khỏi luồng các loại bắt buộc kiểm tra (nhưng giữ cho cleaning/delivery/other). |
-| `src/components/housekeeping/StaffTaskRow.tsx` | Áp dụng cùng logic: ẩn nút check xanh cho các task type bắt buộc kiểm tra; đổi label "Tiếp" thành "Tiếp tục kiểm tra". |
-| `src/components/housekeeping/TaskDetailDialog.tsx` | Trong khu vực action footer: ẩn nút "Hoàn thành" khi task ở `in_progress` và thuộc các loại bắt buộc kiểm tra. Chỉ giữ nút "Tiếp tục kiểm tra". |
+| `src/components/layout/MobileBottomNav.tsx` | (1) Mở rộng `ALL_TABS` (8 tab). (2) Bỏ điều kiện `hasMode('homestay')`. (3) Mở rộng `hasModuleAccess` để Tasks check tổ hợp permission. (4) Lọc + slice 4 tab module đầu tiên user có quyền + chèn cố định Home (đầu) và More (cuối) → tối đa 5 nút. |
+| `src/components/layout/MobileDetailHeader.tsx` | (1) Thêm `ROOT_PATHS` const + auto-hide back nếu pathname thuộc list. (2) Viết lại `handleBack`: ưu tiên `onBack` → check `history.state.idx` → fallback module root từ pathname (Room Check → /my-tasks). |
+| `mem://ux/mobile-bottom-nav-and-back-behavior-v1.md` | Tạo mới: ghi chuẩn permission-based bottom nav + smart back. |
+| `mem://index.md` | Thêm reference tới memory mới. |
 
-Không sửa hook, không migration, không ảnh hưởng `RoomCheckPage` (logic auto-complete đã đúng và sẽ tiếp tục hoạt động).
+Không sửa hook, không migration. Không đụng các trang gọi `MobileDetailHeader` (đã có `showBack={false}` thì giữ nguyên, chỗ truyền `showBack` mặc định sẽ tự được auto-hide nếu là root path).
 
