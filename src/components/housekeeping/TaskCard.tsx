@@ -73,13 +73,13 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
       await updateStatus({ taskId: task.id, status: 'in_progress' })
       if (task.task_type === 'checkout_inspection') {
         const ip = task.checkout_inspection_id ? `&inspection=${task.checkout_inspection_id}` : ''
-        navigate(`/rooms/${task.room_id}/check?type=checkout${ip}`)
+        navigate(`/rooms/${task.room_id}/check?type=checkout&resume=true${ip}`)
       } else if (task.task_type === 'delivery_confirmation') {
         setShowDeliveryModal(true)
       } else if (task.task_type === 'checkin_prep') {
-        navigate(`/rooms/${task.room_id}/check?type=checkin`)
+        navigate(`/rooms/${task.room_id}/check?type=checkin&resume=true`)
       } else if (task.task_type === 'amenity_request') {
-        navigate(`/rooms/${task.room_id}/check?type=replenish`)
+        navigate(`/rooms/${task.room_id}/check?type=replenish&resume=true`)
       }
     } finally {
       setIsUpdating(false)
@@ -104,13 +104,13 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
     e.stopPropagation()
     if (task.task_type === 'checkout_inspection') {
       const ip = task.checkout_inspection_id ? `&inspection=${task.checkout_inspection_id}` : ''
-      navigate(`/rooms/${task.room_id}/check?type=checkout${ip}`)
+      navigate(`/rooms/${task.room_id}/check?type=checkout&resume=true${ip}`)
     } else if (task.task_type === 'checkin_prep') {
-      navigate(`/rooms/${task.room_id}/check?type=checkin`)
+      navigate(`/rooms/${task.room_id}/check?type=checkin&resume=true`)
     } else if (task.task_type === 'amenity_request') {
-      navigate(`/rooms/${task.room_id}/check?type=replenish`)
+      navigate(`/rooms/${task.room_id}/check?type=replenish&resume=true`)
     } else if (task.task_type === 'cleaning') {
-      navigate(`/rooms/${task.room_id}`)
+      setShowCleaningComplete(true)
     } else if (task.task_type === 'delivery_confirmation') {
       setShowDeliveryModal(true)
     }
@@ -189,20 +189,17 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
                 </Button>
               )}
               {isInProgress && (() => {
-                const requiresInspection =
-                  task.task_type === 'checkout_inspection' ||
-                  task.task_type === 'checkin_prep' ||
-                  task.task_type === 'amenity_request'
+                const isCleaning = task.task_type === 'cleaning'
                 return (
                   <div className="flex items-center gap-1.5">
                     <Button
                       size="sm"
-                      variant={requiresInspection ? 'default' : 'outline'}
+                      variant="default"
                       className="h-8 px-2.5 text-xs"
                       onClick={handleContinue}
                     >
                       <CornerDownRight className="h-3.5 w-3.5 mr-1" />
-                      {requiresInspection ? 'Tiếp tục kiểm tra' : 'Tiếp'}
+                      {isCleaning ? 'Hoàn tất dọn' : 'Tiếp tục kiểm tra'}
                     </Button>
                   </div>
                 )
