@@ -12,9 +12,8 @@ import { Button } from '@/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, CheckCircle2, ClipboardCheck, AlertTriangle } from 'lucide-react'
+import { Loader2, CheckCircle2, ClipboardCheck } from 'lucide-react'
 import { useMarkRoomReady } from '@/hooks/useRooms'
-import { useRoomSupplements } from '@/hooks/useRoomSupplements'
 
 interface CleaningCompleteDialogProps {
   open: boolean
@@ -34,12 +33,6 @@ export function CleaningCompleteDialog({
   const navigate = useNavigate()
   const [option, setOption] = useState<'direct' | 'check'>('direct')
   const markRoomReady = useMarkRoomReady()
-  
-  // Fetch missing items to show warning
-  const { data: supplementData, isLoading: isLoadingSupplements } = useRoomSupplements(open ? roomId : undefined)
-  
-  const missingItemsCount = supplementData?.missing_items?.filter(item => item.missing_quantity > 0).length || 0
-  const hasMissingItems = missingItemsCount > 0
 
   const handleConfirm = async () => {
     if (option === 'check') {
