@@ -83,21 +83,23 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
     if (!task) return
     await updateStatus({ taskId: task.id, status: 'in_progress' })
     
-    // Navigate based on task type
+    // Navigate based on task type — pre-assigned type, no intermediate steps
     if (task.task_type === 'checkout_inspection') {
       onOpenChange(false)
       const inspectionParam = task.checkout_inspection_id 
         ? `&inspection=${task.checkout_inspection_id}` 
         : ''
-      navigate(`/rooms/${task.room_id}/check?type=checkout${inspectionParam}`)
+      navigate(`/rooms/${task.room_id}/check?type=checkout&resume=true${inspectionParam}`)
     } else if (task.task_type === 'delivery_confirmation') {
       setShowDeliveryModal(true)
     } else if (task.task_type === 'checkin_prep') {
       onOpenChange(false)
-      navigate(`/rooms/${task.room_id}/check?type=checkin`)
+      navigate(`/rooms/${task.room_id}/check?type=checkin&resume=true`)
     } else if (task.task_type === 'amenity_request') {
       onOpenChange(false)
-      navigate(`/rooms/${task.room_id}/check?type=replenish`)
+      navigate(`/rooms/${task.room_id}/check?type=replenish&resume=true`)
+    } else if (task.task_type === 'cleaning') {
+      setShowCleaningComplete(true)
     }
   }
 
@@ -123,18 +125,22 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
 
   const handleContinue = () => {
     if (!task) return
-    onOpenChange(false)
     if (task.task_type === 'checkout_inspection') {
+      onOpenChange(false)
       const inspectionParam = task.checkout_inspection_id 
         ? `&inspection=${task.checkout_inspection_id}` 
         : ''
-      navigate(`/rooms/${task.room_id}/check?type=checkout${inspectionParam}`)
+      navigate(`/rooms/${task.room_id}/check?type=checkout&resume=true${inspectionParam}`)
     } else if (task.task_type === 'checkin_prep') {
-      navigate(`/rooms/${task.room_id}/check?type=checkin`)
+      onOpenChange(false)
+      navigate(`/rooms/${task.room_id}/check?type=checkin&resume=true`)
     } else if (task.task_type === 'amenity_request') {
-      navigate(`/rooms/${task.room_id}/check?type=replenish`)
+      onOpenChange(false)
+      navigate(`/rooms/${task.room_id}/check?type=replenish&resume=true`)
     } else if (task.task_type === 'cleaning') {
-      navigate(`/rooms/${task.room_id}`)
+      setShowCleaningComplete(true)
+    } else if (task.task_type === 'delivery_confirmation') {
+      setShowDeliveryModal(true)
     }
   }
 
