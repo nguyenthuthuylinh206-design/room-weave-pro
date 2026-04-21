@@ -81,7 +81,7 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
       } else if (task.task_type === 'amenity_request') {
         navigate(`/rooms/${task.room_id}/check?type=replenish&resume=true`)
       } else if (task.task_type === 'cleaning') {
-        setShowCleaningComplete(true)
+        navigate(`/rooms/${task.room_id}/check?type=daily&resume=true`)
       }
     } finally {
       setIsUpdating(false)
@@ -112,7 +112,7 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
     } else if (task.task_type === 'amenity_request') {
       navigate(`/rooms/${task.room_id}/check?type=replenish&resume=true`)
     } else if (task.task_type === 'cleaning') {
-      setShowCleaningComplete(true)
+      navigate(`/rooms/${task.room_id}/check?type=daily&resume=true`)
     } else if (task.task_type === 'delivery_confirmation') {
       setShowDeliveryModal(true)
     }
