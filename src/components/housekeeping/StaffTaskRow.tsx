@@ -168,20 +168,17 @@ export function StaffTaskRow({ task, onTap }: StaffTaskRowProps) {
               Bắt đầu
             </Button>
           )}
-          {isInProgress && (() => {
-            const isCleaning = task.task_type === 'cleaning'
-            return (
-              <Button
-                size="sm"
-                variant="default"
-                className="h-8 px-2.5 text-xs"
-                onClick={handleContinue}
-              >
-                <CornerDownRight className="h-3.5 w-3.5 mr-1" />
-                {isCleaning ? 'Hoàn tất dọn' : 'Tiếp tục kiểm tra'}
-              </Button>
-            )
-          })()}
+          {isInProgress && (
+            <Button
+              size="sm"
+              variant="default"
+              className="h-8 px-2.5 text-xs"
+              onClick={handleContinue}
+            >
+              <CornerDownRight className="h-3.5 w-3.5 mr-1" />
+              Tiếp tục kiểm tra
+            </Button>
+          )}
         </div>
       </div>
 
