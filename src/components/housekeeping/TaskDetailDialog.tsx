@@ -99,7 +99,8 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
       onOpenChange(false)
       navigate(`/rooms/${task.room_id}/check?type=replenish&resume=true`)
     } else if (task.task_type === 'cleaning') {
-      setShowCleaningComplete(true)
+      onOpenChange(false)
+      navigate(`/rooms/${task.room_id}/check?type=daily&resume=true`)
     }
   }
 
