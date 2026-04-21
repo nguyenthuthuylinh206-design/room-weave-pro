@@ -103,7 +103,7 @@ export function StaffTaskRow({ task, onTap }: StaffTaskRowProps) {
     } else if (task.task_type === 'amenity_request') {
       navigate(`/rooms/${task.room_id}/check?type=replenish&resume=true`)
     } else if (task.task_type === 'cleaning') {
-      setShowCleaningComplete(true)
+      navigate(`/rooms/${task.room_id}/check?type=daily&resume=true`)
     } else if (task.task_type === 'delivery_confirmation') {
       setShowDeliveryModal(true)
     }
