@@ -11,7 +11,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, CheckCircle2, ClipboardCheck } from 'lucide-react'
 import { useMarkRoomReady } from '@/hooks/useRooms'
 
@@ -60,18 +59,6 @@ export function CleaningCompleteDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Warning for missing items */}
-        {!isLoadingSupplements && hasMissingItems && (
-          <Alert variant="destructive" className="border-amber-500 bg-amber-50 text-amber-800">
-            <AlertTriangle className="h-4 w-4 !text-amber-600" />
-            <AlertDescription>
-              <span className="font-medium">Phòng còn thiếu {missingItemsCount} loại đồ dùng.</span>
-              <br />
-              <span className="text-xs">Bạn nên kiểm tra và bổ sung trước khi mở phòng.</span>
-            </AlertDescription>
-          </Alert>
-        )}
-
         <RadioGroup
           value={option}
           onValueChange={(v) => setOption(v as 'direct' | 'check')}
@@ -85,9 +72,6 @@ export function CleaningCompleteDialog({
               <span className="font-medium">Mở phòng ngay</span>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Phòng sẽ chuyển sang "Trống" ngay lập tức
-                {hasMissingItems && (
-                  <span className="text-amber-600 block">⚠️ Lưu ý: Phòng còn thiếu đồ</span>
-                )}
               </p>
             </Label>
           </div>
