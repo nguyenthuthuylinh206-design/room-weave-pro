@@ -204,16 +204,6 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
                       <CornerDownRight className="h-3.5 w-3.5 mr-1" />
                       {requiresInspection ? 'Tiếp tục kiểm tra' : 'Tiếp'}
                     </Button>
-                    {!requiresInspection && (
-                      <Button
-                        size="sm"
-                        className="h-8 px-2.5 text-xs bg-green-600 hover:bg-green-700 text-white"
-                        onClick={handleComplete}
-                        disabled={isUpdating}
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
                   </div>
                 )
               })()}
