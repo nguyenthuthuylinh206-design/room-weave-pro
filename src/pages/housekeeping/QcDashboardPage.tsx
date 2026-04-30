@@ -43,6 +43,7 @@ export default function QcDashboardPage() {
 
   const { data: staffStats, isLoading: loadingStaff } = useQcStaffStats(days)
   const { data: floorStats, isLoading: loadingFloor } = useQcFloorStats(days)
+  const { data: trend, isLoading: loadingTrend } = useQcDailyTrend(days)
   const { data: pendingCount = 0 } = usePendingReviewCount()
 
   const totals = useMemo(() => {
@@ -52,6 +53,59 @@ export default function QcDashboardPage() {
     const reworkRate = totalCompleted > 0 ? (totalRework / totalCompleted) * 100 : 0
     return { totalCompleted, totalRework, reworkRate }
   }, [staffStats])
+
+  const chartData = useMemo(
+    () =>
+      (trend ?? []).map((d) => ({
+        ...d,
+        label: format(new Date(d.day), 'dd/MM', { locale: vi }),
+      })),
+    [trend]
+  )
+
+  const handleExportStaff = () => {
+    if (!staffStats?.length) return
+    downloadCsv(
+      staffStats.map((s) => ({
+        full_name: s.full_name ?? '',
+        total_completed: s.total_completed,
+        approved_count: s.approved_count,
+        pending_count: s.pending_count,
+        rework_count: s.rework_count,
+        rework_rate_pct: s.rework_rate_pct ?? 0,
+      })),
+      `qc-nhan-vien-${days}d-${format(new Date(), 'yyyy-MM-dd')}.csv`,
+      {
+        full_name: 'Nhân viên',
+        total_completed: 'Hoàn thành',
+        approved_count: 'Đã duyệt',
+        pending_count: 'Chờ duyệt',
+        rework_count: 'Làm lại',
+        rework_rate_pct: 'Tỉ lệ rework (%)',
+      }
+    )
+  }
+
+  const handleExportFloor = () => {
+    if (!floorStats?.length) return
+    downloadCsv(
+      floorStats.map((f) => ({
+        floor: f.floor ?? '',
+        total_tasks: f.total_tasks,
+        pending_tasks: f.pending_tasks,
+        rework_tasks: f.rework_tasks,
+        rework_rate_pct: f.rework_rate_pct ?? 0,
+      })),
+      `qc-tang-${days}d-${format(new Date(), 'yyyy-MM-dd')}.csv`,
+      {
+        floor: 'Tầng',
+        total_tasks: 'Tổng task',
+        pending_tasks: 'Chờ duyệt',
+        rework_tasks: 'Làm lại',
+        rework_rate_pct: 'Tỉ lệ rework (%)',
+      }
+    )
+  }
 
   return (
     <div className="p-4 space-y-6 max-w-6xl mx-auto">
