@@ -23,48 +23,82 @@ export interface QcFloorStat {
   rework_rate_pct: number | null
 }
 
-/** Thống kê QC theo nhân viên (30 ngày gần nhất) */
-export function useQcStaffStats() {
+/** Thống kê QC theo nhân viên (N ngày gần nhất) */
+export function useQcStaffStats(days = 30) {
   const { tenantId } = useUser()
   const { selectedHotel } = useHotelContext()
   const hotelId = selectedHotel?.id ?? null
 
   return useQuery({
-    queryKey: ['qc-staff-stats', tenantId, hotelId],
+    queryKey: ['qc-staff-stats', tenantId, hotelId, days],
     enabled: !!tenantId,
     queryFn: async () => {
-      let q = (supabase as any)
-        .from('qc_staff_stats_30d')
-        .select('*')
-        .eq('tenant_id', tenantId!)
-        .order('rework_rate_pct', { ascending: false, nullsFirst: false })
-      if (hotelId) q = q.eq('hotel_id', hotelId)
-      const { data, error } = await q
+      const { data, error } = await (supabase as any).rpc('get_qc_staff_stats', {
+        _tenant_id: tenantId,
+        _hotel_id: hotelId,
+        _days: days,
+      })
       if (error) throw error
-      return (data ?? []) as QcStaffStat[]
+      const rows = (data ?? []) as QcStaffStat[]
+      return rows
+        .map((r) => ({ ...r, total_completed: Number(r.total_completed), rework_count: Number(r.rework_count), pending_count: Number(r.pending_count), approved_count: Number(r.approved_count) }))
+        .sort((a, b) => (b.rework_rate_pct ?? 0) - (a.rework_rate_pct ?? 0))
     },
   })
 }
 
-/** Thống kê QC theo tầng (30 ngày gần nhất) */
-export function useQcFloorStats() {
+/** Thống kê QC theo tầng (N ngày gần nhất) */
+export function useQcFloorStats(days = 30) {
   const { tenantId } = useUser()
   const { selectedHotel } = useHotelContext()
   const hotelId = selectedHotel?.id ?? null
 
   return useQuery({
-    queryKey: ['qc-floor-stats', tenantId, hotelId],
+    queryKey: ['qc-floor-stats', tenantId, hotelId, days],
     enabled: !!tenantId,
     queryFn: async () => {
-      let q = (supabase as any)
-        .from('qc_floor_stats_30d')
-        .select('*')
+      const { data, error } = await (supabase as any).rpc('get_qc_floor_stats', {
+        _tenant_id: tenantId,
+        _hotel_id: hotelId,
+        _days: days,
+      })
+      if (error) throw error
+      const rows = (data ?? []) as QcFloorStat[]
+      return rows
+        .map((r) => ({ ...r, total_tasks: Number(r.total_tasks), rework_tasks: Number(r.rework_tasks), pending_tasks: Number(r.pending_tasks) }))
+        .sort((a, b) => (a.floor ?? 0) - (b.floor ?? 0))
+    },
+  })
+}
+
+/** Danh sách task bị rework của 1 nhân viên (drill-down) */
+export function useStaffReworkTasks(userId: string | null, days = 30) {
+  const { tenantId } = useUser()
+  const { selectedHotel } = useHotelContext()
+  const hotelId = selectedHotel?.id ?? null
+
+  return useQuery({
+    queryKey: ['qc-staff-rework-tasks', tenantId, hotelId, userId, days],
+    enabled: !!tenantId && !!userId,
+    queryFn: async () => {
+      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
+      let q = supabase
+        .from('housekeeping_tasks')
+        .select(`
+          id, status, task_type, priority, rework_count, rejection_reason,
+          rejected_at, awaiting_review_at, created_at, room_id, hotel_id,
+          room:rooms!housekeeping_tasks_room_id_fkey(room_number, floor)
+        `)
         .eq('tenant_id', tenantId!)
-        .order('floor', { ascending: true, nullsFirst: false })
+        .eq('assigned_to', userId!)
+        .gte('created_at', since)
+        .or('status.eq.rejected_rework,rework_count.gt.0')
+        .order('rejected_at', { ascending: false, nullsFirst: false })
+        .limit(100)
       if (hotelId) q = q.eq('hotel_id', hotelId)
       const { data, error } = await q
       if (error) throw error
-      return (data ?? []) as QcFloorStat[]
+      return data ?? []
     },
   })
 }
