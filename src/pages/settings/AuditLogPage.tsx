@@ -134,7 +134,8 @@ function Row({ row }: { row: AuditLogRow }) {
 
 export default function AuditLogPage() {
   const { tenantId } = useUser()
-  const { selectedHotelId } = useHotelContext()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
+  const selectedHotelId = isAllHotelsMode ? null : selectedHotel?.id ?? null
   const [tableFilter, setTableFilter] = useState<string>('all')
   const [actionFilter, setActionFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
@@ -150,7 +151,7 @@ export default function AuditLogPage() {
         .order('created_at', { ascending: false })
         .limit(200)
 
-      if (selectedHotelId && selectedHotelId !== 'all') {
+      if (selectedHotelId) {
         q = q.eq('hotel_id', selectedHotelId)
       }
       if (tableFilter !== 'all') q = q.eq('table_name', tableFilter)
