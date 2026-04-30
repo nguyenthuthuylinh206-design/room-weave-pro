@@ -2,7 +2,14 @@
 
 export type TaskType = 'checkout_inspection' | 'cleaning' | 'checkin_prep' | 'amenity_request' | 'delivery_confirmation' | 'other'
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
-export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled'
+export type TaskStatus =
+  | 'pending'
+  | 'in_progress'
+  | 'completed_pending_review'
+  | 'approved'
+  | 'rejected_rework'
+  | 'completed'
+  | 'cancelled'
 
 export interface HousekeepingTask {
   id: string
@@ -24,11 +31,22 @@ export interface HousekeepingTask {
   completed_at: string | null
   cancelled_at: string | null
   due_at: string | null
-  
+
+  // QC lifecycle (Phase 2 — completion of state machine)
+  qc_required?: boolean
+  qc_status?: 'pending' | 'approved' | 'rejected' | null
+  awaiting_review_at?: string | null
+  approved_at?: string | null
+  approved_by?: string | null
+  rejected_at?: string | null
+  rejected_by?: string | null
+  rejection_reason?: string | null
+  rework_count?: number
+
   room_check_id: string | null
   distribution_order_room_id: string | null // Link to delivery task
   notes: string | null
-  
+
   created_at: string
   updated_at: string
 }
@@ -108,9 +126,29 @@ export const PRIORITY_COLORS: Record<TaskPriority, string> = {
 export const STATUS_LABELS: Record<TaskStatus, string> = {
   pending: 'Chờ xử lý',
   in_progress: 'Đang thực hiện',
+  completed_pending_review: 'Chờ duyệt',
+  approved: 'Đã duyệt',
+  rejected_rework: 'Cần làm lại',
   completed: 'Hoàn thành',
-  cancelled: 'Đã hủy'
+  cancelled: 'Đã hủy',
 }
+
+/** Màu chữ semantic cho từng trạng thái task (theo chuẩn Enterprise SaaS Minimalist). */
+export const STATUS_TEXT_COLORS: Record<TaskStatus, string> = {
+  pending: 'text-muted-foreground',
+  in_progress: 'text-blue-600',
+  completed_pending_review: 'text-amber-600',
+  approved: 'text-green-600',
+  rejected_rework: 'text-red-600',
+  completed: 'text-green-600',
+  cancelled: 'text-muted-foreground',
+}
+
+/** Trạng thái cần hiển thị trong tab "Cần duyệt" của Supervisor/Manager. */
+export const TASK_REVIEW_STATUSES: TaskStatus[] = ['completed_pending_review', 'rejected_rework']
+
+/** Trạng thái coi là "đã đóng" (xong việc) để filter dashboard. */
+export const TASK_TERMINAL_STATUSES: TaskStatus[] = ['approved', 'completed', 'cancelled']
 
 // Duplicate task error structure
 export interface DuplicateTaskInfo {
