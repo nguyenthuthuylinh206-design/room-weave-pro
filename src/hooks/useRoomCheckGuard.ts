@@ -42,7 +42,7 @@ export function useRoomCheckGuard(params: {
       })
 
       if (error) throw new Error(mapDbError(error.message))
-      return data as RoomCheckContext
+      return data as unknown as RoomCheckContext
     },
   })
 }
