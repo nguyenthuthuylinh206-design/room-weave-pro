@@ -409,7 +409,6 @@ export function useUpdateTaskStatus() {
     },
     onError: (error: any) => {
       console.error('Update task status error:', error)
-      const { mapDbError } = require('@/lib/dbErrors')
       toast.error(mapDbError(error?.message ?? error))
     }
   })
