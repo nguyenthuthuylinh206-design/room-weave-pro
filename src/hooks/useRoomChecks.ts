@@ -1026,9 +1026,22 @@ export function useCreateRoomCheck() {
     },
 
     onError: (error: Error) => {
+      const msg = error.message || ''
+      // Map lỗi từ trigger enforce_room_check_photos
+      if (msg.includes('photo_required')) {
+        const friendly = msg.includes('mọi lần')
+          ? 'Khách sạn yêu cầu chụp ảnh bằng chứng cho mọi lần kiểm phòng. Vui lòng thêm ít nhất 1 ảnh.'
+          : 'Phòng có sự cố — cần ít nhất 1 ảnh bằng chứng (mất/hỏng/thiếu). Vui lòng chụp và thử lại.'
+        toast({
+          title: 'Cần ảnh bằng chứng',
+          description: friendly,
+          variant: 'destructive',
+        })
+        return
+      }
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: msg,
         variant: 'destructive',
       })
     },

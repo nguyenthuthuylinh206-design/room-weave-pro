@@ -45,6 +45,8 @@ export interface DefaultOkItemsCheckProps {
   onRemoveFromLost: (itemId: string) => void
   onRemoveFromConsumed: (itemId: string) => void
   onRemoveFromDamaged: (itemId: string) => void
+  /** Callback nhận photos từ ReportIssueSheet — page-level gộp vào form.photos */
+  onPhotosCollected?: (photos: string[]) => void
 }
 
 type ItemStatus = 'ok' | 'laundry' | 'add' | 'change' | 'lost' | 'damaged' | 'missing' | 'consumed'
@@ -79,6 +81,7 @@ export function DefaultOkItemsCheck({
   onRemoveFromLost,
   onRemoveFromConsumed,
   onRemoveFromDamaged,
+  onPhotosCollected,
 }: DefaultOkItemsCheckProps) {
   const config = getCheckTypeConfig(checkType)
   const [enriched, setEnriched] = useState<ExtendedRoomItem[]>([])
@@ -209,6 +212,11 @@ export function DefaultOkItemsCheck({
       case 'empty':
         onMarkConsumed(item, action.quantity, action.needRefill)
         break
+    }
+
+    // Forward photos lên parent — gộp vào form.photos của room check
+    if (action.photos && action.photos.length > 0 && onPhotosCollected) {
+      onPhotosCollected(action.photos)
     }
   }
 
