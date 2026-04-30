@@ -33,6 +33,7 @@ interface MenuItem {
   description?: string
   path: string
   module?: string
+  badge?: number
 }
 
 interface MenuSection {
