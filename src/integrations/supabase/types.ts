@@ -128,6 +128,54 @@ export type Database = {
           },
         ]
       }
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_role: string | null
+          changed_fields: string[] | null
+          context: Json | null
+          created_at: string
+          hotel_id: string | null
+          id: number
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string
+          table_name: string
+          tenant_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_role?: string | null
+          changed_fields?: string[] | null
+          context?: Json | null
+          created_at?: string
+          hotel_id?: string | null
+          id?: number
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id: string
+          table_name: string
+          tenant_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_role?: string | null
+          changed_fields?: string[] | null
+          context?: Json | null
+          created_at?: string
+          hotel_id?: string | null
+          id?: number
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string
+          table_name?: string
+          tenant_id?: string | null
+        }
+        Relationships: []
+      }
       backup_logs: {
         Row: {
           backup_scope: string[]
@@ -2191,7 +2239,10 @@ export type Database = {
       }
       housekeeping_tasks: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           assigned_to: string | null
+          awaiting_review_at: string | null
           booking_id: string | null
           cancelled_at: string | null
           checkout_inspection_id: string | null
@@ -2204,7 +2255,11 @@ export type Database = {
           id: string
           notes: string | null
           priority: string
+          qc_due_at: string | null
+          qc_required: boolean
+          qc_status: string | null
           requested_by: string | null
+          rework_count: number
           room_check_id: string | null
           room_id: string
           started_at: string | null
@@ -2215,7 +2270,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           assigned_to?: string | null
+          awaiting_review_at?: string | null
           booking_id?: string | null
           cancelled_at?: string | null
           checkout_inspection_id?: string | null
@@ -2228,7 +2286,11 @@ export type Database = {
           id?: string
           notes?: string | null
           priority?: string
+          qc_due_at?: string | null
+          qc_required?: boolean
+          qc_status?: string | null
           requested_by?: string | null
+          rework_count?: number
           room_check_id?: string | null
           room_id: string
           started_at?: string | null
@@ -2239,7 +2301,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           assigned_to?: string | null
+          awaiting_review_at?: string | null
           booking_id?: string | null
           cancelled_at?: string | null
           checkout_inspection_id?: string | null
@@ -2252,7 +2317,11 @@ export type Database = {
           id?: string
           notes?: string | null
           priority?: string
+          qc_due_at?: string | null
+          qc_required?: boolean
+          qc_status?: string | null
           requested_by?: string | null
+          rework_count?: number
           room_check_id?: string | null
           room_id?: string
           started_at?: string | null
@@ -2263,6 +2332,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "housekeeping_tasks_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "housekeeping_tasks_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "housekeeping_tasks_assigned_to_fkey"
             columns: ["assigned_to"]
@@ -5147,6 +5230,141 @@ export type Database = {
           },
         ]
       }
+      qc_reviews: {
+        Row: {
+          decision: string
+          hotel_id: string
+          id: string
+          reason: string | null
+          reject_categories: string[] | null
+          reviewed_at: string
+          reviewer_id: string
+          rework_iteration: number
+          room_check_id: string | null
+          score_override: number | null
+          task_id: string
+          tenant_id: string
+        }
+        Insert: {
+          decision: string
+          hotel_id: string
+          id?: string
+          reason?: string | null
+          reject_categories?: string[] | null
+          reviewed_at?: string
+          reviewer_id: string
+          rework_iteration?: number
+          room_check_id?: string | null
+          score_override?: number | null
+          task_id: string
+          tenant_id: string
+        }
+        Update: {
+          decision?: string
+          hotel_id?: string
+          id?: string
+          reason?: string | null
+          reject_categories?: string[] | null
+          reviewed_at?: string
+          reviewer_id?: string
+          rework_iteration?: number
+          room_check_id?: string | null
+          score_override?: number | null
+          task_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qc_reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qc_reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qc_reviews_room_check_id_fkey"
+            columns: ["room_check_id"]
+            isOneToOne: false
+            referencedRelation: "room_checks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qc_reviews_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "housekeeping_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qc_sla_settings: {
+        Row: {
+          auto_escalate: boolean
+          created_at: string
+          hotel_id: string | null
+          id: string
+          max_rework_count: number
+          qc_required: boolean
+          sla_minutes: number
+          task_type: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          auto_escalate?: boolean
+          created_at?: string
+          hotel_id?: string | null
+          id?: string
+          max_rework_count?: number
+          qc_required?: boolean
+          sla_minutes?: number
+          task_type: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          auto_escalate?: boolean
+          created_at?: string
+          hotel_id?: string | null
+          id?: string
+          max_rework_count?: number
+          qc_required?: boolean
+          sla_minutes?: number
+          task_type?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qc_sla_settings_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "qc_sla_settings_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qc_sla_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reminder_automation_rules: {
         Row: {
           action_template: string | null
@@ -5656,6 +5874,7 @@ export type Database = {
           checked_at: string | null
           checked_by: string
           cleanliness_score: number | null
+          hotel_id: string | null
           id: string
           items_complete: boolean | null
           items_consumed: Json | null
@@ -5666,13 +5885,20 @@ export type Database = {
           items_sent_to_laundry: Json | null
           notes: string | null
           photos: string[] | null
+          qc_required: boolean
+          qc_status: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           room_id: string
+          score_override: number | null
+          tenant_id: string | null
         }
         Insert: {
           check_type: string
           checked_at?: string | null
           checked_by: string
           cleanliness_score?: number | null
+          hotel_id?: string | null
           id?: string
           items_complete?: boolean | null
           items_consumed?: Json | null
@@ -5683,13 +5909,20 @@ export type Database = {
           items_sent_to_laundry?: Json | null
           notes?: string | null
           photos?: string[] | null
+          qc_required?: boolean
+          qc_status?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           room_id: string
+          score_override?: number | null
+          tenant_id?: string | null
         }
         Update: {
           check_type?: string
           checked_at?: string | null
           checked_by?: string
           cleanliness_score?: number | null
+          hotel_id?: string | null
           id?: string
           items_complete?: boolean | null
           items_consumed?: Json | null
@@ -5700,7 +5933,13 @@ export type Database = {
           items_sent_to_laundry?: Json | null
           notes?: string | null
           photos?: string[] | null
+          qc_required?: boolean
+          qc_status?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           room_id?: string
+          score_override?: number | null
+          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -5713,6 +5952,20 @@ export type Database = {
           {
             foreignKeyName: "room_checks_checked_by_fkey"
             columns: ["checked_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_checks_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_checks_reviewed_by_fkey"
+            columns: ["reviewed_by"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -9720,6 +9973,19 @@ export type Database = {
         Returns: Json
       }
       process_expired_subscriptions: { Args: never; Returns: undefined }
+      qc_approve_task: {
+        Args: { _notes?: string; _score_override?: number; _task_id: string }
+        Returns: Json
+      }
+      qc_escalate_overdue: { Args: never; Returns: number }
+      qc_force_approve: {
+        Args: { _reason: string; _task_id: string }
+        Returns: Json
+      }
+      qc_reject_task: {
+        Args: { _categories?: string[]; _reason: string; _task_id: string }
+        Returns: Json
+      }
       queue_email_notification: {
         Args: {
           p_body_html: string
@@ -9752,6 +10018,15 @@ export type Database = {
       reject_tenant: {
         Args: { p_admin_id: string; p_reason: string; p_tenant_id: string }
         Returns: Json
+      }
+      resolve_qc_settings: {
+        Args: { _hotel_id: string; _task_type: string; _tenant_id: string }
+        Returns: {
+          auto_escalate: boolean
+          max_rework_count: number
+          qc_required: boolean
+          sla_minutes: number
+        }[]
       }
       retry_stop: {
         Args: { p_actor_id?: string; p_room_order_id: string }
@@ -9812,6 +10087,10 @@ export type Database = {
             }
             Returns: Json
           }
+      submit_room_check_for_qc: {
+        Args: { _room_check_id: string; _task_id: string }
+        Returns: Json
+      }
       sync_categories_for_hotel: {
         Args: { p_hotel_id: string; p_tenant_id: string }
         Returns: Json
