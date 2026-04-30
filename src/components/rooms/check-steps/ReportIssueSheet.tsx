@@ -73,8 +73,8 @@ export function ReportIssueSheet({
   const [photos, setPhotos] = useState<string[]>([])
 
   const { tenantId } = useUser()
-  const { selectedHotelId } = useHotelContext()
-  const { data: photoMode = 'none' } = useHotelPhotoMode(selectedHotelId ?? undefined)
+  const { selectedHotel } = useHotelContext()
+  const { data: photoMode = 'none' } = useHotelPhotoMode(selectedHotel?.id)
   const { uploadImage, isUploading } = useImageUpload()
 
   useEffect(() => {
