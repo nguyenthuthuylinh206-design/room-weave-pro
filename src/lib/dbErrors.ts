@@ -29,5 +29,13 @@ export function mapDbError(message: string | undefined | null): string {
   // Rate limit (Phase 1 — Lượt 3)
   if (msg.includes('RATE_LIMITED')) return 'Bạn thao tác quá nhanh. Vui lòng thử lại sau ít phút.'
 
+  // State machine v2 (Phase 2)
+  if (msg.includes('INVALID_TASK_TRANSITION')) return 'Chuyển trạng thái công việc không hợp lệ.'
+  if (msg.includes('INVALID_BOOKING_TRANSITION')) return 'Chuyển trạng thái booking không hợp lệ.'
+  if (msg.includes('NO_PERMISSION_QC')) return 'Bạn không có quyền duyệt/từ chối công việc này.'
+  if (msg.includes('NO_PERMISSION_CANCEL')) return 'Bạn không có quyền hủy công việc của người khác.'
+  if (msg.includes('NO_PERMISSION_BOOKING_FLAG')) return 'Bạn không có quyền đặt khách ngủ ngoài / bỏ trốn.'
+  if (msg.includes('BOOKING_NOT_FOUND')) return 'Không tìm thấy booking.'
+
   return msg || 'Đã xảy ra lỗi không xác định.'
 }

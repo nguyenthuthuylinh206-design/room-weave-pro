@@ -30,6 +30,7 @@ import { useTaskById, useUpdateTaskStatus } from '@/hooks/useHousekeepingTasks'
 import { useDeliveryTaskItems } from '@/hooks/useDeliveryTaskItems'
 import { DeliveryConfirmationModal } from './DeliveryConfirmationModal'
 import { CleaningCompleteDialog } from '@/components/rooms/CleaningCompleteDialog'
+import { TaskQcReviewDialog } from './TaskQcReviewDialog'
 import { useState } from 'react'
 import type { TaskType, TaskPriority } from '@/types/housekeeping.types'
 import { TASK_TYPE_LABELS, PRIORITY_LABELS, STATUS_LABELS } from '@/types/housekeeping.types'
@@ -53,6 +54,9 @@ const PRIORITY_BADGE_STYLES: Record<TaskPriority, string> = {
 const STATUS_BADGE_STYLES: Record<string, string> = {
   pending: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   in_progress: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  completed_pending_review: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
+  approved: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  rejected_rework: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   completed: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
   cancelled: 'bg-muted text-muted-foreground',
 }
@@ -69,6 +73,7 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
   const { mutateAsync: updateStatus, isPending: isUpdating } = useUpdateTaskStatus()
   const [showDeliveryModal, setShowDeliveryModal] = useState(false)
   const [showCleaningComplete, setShowCleaningComplete] = useState(false)
+  const [showQcReview, setShowQcReview] = useState<false | 'approve' | 'reject'>(false)
 
   // Fetch delivery items if this is a delivery confirmation task
   const isDeliveryTask = task?.task_type === 'delivery_confirmation'
@@ -406,6 +411,26 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
                     )}
                   </>
                 )}
+
+                {/* QC review actions — Phase 2 state machine */}
+                {(task.status === 'completed_pending_review' || task.status === 'rejected_rework') && (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="flex-1 text-red-600 border-red-200 hover:bg-red-50"
+                      onClick={() => setShowQcReview('reject')}
+                    >
+                      Trả lại làm lại
+                    </Button>
+                    <Button
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => setShowQcReview('approve')}
+                    >
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Duyệt
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           ) : (
@@ -439,6 +464,14 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
           onComplete={handleCleaningCompleted}
         />
       )}
+
+      {/* QC Review Dialog — Phase 2 */}
+      <TaskQcReviewDialog
+        task={task ?? null}
+        open={showQcReview !== false}
+        onOpenChange={(v) => !v && setShowQcReview(false)}
+        defaultMode={showQcReview === 'reject' ? 'reject' : 'approve'}
+      />
     </>
   )
 }

@@ -2258,6 +2258,9 @@ export type Database = {
           qc_due_at: string | null
           qc_required: boolean
           qc_status: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
           requested_by: string | null
           rework_count: number
           room_check_id: string | null
@@ -2289,6 +2292,9 @@ export type Database = {
           qc_due_at?: string | null
           qc_required?: boolean
           qc_status?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
           requested_by?: string | null
           rework_count?: number
           room_check_id?: string | null
@@ -2320,6 +2326,9 @@ export type Database = {
           qc_due_at?: string | null
           qc_required?: boolean
           qc_status?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
           requested_by?: string | null
           rework_count?: number
           room_check_id?: string | null
@@ -5658,11 +5667,15 @@ export type Database = {
           service_fee_amount: number | null
           service_fee_rate: number | null
           skipper_amount_loss: number | null
+          skipper_amount_owed: number | null
+          skipper_at: string | null
           skipper_marked_at: string | null
           skipper_marked_by: string | null
           skipper_note: string | null
+          skipper_reason: string | null
           sleep_out_at: string | null
           sleep_out_note: string | null
+          sleep_out_reason: string | null
           status: string
           subtotal: number | null
           tenant_id: string
@@ -5726,11 +5739,15 @@ export type Database = {
           service_fee_amount?: number | null
           service_fee_rate?: number | null
           skipper_amount_loss?: number | null
+          skipper_amount_owed?: number | null
+          skipper_at?: string | null
           skipper_marked_at?: string | null
           skipper_marked_by?: string | null
           skipper_note?: string | null
+          skipper_reason?: string | null
           sleep_out_at?: string | null
           sleep_out_note?: string | null
+          sleep_out_reason?: string | null
           status?: string
           subtotal?: number | null
           tenant_id: string
@@ -5794,11 +5811,15 @@ export type Database = {
           service_fee_amount?: number | null
           service_fee_rate?: number | null
           skipper_amount_loss?: number | null
+          skipper_amount_owed?: number | null
+          skipper_at?: string | null
           skipper_marked_at?: string | null
           skipper_marked_by?: string | null
           skipper_note?: string | null
+          skipper_reason?: string | null
           sleep_out_at?: string | null
           sleep_out_note?: string | null
+          sleep_out_reason?: string | null
           status?: string
           subtotal?: number | null
           tenant_id?: string
@@ -10246,6 +10267,92 @@ export type Database = {
         Args: { p_hotel_id: string; p_tenant_id: string }
         Returns: Json
       }
+      transition_booking_status: {
+        Args: {
+          _amount_owed?: number
+          _booking_id: string
+          _reason?: string
+          _to_status: string
+        }
+        Returns: {
+          actual_check_in: string | null
+          actual_check_out: string | null
+          amount_paid: number | null
+          booking_group_id: string | null
+          booking_hours: number | null
+          booking_months: number | null
+          booking_reference: string | null
+          booking_source: string | null
+          booking_type: string
+          check_in_date: string
+          check_out_date: string
+          created_at: string | null
+          created_by: string | null
+          damage_charges: number | null
+          damage_items: Json | null
+          damage_notes: string | null
+          deposit_amount: number | null
+          early_checkin_charge: number | null
+          expected_check_in_time: string | null
+          expected_check_out_time: string | null
+          extra_charges: number | null
+          guest_address: string | null
+          guest_count: number | null
+          guest_date_of_birth: string | null
+          guest_email: string | null
+          guest_gender: string | null
+          guest_id: string | null
+          guest_id_image_url: string | null
+          guest_id_number: string | null
+          guest_id_type: string | null
+          guest_name: string
+          guest_nationality: string | null
+          guest_phone: string | null
+          hotel_id: string
+          hourly_end_time: string | null
+          hourly_rate: number | null
+          hourly_start_time: string | null
+          id: string
+          late_checkout_charge: number | null
+          monthly_rate: number | null
+          net_revenue: number | null
+          notes: string | null
+          ota_commission_amount: number | null
+          ota_commission_rate: number | null
+          ota_paid_amount: number | null
+          ota_payment_type: string | null
+          paid_at: string | null
+          payment_status: string | null
+          room_id: string
+          room_price: number | null
+          service_charges: number | null
+          service_fee_amount: number | null
+          service_fee_rate: number | null
+          skipper_amount_loss: number | null
+          skipper_amount_owed: number | null
+          skipper_at: string | null
+          skipper_marked_at: string | null
+          skipper_marked_by: string | null
+          skipper_note: string | null
+          skipper_reason: string | null
+          sleep_out_at: string | null
+          sleep_out_note: string | null
+          sleep_out_reason: string | null
+          status: string
+          subtotal: number | null
+          tenant_id: string
+          total_amount: number | null
+          updated_at: string | null
+          vat_amount: number | null
+          vat_rate: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "room_bookings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       transition_room_status: {
         Args: {
           _dnd_until?: string
@@ -10258,8 +10365,52 @@ export type Database = {
         Returns: Json
       }
       transition_task_status: {
-        Args: { _reason?: string; _task_id: string; _to_status: string }
-        Returns: Json
+        Args: {
+          _force?: boolean
+          _reason?: string
+          _task_id: string
+          _to_status: string
+        }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          assigned_to: string | null
+          awaiting_review_at: string | null
+          booking_id: string | null
+          cancelled_at: string | null
+          checkout_inspection_id: string | null
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          distribution_order_room_id: string | null
+          due_at: string | null
+          hotel_id: string
+          id: string
+          notes: string | null
+          priority: string
+          qc_due_at: string | null
+          qc_required: boolean
+          qc_status: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          requested_by: string | null
+          rework_count: number
+          room_check_id: string | null
+          room_id: string
+          started_at: string | null
+          status: string
+          task_type: string
+          tenant_id: string
+          title: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "housekeeping_tasks"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       undo_room_delivery_confirmation:
         | { Args: { p_distribution_order_room_id: string }; Returns: Json }
