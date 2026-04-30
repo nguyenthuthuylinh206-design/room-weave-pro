@@ -411,6 +411,26 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
                     )}
                   </>
                 )}
+
+                {/* QC review actions — Phase 2 state machine */}
+                {(task.status === 'completed_pending_review' || task.status === 'rejected_rework') && (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="flex-1 text-red-600 border-red-200 hover:bg-red-50"
+                      onClick={() => setShowQcReview('reject')}
+                    >
+                      Trả lại làm lại
+                    </Button>
+                    <Button
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => setShowQcReview('approve')}
+                    >
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Duyệt
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           ) : (
@@ -444,6 +464,14 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
           onComplete={handleCleaningCompleted}
         />
       )}
+
+      {/* QC Review Dialog — Phase 2 */}
+      <TaskQcReviewDialog
+        task={task ?? null}
+        open={showQcReview !== false}
+        onOpenChange={(v) => !v && setShowQcReview(false)}
+        defaultMode={showQcReview === 'reject' ? 'reject' : 'approve'}
+      />
     </>
   )
 }
