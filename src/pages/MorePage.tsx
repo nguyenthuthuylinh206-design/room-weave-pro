@@ -73,6 +73,13 @@ export default function MorePage() {
             } as MenuItem]
           : []),
         {
+          icon: ClipboardCheck,
+          label: 'Dashboard QC',
+          description: 'Thống kê chất lượng dọn phòng 30 ngày',
+          path: '/housekeeping/qc',
+          module: 'rooms',
+        },
+        {
           icon: Package,
           label: 'Bookings',
           description: 'Quản lý đặt phòng',

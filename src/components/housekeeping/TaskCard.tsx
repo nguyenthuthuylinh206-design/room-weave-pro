@@ -152,9 +152,14 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
               {SHORT_LABELS[task.task_type] || TASK_TYPE_LABELS[task.task_type]}
             </span>
           </div>
-          <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-muted-foreground flex-wrap">
             {isUrgent && (
               <span className="text-red-600 font-medium">Gấp</span>
+            )}
+            {(task.status === 'rejected_rework' || (task.rework_count ?? 0) > 0) && (
+              <span className="text-red-600 font-medium">
+                Cần làm lại{(task.rework_count ?? 0) > 1 ? ` ×${task.rework_count}` : ''}
+              </span>
             )}
             {isInProgress && elapsedTime ? (
               <span className="text-blue-600">⏱ {elapsedTime}</span>
@@ -162,6 +167,11 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
               <span>{createdAgo}</span>
             )}
           </div>
+          {task.status === 'rejected_rework' && task.rejection_reason && (
+            <div className="mt-0.5 text-[11px] text-red-600 line-clamp-2">
+              Lý do: {task.rejection_reason}
+            </div>
+          )}
         </div>
 
         {/* Action button */}
