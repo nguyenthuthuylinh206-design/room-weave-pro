@@ -1,81 +1,63 @@
 import { UseFormReturn } from 'react-hook-form'
-import { Calendar, LogIn, LogOut, Wrench, Package, PackagePlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
 import type { RoomCheckFormData, CheckType } from '@/types/rooms.types'
 import { cn } from '@/lib/utils'
 import { LastCheckContextCard } from './LastCheckContextCard'
 import { QuickOkButton } from './QuickOkButton'
+import { DraftResumeBanner } from './DraftResumeBanner'
 import type { QuickCheckType } from '@/hooks/useQuickRoomCheck'
 
 interface CheckTypeStepProps {
   form: UseFormReturn<RoomCheckFormData>
   quickMode: boolean
   setQuickMode: (value: boolean) => void
-  hideDelivery?: boolean // Ẩn option delivery khi user tự chọn (không phải từ luồng giao hàng)
+  hideDelivery?: boolean
   /** Bật Quick path "Phòng OK hoàn toàn" + Context Card khi truyền đủ roomId */
   roomId?: string
   hotelId?: string | null
+  /** Cho phép tiếp quản phiên của người khác (manager) */
+  canTakeOver?: boolean
 }
 
-const checkTypes: { value: CheckType; label: string; shortLabel: string; icon: any }[] = [
-  {
-    value: 'daily',
-    label: 'Hàng ngày',
-    shortLabel: 'Hàng ngày',
-    icon: Calendar,
-  },
-  {
-    value: 'checkin',
-    label: 'Check-in',
-    shortLabel: 'Check-in',
-    icon: LogIn,
-  },
-  {
-    value: 'checkout',
-    label: 'Check-out',
-    shortLabel: 'Check-out',
-    icon: LogOut,
-  },
-  {
-    value: 'maintenance',
-    label: 'Bảo trì',
-    shortLabel: 'Bảo trì',
-    icon: Wrench,
-  },
-  {
-    value: 'delivery',
-    label: 'Sau giao hàng',
-    shortLabel: 'Giao hàng',
-    icon: Package,
-  },
-  {
-    value: 'replenish',
-    label: 'Bổ sung & Dọn dẹp',
-    shortLabel: 'Bổ sung',
-    icon: PackagePlus,
-  },
+const checkTypes: { value: CheckType; label: string; shortLabel: string }[] = [
+  { value: 'daily',       label: 'Hàng ngày',         shortLabel: 'Hàng ngày' },
+  { value: 'checkin',     label: 'Check-in',          shortLabel: 'Check-in' },
+  { value: 'checkout',    label: 'Check-out',         shortLabel: 'Check-out' },
+  { value: 'maintenance', label: 'Bảo trì',           shortLabel: 'Bảo trì' },
+  { value: 'delivery',    label: 'Sau giao hàng',     shortLabel: 'Giao hàng' },
+  { value: 'replenish',   label: 'Bổ sung & Dọn dẹp', shortLabel: 'Bổ sung' },
 ]
 
-export function CheckTypeStep({ form, quickMode, setQuickMode, hideDelivery = true, roomId, hotelId }: CheckTypeStepProps) {
+export function CheckTypeStep({
+  form,
+  quickMode,
+  setQuickMode,
+  hideDelivery = true,
+  roomId,
+  hotelId,
+  canTakeOver = false,
+}: CheckTypeStepProps) {
   const selectedType = form.watch('check_type')
 
   const visibleCheckTypes = hideDelivery
     ? checkTypes.filter(t => t.value !== 'delivery')
     : checkTypes
 
-  // Quick path chỉ áp dụng cho các loại kiểm phổ biến nhất
   const quickEligible: QuickCheckType[] = ['daily', 'checkin', 'checkout']
   const showQuickPath = !!roomId && quickEligible.includes(selectedType as QuickCheckType)
 
   return (
     <div className="space-y-4">
+      {/* Banner phiên kiểm dở dang */}
+      {roomId && <DraftResumeBanner roomId={roomId} canTakeOver={canTakeOver} />}
+
       {/* Context card — lần kiểm gần nhất */}
       {roomId && <LastCheckContextCard roomId={roomId} />}
 
-      {/* Quick path "Phòng OK hoàn toàn" — đặt nổi bật trên cùng */}
+      {/* Quick path "Phòng OK hoàn toàn" */}
       {showQuickPath && (
-        <div className="space-y-1.5 p-3 border rounded-lg bg-green-50/50 border-green-200">
+        <div className="space-y-1.5 p-3 border-l-4 border-green-500 rounded-md bg-green-50/50">
           <QuickOkButton
             roomId={roomId!}
             hotelId={hotelId}
@@ -89,12 +71,12 @@ export function CheckTypeStep({ form, quickMode, setQuickMode, hideDelivery = tr
         name="check_type"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className="text-sm">Chọn loại kiểm tra</FormLabel>
+            <FormLabel className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              Loại kiểm tra
+            </FormLabel>
             <FormControl>
-              {/* Horizontal compact buttons */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
                 {visibleCheckTypes.map((type) => {
-                  const Icon = type.icon
                   const isSelected = field.value === type.value
                   return (
                     <Button
@@ -102,13 +84,12 @@ export function CheckTypeStep({ form, quickMode, setQuickMode, hideDelivery = tr
                       type="button"
                       variant={isSelected ? 'default' : 'outline'}
                       className={cn(
-                        'h-16 flex-col gap-1 text-xs font-medium transition-all',
-                        isSelected && 'ring-2 ring-primary ring-offset-2'
+                        'h-12 text-sm font-medium transition-colors',
+                        isSelected && 'ring-2 ring-primary ring-offset-1'
                       )}
                       onClick={() => field.onChange(type.value)}
                     >
-                      <Icon className="h-5 w-5" />
-                      <span>{type.shortLabel}</span>
+                      {type.shortLabel}
                     </Button>
                   )
                 })}
@@ -119,12 +100,12 @@ export function CheckTypeStep({ form, quickMode, setQuickMode, hideDelivery = tr
         )}
       />
 
-      {/* Quick mode toggle - compact inline */}
-      <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
-        <div className="flex-1">
-          <p className="text-sm font-medium">Chế độ nhanh</p>
+      {/* Kiểm nhanh tổng quan — text-only, không icon */}
+      <div className="flex items-center justify-between border rounded-md p-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium">Kiểm nhanh tổng quan</p>
           <p className="text-xs text-muted-foreground">
-            Bỏ qua kiểm tra chi tiết, chỉ đánh giá tổng quan
+            Bỏ qua kiểm chi tiết từng món, chỉ đánh giá chung.
           </p>
         </div>
         <Button
@@ -132,11 +113,12 @@ export function CheckTypeStep({ form, quickMode, setQuickMode, hideDelivery = tr
           variant={quickMode ? 'default' : 'outline'}
           size="sm"
           onClick={() => setQuickMode(!quickMode)}
-          className="shrink-0"
+          className="shrink-0 min-w-[60px]"
         >
-          {quickMode ? 'Bật' : 'Tắt'}
+          {quickMode ? 'Đang bật' : 'Tắt'}
         </Button>
       </div>
     </div>
   )
 }
+
