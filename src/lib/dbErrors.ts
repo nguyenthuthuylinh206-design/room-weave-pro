@@ -37,5 +37,11 @@ export function mapDbError(message: string | undefined | null): string {
   if (msg.includes('NO_PERMISSION_BOOKING_FLAG')) return 'Bạn không có quyền đặt khách ngủ ngoài / bỏ trốn.'
   if (msg.includes('BOOKING_NOT_FOUND')) return 'Không tìm thấy booking.'
 
+  // QC Mode (multi-role / qc workflow)
+  if (msg.includes('PEER_REVIEW_SELF_FORBIDDEN')) return 'Chế độ peer: bạn không được tự duyệt công việc của chính mình.'
+  if (msg.includes('NO_PERMISSION_QC_STRICT')) return 'Chế độ strict: chỉ quản lý hoặc chủ khách sạn được duyệt.'
+  if (msg.includes('NO_PERMISSION_COMPLETE')) return 'Bạn không được phép hoàn tất công việc này.'
+  if (msg.includes('REJECTION_REASON_REQUIRED')) return 'Vui lòng nhập lý do trả về (tối thiểu 3 ký tự).'
+
   return msg || 'Đã xảy ra lỗi không xác định.'
 }
