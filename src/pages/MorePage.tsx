@@ -46,6 +46,7 @@ export default function MorePage() {
   const { user } = useUser()
   const { data: modulePermissions } = useUserModulePermissions()
   const { signOut } = useAuth()
+  const { data: pendingReviewCount = 0 } = usePendingReviewCount()
 
   const menuSections: MenuSection[] = [
     {
