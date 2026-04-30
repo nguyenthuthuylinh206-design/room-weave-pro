@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
-import { mapRpcError } from '@/lib/dbErrors'
+import { mapDbError } from '@/lib/dbErrors'
 
 export type QuickCheckType = 'daily' | 'checkin' | 'checkout' | 'periodic' | 'maintenance'
 
@@ -57,11 +57,16 @@ export function useQuickRoomCheck() {
         _photos: photos && photos.length > 0 ? photos : [],
       })
       if (error) {
-        const msg = mapRpcError(error)
         if (error.message?.includes('photo_required')) {
           throw new Error('Khách sạn yêu cầu chụp ảnh bằng chứng khi kiểm phòng')
         }
-        throw new Error(msg || error.message)
+        if (error.message?.includes('forbidden_tenant')) {
+          throw new Error('Bạn không có quyền kiểm phòng này.')
+        }
+        if (error.message?.includes('room_not_found')) {
+          throw new Error('Không tìm thấy phòng.')
+        }
+        throw new Error(mapDbError(error.message) || error.message)
       }
       return data as { check_id: string; room_id: string; old_status: string; new_status: string }
     },
