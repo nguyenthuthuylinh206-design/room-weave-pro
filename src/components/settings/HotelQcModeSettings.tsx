@@ -11,8 +11,8 @@ import { isAdminUser } from '@/lib/userAccess'
  * Chỉ admin / owner / manager được chỉnh.
  */
 export function HotelQcModeSettings({ hotelId: forcedHotelId }: { hotelId?: string }) {
-  const { selectedHotelId } = useHotelContext()
-  const hotelId = forcedHotelId ?? selectedHotelId
+  const { selectedHotel } = useHotelContext()
+  const hotelId = forcedHotelId ?? selectedHotel?.id ?? null
   const { user } = useUser()
   const canEdit = isAdminUser(user) || user?.user_level_code === 'manager'
 
