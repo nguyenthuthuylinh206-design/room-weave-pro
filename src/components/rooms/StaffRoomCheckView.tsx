@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils'
 import type { RoomFilters, RoomStatus } from '@/types/rooms.types'
 
 // Status config with semantic colors
-const STATUS_CONFIG: Record<RoomStatus, { label: string; color: string; bgColor: string }> = {
+const STATUS_CONFIG: Partial<Record<RoomStatus, { label: string; color: string; bgColor: string }> = {
   vacant: { label: 'Trống', color: 'text-green-600', bgColor: 'bg-green-100' },
   occupied: { label: 'Đang ở', color: 'text-blue-600', bgColor: 'bg-blue-100' },
   cleaning: { label: 'Dọn', color: 'text-yellow-600', bgColor: 'bg-yellow-100' },
