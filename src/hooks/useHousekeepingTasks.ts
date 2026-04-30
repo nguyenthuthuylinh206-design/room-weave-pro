@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useUser } from '@/hooks/useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from 'sonner'
+import { mapDbError } from '@/lib/dbErrors'
 import { triggerWorkflow, WorkflowTriggerTypes } from '@/lib/triggerWorkflow'
 import { triggerHousekeepingTaskAssignedNotification } from '@/hooks/useNotificationTriggers'
 import { 
