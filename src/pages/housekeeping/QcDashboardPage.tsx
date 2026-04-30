@@ -147,10 +147,66 @@ export default function QcDashboardPage() {
         />
       </div>
 
-      {/* Theo nhân viên */}
+      {/* Trend chart */}
       <section className="border rounded-lg overflow-hidden">
         <div className="px-4 py-2 border-b bg-muted/30">
+          <h2 className="text-sm font-medium">Diễn biến theo ngày</h2>
+        </div>
+        <div className="p-3 h-64">
+          {loadingTrend ? (
+            <Skeleton className="h-full w-full" />
+          ) : chartData.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
+              Chưa có dữ liệu
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                <YAxis yAxisId="left" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  tick={{ fontSize: 11 }}
+                  stroke="hsl(var(--muted-foreground))"
+                  unit="%"
+                />
+                <Tooltip
+                  contentStyle={{ fontSize: 12, background: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
+                  labelStyle={{ color: 'hsl(var(--foreground))' }}
+                />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar yAxisId="left" dataKey="total_tasks" name="Tổng task" fill="hsl(var(--muted-foreground) / 0.4)" />
+                <Bar yAxisId="left" dataKey="rework_tasks" name="Làm lại" fill="hsl(0 84% 60%)" />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="rework_rate_pct"
+                  name="Tỉ lệ rework (%)"
+                  stroke="hsl(38 92% 50%)"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </section>
+
+      {/* Theo nhân viên */}
+      <section className="border rounded-lg overflow-hidden">
+        <div className="px-4 py-2 border-b bg-muted/30 flex items-center justify-between gap-2">
           <h2 className="text-sm font-medium">Theo nhân viên</h2>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2 text-xs"
+            onClick={handleExportStaff}
+            disabled={!staffStats?.length}
+          >
+            Export CSV
+          </Button>
         </div>
         {loadingStaff ? (
           <div className="p-4 space-y-2">
