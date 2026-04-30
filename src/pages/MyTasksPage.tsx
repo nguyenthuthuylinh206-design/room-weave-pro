@@ -46,7 +46,6 @@ export function MyTasksPage() {
   const canSeeMyTasks = hasAnyRole([
     'super_admin',
     'owner',
-    'tenant_owner',
     'hotel_manager',
     'department_manager',
     'staff',
