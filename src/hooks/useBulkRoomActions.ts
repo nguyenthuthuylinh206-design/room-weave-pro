@@ -139,9 +139,12 @@ export function useBulkUpdateRoomStatus() {
 
   return useMutation({
     mutationFn: async ({ roomIds, status }: { roomIds: string[]; status: RoomStatus }) => {
-      // If changing to check_out, fetch room data first for notifications
+      // State Machine v2: notification trigger khi chuyển sang vacant_dirty (sau checkout)
+      // hoặc các status legacy 'check_out'/'cleaning' để backward compat.
+      const isCheckoutLike = status === 'vacant_dirty' || status === 'check_out' || status === 'cleaning'
+
       let roomsData: Array<{ id: string; room_number: string; hotel_id: string }> = []
-      if (status === 'check_out') {
+      if (isCheckoutLike) {
         const { data } = await supabase
           .from('rooms')
           .select('id, room_number, hotel_id')
@@ -155,11 +158,11 @@ export function useBulkUpdateRoomStatus() {
         .in('id', roomIds)
 
       if (error) throw error
-      return { count: roomIds.length, status, roomsData }
+      return { count: roomIds.length, status, roomsData, isCheckoutLike }
     },
-    onSuccess: ({ count, status, roomsData }) => {
-      // Send notification for each room changed to check_out
-      if (status === 'check_out' && tenantId) {
+    onSuccess: ({ count, status, roomsData, isCheckoutLike }) => {
+      // Send notification for each room transitioned to vacant_dirty (post-checkout)
+      if (isCheckoutLike && tenantId) {
         roomsData.forEach(room => {
           if (room.hotel_id) {
             triggerRoomCheckoutNotification({
@@ -175,18 +178,32 @@ export function useBulkUpdateRoomStatus() {
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
       queryClient.invalidateQueries({ queryKey: ['room-stats'] })
       queryClient.invalidateQueries({ queryKey: ['floor-plan'] })
+
+      // Label tiếng Việt cho cả status v2 lẫn legacy
       const statusLabels: Partial<Record<RoomStatus, string>> = {
+        // v2
+        vacant_clean: 'Trống – đã dọn',
+        vacant_inspected: 'Trống – đã QC',
+        vacant_dirty: 'Trống – chưa dọn',
+        occupied_clean: 'Đang ở – đã dọn',
+        occupied_dirty: 'Đang ở – cần dọn',
+        dnd: 'Không làm phiền',
+        service_refused: 'Khách từ chối dọn',
+        sleep_out: 'Khách ngủ ngoài',
+        skipper: 'Khách bỏ trốn',
+        out_of_order: 'Phòng hỏng',
+        out_of_service: 'Tạm ngừng',
+        // legacy aliases
         vacant: 'Trống',
         occupied: 'Có khách',
         cleaning: 'Đang dọn',
         maintenance: 'Bảo trì',
-        out_of_order: 'Không sử dụng',
         check_in: 'Check-in',
         check_out: 'Check-out',
       }
       toast({
         title: 'Cập nhật thành công',
-        description: `Đã cập nhật ${count} phòng sang "${statusLabels[status]}"`,
+        description: `Đã cập nhật ${count} phòng sang "${statusLabels[status] ?? status}"`,
       })
     },
     onError: (error: Error) => {
