@@ -10304,6 +10304,10 @@ export type Database = {
         Args: { p_new_plan_id: string; p_tenant_id: string }
         Returns: Json
       }
+      validate_room_check_context: {
+        Args: { p_check_type: string; p_room_id: string; p_task_id?: string }
+        Returns: Json
+      }
       works_at_same_hotel: {
         Args: { target_user_id: string }
         Returns: boolean
