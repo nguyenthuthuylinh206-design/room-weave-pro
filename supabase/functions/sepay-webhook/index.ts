@@ -242,10 +242,12 @@ Deno.serve(async (req) => {
           console.log(`  - TransRef: "${transRef}" -> normalized: "${normalizedTransRef}"`);
           
           if (normalizedTransRef && normalizedContent.includes(normalizedTransRef)) {
+            const tenantId = bp.booking?.tenant_id || null;
+            const tolerance = await getTenantTolerance(supabase, tenantId);
             const amountDiff = Math.abs(bp.amount - payload.transferAmount);
-            console.log(`  - Amount check: expected ${bp.amount}, got ${payload.transferAmount}, diff: ${amountDiff}`);
-            
-            if (amountDiff <= 1000) {
+            console.log(`  - Amount check: expected ${bp.amount}, got ${payload.transferAmount}, diff: ${amountDiff}, tolerance: ${tolerance}`);
+
+            if (amountDiff <= tolerance) {
               console.log(`  - ✅ MATCHED BOOKING PAYMENT!`);
               
               // Update booking payment status
