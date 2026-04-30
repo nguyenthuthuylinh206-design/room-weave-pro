@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { useQuickRoomCheck, type QuickCheckType } from '@/hooks/useQuickRoomCheck'
 import { useHotelPhotoMode } from '@/hooks/useHotelPhotoMode'
 import { useImageUpload } from '@/hooks/useImageUpload'
+import { useUser } from '@/hooks/useUser'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,7 +39,8 @@ export function QuickOkButton({ roomId, hotelId, checkType, onSuccessNavigate = 
   const navigate = useNavigate()
   const { mutateAsync, isPending } = useQuickRoomCheck()
   const { data: photoMode } = useHotelPhotoMode(hotelId ?? undefined)
-  const { uploadImage, uploading } = useImageUpload()
+  const { uploadImage, isUploading } = useImageUpload()
+  const { tenantId } = useUser()
 
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [photos, setPhotos] = useState<string[]>([])
@@ -47,10 +49,10 @@ export function QuickOkButton({ roomId, hotelId, checkType, onSuccessNavigate = 
 
   const handlePickPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || !tenantId) return
     try {
-      const url = await uploadImage(file, 'room-checks')
-      if (url) setPhotos((p) => [...p, url])
+      const uploaded = await uploadImage(file, tenantId)
+      if (uploaded?.url) setPhotos((p) => [...p, uploaded.url])
     } catch (err: any) {
       toast({ title: 'Tải ảnh thất bại', description: err.message, variant: 'destructive' })
     } finally {
