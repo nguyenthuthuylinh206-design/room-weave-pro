@@ -2300,6 +2300,7 @@ export type Database = {
           manager_name: string | null
           name: string
           phone: string | null
+          photo_evidence_mode: Database["public"]["Enums"]["photo_evidence_mode"]
           postal_code: string | null
           qc_mode: Database["public"]["Enums"]["hk_qc_mode"]
           settings: Json | null
@@ -2329,6 +2330,7 @@ export type Database = {
           manager_name?: string | null
           name: string
           phone?: string | null
+          photo_evidence_mode?: Database["public"]["Enums"]["photo_evidence_mode"]
           postal_code?: string | null
           qc_mode?: Database["public"]["Enums"]["hk_qc_mode"]
           settings?: Json | null
@@ -2358,6 +2360,7 @@ export type Database = {
           manager_name?: string | null
           name?: string
           phone?: string | null
+          photo_evidence_mode?: Database["public"]["Enums"]["photo_evidence_mode"]
           postal_code?: string | null
           qc_mode?: Database["public"]["Enums"]["hk_qc_mode"]
           settings?: Json | null
@@ -10212,6 +10215,22 @@ export type Database = {
               warehouse_breakdown: Json
             }[]
           }
+      get_last_room_check: {
+        Args: { _room_id: string }
+        Returns: {
+          check_type: string
+          checked_at: string
+          checked_by: string
+          checker_name: string
+          cleanliness_score: number
+          id: string
+          issues_count: number
+          items_complete: boolean
+          notes: string
+          photos: string[]
+          qc_status: string
+        }[]
+      }
       get_laundry_batch_detail: { Args: { p_batch_id: string }; Returns: Json }
       get_laundry_batches_filtered:
         | {
@@ -10943,6 +10962,15 @@ export type Database = {
         }
         Returns: Json
       }
+      perform_quick_room_check: {
+        Args: {
+          _check_type?: string
+          _notes?: string
+          _photos?: string[]
+          _room_id: string
+        }
+        Returns: Json
+      }
       process_expired_subscriptions: { Args: never; Returns: undefined }
       qc_approve_task: {
         Args: { _notes?: string; _score_override?: number; _task_id: string }
@@ -11346,6 +11374,7 @@ export type Database = {
         | "staff"
       hk_qc_mode: "self" | "peer" | "strict"
       item_type: "linen" | "consumable" | "equipment" | "furniture"
+      photo_evidence_mode: "none" | "on_issue" | "always"
       service_category:
         | "wellness"
         | "transport"
@@ -11489,6 +11518,7 @@ export const Constants = {
       ],
       hk_qc_mode: ["self", "peer", "strict"],
       item_type: ["linen", "consumable", "equipment", "furniture"],
+      photo_evidence_mode: ["none", "on_issue", "always"],
       service_category: [
         "wellness",
         "transport",
