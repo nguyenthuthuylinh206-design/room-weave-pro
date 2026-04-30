@@ -13,6 +13,7 @@ import { PWAUpdatePrompt } from '@/components/pwa'
 import { ShiftStatusBanner } from '@/components/staff/ShiftStatusBanner'
 import { GracePeriodBanner } from './GracePeriodBanner'
 import { SuspendedOverlay } from './SuspendedOverlay'
+import { ReadOnlyBanner } from './ReadOnlyBanner'
 import { FreeTrialPopup } from '@/components/promotions/FreeTrialPopup'
 import { useUser } from '@/hooks/useUser'
 import { useGracePeriod } from '@/hooks/useGracePeriod'
@@ -32,6 +33,7 @@ const MainLayoutContent = () => {
     return (
       <div className="min-h-dvh flex flex-col bg-background overflow-x-hidden safe-area-x">
         {showSubscriptionBanner && <GracePeriodBanner />}
+        <ReadOnlyBanner />
         <MobileHeader />
         {isStaffUser && <ShiftStatusBanner />}
         <main className="flex-1 overflow-y-auto overflow-x-hidden pb-safe">
@@ -56,6 +58,7 @@ const MainLayoutContent = () => {
       <Sidebar />
       <div className="flex-1 flex flex-col">
         {showSubscriptionBanner && <GracePeriodBanner />}
+        <ReadOnlyBanner />
         <Header onMenuClick={() => {}} />
         {isStaffUser && <ShiftStatusBanner />}
         <main className="flex-1 overflow-auto">
