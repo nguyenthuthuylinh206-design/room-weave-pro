@@ -12,14 +12,17 @@ import {
   ShoppingCart,
   Package,
   Wrench,
-  Shirt
+  Shirt,
+  ClipboardCheck
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUser } from '@/hooks/useUser'
 import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
+import { usePendingReviewCount } from '@/hooks/usePendingReviewCount'
 import { cn } from '@/lib/utils'
 import { isAdminUser } from '@/lib/userAccess'
 import { APP_VERSION } from '@/lib/app-version'
