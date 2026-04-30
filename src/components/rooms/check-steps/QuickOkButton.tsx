@@ -135,7 +135,7 @@ export function QuickOkButton({ roomId, hotelId, checkType, onSuccessNavigate = 
                   </div>
                 ))}
                 <label className="w-16 h-16 border border-dashed rounded-md flex items-center justify-center cursor-pointer hover:bg-muted">
-                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                  {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
                   <input
                     type="file"
                     accept="image/*"
