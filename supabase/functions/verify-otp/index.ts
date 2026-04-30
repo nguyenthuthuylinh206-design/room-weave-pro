@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { checkRateLimit, rateLimitedResponse } from '../_shared/rateLimit.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -45,6 +46,27 @@ Deno.serve(async (req) => {
     const normalizedOTP = otp.trim()
 
     console.log('Verifying OTP for:', normalizedEmail)
+
+    // Rate limit OTP verification: 10 attempts per email / 10 minutes,
+    // 30 per IP / 10 minutes (defends against brute-force across emails).
+    const ip =
+      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      req.headers.get('cf-connecting-ip') ||
+      'unknown'
+    const okEmail = await checkRateLimit({
+      key: `verify-otp:email:${normalizedEmail}`,
+      max: 10,
+      windowSeconds: 600,
+    })
+    const okIp = await checkRateLimit({
+      key: `verify-otp:ip:${ip}`,
+      max: 30,
+      windowSeconds: 600,
+    })
+    if (!okEmail || !okIp) {
+      console.warn('[verify-otp] rate limited', { normalizedEmail, ip })
+      return rateLimitedResponse(corsHeaders)
+    }
 
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',

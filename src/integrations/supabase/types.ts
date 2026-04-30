@@ -5365,6 +5365,24 @@ export type Database = {
           },
         ]
       }
+      rate_limit_hits: {
+        Row: {
+          bucket_key: string
+          hit_at: string
+          id: string
+        }
+        Insert: {
+          bucket_key: string
+          hit_at?: string
+          id?: string
+        }
+        Update: {
+          bucket_key?: string
+          hit_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       reminder_automation_rules: {
         Row: {
           action_template: string | null
@@ -8657,6 +8675,14 @@ export type Database = {
         Returns: undefined
       }
       check_expiring_subscriptions: { Args: never; Returns: undefined }
+      check_rate_limit: {
+        Args: {
+          _bucket_key: string
+          _max_hits: number
+          _window_seconds: number
+        }
+        Returns: boolean
+      }
       check_tenant_can_add: {
         Args: { p_resource_type: string; p_tenant_id: string }
         Returns: boolean
@@ -8664,6 +8690,7 @@ export type Database = {
       cleanup_expired_otps: { Args: never; Returns: undefined }
       cleanup_old_check_sessions: { Args: never; Returns: undefined }
       cleanup_orphaned_auth_users: { Args: never; Returns: number }
+      cleanup_rate_limit_hits: { Args: never; Returns: undefined }
       cleanup_stale_check_sessions: { Args: never; Returns: undefined }
       clear_tenant_read_only: {
         Args: { p_reason?: string; p_tenant_id: string }

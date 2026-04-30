@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { checkRateLimit, rateLimitedResponse } from '../_shared/rateLimit.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')?.trim()
 
@@ -182,6 +183,27 @@ Deno.serve(async (req) => {
 
     const normalizedEmail = email.toLowerCase().trim()
     console.log('Processing password reset for:', normalizedEmail)
+
+    // Rate limit: max 3 OTP requests per email / 10 minutes,
+    // and 10 requests per source IP / 10 minutes (to slow enumeration).
+    const ip =
+      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      req.headers.get('cf-connecting-ip') ||
+      'unknown'
+    const okEmail = await checkRateLimit({
+      key: `pwd-reset:email:${normalizedEmail}`,
+      max: 3,
+      windowSeconds: 600,
+    })
+    const okIp = await checkRateLimit({
+      key: `pwd-reset:ip:${ip}`,
+      max: 10,
+      windowSeconds: 600,
+    })
+    if (!okEmail || !okIp) {
+      console.warn('[send-password-reset] rate limited', { normalizedEmail, ip })
+      return rateLimitedResponse(corsHeaders)
+    }
 
     // Create Supabase admin client
     const supabaseAdmin = createClient(
