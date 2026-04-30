@@ -161,6 +161,7 @@ const MyTasksPage = lazy(() => import("./pages/MyTasksPage"));
 const PaymentQRPage = lazy(() => import("./pages/payment/PaymentQRPage"));
 const ScanDocumentPage = lazy(() => import("./pages/scan/ScanDocumentPage"));
 const HousekeepingStaffDashboard = lazy(() => import("./pages/HousekeepingStaffDashboard"));
+const TasksPendingReviewPage = lazy(() => import("./pages/housekeeping/TasksPendingReviewPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -392,6 +393,7 @@ const router = createBrowserRouter([
       { path: "staff", element: <PermissionRoute module="users"><StaffManagementPage /></PermissionRoute> },
       { path: "my-tasks", element: <MyTasksPage /> },
       { path: "staff/housekeeping", element: <HousekeepingStaffDashboard /> },
+      { path: "housekeeping/review", element: <PermissionRoute module="rooms"><TasksPendingReviewPage /></PermissionRoute> },
       { path: "settings/warehouses", element: <PermissionRoute module="inventory"><WarehouseListPage /></PermissionRoute> },
       { path: "settings/subscription", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><SubscriptionPage /></RoleGuard> },
       { path: "settings/subscription/pay/:invoiceId", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><SubscriptionPaymentPage /></RoleGuard> },

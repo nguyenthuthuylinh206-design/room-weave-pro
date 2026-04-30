@@ -88,6 +88,13 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "activity_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       ai_settings: {
@@ -233,6 +240,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "backup_logs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "backup_logs_tenant_id_fkey"
@@ -459,6 +473,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "booking_payments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "booking_payments_hotel_id_fkey"
             columns: ["hotel_id"]
             isOneToOne: false
@@ -542,6 +563,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_service_charges_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "booking_service_charges_service_id_fkey"
@@ -695,6 +723,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "chargeable_consumptions_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "chargeable_consumptions_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
@@ -775,6 +810,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "checkout_inspection_requests_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "checkout_inspection_requests_booking_id_fkey"
             columns: ["booking_id"]
             isOneToOne: false
@@ -808,6 +850,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_inspection_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "checkout_inspection_requests_room_check_id_fkey"
@@ -930,6 +979,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "compensation_requests_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "compensation_requests_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -942,6 +998,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compensation_requests_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "compensation_requests_hotel_id_fkey"
@@ -977,6 +1040,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compensation_requests_responsible_person_id_fkey"
+            columns: ["responsible_person_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "compensation_requests_tenant_id_fkey"
@@ -1159,6 +1229,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "distribution_order_batches_handed_over_by_fkey"
+            columns: ["handed_over_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "distribution_order_batches_received_by_fkey"
             columns: ["received_by"]
             isOneToOne: false
@@ -1171,6 +1248,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_order_batches_received_by_fkey"
+            columns: ["received_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -1318,6 +1402,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "distribution_order_rooms_confirmed_by_fkey"
+            columns: ["confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "distribution_order_rooms_delivered_by_fkey"
             columns: ["delivered_by"]
             isOneToOne: false
@@ -1330,6 +1421,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_order_rooms_delivered_by_fkey"
+            columns: ["delivered_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "distribution_order_rooms_distribution_order_id_fkey"
@@ -1452,6 +1550,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "distribution_orders_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "distribution_orders_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -1464,6 +1569,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_orders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "distribution_orders_hotel_id_fkey"
@@ -1494,6 +1606,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "distribution_orders_received_by_fkey"
+            columns: ["received_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "distribution_orders_released_by_fkey"
             columns: ["released_by"]
             isOneToOne: false
@@ -1506,6 +1625,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_orders_released_by_fkey"
+            columns: ["released_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "distribution_orders_supplement_request_id_fkey"
@@ -1578,6 +1704,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_scan_sessions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "document_scan_sessions_tenant_id_fkey"
@@ -1737,6 +1870,13 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "email_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       email_templates: {
@@ -1826,6 +1966,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_templates_last_edited_by_fkey"
+            columns: ["last_edited_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "email_templates_tenant_id_fkey"
@@ -1957,6 +2104,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_invoices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "guest_invoices_hotel_id_fkey"
@@ -2147,6 +2301,7 @@ export type Database = {
           name: string
           phone: string | null
           postal_code: string | null
+          qc_mode: Database["public"]["Enums"]["hk_qc_mode"]
           settings: Json | null
           state: string | null
           status: string | null
@@ -2175,6 +2330,7 @@ export type Database = {
           name: string
           phone?: string | null
           postal_code?: string | null
+          qc_mode?: Database["public"]["Enums"]["hk_qc_mode"]
           settings?: Json | null
           state?: string | null
           status?: string | null
@@ -2203,6 +2359,7 @@ export type Database = {
           name?: string
           phone?: string | null
           postal_code?: string | null
+          qc_mode?: Database["public"]["Enums"]["hk_qc_mode"]
           settings?: Json | null
           state?: string | null
           status?: string | null
@@ -2227,6 +2384,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hotels_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "hotels_tenant_id_fkey"
@@ -2356,6 +2520,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "housekeeping_tasks_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "housekeeping_tasks_assigned_to_fkey"
             columns: ["assigned_to"]
             isOneToOne: false
@@ -2368,6 +2539,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "housekeeping_tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "housekeeping_tasks_booking_id_fkey"
@@ -2417,6 +2595,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "housekeeping_tasks_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "housekeeping_tasks_room_check_id_fkey"
@@ -2530,6 +2715,13 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "import_export_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       in_app_notifications: {
@@ -2596,6 +2788,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "in_app_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -2706,6 +2905,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "inventory_transactions_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "inventory_transactions_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -2718,6 +2924,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "inventory_transactions_from_warehouse_id_fkey"
@@ -2841,6 +3054,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "investigation_logs_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "investigation_logs_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -2927,6 +3147,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "invoices_subscription_plan_id_fkey"
@@ -3121,6 +3348,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_images_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "item_images_item_id_fkey"
@@ -3496,6 +3730,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "laundry_batches_delivery_staff_id_fkey"
+            columns: ["delivery_staff_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "laundry_batches_hotel_id_fkey"
             columns: ["hotel_id"]
             isOneToOne: false
@@ -3522,6 +3763,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "laundry_batches_return_staff_id_fkey"
+            columns: ["return_staff_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "laundry_batches_tenant_id_fkey"
@@ -3691,6 +3939,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "laundry_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "laundry_requests_room_check_id_fkey"
@@ -3866,6 +4121,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lost_found_items_found_by_fkey"
+            columns: ["found_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "lost_found_items_hotel_id_fkey"
             columns: ["hotel_id"]
             isOneToOne: false
@@ -3967,6 +4229,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_categories_default_assignee_id_fkey"
+            columns: ["default_assignee_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "maintenance_categories_tenant_id_fkey"
@@ -4114,6 +4383,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "maintenance_requests_reported_by_fkey"
+            columns: ["reported_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "maintenance_requests_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
@@ -4216,6 +4492,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "marketing_campaigns_promotional_code_id_fkey"
@@ -4336,6 +4619,13 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       notifications: {
@@ -4414,6 +4704,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -4780,6 +5077,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "plan_price_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "plan_price_history_plan_id_fkey"
             columns: ["plan_id"]
             isOneToOne: false
@@ -4993,6 +5297,13 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "promotional_codes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       purchase_order_items: {
@@ -5126,6 +5437,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "purchase_orders_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "purchase_orders_hotel_id_fkey"
             columns: ["hotel_id"]
             isOneToOne: false
@@ -5152,6 +5470,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "purchase_orders_tenant_id_fkey"
@@ -5237,6 +5562,13 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       qc_reviews: {
@@ -5296,6 +5628,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qc_reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "qc_reviews_room_check_id_fkey"
@@ -5550,6 +5889,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "role_permissions_permission_id_fkey"
@@ -5844,6 +6190,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "room_bookings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "room_bookings_guest_id_fkey"
             columns: ["guest_id"]
             isOneToOne: false
@@ -5884,6 +6237,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_bookings_skipper_marked_by_fkey"
+            columns: ["skipper_marked_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "room_bookings_tenant_id_fkey"
@@ -6031,6 +6391,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "room_checks_checked_by_fkey"
+            columns: ["checked_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "room_checks_reviewed_by_fkey"
             columns: ["reviewed_by"]
             isOneToOne: false
@@ -6043,6 +6410,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_checks_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "room_checks_room_id_fkey"
@@ -6120,6 +6494,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_items_last_checked_by_fkey"
+            columns: ["last_checked_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "room_items_room_id_fkey"
@@ -6495,6 +6876,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "rooms_last_status_changed_by_fkey"
+            columns: ["last_status_changed_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "rooms_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -6573,6 +6961,13 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "shift_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       shift_reminders: {
@@ -6627,6 +7022,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_reminders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -6699,6 +7101,13 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "staff_statistics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       staff_status: {
@@ -6765,6 +7174,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_status_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -6876,6 +7292,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "stock_adjustment_items_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "stock_adjustment_items_checked_by_fkey"
             columns: ["checked_by"]
             isOneToOne: false
@@ -6888,6 +7311,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_adjustment_items_checked_by_fkey"
+            columns: ["checked_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "stock_adjustment_items_item_id_fkey"
@@ -6909,6 +7339,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_adjustment_items_responsible_person_id_fkey"
+            columns: ["responsible_person_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -6995,6 +7432,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "stock_adjustments_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "stock_adjustments_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -7007,6 +7451,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_adjustments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "stock_adjustments_hotel_id_fkey"
@@ -7149,6 +7600,13 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "super_admin_activity_log_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       supplement_requests: {
@@ -7234,6 +7692,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "supplement_requests_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "supplement_requests_distribution_order_id_fkey"
             columns: ["distribution_order_id"]
             isOneToOne: false
@@ -7267,6 +7732,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplement_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "supplement_requests_room_check_id_fkey"
@@ -7363,6 +7835,13 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "telegram_connections_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       telegram_groups: {
@@ -7422,6 +7901,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "telegram_groups_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "telegram_groups_hotel_id_fkey"
@@ -7636,6 +8122,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tenants_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "tenants_subscription_plan_id_fkey"
             columns: ["subscription_plan_id"]
             isOneToOne: false
@@ -7694,6 +8187,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "user_hotels_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "user_hotels_hotel_id_fkey"
             columns: ["hotel_id"]
             isOneToOne: false
@@ -7720,6 +8220,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_hotels_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -7800,6 +8307,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "user_permissions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "user_permissions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -7819,6 +8333,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_permissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -7872,6 +8393,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -8012,6 +8540,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "users_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "users_deactivated_by_fkey"
             columns: ["deactivated_by"]
             isOneToOne: false
@@ -8024,6 +8559,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_deactivated_by_fkey"
+            columns: ["deactivated_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "users_hotel_id_fkey"
@@ -8059,6 +8601,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_reports_to_fkey"
+            columns: ["reports_to"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "users_tenant_id_fkey"
@@ -8591,6 +9140,41 @@ export type Database = {
           },
         ]
       }
+      v_user_effective_roles: {
+        Row: {
+          hotel_id: string | null
+          is_manager: boolean | null
+          is_owner: boolean | null
+          is_staff: boolean | null
+          is_super_admin: boolean | null
+          roles: string[] | null
+          tenant_id: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "users_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "users_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       add_laundry_to_draft_batch: {
@@ -8612,6 +9196,49 @@ export type Database = {
       apply_room_standards:
         | { Args: { p_room_id: string }; Returns: Json }
         | { Args: { p_room_id: string; p_user_id?: string }; Returns: Json }
+      approve_task: {
+        Args: { _note?: string; _task_id: string }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          assigned_to: string | null
+          awaiting_review_at: string | null
+          booking_id: string | null
+          cancelled_at: string | null
+          checkout_inspection_id: string | null
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          distribution_order_room_id: string | null
+          due_at: string | null
+          hotel_id: string
+          id: string
+          notes: string | null
+          priority: string
+          qc_due_at: string | null
+          qc_required: boolean
+          qc_status: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          requested_by: string | null
+          rework_count: number
+          room_check_id: string | null
+          room_id: string
+          started_at: string | null
+          status: string
+          task_type: string
+          tenant_id: string
+          title: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "housekeeping_tasks"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       approve_tenant: {
         Args: { p_admin_id: string; p_tenant_id: string }
         Returns: Json
@@ -8754,6 +9381,49 @@ export type Database = {
             }
             Returns: Json
           }
+      complete_task: {
+        Args: { _note?: string; _task_id: string }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          assigned_to: string | null
+          awaiting_review_at: string | null
+          booking_id: string | null
+          cancelled_at: string | null
+          checkout_inspection_id: string | null
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          distribution_order_room_id: string | null
+          due_at: string | null
+          hotel_id: string
+          id: string
+          notes: string | null
+          priority: string
+          qc_due_at: string | null
+          qc_required: boolean
+          qc_status: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          requested_by: string | null
+          rework_count: number
+          room_check_id: string | null
+          room_id: string
+          started_at: string | null
+          status: string
+          task_type: string
+          tenant_id: string
+          title: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "housekeeping_tasks"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       confirm_delivery_from_room_check: {
         Args: { p_confirmed_by: string; p_room_order_id: string }
         Returns: Json
@@ -9247,6 +9917,14 @@ export type Database = {
               total_rooms: number
             }[]
           }
+      get_effective_permissions: {
+        Args: { _user_id: string }
+        Returns: {
+          action: string
+          module: string
+          source: string
+        }[]
+      }
       get_financial_report: {
         Args: {
           p_end_date: string
@@ -10068,6 +10746,7 @@ export type Database = {
       }
       is_manager: { Args: never; Returns: boolean }
       is_owner_user: { Args: never; Returns: boolean }
+      is_qc_manager: { Args: { _user_id: string }; Returns: boolean }
       is_route_assignee: {
         Args: { _order_id: string; _user_id: string }
         Returns: boolean
@@ -10182,6 +10861,49 @@ export type Database = {
           p_rejection_reason: string
         }
         Returns: Json
+      }
+      reject_task: {
+        Args: { _reason: string; _task_id: string }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          assigned_to: string | null
+          awaiting_review_at: string | null
+          booking_id: string | null
+          cancelled_at: string | null
+          checkout_inspection_id: string | null
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          distribution_order_room_id: string | null
+          due_at: string | null
+          hotel_id: string
+          id: string
+          notes: string | null
+          priority: string
+          qc_due_at: string | null
+          qc_required: boolean
+          qc_status: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          requested_by: string | null
+          rework_count: number
+          room_check_id: string | null
+          room_id: string
+          started_at: string | null
+          status: string
+          task_type: string
+          tenant_id: string
+          title: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "housekeeping_tasks"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       reject_tenant: {
         Args: { p_admin_id: string; p_reason: string; p_tenant_id: string }
@@ -10498,6 +11220,7 @@ export type Database = {
         | "hotel_manager"
         | "department_manager"
         | "staff"
+      hk_qc_mode: "self" | "peer" | "strict"
       item_type: "linen" | "consumable" | "equipment" | "furniture"
       service_category:
         | "wellness"
@@ -10640,6 +11363,7 @@ export const Constants = {
         "department_manager",
         "staff",
       ],
+      hk_qc_mode: ["self", "peer", "strict"],
       item_type: ["linen", "consumable", "equipment", "furniture"],
       service_category: [
         "wellness",

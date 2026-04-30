@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DeleteUserDialog } from './DeleteUserDialog'
+import { MultiRoleManagerDialog } from './MultiRoleManagerDialog'
 import { PermissionGate } from '@/components/auth/PermissionGate'
 import {
   Table,
@@ -49,6 +50,7 @@ const userLevelColors: Record<string, string> = {
 export function UserTable({ users, onEdit, onManagePermissions }: UserTableProps) {
   const { t, i18n } = useTranslation(['users', 'common'])
   const [userToDelete, setUserToDelete] = useState<UserWithRelations | null>(null)
+  const [rolesUser, setRolesUser] = useState<UserWithRelations | null>(null)
 
   const handleDeleteClick = (user: UserWithRelations) => {
     setUserToDelete(user)
@@ -183,6 +185,10 @@ export function UserTable({ users, onEdit, onManagePermissions }: UserTableProps
                               {t('users:permissions.title')}
                             </DropdownMenuItem>
                           )}
+                          <DropdownMenuItem onClick={() => setRolesUser(user)}>
+                            <UsersIcon className="h-4 w-4 mr-2" />
+                            Quản lý vai trò
+                          </DropdownMenuItem>
                         </PermissionGate>
                         <PermissionGate module="users" action="delete">
                           {!user.is_primary_owner && (
@@ -213,6 +219,15 @@ export function UserTable({ users, onEdit, onManagePermissions }: UserTableProps
         open={!!userToDelete}
         onOpenChange={(open) => !open && setUserToDelete(null)}
       />
+
+      {rolesUser && (
+        <MultiRoleManagerDialog
+          userId={rolesUser.id}
+          userName={rolesUser.full_name ?? undefined}
+          open={!!rolesUser}
+          onOpenChange={(o) => !o && setRolesUser(null)}
+        />
+      )}
     </>
   )
 }
