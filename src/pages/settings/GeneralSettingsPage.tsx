@@ -296,6 +296,9 @@ export function GeneralSettingsPage() {
         {/* Usage Mode */}
         <UsageModeSelector />
 
+        {/* QC Mode for housekeeping */}
+        <HotelQcModeSettings />
+
         {/* Demo Data Section */}
         <div className="border rounded-lg p-4 space-y-3">
           <div className="flex items-center gap-2 pb-2 border-b">
