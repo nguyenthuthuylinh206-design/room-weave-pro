@@ -167,9 +167,9 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
               <span>{createdAgo}</span>
             )}
           </div>
-          {task.status === 'rejected_rework' && task.review_notes && (
+          {task.status === 'rejected_rework' && task.rejection_reason && (
             <div className="mt-0.5 text-[11px] text-red-600 line-clamp-2">
-              Lý do: {task.review_notes}
+              Lý do: {task.rejection_reason}
             </div>
           )}
         </div>
