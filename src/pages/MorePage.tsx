@@ -233,6 +233,9 @@ export default function MorePage() {
                           </p>
                         )}
                       </div>
+                      {item.badge && item.badge > 0 ? (
+                        <Badge variant="destructive" className="ml-auto">{item.badge}</Badge>
+                      ) : null}
                       <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                     </button>
                     {!isLast && <Separator />}
