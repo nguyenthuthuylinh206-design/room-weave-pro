@@ -2,12 +2,29 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { useQcStaffStats, useQcFloorStats, useStaffReworkTasks } from '@/hooks/useQcStats'
+import {
+  useQcStaffStats,
+  useQcFloorStats,
+  useStaffReworkTasks,
+  useQcDailyTrend,
+} from '@/hooks/useQcStats'
 import { usePendingReviewCount } from '@/hooks/usePendingReviewCount'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { downloadCsv } from '@/lib/csv'
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Bar,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend,
+} from 'recharts'
 
 const RANGE_OPTIONS = [
   { value: '7', label: '7 ngày' },
@@ -26,6 +43,7 @@ export default function QcDashboardPage() {
 
   const { data: staffStats, isLoading: loadingStaff } = useQcStaffStats(days)
   const { data: floorStats, isLoading: loadingFloor } = useQcFloorStats(days)
+  const { data: trend, isLoading: loadingTrend } = useQcDailyTrend(days)
   const { data: pendingCount = 0 } = usePendingReviewCount()
 
   const totals = useMemo(() => {
@@ -35,6 +53,59 @@ export default function QcDashboardPage() {
     const reworkRate = totalCompleted > 0 ? (totalRework / totalCompleted) * 100 : 0
     return { totalCompleted, totalRework, reworkRate }
   }, [staffStats])
+
+  const chartData = useMemo(
+    () =>
+      (trend ?? []).map((d) => ({
+        ...d,
+        label: format(new Date(d.day), 'dd/MM', { locale: vi }),
+      })),
+    [trend]
+  )
+
+  const handleExportStaff = () => {
+    if (!staffStats?.length) return
+    downloadCsv(
+      staffStats.map((s) => ({
+        full_name: s.full_name ?? '',
+        total_completed: s.total_completed,
+        approved_count: s.approved_count,
+        pending_count: s.pending_count,
+        rework_count: s.rework_count,
+        rework_rate_pct: s.rework_rate_pct ?? 0,
+      })),
+      `qc-nhan-vien-${days}d-${format(new Date(), 'yyyy-MM-dd')}.csv`,
+      {
+        full_name: 'Nhân viên',
+        total_completed: 'Hoàn thành',
+        approved_count: 'Đã duyệt',
+        pending_count: 'Chờ duyệt',
+        rework_count: 'Làm lại',
+        rework_rate_pct: 'Tỉ lệ rework (%)',
+      }
+    )
+  }
+
+  const handleExportFloor = () => {
+    if (!floorStats?.length) return
+    downloadCsv(
+      floorStats.map((f) => ({
+        floor: f.floor ?? '',
+        total_tasks: f.total_tasks,
+        pending_tasks: f.pending_tasks,
+        rework_tasks: f.rework_tasks,
+        rework_rate_pct: f.rework_rate_pct ?? 0,
+      })),
+      `qc-tang-${days}d-${format(new Date(), 'yyyy-MM-dd')}.csv`,
+      {
+        floor: 'Tầng',
+        total_tasks: 'Tổng task',
+        pending_tasks: 'Chờ duyệt',
+        rework_tasks: 'Làm lại',
+        rework_rate_pct: 'Tỉ lệ rework (%)',
+      }
+    )
+  }
 
   return (
     <div className="p-4 space-y-6 max-w-6xl mx-auto">
@@ -76,10 +147,66 @@ export default function QcDashboardPage() {
         />
       </div>
 
-      {/* Theo nhân viên */}
+      {/* Trend chart */}
       <section className="border rounded-lg overflow-hidden">
         <div className="px-4 py-2 border-b bg-muted/30">
+          <h2 className="text-sm font-medium">Diễn biến theo ngày</h2>
+        </div>
+        <div className="p-3 h-64">
+          {loadingTrend ? (
+            <Skeleton className="h-full w-full" />
+          ) : chartData.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
+              Chưa có dữ liệu
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                <YAxis yAxisId="left" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  tick={{ fontSize: 11 }}
+                  stroke="hsl(var(--muted-foreground))"
+                  unit="%"
+                />
+                <Tooltip
+                  contentStyle={{ fontSize: 12, background: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
+                  labelStyle={{ color: 'hsl(var(--foreground))' }}
+                />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar yAxisId="left" dataKey="total_tasks" name="Tổng task" fill="hsl(var(--muted-foreground) / 0.4)" />
+                <Bar yAxisId="left" dataKey="rework_tasks" name="Làm lại" fill="hsl(0 84% 60%)" />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="rework_rate_pct"
+                  name="Tỉ lệ rework (%)"
+                  stroke="hsl(38 92% 50%)"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </section>
+
+      {/* Theo nhân viên */}
+      <section className="border rounded-lg overflow-hidden">
+        <div className="px-4 py-2 border-b bg-muted/30 flex items-center justify-between gap-2">
           <h2 className="text-sm font-medium">Theo nhân viên</h2>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2 text-xs"
+            onClick={handleExportStaff}
+            disabled={!staffStats?.length}
+          >
+            Export CSV
+          </Button>
         </div>
         {loadingStaff ? (
           <div className="p-4 space-y-2">
@@ -139,8 +266,17 @@ export default function QcDashboardPage() {
 
       {/* Theo tầng */}
       <section className="border rounded-lg overflow-hidden">
-        <div className="px-4 py-2 border-b bg-muted/30">
+        <div className="px-4 py-2 border-b bg-muted/30 flex items-center justify-between gap-2">
           <h2 className="text-sm font-medium">Theo tầng</h2>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2 text-xs"
+            onClick={handleExportFloor}
+            disabled={!floorStats?.length}
+          >
+            Export CSV
+          </Button>
         </div>
         {loadingFloor ? (
           <div className="p-4 space-y-2">

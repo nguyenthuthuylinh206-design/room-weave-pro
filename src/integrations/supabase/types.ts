@@ -10411,6 +10411,15 @@ export type Database = {
           tenant_name: string
         }[]
       }
+      get_qc_daily_trend: {
+        Args: { _days?: number; _hotel_id?: string; _tenant_id: string }
+        Returns: {
+          day: string
+          rework_rate_pct: number
+          rework_tasks: number
+          total_tasks: number
+        }[]
+      }
       get_qc_floor_stats: {
         Args: { _days?: number; _hotel_id?: string; _tenant_id: string }
         Returns: {

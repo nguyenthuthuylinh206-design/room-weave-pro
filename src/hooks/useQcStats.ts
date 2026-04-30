@@ -102,3 +102,35 @@ export function useStaffReworkTasks(userId: string | null, days = 30) {
     },
   })
 }
+
+export interface QcDailyTrend {
+  day: string
+  total_tasks: number
+  rework_tasks: number
+  rework_rate_pct: number | null
+}
+
+/** Trend rework theo từng ngày (N ngày gần nhất) */
+export function useQcDailyTrend(days = 30) {
+  const { tenantId } = useUser()
+  const { selectedHotel } = useHotelContext()
+  const hotelId = selectedHotel?.id ?? null
+
+  return useQuery({
+    queryKey: ['qc-daily-trend', tenantId, hotelId, days],
+    enabled: !!tenantId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc('get_qc_daily_trend', {
+        _tenant_id: tenantId,
+        _hotel_id: hotelId,
+        _days: days,
+      })
+      if (error) throw error
+      return ((data ?? []) as QcDailyTrend[]).map((r) => ({
+        ...r,
+        total_tasks: Number(r.total_tasks),
+        rework_tasks: Number(r.rework_tasks),
+      }))
+    },
+  })
+}
