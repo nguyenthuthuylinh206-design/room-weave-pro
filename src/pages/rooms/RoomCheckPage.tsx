@@ -1383,6 +1383,8 @@ export function RoomCheckPage() {
                   form={form} 
                   quickMode={quickMode}
                   setQuickMode={setQuickMode}
+                  roomId={id}
+                  hotelId={roomData?.room?.hotel_id ?? roomData?.hotel?.id}
                 />
               )}
               {/* Step instruction banners */}

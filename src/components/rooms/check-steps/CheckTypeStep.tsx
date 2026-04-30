@@ -4,12 +4,18 @@ import { Button } from '@/components/ui/button'
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
 import type { RoomCheckFormData, CheckType } from '@/types/rooms.types'
 import { cn } from '@/lib/utils'
+import { LastCheckContextCard } from './LastCheckContextCard'
+import { QuickOkButton } from './QuickOkButton'
+import type { QuickCheckType } from '@/hooks/useQuickRoomCheck'
 
 interface CheckTypeStepProps {
   form: UseFormReturn<RoomCheckFormData>
   quickMode: boolean
   setQuickMode: (value: boolean) => void
   hideDelivery?: boolean // Ẩn option delivery khi user tự chọn (không phải từ luồng giao hàng)
+  /** Bật Quick path "Phòng OK hoàn toàn" + Context Card khi truyền đủ roomId */
+  roomId?: string
+  hotelId?: string | null
 }
 
 const checkTypes: { value: CheckType; label: string; shortLabel: string; icon: any }[] = [
@@ -51,17 +57,33 @@ const checkTypes: { value: CheckType; label: string; shortLabel: string; icon: a
   },
 ]
 
-export function CheckTypeStep({ form, quickMode, setQuickMode, hideDelivery = true }: CheckTypeStepProps) {
+export function CheckTypeStep({ form, quickMode, setQuickMode, hideDelivery = true, roomId, hotelId }: CheckTypeStepProps) {
   const selectedType = form.watch('check_type')
-  
-  // Filter out delivery type if hideDelivery is true (mặc định ẩn khi user tự vào)
-  // Replenish type luôn hiển thị cho tất cả user
-  const visibleCheckTypes = hideDelivery 
-    ? checkTypes.filter(t => t.value !== 'delivery') 
+
+  const visibleCheckTypes = hideDelivery
+    ? checkTypes.filter(t => t.value !== 'delivery')
     : checkTypes
+
+  // Quick path chỉ áp dụng cho các loại kiểm phổ biến nhất
+  const quickEligible: QuickCheckType[] = ['daily', 'checkin', 'checkout']
+  const showQuickPath = !!roomId && quickEligible.includes(selectedType as QuickCheckType)
 
   return (
     <div className="space-y-4">
+      {/* Context card — lần kiểm gần nhất */}
+      {roomId && <LastCheckContextCard roomId={roomId} />}
+
+      {/* Quick path "Phòng OK hoàn toàn" — đặt nổi bật trên cùng */}
+      {showQuickPath && (
+        <div className="space-y-1.5 p-3 border rounded-lg bg-green-50/50 border-green-200">
+          <QuickOkButton
+            roomId={roomId!}
+            hotelId={hotelId}
+            checkType={selectedType as QuickCheckType}
+          />
+        </div>
+      )}
+
       <FormField
         control={form.control}
         name="check_type"
