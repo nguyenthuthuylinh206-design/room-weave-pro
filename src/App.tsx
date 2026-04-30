@@ -393,6 +393,7 @@ const router = createBrowserRouter([
       { path: "staff", element: <PermissionRoute module="users"><StaffManagementPage /></PermissionRoute> },
       { path: "my-tasks", element: <MyTasksPage /> },
       { path: "staff/housekeeping", element: <HousekeepingStaffDashboard /> },
+      { path: "housekeeping/review", element: <PermissionRoute module="rooms"><TasksPendingReviewPage /></PermissionRoute> },
       { path: "settings/warehouses", element: <PermissionRoute module="inventory"><WarehouseListPage /></PermissionRoute> },
       { path: "settings/subscription", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><SubscriptionPage /></RoleGuard> },
       { path: "settings/subscription/pay/:invoiceId", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><SubscriptionPaymentPage /></RoleGuard> },
