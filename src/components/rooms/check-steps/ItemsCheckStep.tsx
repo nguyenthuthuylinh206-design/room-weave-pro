@@ -298,6 +298,12 @@ const handleMarkDamaged = (item: RoomItemWithDetails, damageInfo: { damage_type:
       onRemoveFromLost={removeFromLost}
       onRemoveFromConsumed={removeFromConsumed}
       onRemoveFromDamaged={removeFromDamaged}
+      onPhotosCollected={(newPhotos) => {
+        const current = (form.getValues('photos') || []) as string[]
+        // Dedupe
+        const merged = Array.from(new Set([...current, ...newPhotos]))
+        form.setValue('photos', merged, { shouldDirty: true })
+      }}
     />
   );
 }
