@@ -175,7 +175,7 @@ export function useBulkUpdateRoomStatus() {
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
       queryClient.invalidateQueries({ queryKey: ['room-stats'] })
       queryClient.invalidateQueries({ queryKey: ['floor-plan'] })
-      const statusLabels: Record<RoomStatus, string> = {
+      const statusLabels: Partial<Record<RoomStatus, string>> = {
         vacant: 'Trống',
         occupied: 'Có khách',
         cleaning: 'Đang dọn',

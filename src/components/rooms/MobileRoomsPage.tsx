@@ -30,7 +30,7 @@ import type { RoomFilters as IRoomFilters, RoomStatus, RoomType, RoomWithStats }
 
 type FilterStatus = 'all' | RoomStatus
 
-const STATUS_ICONS: Record<RoomStatus, typeof Bed> = {
+const STATUS_ICONS: Partial<Record<RoomStatus, typeof Bed>> = {
   vacant: CheckCircle,
   occupied: Bed,
   check_in: LogIn,

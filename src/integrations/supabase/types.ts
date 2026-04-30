@@ -5639,6 +5639,12 @@ export type Database = {
           service_charges: number | null
           service_fee_amount: number | null
           service_fee_rate: number | null
+          skipper_amount_loss: number | null
+          skipper_marked_at: string | null
+          skipper_marked_by: string | null
+          skipper_note: string | null
+          sleep_out_at: string | null
+          sleep_out_note: string | null
           status: string
           subtotal: number | null
           tenant_id: string
@@ -5701,6 +5707,12 @@ export type Database = {
           service_charges?: number | null
           service_fee_amount?: number | null
           service_fee_rate?: number | null
+          skipper_amount_loss?: number | null
+          skipper_marked_at?: string | null
+          skipper_marked_by?: string | null
+          skipper_note?: string | null
+          sleep_out_at?: string | null
+          sleep_out_note?: string | null
           status?: string
           subtotal?: number | null
           tenant_id: string
@@ -5763,6 +5775,12 @@ export type Database = {
           service_charges?: number | null
           service_fee_amount?: number | null
           service_fee_rate?: number | null
+          skipper_amount_loss?: number | null
+          skipper_marked_at?: string | null
+          skipper_marked_by?: string | null
+          skipper_note?: string | null
+          sleep_out_at?: string | null
+          sleep_out_note?: string | null
           status?: string
           subtotal?: number | null
           tenant_id?: string
@@ -5812,6 +5830,20 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_bookings_skipper_marked_by_fkey"
+            columns: ["skipper_marked_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_bookings_skipper_marked_by_fkey"
+            columns: ["skipper_marked_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -6298,17 +6330,25 @@ export type Database = {
           base_price: number | null
           bed_type: string | null
           created_at: string | null
+          dnd_reason: string | null
+          dnd_until: string | null
           floor: number
           has_balcony: boolean | null
           has_window: boolean | null
           hotel_id: string
           hourly_price: number | null
           id: string
+          last_deep_clean_at: string | null
+          last_status_changed_at: string | null
+          last_status_changed_by: string | null
+          legacy_status: string | null
           max_guests: number | null
           max_hours: number | null
           min_hours: number | null
           monthly_price: number | null
           notes: string | null
+          oos_reason: string | null
+          oos_until: string | null
           room_number: string
           room_type: string
           smoking_allowed: boolean | null
@@ -6323,17 +6363,25 @@ export type Database = {
           base_price?: number | null
           bed_type?: string | null
           created_at?: string | null
+          dnd_reason?: string | null
+          dnd_until?: string | null
           floor: number
           has_balcony?: boolean | null
           has_window?: boolean | null
           hotel_id: string
           hourly_price?: number | null
           id?: string
+          last_deep_clean_at?: string | null
+          last_status_changed_at?: string | null
+          last_status_changed_by?: string | null
+          legacy_status?: string | null
           max_guests?: number | null
           max_hours?: number | null
           min_hours?: number | null
           monthly_price?: number | null
           notes?: string | null
+          oos_reason?: string | null
+          oos_until?: string | null
           room_number: string
           room_type: string
           smoking_allowed?: boolean | null
@@ -6348,17 +6396,25 @@ export type Database = {
           base_price?: number | null
           bed_type?: string | null
           created_at?: string | null
+          dnd_reason?: string | null
+          dnd_until?: string | null
           floor?: number
           has_balcony?: boolean | null
           has_window?: boolean | null
           hotel_id?: string
           hourly_price?: number | null
           id?: string
+          last_deep_clean_at?: string | null
+          last_status_changed_at?: string | null
+          last_status_changed_by?: string | null
+          legacy_status?: string | null
           max_guests?: number | null
           max_hours?: number | null
           min_hours?: number | null
           monthly_price?: number | null
           notes?: string | null
+          oos_reason?: string | null
+          oos_until?: string | null
           room_number?: string
           room_type?: string
           smoking_allowed?: boolean | null
@@ -6380,6 +6436,20 @@ export type Database = {
             columns: ["hotel_id"]
             isOneToOne: false
             referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rooms_last_status_changed_by_fkey"
+            columns: ["last_status_changed_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rooms_last_status_changed_by_fkey"
+            columns: ["last_status_changed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -8887,6 +8957,19 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_can_user_transition_room: {
+        Args: { _from: string; _to: string; _user_id: string }
+        Returns: boolean
+      }
+      fn_is_valid_room_transition: {
+        Args: { _from: string; _to: string }
+        Returns: boolean
+      }
+      fn_is_valid_task_transition: {
+        Args: { _from: string; _to: string }
+        Returns: boolean
+      }
+      fn_room_status_alias: { Args: { _status: string }; Returns: string }
       generate_guest_invoice_number: {
         Args: { p_tenant_id: string }
         Returns: string
@@ -9923,6 +10006,7 @@ export type Database = {
         | { Args: never; Returns: boolean }
         | { Args: { _user_id: string }; Returns: boolean }
       is_tenant_owner: { Args: never; Returns: boolean }
+      lift_expired_dnd_oos: { Args: never; Returns: Json }
       log_activity: {
         Args: {
           p_action: string
@@ -10093,6 +10177,21 @@ export type Database = {
       }
       sync_categories_for_hotel: {
         Args: { p_hotel_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      transition_room_status: {
+        Args: {
+          _dnd_until?: string
+          _force?: boolean
+          _oos_until?: string
+          _reason?: string
+          _room_id: string
+          _to_status: string
+        }
+        Returns: Json
+      }
+      transition_task_status: {
+        Args: { _reason?: string; _task_id: string; _to_status: string }
         Returns: Json
       }
       undo_room_delivery_confirmation:
