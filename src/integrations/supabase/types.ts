@@ -10364,59 +10364,54 @@ export type Database = {
         }
         Returns: Json
       }
-      transition_task_status:
-        | {
-            Args: { _reason?: string; _task_id: string; _to_status: string }
-            Returns: Json
-          }
-        | {
-            Args: {
-              _force?: boolean
-              _reason?: string
-              _task_id: string
-              _to_status: string
-            }
-            Returns: {
-              approved_at: string | null
-              approved_by: string | null
-              assigned_to: string | null
-              awaiting_review_at: string | null
-              booking_id: string | null
-              cancelled_at: string | null
-              checkout_inspection_id: string | null
-              completed_at: string | null
-              created_at: string
-              description: string | null
-              distribution_order_room_id: string | null
-              due_at: string | null
-              hotel_id: string
-              id: string
-              notes: string | null
-              priority: string
-              qc_due_at: string | null
-              qc_required: boolean
-              qc_status: string | null
-              rejected_at: string | null
-              rejected_by: string | null
-              rejection_reason: string | null
-              requested_by: string | null
-              rework_count: number
-              room_check_id: string | null
-              room_id: string
-              started_at: string | null
-              status: string
-              task_type: string
-              tenant_id: string
-              title: string | null
-              updated_at: string
-            }
-            SetofOptions: {
-              from: "*"
-              to: "housekeeping_tasks"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
+      transition_task_status: {
+        Args: {
+          _force?: boolean
+          _reason?: string
+          _task_id: string
+          _to_status: string
+        }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          assigned_to: string | null
+          awaiting_review_at: string | null
+          booking_id: string | null
+          cancelled_at: string | null
+          checkout_inspection_id: string | null
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          distribution_order_room_id: string | null
+          due_at: string | null
+          hotel_id: string
+          id: string
+          notes: string | null
+          priority: string
+          qc_due_at: string | null
+          qc_required: boolean
+          qc_status: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          requested_by: string | null
+          rework_count: number
+          room_check_id: string | null
+          room_id: string
+          started_at: string | null
+          status: string
+          task_type: string
+          tenant_id: string
+          title: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "housekeeping_tasks"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       undo_room_delivery_confirmation:
         | { Args: { p_distribution_order_room_id: string }; Returns: Json }
         | {
