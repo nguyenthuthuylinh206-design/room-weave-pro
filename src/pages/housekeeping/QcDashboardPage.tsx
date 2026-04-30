@@ -266,8 +266,17 @@ export default function QcDashboardPage() {
 
       {/* Theo tầng */}
       <section className="border rounded-lg overflow-hidden">
-        <div className="px-4 py-2 border-b bg-muted/30">
+        <div className="px-4 py-2 border-b bg-muted/30 flex items-center justify-between gap-2">
           <h2 className="text-sm font-medium">Theo tầng</h2>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2 text-xs"
+            onClick={handleExportFloor}
+            disabled={!floorStats?.length}
+          >
+            Export CSV
+          </Button>
         </div>
         {loadingFloor ? (
           <div className="p-4 space-y-2">
