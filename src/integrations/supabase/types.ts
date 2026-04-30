@@ -5902,6 +5902,7 @@ export type Database = {
       }
       room_checks: {
         Row: {
+          check_mode: string | null
           check_type: string
           checked_at: string | null
           checked_by: string
@@ -5926,6 +5927,7 @@ export type Database = {
           tenant_id: string | null
         }
         Insert: {
+          check_mode?: string | null
           check_type: string
           checked_at?: string | null
           checked_by: string
@@ -5950,6 +5952,7 @@ export type Database = {
           tenant_id?: string | null
         }
         Update: {
+          check_mode?: string | null
           check_type?: string
           checked_at?: string | null
           checked_by?: string
@@ -7468,12 +7471,17 @@ export type Database = {
           billing_email: string | null
           created_at: string | null
           email: string
+          grace_period_days_override: number | null
           grace_period_ends_at: string | null
           id: string
+          is_read_only: boolean
           logo_url: string | null
           name: string
           payment_method: string | null
+          payment_tolerance_vnd: number
           phone: string | null
+          read_only_reason: string | null
+          read_only_since: string | null
           registered_rooms: number | null
           rejection_reason: string | null
           settings: Json | null
@@ -7503,12 +7511,17 @@ export type Database = {
           billing_email?: string | null
           created_at?: string | null
           email: string
+          grace_period_days_override?: number | null
           grace_period_ends_at?: string | null
           id?: string
+          is_read_only?: boolean
           logo_url?: string | null
           name: string
           payment_method?: string | null
+          payment_tolerance_vnd?: number
           phone?: string | null
+          read_only_reason?: string | null
+          read_only_since?: string | null
           registered_rooms?: number | null
           rejection_reason?: string | null
           settings?: Json | null
@@ -7538,12 +7551,17 @@ export type Database = {
           billing_email?: string | null
           created_at?: string | null
           email?: string
+          grace_period_days_override?: number | null
           grace_period_ends_at?: string | null
           id?: string
+          is_read_only?: boolean
           logo_url?: string | null
           name?: string
           payment_method?: string | null
+          payment_tolerance_vnd?: number
           phone?: string | null
+          read_only_reason?: string | null
+          read_only_since?: string | null
           registered_rooms?: number | null
           rejection_reason?: string | null
           settings?: Json | null
@@ -8587,6 +8605,7 @@ export type Database = {
         Args: { p_item_id: string; p_quantity: number }
         Returns: undefined
       }
+      auto_apply_read_only_after_grace: { Args: never; Returns: number }
       auto_offline_inactive_staff: { Args: never; Returns: undefined }
       batch_confirm_room_deliveries: {
         Args: { p_confirmed_by: string; p_room_order_ids: string[] }
@@ -8646,6 +8665,10 @@ export type Database = {
       cleanup_old_check_sessions: { Args: never; Returns: undefined }
       cleanup_orphaned_auth_users: { Args: never; Returns: number }
       cleanup_stale_check_sessions: { Args: never; Returns: undefined }
+      clear_tenant_read_only: {
+        Args: { p_reason?: string; p_tenant_id: string }
+        Returns: undefined
+      }
       close_route_if_complete: {
         Args: { p_actor_id?: string; p_order_id: string }
         Returns: Json
@@ -10002,10 +10025,9 @@ export type Database = {
         Returns: boolean
       }
       is_storekeeper: { Args: { _user_id: string }; Returns: boolean }
-      is_super_admin:
-        | { Args: never; Returns: boolean }
-        | { Args: { _user_id: string }; Returns: boolean }
+      is_super_admin: { Args: { p_user_id: string }; Returns: boolean }
       is_tenant_owner: { Args: never; Returns: boolean }
+      is_tenant_read_only: { Args: { p_tenant_id: string }; Returns: boolean }
       lift_expired_dnd_oos: { Args: never; Returns: Json }
       log_activity: {
         Args: {
@@ -10020,6 +10042,20 @@ export type Database = {
           p_user_id: string
         }
         Returns: undefined
+      }
+      log_state_transition: {
+        Args: {
+          p_action: string
+          p_context?: Json
+          p_from_state: string
+          p_hotel_id: string
+          p_reason?: string
+          p_record_id: string
+          p_table_name: string
+          p_tenant_id: string
+          p_to_state: string
+        }
+        Returns: number
       }
       mark_cannot_access: {
         Args: {
@@ -10132,6 +10168,10 @@ export type Database = {
           p_vendor_id: string
         }
         Returns: Json
+      }
+      set_tenant_read_only: {
+        Args: { p_reason: string; p_tenant_id: string }
+        Returns: undefined
       }
       setup_new_tenant:
         | {
