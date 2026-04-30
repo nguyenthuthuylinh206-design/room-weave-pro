@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DeleteUserDialog } from './DeleteUserDialog'
+import { MultiRoleManagerDialog } from './MultiRoleManagerDialog'
 import { PermissionGate } from '@/components/auth/PermissionGate'
 import {
   Table,
