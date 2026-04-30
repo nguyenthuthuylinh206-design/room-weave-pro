@@ -10411,6 +10411,30 @@ export type Database = {
           tenant_name: string
         }[]
       }
+      get_qc_floor_stats: {
+        Args: { _days?: number; _hotel_id?: string; _tenant_id: string }
+        Returns: {
+          floor: number
+          hotel_id: string
+          pending_tasks: number
+          rework_rate_pct: number
+          rework_tasks: number
+          total_tasks: number
+        }[]
+      }
+      get_qc_staff_stats: {
+        Args: { _days?: number; _hotel_id?: string; _tenant_id: string }
+        Returns: {
+          approved_count: number
+          full_name: string
+          hotel_id: string
+          pending_count: number
+          rework_count: number
+          rework_rate_pct: number
+          total_completed: number
+          user_id: string
+        }[]
+      }
       get_recent_activities:
         | {
             Args: { p_limit?: number; p_tenant_id: string }
