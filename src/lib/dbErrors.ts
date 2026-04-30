@@ -18,6 +18,13 @@ export function mapDbError(message: string | undefined | null): string {
 
   // Tenant isolation
   if (msg.includes('TENANT_MISMATCH')) return 'Dữ liệu không thuộc tài khoản của bạn.'
+  if (msg.includes('USER_HAS_NO_TENANT')) return 'Tài khoản của bạn chưa được gán vào khách sạn nào.'
+
+  // Room check guard
+  if (msg.includes('ROOM_NOT_FOUND')) return 'Không tìm thấy phòng. Có thể đã bị xóa.'
+  if (msg.includes('TASK_NOT_FOUND')) return 'Không tìm thấy công việc. Có thể đã bị xóa.'
+  if (msg.includes('TASK_NOT_ASSIGNED_TO_USER')) return 'Công việc này không được giao cho bạn.'
+  if (msg.includes('INVALID_CHECK_TYPE')) return 'Loại kiểm tra không hợp lệ.'
 
   // Rate limit (Phase 1 — Lượt 3)
   if (msg.includes('RATE_LIMITED')) return 'Bạn thao tác quá nhanh. Vui lòng thử lại sau ít phút.'
