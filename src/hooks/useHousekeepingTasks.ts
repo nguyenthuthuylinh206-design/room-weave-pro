@@ -370,9 +370,14 @@ export function useUpdateTaskStatus() {
             hotelId: data.hotel_id,
           }).catch(err => console.error('Workflow trigger failed:', err))
         }
-      } else if (data.status === 'completed') {
-        toast.success('Đã hoàn thành công việc')
-        
+      } else if (data.status === 'completed' || data.status === 'completed_pending_review') {
+        toast.success(
+          data.status === 'completed_pending_review'
+            ? 'Đã gửi chờ duyệt'
+            : 'Đã hoàn thành công việc',
+        )
+        queryClient.invalidateQueries({ queryKey: ['tasks-pending-review'] })
+
         // Calculate duration
         const startedAt = data.started_at ? new Date(data.started_at) : null
         const completedAt = data.completed_at ? new Date(data.completed_at) : new Date()
@@ -380,8 +385,8 @@ export function useUpdateTaskStatus() {
           ? Math.round((completedAt.getTime() - startedAt.getTime()) / 60000)
           : null
         
-        // Trigger workflow for task completed
-        if (tenantId) {
+        // Trigger workflow for task completed (chỉ khi đóng cứng)
+        if (tenantId && data.status === 'completed') {
           triggerWorkflow({
             triggerType: WorkflowTriggerTypes.HOUSEKEEPING_TASK_COMPLETED,
             eventData: {
@@ -401,9 +406,10 @@ export function useUpdateTaskStatus() {
         }
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Update task status error:', error)
-      toast.error('Không thể cập nhật trạng thái')
+      const { mapDbError } = require('@/lib/dbErrors')
+      toast.error(mapDbError(error?.message ?? error))
     }
   })
 }
