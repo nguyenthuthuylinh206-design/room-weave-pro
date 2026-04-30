@@ -289,14 +289,14 @@ async function processCheckinCheck(params: {
   // Apply changes
   await applyRoomItemChanges(roomId, quantityChanges, userId)
   
-  // Auto-change room status: check_in/vacant → occupied (phòng đã có khách)
-  // Chỉ thực hiện nếu validation pass
+  // Auto-change room status: vacant_* → occupied_clean (phòng đã có khách)
+  // State Machine v2: chấp nhận cả status legacy lẫn v2 trong giai đoạn rollout.
   if (validation.isReady) {
     await supabase
       .from('rooms')
-      .update({ status: 'occupied' })
+      .update({ status: 'occupied_clean' })
       .eq('id', roomId)
-      .in('status', ['check_in', 'vacant'])
+      .in('status', ['vacant_clean', 'vacant_inspected', 'vacant_dirty'])
   }
   
   return { quantityChanges, validation }
@@ -381,10 +381,10 @@ async function processCheckoutCheck(params: {
   const roomCondition = data.room_condition ?? 'clean'
   
   if (needsCleaning || roomCondition !== 'clean') {
-    // Phòng cần dọn → Chuyển sang cleaning
+    // Phòng cần dọn → vacant_dirty (chờ HK)
     await supabase
       .from('rooms')
-      .update({ status: 'cleaning' })
+      .update({ status: 'vacant_dirty' })
       .eq('id', roomId)
     
     // Gửi thông báo cho Manager
@@ -448,10 +448,10 @@ async function processCheckoutCheck(params: {
       }
     }
   } else {
-    // Phòng sạch → Chuyển thẳng sang vacant
+    // Phòng đã sạch sẵn → vacant_clean (sẵn sàng bán)
     await supabase
       .from('rooms')
-      .update({ status: 'vacant' })
+      .update({ status: 'vacant_clean' })
       .eq('id', roomId)
   }
   
@@ -525,12 +525,12 @@ async function processMaintenanceCheck(params: {
   
   await applyRoomItemChanges(roomId, quantityChanges, userId)
   
-  // Auto-change room status: maintenance → vacant (phòng đã sửa xong)
+  // Auto-change room status: out_of_order/out_of_service → vacant_clean (phòng đã sửa xong)
   await supabase
     .from('rooms')
-    .update({ status: 'vacant' })
+    .update({ status: 'vacant_clean' })
     .eq('id', roomId)
-    .eq('status', 'maintenance')
+    .in('status', ['out_of_order', 'out_of_service'])
   
   return { quantityChanges }
 }
