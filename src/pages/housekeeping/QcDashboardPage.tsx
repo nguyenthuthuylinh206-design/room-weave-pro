@@ -2,12 +2,29 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { useQcStaffStats, useQcFloorStats, useStaffReworkTasks } from '@/hooks/useQcStats'
+import {
+  useQcStaffStats,
+  useQcFloorStats,
+  useStaffReworkTasks,
+  useQcDailyTrend,
+} from '@/hooks/useQcStats'
 import { usePendingReviewCount } from '@/hooks/usePendingReviewCount'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { downloadCsv } from '@/lib/csv'
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Bar,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend,
+} from 'recharts'
 
 const RANGE_OPTIONS = [
   { value: '7', label: '7 ngày' },
