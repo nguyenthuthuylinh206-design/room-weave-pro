@@ -23,6 +23,7 @@ import { logUpdate } from '@/lib/activityLogger'
 import { SeedDataButton } from '@/components/settings/SeedDataButton'
 import { Switch } from '@/components/ui/switch'
 import { UsageModeSelector } from '@/components/settings/UsageModeSelector'
+import { HotelQcModeSettings } from '@/components/settings/HotelQcModeSettings'
 
 const createGeneralSettingsSchema = (t: (key: string) => string) => z.object({
   name: z.string().min(2, t('settings:general.validation.companyNameMin')),
