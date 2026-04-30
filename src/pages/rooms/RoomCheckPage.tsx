@@ -1384,7 +1384,7 @@ export function RoomCheckPage() {
                   quickMode={quickMode}
                   setQuickMode={setQuickMode}
                   roomId={id}
-                  hotelId={roomData?.hotel_id}
+                  hotelId={roomData?.room?.hotel_id ?? roomData?.hotel?.id}
                 />
               )}
               {/* Step instruction banners */}
