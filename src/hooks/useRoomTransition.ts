@@ -28,6 +28,7 @@ interface TransitionResult {
  */
 function mapRpcError(message: string): string {
   if (message.includes('NOT_AUTHENTICATED')) return 'Vui lòng đăng nhập lại.'
+  if (message.includes('TENANT_READ_ONLY')) return 'Tài khoản đang ở chế độ chỉ đọc. Vui lòng gia hạn để tiếp tục thao tác.'
   if (message.includes('ROOM_NOT_FOUND')) return 'Không tìm thấy phòng. Có thể đã bị xóa.'
   if (message.includes('TENANT_MISMATCH')) return 'Phòng không thuộc tenant của bạn.'
   if (message.includes('INVALID_TRANSITION')) return 'Không thể chuyển trạng thái này từ trạng thái hiện tại.'
