@@ -24,6 +24,7 @@ import { SeedDataButton } from '@/components/settings/SeedDataButton'
 import { Switch } from '@/components/ui/switch'
 import { UsageModeSelector } from '@/components/settings/UsageModeSelector'
 import { HotelQcModeSettings } from '@/components/settings/HotelQcModeSettings'
+import { HotelPhotoEvidenceSettings } from '@/components/settings/HotelPhotoEvidenceSettings'
 
 const createGeneralSettingsSchema = (t: (key: string) => string) => z.object({
   name: z.string().min(2, t('settings:general.validation.companyNameMin')),
@@ -298,6 +299,9 @@ export function GeneralSettingsPage() {
 
         {/* QC Mode for housekeeping */}
         <HotelQcModeSettings />
+
+        {/* Photo evidence requirement for room checks */}
+        <HotelPhotoEvidenceSettings />
 
         {/* Demo Data Section */}
         <div className="border rounded-lg p-4 space-y-3">
