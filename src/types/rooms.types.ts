@@ -8,10 +8,40 @@ export type RoomItem = Database['public']['Tables']['room_items']['Row']
 export type RoomCheck = Database['public']['Tables']['room_checks']['Row']
 
 export type RoomType = 'standard' | 'deluxe' | 'suite' | 'vip'
-export type RoomStatus = 'vacant' | 'occupied' | 'cleaning' | 'maintenance' | 'out_of_order' | 'check_in' | 'check_out'
+
+/**
+ * State Machine v2 — Trạng thái phòng đầy đủ (11 trạng thái).
+ * Các giá trị legacy (`vacant`, `occupied`, `cleaning`, `maintenance`, `check_in`, `check_out`)
+ * được giữ làm bí danh trong giai đoạn rollout — code mới không nên dùng.
+ */
+export type RoomStatusV2 =
+  | 'vacant_clean'
+  | 'vacant_inspected'
+  | 'vacant_dirty'
+  | 'occupied_clean'
+  | 'occupied_dirty'
+  | 'dnd'
+  | 'service_refused'
+  | 'sleep_out'
+  | 'skipper'
+  | 'out_of_order'
+  | 'out_of_service'
+
+export type RoomStatusLegacy =
+  | 'vacant'
+  | 'occupied'
+  | 'cleaning'
+  | 'maintenance'
+  | 'out_of_order'
+  | 'check_in'
+  | 'check_out'
+
+/** Union dùng cho UI hiện tại — cho phép cả mới và cũ trong giai đoạn rollout */
+export type RoomStatus = RoomStatusV2 | RoomStatusLegacy
+
 export type CheckType = 'daily' | 'checkout' | 'checkin' | 'maintenance' | 'delivery' | 'replenish'
 
-export interface RoomWithStats extends Omit<Room, 'hourly_price' | 'monthly_price' | 'min_hours' | 'max_hours'> {
+export interface RoomWithStats extends Omit<Room, 'hourly_price' | 'monthly_price' | 'min_hours' | 'max_hours' | 'dnd_until' | 'dnd_reason' | 'oos_until' | 'oos_reason' | 'last_deep_clean_at' | 'last_status_changed_at' | 'last_status_changed_by' | 'legacy_status'> {
   total_items: number
   missing_items: number
   items_in_laundry: number
@@ -22,6 +52,15 @@ export interface RoomWithStats extends Omit<Room, 'hourly_price' | 'monthly_pric
   monthly_price: number | null
   min_hours: number | null
   max_hours: number | null
+  // State machine v2 fields (RPC may omit)
+  dnd_until?: string | null
+  dnd_reason?: string | null
+  oos_until?: string | null
+  oos_reason?: string | null
+  last_deep_clean_at?: string | null
+  last_status_changed_at?: string | null
+  last_status_changed_by?: string | null
+  legacy_status?: string | null
 }
 
 export interface RoomFilters {
