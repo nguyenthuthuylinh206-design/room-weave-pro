@@ -50,6 +50,7 @@ const userLevelColors: Record<string, string> = {
 export function UserTable({ users, onEdit, onManagePermissions }: UserTableProps) {
   const { t, i18n } = useTranslation(['users', 'common'])
   const [userToDelete, setUserToDelete] = useState<UserWithRelations | null>(null)
+  const [rolesUser, setRolesUser] = useState<UserWithRelations | null>(null)
 
   const handleDeleteClick = (user: UserWithRelations) => {
     setUserToDelete(user)
