@@ -399,16 +399,17 @@ export function useMarkRoomReady() {
         .single()
       
       if (checkError) throw checkError
-      if (room.status !== 'cleaning') {
+      // State Machine v2: phòng "đang dọn" = vacant_dirty
+      if (room.status !== 'vacant_dirty' && room.status !== 'cleaning') {
         throw new Error(`Phòng không ở trạng thái "Đang dọn" (hiện tại: ${room.status})`)
       }
       
-      // Update status to vacant
+      // Update status to vacant_clean (đã dọn xong, sẵn sàng bán)
       const { data: updated, error } = await supabase
         .from('rooms')
-        .update({ status: 'vacant' })
+        .update({ status: 'vacant_clean' })
         .eq('id', roomId)
-        .eq('status', 'cleaning') // Optimistic lock
+        .in('status', ['vacant_dirty', 'cleaning']) // Optimistic lock
         .select('*, room_number, hotel_id')
         .single()
       
@@ -427,7 +428,6 @@ export function useMarkRoomReady() {
       
       if (taskError) {
         console.error('Failed to auto-complete cleaning tasks:', taskError)
-        // Don't throw - room is already updated, just log the error
       }
       
       // Trigger workflow for room status change
@@ -437,8 +437,8 @@ export function useMarkRoomReady() {
           eventData: {
             room_id: roomId,
             room_number: updated.room_number,
-            old_status: 'cleaning',
-            new_status: 'vacant',
+            old_status: 'vacant_dirty',
+            new_status: 'vacant_clean',
           },
           tenantId,
           hotelId: updated.hotel_id,

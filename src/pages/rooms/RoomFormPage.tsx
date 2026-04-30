@@ -171,7 +171,7 @@ export function RoomFormPage() {
           ...data,
           tenant_id: tenantId,
           hotel_id: selectedHotel.id,
-          status: 'vacant',
+          status: 'vacant_clean',
           amenities: [],
         })
         // Navigate to new room detail page after creating

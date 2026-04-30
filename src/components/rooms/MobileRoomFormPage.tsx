@@ -173,7 +173,7 @@ export function MobileRoomFormPage() {
           ...data,
           tenant_id: tenantId,
           hotel_id: selectedHotel.id,
-          status: 'vacant',
+          status: 'vacant_clean',
           amenities: [],
         })
         navigate(`/rooms/${newRoom.id}`)
