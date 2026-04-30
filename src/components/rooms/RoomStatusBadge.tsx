@@ -1,29 +1,35 @@
-import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { getRoomStatusMeta } from '@/lib/roomStatus'
 import type { RoomStatus } from '@/types/rooms.types'
 
 interface RoomStatusBadgeProps {
-  status: RoomStatus
+  status: RoomStatus | string | null | undefined
   className?: string
+  /** Hiển thị nhãn ngắn (cho mobile/badge nhỏ). Mặc định false. */
+  short?: boolean
 }
 
-const statusStyles: Partial<Record<RoomStatus, string>> = {
-  vacant: 'bg-green-100 text-green-800 hover:bg-green-200',
-  occupied: 'bg-blue-100 text-blue-800 hover:bg-blue-200',
-  check_in: 'bg-purple-100 text-purple-800 hover:bg-purple-200',
-  check_out: 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200',
-  cleaning: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200',
-  maintenance: 'bg-orange-100 text-orange-800 hover:bg-orange-200',
-  out_of_order: 'bg-red-100 text-red-800 hover:bg-red-200',
-}
+/**
+ * Badge trạng thái phòng — minimalist, dùng semantic text color theo design system.
+ * Tự nhận cả status legacy và v2 thông qua `getRoomStatusMeta`.
+ */
+export function RoomStatusBadge({ status, className, short = false }: RoomStatusBadgeProps) {
+  const meta = getRoomStatusMeta(status)
 
-export function RoomStatusBadge({ status, className }: RoomStatusBadgeProps) {
-  const { t } = useTranslation('rooms')
-  
   return (
-    <Badge className={cn(statusStyles[status], className)}>
-      {t(`status.${status}`)}
+    <Badge
+      variant="outline"
+      className={cn(
+        'font-medium border',
+        meta.text,
+        meta.bg,
+        meta.border,
+        className,
+      )}
+      title={meta.description}
+    >
+      {short ? meta.short : meta.label}
     </Badge>
   )
 }
