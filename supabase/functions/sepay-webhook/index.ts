@@ -11,6 +11,28 @@ function normalizeString(str: string): string {
   return str.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 }
 
+// Phase 1 — Lượt 2: đọc payment_tolerance_vnd theo tenant.
+// Cache trong process để tránh query lặp khi xử lý nhiều payment cùng webhook.
+const TOLERANCE_FALLBACK_VND = 1000;
+const toleranceCache = new Map<string, number>();
+async function getTenantTolerance(supabase: any, tenantId: string | null | undefined): Promise<number> {
+  if (!tenantId) return TOLERANCE_FALLBACK_VND;
+  if (toleranceCache.has(tenantId)) return toleranceCache.get(tenantId)!;
+  try {
+    const { data } = await supabase
+      .from('tenants')
+      .select('payment_tolerance_vnd')
+      .eq('id', tenantId)
+      .maybeSingle();
+    const v = Number(data?.payment_tolerance_vnd ?? TOLERANCE_FALLBACK_VND);
+    const tol = Number.isFinite(v) && v >= 0 ? v : TOLERANCE_FALLBACK_VND;
+    toleranceCache.set(tenantId, tol);
+    return tol;
+  } catch {
+    return TOLERANCE_FALLBACK_VND;
+  }
+}
+
 interface SepayWebhookPayload {
   id: number;
   gateway: string;
@@ -175,16 +197,18 @@ Deno.serve(async (req) => {
       console.log(`  - Invoice match: ${invoiceMatch}, TransRef match: ${transRefMatch}`);
       
       if (invoiceMatch || transRefMatch) {
-        // Verify amount matches (with some tolerance for bank fees)
+        // Verify amount matches (tolerance theo tenant — Phase 1)
+        const tenantId = payment.invoice?.tenant_id || null;
+        const tolerance = await getTenantTolerance(supabase, tenantId);
         const amountDiff = Math.abs(payment.amount - payload.transferAmount);
-        console.log(`  - Amount check: expected ${payment.amount}, got ${payload.transferAmount}, diff: ${amountDiff}`);
-        
-        if (amountDiff <= 1000) { // Allow 1000 VND tolerance
+        console.log(`  - Amount check: expected ${payment.amount}, got ${payload.transferAmount}, diff: ${amountDiff}, tolerance: ${tolerance}`);
+
+        if (amountDiff <= tolerance) {
           console.log(`  - ✅ MATCHED!`);
           matchedPayment = payment;
           break;
         } else {
-          console.log(`  - ❌ Amount mismatch (diff > 1000 VND)`);
+          console.log(`  - ❌ Amount mismatch (diff > ${tolerance} VND)`);
         }
       } else {
         console.log(`  - ❌ No content match`);
@@ -218,10 +242,12 @@ Deno.serve(async (req) => {
           console.log(`  - TransRef: "${transRef}" -> normalized: "${normalizedTransRef}"`);
           
           if (normalizedTransRef && normalizedContent.includes(normalizedTransRef)) {
+            const tenantId = bp.booking?.tenant_id || null;
+            const tolerance = await getTenantTolerance(supabase, tenantId);
             const amountDiff = Math.abs(bp.amount - payload.transferAmount);
-            console.log(`  - Amount check: expected ${bp.amount}, got ${payload.transferAmount}, diff: ${amountDiff}`);
-            
-            if (amountDiff <= 1000) {
+            console.log(`  - Amount check: expected ${bp.amount}, got ${payload.transferAmount}, diff: ${amountDiff}, tolerance: ${tolerance}`);
+
+            if (amountDiff <= tolerance) {
               console.log(`  - ✅ MATCHED BOOKING PAYMENT!`);
               
               // Update booking payment status
