@@ -62,6 +62,16 @@ export default function MorePage() {
     {
       title: 'Management',
       items: [
+        ...(pendingReviewCount > 0
+          ? [{
+              icon: ClipboardCheck,
+              label: 'Công việc chờ duyệt',
+              description: 'Duyệt task housekeeping (peer/strict)',
+              path: '/housekeeping/review',
+              module: 'rooms',
+              badge: pendingReviewCount,
+            } as MenuItem]
+          : []),
         {
           icon: Package,
           label: 'Bookings',
