@@ -71,34 +71,58 @@ export function useRejectTask() {
       invalidate(qc)
       toast.success('Đã trả về làm lại')
 
-      // Gửi push notification cho assignee (best-effort, không chặn UI)
+      // Best-effort: gửi push + telegram cho assignee, không chặn UI
       try {
         const task = data as any
-        if (task?.assigned_to) {
-          // Lấy số phòng để hiển thị title rõ ràng
-          let roomNumber = '?'
-          if (task.room_id) {
-            const { data: room } = await supabase
-              .from('rooms')
-              .select('room_number')
-              .eq('id', task.room_id)
-              .maybeSingle()
-            if (room?.room_number) roomNumber = String(room.room_number)
-          }
-          await supabase.functions.invoke('send-push-notification', {
+        if (!task?.assigned_to) return
+
+        // Lấy số phòng để hiển thị title rõ ràng
+        let roomNumber = '?'
+        if (task.room_id) {
+          const { data: room } = await supabase
+            .from('rooms')
+            .select('room_number')
+            .eq('id', task.room_id)
+            .maybeSingle()
+          if (room?.room_number) roomNumber = String(room.room_number)
+        }
+
+        const title = `Phòng ${roomNumber} cần làm lại`
+        const body = task.rejection_reason || 'Quản lý đã trả lại công việc'
+
+        // Push notification
+        supabase.functions
+          .invoke('send-push-notification', {
             body: {
               user_id: task.assigned_to,
-              title: `Phòng ${roomNumber} cần làm lại`,
-              body: task.rejection_reason || 'Quản lý đã trả lại công việc',
+              title,
+              body,
               tag: `task-reject-${task.id}`,
               action_url: '/my-tasks',
               notification_type: 'task_rejected',
               data: { task_id: task.id, room_id: task.room_id },
             },
           })
+          .catch((e) => console.warn('[useRejectTask] push failed:', e))
+
+        // Telegram (cho cá nhân assignee — chỉ chạy nếu đã link telegram)
+        if (task.tenant_id) {
+          supabase.functions
+            .invoke('send-telegram-notification', {
+              body: {
+                tenant_id: task.tenant_id,
+                hotel_id: task.hotel_id ?? undefined,
+                user_ids: [task.assigned_to],
+                title,
+                message: body,
+                notification_type: 'system',
+                action_url: '/my-tasks',
+              },
+            })
+            .catch((e) => console.warn('[useRejectTask] telegram failed:', e))
         }
       } catch (e) {
-        console.warn('[useRejectTask] push notification failed:', e)
+        console.warn('[useRejectTask] notification dispatch failed:', e)
       }
     },
     onError: (err: any) => toast.error(mapDbError(err?.message ?? err)),
