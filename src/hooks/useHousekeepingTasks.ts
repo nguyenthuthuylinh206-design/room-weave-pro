@@ -296,23 +296,35 @@ export function useUpdateTaskStatus() {
       roomCheckId?: string
       notes?: string 
     }) => {
-      const updates: Partial<HousekeepingTask> = { status }
+      // ✅ Khi đánh dấu hoàn thành: đi qua RPC complete_task để áp dụng qc_mode
+      // (self → completed, peer/strict → completed_pending_review). Backend tự ghi audit.
+      if (status === 'completed') {
+        const { data, error } = await supabase.rpc('complete_task', {
+          _task_id: taskId,
+          _note: notes ?? null,
+        })
+        if (error) throw error
 
+        // Nếu có roomCheckId, lưu kèm (RPC không nhận field này)
+        if (roomCheckId) {
+          await supabase
+            .from('housekeeping_tasks')
+            .update({ room_check_id: roomCheckId })
+            .eq('id', taskId)
+        }
+        return data as unknown as HousekeepingTask & {
+          room?: { room_number: string; floor: number }
+          assigned_user?: { full_name: string }
+        }
+      }
+
+      const updates: Partial<HousekeepingTask> = { status }
       if (status === 'in_progress') {
         updates.started_at = new Date().toISOString()
-      } else if (status === 'completed') {
-        updates.completed_at = new Date().toISOString()
-        if (roomCheckId) {
-          updates.room_check_id = roomCheckId
-        }
       } else if (status === 'cancelled') {
         updates.cancelled_at = new Date().toISOString()
       }
-      
-      // Append notes if provided
-      if (notes) {
-        updates.notes = notes
-      }
+      if (notes) updates.notes = notes
 
       const { data, error } = await supabase
         .from('housekeeping_tasks')
