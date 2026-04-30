@@ -68,6 +68,7 @@
   "pricingRules": "Surcharges & Fees",
   "automation": "Automation",
   "aiSettings": "AI Settings",
+  "auditLog": "Audit Log",
   "telegram": "Telegram",
   "notifications": "Notifications"
 }
