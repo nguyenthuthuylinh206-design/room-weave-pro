@@ -80,6 +80,7 @@ const VendorFormPage = lazyNamed(() => import("./pages/laundry/VendorFormPage"),
 
 // Settings
 const GeneralSettingsPage = lazyNamed(() => import("./pages/settings/GeneralSettingsPage"), "GeneralSettingsPage");
+const RoomCheckSettingsPage = lazy(() => import("./pages/settings/RoomCheckSettingsPage"));
 const HotelsManagementPage = lazy(() => import("./pages/settings/HotelsManagementPage"));
 const SubscriptionPage = lazy(() => import("./pages/settings/SubscriptionPage"));
 const SubscriptionPaymentPage = lazy(() => import("./pages/settings/SubscriptionPaymentPage"));
@@ -413,6 +414,7 @@ const router = createBrowserRouter([
       { path: "settings/notifications/devices", element: <PermissionRoute module="settings"><PushDevicesPage /></PermissionRoute> },
       { path: "settings/telegram", element: <PermissionRoute module="settings"><TelegramSettingsPage /></PermissionRoute> },
       { path: "settings/business", element: <PermissionRoute module="settings"><BusinessConfigurationPage /></PermissionRoute> },
+      { path: "settings/room-check", element: <PermissionRoute module="settings"><RoomCheckSettingsPage /></PermissionRoute> },
       { path: "settings/workflows", element: <PermissionRoute module="settings" action="manage"><WorkflowsPage /></PermissionRoute> },
       { path: "settings/pricing-rules", element: <PermissionRoute module="settings"><PricingRulesPage /></PermissionRoute> },
       { path: "settings/ai", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><AISettingsPage /></RoleGuard> },
