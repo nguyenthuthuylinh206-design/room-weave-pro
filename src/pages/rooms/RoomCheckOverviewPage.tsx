@@ -257,6 +257,28 @@ export default function RoomCheckOverviewPage() {
 
       {/* Body */}
       <main className="flex-1 px-4 py-4 space-y-4">
+        {/* Realtime session conflict banner */}
+        {isOtherSession && (
+          <div className="rounded-lg border-l-4 border-amber-500 bg-amber-50/60 p-3 space-y-2">
+            <p className="text-[15px] font-semibold text-amber-800">
+              {session!.user_name} đang kiểm phòng này
+            </p>
+            <p className="text-[13px] text-amber-700">
+              Bắt đầu {formatSessionDuration(sessionMinutes)} trước. Vui lòng chờ hoàn tất hoặc liên hệ quản lý.
+            </p>
+            {canTakeOver && (
+              <Button
+                variant="outline"
+                className="w-full mt-1"
+                style={{ minHeight: 44 }}
+                onClick={handleTakeOver}
+              >
+                Tiếp quản phiên
+              </Button>
+            )}
+          </div>
+        )}
+
         <LeanContextCard
           roomId={id!}
           onSeeMore={() => navigate(`/rooms/${id}`)}
