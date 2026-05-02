@@ -57,16 +57,23 @@ export function useQuickRoomCheck() {
         _photos: photos && photos.length > 0 ? photos : [],
       })
       if (error) {
-        if (error.message?.includes('photo_required')) {
-          throw new Error('Khách sạn yêu cầu chụp ảnh bằng chứng khi kiểm phòng')
+        const msg = error.message || ''
+        if (msg.includes('photo_required'))
+          throw new Error('Khách sạn yêu cầu chụp ảnh bằng chứng khi kiểm phòng.')
+        if (msg.includes('quick_path_disabled'))
+          throw new Error('Khách sạn đã tắt chế độ "Phòng OK hoàn toàn".')
+        if (msg.startsWith('quick_rate_limited') || msg.includes('quick_rate_limited:')) {
+          const m = msg.match(/quick_rate_limited:(\d+)/)
+          const min = m ? Number(m[1]) : 30
+          throw new Error(`Vừa có lần kiểm nhanh. Vui lòng đợi đủ ${min} phút giữa hai lần kiểm nhanh.`)
         }
-        if (error.message?.includes('forbidden_tenant')) {
+        if (msg.includes('quick_path_not_allowed'))
+          throw new Error('Loại kiểm này không hỗ trợ chế độ nhanh. Hãy dùng kiểm chuẩn.')
+        if (msg.includes('forbidden_tenant'))
           throw new Error('Bạn không có quyền kiểm phòng này.')
-        }
-        if (error.message?.includes('room_not_found')) {
+        if (msg.includes('room_not_found'))
           throw new Error('Không tìm thấy phòng.')
-        }
-        throw new Error(mapDbError(error.message) || error.message)
+        throw new Error(mapDbError(msg) || msg)
       }
       return data as { check_id: string; room_id: string; old_status: string; new_status: string }
     },
