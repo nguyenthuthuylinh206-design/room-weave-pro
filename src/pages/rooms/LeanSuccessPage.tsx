@@ -144,3 +144,33 @@ export default function LeanSuccessPage() {
     </div>
   )
 }
+
+function UndoButton({
+  checkId,
+  secondsLeft,
+  onDone,
+}: {
+  checkId: string
+  secondsLeft: number
+  onDone: () => void
+}) {
+  const undo = useUndoQuickRoomCheck()
+  return (
+    <button
+      type="button"
+      disabled={undo.isPending}
+      onClick={async () => {
+        try {
+          await undo.mutateAsync({ checkId, reason: 'undo from success screen' })
+          onDone()
+        } catch {
+          /* error toast đã hiển thị trong hook */
+        }
+      }}
+      className="mt-4 inline-flex items-center gap-2 text-[15px] font-semibold text-destructive underline disabled:opacity-60"
+    >
+      {undo.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+      Hoàn tác ({secondsLeft}s)
+    </button>
+  )
+}
