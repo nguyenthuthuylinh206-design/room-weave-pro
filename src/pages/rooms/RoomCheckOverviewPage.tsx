@@ -292,33 +292,39 @@ export default function RoomCheckOverviewPage() {
         className="fixed left-0 right-0 bottom-0 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] bg-background border-t z-20"
       >
         <div className="flex flex-col gap-3 max-w-md mx-auto">
-          {allowQuickPath ? (
-            <>
+          {(() => {
+            const blockedByOther = isOtherSession && !canTakeOver
+            return allowQuickPath ? (
+              <>
+                <Button
+                  onClick={() => setQuickOpen(true)}
+                  disabled={blockedByOther}
+                  className="w-full h-14 text-[18px] font-semibold"
+                  style={{ minHeight: 56 }}
+                >
+                  Phòng ổn, gửi nhanh
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={goInspection}
+                  disabled={blockedByOther}
+                  className="w-full text-[16px] font-medium"
+                  style={{ minHeight: 52 }}
+                >
+                  Bắt đầu kiểm tra
+                </Button>
+              </>
+            ) : (
               <Button
-                onClick={() => setQuickOpen(true)}
+                onClick={goInspection}
+                disabled={blockedByOther}
                 className="w-full h-14 text-[18px] font-semibold"
                 style={{ minHeight: 56 }}
               >
-                Phòng ổn, gửi nhanh
+                Bắt đầu kiểm tra kỹ
               </Button>
-              <Button
-                variant="outline"
-                onClick={goInspection}
-                className="w-full text-[16px] font-medium"
-                style={{ minHeight: 52 }}
-              >
-                Bắt đầu kiểm tra
-              </Button>
-            </>
-          ) : (
-            <Button
-              onClick={goInspection}
-              className="w-full h-14 text-[18px] font-semibold"
-              style={{ minHeight: 56 }}
-            >
-              Bắt đầu kiểm tra kỹ
-            </Button>
-          )}
+            )
+          })()}
         </div>
       </footer>
 
