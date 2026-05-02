@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { CheckCircle2 } from 'lucide-react'
+import { CheckCircle2, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRoom } from '@/hooks/useRooms'
+import { useUndoQuickRoomCheck } from '@/hooks/useUndoQuickRoomCheck'
 
 type LeanCheckType = 'daily' | 'periodic' | 'checkin' | 'checkout' | 'maintenance'
 
@@ -107,20 +108,16 @@ export default function LeanSuccessPage() {
           </p>
         </div>
 
-        {showUndo && (
-          <button
-            type="button"
-            onClick={() => {
-              // Lean v1: chưa hỗ trợ thực sự rollback — đưa user về Step 1 để kiểm lại,
-              // tránh ghi đè im lặng. Khi backend có hủy quick check thì hook ở đây.
+        {showUndo && checkId && (
+          <UndoButton
+            checkId={checkId}
+            secondsLeft={secondsLeft}
+            onDone={() => {
               navigate(`/rooms/${id}/check-lean?type=${checkType}`, {
                 replace: true,
               })
             }}
-            className="mt-4 text-[15px] font-semibold text-destructive underline"
-          >
-            Hoàn tác ({secondsLeft}s)
-          </button>
+          />
         )}
       </div>
 
