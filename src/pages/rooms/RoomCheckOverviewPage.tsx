@@ -11,6 +11,9 @@ import { LeanContextCard } from '@/components/rooms/lean/LeanContextCard'
 import { LeanChecklistPreview } from '@/components/rooms/lean/LeanChecklistPreview'
 import { ResumeDraftSheet, type DraftPayload } from '@/components/rooms/lean/ResumeDraftSheet'
 import { QuickPathConfirmSheet } from '@/components/rooms/lean/QuickPathConfirmSheet'
+import { useUser } from '@/hooks/useUser'
+import { useRoomCheckSession, getSessionDurationMinutes, formatSessionDuration } from '@/hooks/useRoomCheckSession'
+import { isAdminUser, isManager } from '@/lib/userAccess'
 type LeanCheckType = 'daily' | 'periodic' | 'checkin' | 'checkout' | 'maintenance'
 import { toast } from 'sonner'
 
@@ -52,6 +55,12 @@ export default function RoomCheckOverviewPage() {
   const { data: photoMode } = useHotelPhotoMode(hotelId ?? undefined)
   const { data: leanCfg } = useRoomCheckLeanConfig(hotelId)
   const { mutateAsync: quickSubmit, isPending: isQuickSubmitting } = useQuickRoomCheck()
+
+  const { user, tenantId } = useUser()
+  const { session, createSession, deleteSession, takeOverSession } = useRoomCheckSession(id)
+  const canTakeOver = isAdminUser(user) || isManager(user)
+  const isOtherSession = !!session && session.user_id !== user?.id
+  const sessionMinutes = session ? getSessionDurationMinutes(session.started_at) : 0
 
   const [quickOpen, setQuickOpen] = useState(false)
   const [quickError, setQuickError] = useState<string | null>(null)
@@ -138,14 +147,50 @@ export default function RoomCheckOverviewPage() {
   }
 
   // ───────────── Handlers ─────────────
-  const goInspection = () => {
+  /** Map LeanCheckType → RoomCheckType cho bảng session (không có 'periodic') */
+  const sessionType = (checkType === 'periodic' ? 'daily' : checkType) as
+    | 'daily' | 'checkin' | 'checkout' | 'maintenance'
+
+  const ensureSession = async (): Promise<boolean> => {
+    if (!id || !user || !tenantId) return true
+    if (session) {
+      if (session.user_id === user.id) return true
+      if (!canTakeOver) {
+        toast.error(
+          `${session.user_name} đang kiểm phòng này. Liên hệ quản lý để tiếp quản.`,
+        )
+        return false
+      }
+      return true
+    }
+    await createSession(id, sessionType, user.full_name || 'Nhân viên', tenantId)
+    return true
+  }
+
+  const goInspection = async () => {
+    if (isOtherSession && !canTakeOver) {
+      toast.error('Phòng đang được người khác kiểm tra.')
+      return
+    }
+    const ok = await ensureSession()
+    if (!ok) return
     navigate(`/rooms/${id}/check-lean/inspection?type=${checkType}`)
   }
 
-  const handleResumeDraft = (_draft: DraftPayload) => {
+  const handleResumeDraft = async (_draft: DraftPayload) => {
+    const ok = await ensureSession()
+    if (!ok) return
     navigate(
       `/rooms/${id}/check-lean/inspection?type=${checkType}&resume=true`,
     )
+  }
+
+  const handleTakeOver = async () => {
+    if (!id || !user || !tenantId) return
+    const res = await takeOverSession(id, sessionType, user.full_name || 'Quản lý', tenantId)
+    if (res) {
+      navigate(`/rooms/${id}/check-lean/inspection?type=${checkType}`)
+    }
   }
 
   const handleQuickConfirm = async () => {
@@ -165,6 +210,8 @@ export default function RoomCheckOverviewPage() {
         photos: [],
       })
       setQuickOpen(false)
+      // Dọn session realtime nếu có (quick path không đi qua submit_room_check_lean)
+      try { await deleteSession(id) } catch {}
       navigate(
         `/rooms/${id}/check-lean/success?type=${checkType}&issues=0&checkId=${res.check_id}&quick=1`,
         { replace: true },
@@ -212,6 +259,28 @@ export default function RoomCheckOverviewPage() {
 
       {/* Body */}
       <main className="flex-1 px-4 py-4 space-y-4">
+        {/* Realtime session conflict banner */}
+        {isOtherSession && (
+          <div className="rounded-lg border-l-4 border-amber-500 bg-amber-50/60 p-3 space-y-2">
+            <p className="text-[15px] font-semibold text-amber-800">
+              {session!.user_name} đang kiểm phòng này
+            </p>
+            <p className="text-[13px] text-amber-700">
+              Bắt đầu {formatSessionDuration(sessionMinutes)} trước. Vui lòng chờ hoàn tất hoặc liên hệ quản lý.
+            </p>
+            {canTakeOver && (
+              <Button
+                variant="outline"
+                className="w-full mt-1"
+                style={{ minHeight: 44 }}
+                onClick={handleTakeOver}
+              >
+                Tiếp quản phiên
+              </Button>
+            )}
+          </div>
+        )}
+
         <LeanContextCard
           roomId={id!}
           onSeeMore={() => navigate(`/rooms/${id}`)}
@@ -225,33 +294,39 @@ export default function RoomCheckOverviewPage() {
         className="fixed left-0 right-0 bottom-0 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] bg-background border-t z-20"
       >
         <div className="flex flex-col gap-3 max-w-md mx-auto">
-          {allowQuickPath ? (
-            <>
+          {(() => {
+            const blockedByOther = isOtherSession && !canTakeOver
+            return allowQuickPath ? (
+              <>
+                <Button
+                  onClick={() => setQuickOpen(true)}
+                  disabled={blockedByOther}
+                  className="w-full h-14 text-[18px] font-semibold"
+                  style={{ minHeight: 56 }}
+                >
+                  Phòng ổn, gửi nhanh
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={goInspection}
+                  disabled={blockedByOther}
+                  className="w-full text-[16px] font-medium"
+                  style={{ minHeight: 52 }}
+                >
+                  Bắt đầu kiểm tra
+                </Button>
+              </>
+            ) : (
               <Button
-                onClick={() => setQuickOpen(true)}
+                onClick={goInspection}
+                disabled={blockedByOther}
                 className="w-full h-14 text-[18px] font-semibold"
                 style={{ minHeight: 56 }}
               >
-                Phòng ổn, gửi nhanh
+                Bắt đầu kiểm tra kỹ
               </Button>
-              <Button
-                variant="outline"
-                onClick={goInspection}
-                className="w-full text-[16px] font-medium"
-                style={{ minHeight: 52 }}
-              >
-                Bắt đầu kiểm tra
-              </Button>
-            </>
-          ) : (
-            <Button
-              onClick={goInspection}
-              className="w-full h-14 text-[18px] font-semibold"
-              style={{ minHeight: 56 }}
-            >
-              Bắt đầu kiểm tra kỹ
-            </Button>
-          )}
+            )
+          })()}
         </div>
       </footer>
 

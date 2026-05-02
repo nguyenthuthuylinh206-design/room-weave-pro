@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import { CheckCircle, AlertTriangle, Star, Filter, TrendingUp, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react'
+import { CheckCircle, AlertTriangle, Star, Filter, TrendingUp, Image as ImageIcon, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
+import { useUser } from '@/hooks/useUser'
+import { isAdminUser, isManager } from '@/lib/userAccess'
+import { ReopenCheckDialog } from './ReopenCheckDialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -23,6 +26,9 @@ export function EnhancedCheckHistory({ checks }: EnhancedCheckHistoryProps) {
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([])
   const [showPhotoDialog, setShowPhotoDialog] = useState(false)
   const [expandedCheckId, setExpandedCheckId] = useState<string | null>(null)
+  const [reopenTarget, setReopenTarget] = useState<RoomCheckWithUser | null>(null)
+  const { user } = useUser()
+  const canReopen = isAdminUser(user) || isManager(user)
   
   // Filter checks by type
   const filteredChecks = filterType === 'all' 
@@ -245,8 +251,41 @@ export function EnhancedCheckHistory({ checks }: EnhancedCheckHistoryProps) {
                       {check.notes}
                     </p>
                   )}
-                  
-                  {/* Photos */}
+
+                  {/* Status + Reopen action */}
+                  {(() => {
+                    const status = (check as any).status as string | undefined
+                    const isReopened = status === 'reopened'
+                    const isUndone = status === 'undone'
+                    return (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {isReopened && (
+                          <span className="text-xs text-amber-600 font-medium">
+                            Đã mở lại — chờ kiểm lại
+                          </span>
+                        )}
+                        {isUndone && (
+                          <span className="text-xs text-muted-foreground italic">
+                            Đã hoàn tác
+                          </span>
+                        )}
+                        {canReopen && !isReopened && !isUndone && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                            onClick={() => setReopenTarget(check)}
+                          >
+                            <RotateCcw className="h-3 w-3 mr-1" />
+                            Mở lại
+                          </Button>
+                        )}
+                      </div>
+                    )
+                  })()}
+
+
                   {check.photos && Array.isArray(check.photos) && check.photos.length > 0 && (
                     <div className="space-y-1">
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -337,6 +376,17 @@ export function EnhancedCheckHistory({ checks }: EnhancedCheckHistoryProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Reopen Dialog */}
+      {reopenTarget && (
+        <ReopenCheckDialog
+          checkId={reopenTarget.id}
+          checkedByName={reopenTarget.checked_by_name}
+          checkedAt={reopenTarget.checked_at}
+          open={!!reopenTarget}
+          onOpenChange={(v) => { if (!v) setReopenTarget(null) }}
+        />
+      )}
     </div>
     </div>
   )
