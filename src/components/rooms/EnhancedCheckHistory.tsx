@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { CheckCircle, AlertTriangle, Star, Filter, TrendingUp, Image as ImageIcon, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
 import { useUser } from '@/hooks/useUser'
-import { isAdminUser, isManagerUser } from '@/lib/userAccess'
+import { isAdminUser, isManager } from '@/lib/userAccess'
 import { ReopenCheckDialog } from './ReopenCheckDialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
