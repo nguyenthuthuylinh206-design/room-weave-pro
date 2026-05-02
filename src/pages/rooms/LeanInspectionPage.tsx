@@ -10,6 +10,8 @@ import { toast } from 'sonner'
 import { useRoom } from '@/hooks/useRooms'
 import { useRoomCheckLeanConfig } from '@/hooks/useRoomCheckLeanConfig'
 import { useLeanDraft, readLeanDraft, clearLeanDraft } from '@/hooks/useLeanDraft'
+import { useRoomCheckSession } from '@/hooks/useRoomCheckSession'
+import { useUser } from '@/hooks/useUser'
 
 import {
   LeanReportIssueSheet,
