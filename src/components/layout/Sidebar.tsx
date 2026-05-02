@@ -202,6 +202,7 @@ const navigation: NavItem[] = [
       { titleKey: 'notifications', href: '/settings/notifications', icon: Bell, group: 'Thông báo' },
       { titleKey: 'telegram', href: '/settings/telegram', icon: MessageCircle, group: 'Thông báo' },
       { titleKey: 'businessConfig', href: '/settings/business', icon: Briefcase, minMode: 'standard', group: 'Nghiệp vụ' },
+      { titleKey: 'roomCheckSettings', href: '/settings/room-check', icon: ClipboardCheck, group: 'Nghiệp vụ' },
       { titleKey: 'pricingRules', href: '/settings/pricing-rules', icon: DollarSign, minMode: 'standard', group: 'Nghiệp vụ' },
       { titleKey: 'automation', href: '/settings/workflows', icon: Zap, minMode: 'full', group: 'Nghiệp vụ' },
       { titleKey: 'aiSettings', href: '/settings/ai', icon: Brain, group: 'Hệ thống' },
