@@ -6318,6 +6318,7 @@ export type Database = {
           items_missing: Json | null
           items_replaced: Json | null
           items_sent_to_laundry: Json | null
+          minibar_count: number
           notes: string | null
           photos: string[] | null
           qc_required: boolean
@@ -6326,7 +6327,12 @@ export type Database = {
           reviewed_by: string | null
           room_id: string
           score_override: number | null
+          status: string
+          summary_issue_count: number
+          summary_ok_count: number
+          task_id: string | null
           tenant_id: string | null
+          updated_at: string
         }
         Insert: {
           check_mode?: string | null
@@ -6343,6 +6349,7 @@ export type Database = {
           items_missing?: Json | null
           items_replaced?: Json | null
           items_sent_to_laundry?: Json | null
+          minibar_count?: number
           notes?: string | null
           photos?: string[] | null
           qc_required?: boolean
@@ -6351,7 +6358,12 @@ export type Database = {
           reviewed_by?: string | null
           room_id: string
           score_override?: number | null
+          status?: string
+          summary_issue_count?: number
+          summary_ok_count?: number
+          task_id?: string | null
           tenant_id?: string | null
+          updated_at?: string
         }
         Update: {
           check_mode?: string | null
@@ -6368,6 +6380,7 @@ export type Database = {
           items_missing?: Json | null
           items_replaced?: Json | null
           items_sent_to_laundry?: Json | null
+          minibar_count?: number
           notes?: string | null
           photos?: string[] | null
           qc_required?: boolean
@@ -6376,7 +6389,12 @@ export type Database = {
           reviewed_by?: string | null
           room_id?: string
           score_override?: number | null
+          status?: string
+          summary_issue_count?: number
+          summary_ok_count?: number
+          task_id?: string | null
           tenant_id?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -6426,6 +6444,13 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_checks_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "housekeeping_tasks"
             referencedColumns: ["id"]
           },
         ]
@@ -9400,6 +9425,7 @@ export type Database = {
         Args: { p_manager_id: string; p_target_user_id: string }
         Returns: boolean
       }
+      can_perform_quick_check: { Args: { _room_id: string }; Returns: boolean }
       cancel_booking: {
         Args: { p_booking_id: string; p_room_id?: string }
         Returns: Json
