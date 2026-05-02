@@ -187,7 +187,7 @@ export default function RoomCheckOverviewPage() {
 
   const handleTakeOver = async () => {
     if (!id || !user || !tenantId) return
-    const res = await takeOverSession(id, checkType, user.full_name || 'Quản lý', tenantId)
+    const res = await takeOverSession(id, sessionType, user.full_name || 'Quản lý', tenantId)
     if (res) {
       navigate(`/rooms/${id}/check-lean/inspection?type=${checkType}`)
     }
