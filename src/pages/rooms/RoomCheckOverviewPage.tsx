@@ -139,13 +139,13 @@ export default function RoomCheckOverviewPage() {
 
   // ───────────── Handlers ─────────────
   const goInspection = () => {
-    // Lean: route inspection sẽ làm ở prompt sau. Tạm thời chuyển sang wizard cũ.
-    navigate(`/rooms/${id}/check?type=${checkType}`)
+    navigate(`/rooms/${id}/check-lean/inspection?type=${checkType}`)
   }
 
   const handleResumeDraft = (_draft: DraftPayload) => {
-    // Forward sang wizard cũ — wizard cũ tự đọc localStorage và prompt resume.
-    navigate(`/rooms/${id}/check?type=${checkType}&resume=true`)
+    navigate(
+      `/rooms/${id}/check-lean/inspection?type=${checkType}&resume=true`,
+    )
   }
 
   const handleQuickConfirm = async () => {
