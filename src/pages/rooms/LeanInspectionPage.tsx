@@ -10,6 +10,8 @@ import { toast } from 'sonner'
 import { useRoom } from '@/hooks/useRooms'
 import { useRoomCheckLeanConfig } from '@/hooks/useRoomCheckLeanConfig'
 import { useLeanDraft, readLeanDraft, clearLeanDraft } from '@/hooks/useLeanDraft'
+import { useRoomCheckSession } from '@/hooks/useRoomCheckSession'
+import { useUser } from '@/hooks/useUser'
 
 import {
   LeanReportIssueSheet,
@@ -237,6 +239,16 @@ export default function LeanInspectionPage() {
     draftPayload,
     !!id && !enrichLoading,
   )
+
+  // ────── Realtime takeover detection ──────
+  // Nếu session phòng này bị Manager khác tiếp quản (user_id khác user hiện tại),
+  // block UI để tránh user tiếp tục nhập rồi gặp conflict_room_updated khi submit.
+  const { user } = useUser()
+  const { session } = useRoomCheckSession(id)
+  const takenOver =
+    !!session && !!user?.id && session.user_id !== user.id
+  // Lưu lại tên người tiếp quản để hiển thị
+  const takenOverBy = takenOver ? session?.user_name : null
 
   // ────── Handlers ──────
   const reportedCount = Object.keys(issues).length
@@ -591,6 +603,36 @@ export default function LeanInspectionPage() {
         }
         onSubmit={handleIssueSubmit}
       />
+
+      {/* Takeover overlay — block khi Manager đã tiếp quản phiên kiểm */}
+      {takenOver && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center px-6"
+        >
+          <div className="max-w-sm w-full rounded-xl border bg-card p-5 shadow-lg space-y-4">
+            <div>
+              <h2 className="text-[20px] font-bold text-amber-700">
+                Phiên kiểm đã được tiếp quản
+              </h2>
+              <p className="text-[15px] text-muted-foreground mt-2">
+                {takenOverBy
+                  ? `${takenOverBy} đã tiếp quản phiên kiểm phòng này.`
+                  : 'Một quản lý đã tiếp quản phiên kiểm phòng này.'}{' '}
+                Bản nhập tạm của bạn vẫn còn trên máy nhưng không gửi được nữa.
+              </p>
+            </div>
+            <Button
+              onClick={() => navigate(`/rooms/${id}/check-lean`, { replace: true })}
+              className="w-full font-semibold text-[17px]"
+              style={{ minHeight: 52 }}
+            >
+              Quay lại tổng quan
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
