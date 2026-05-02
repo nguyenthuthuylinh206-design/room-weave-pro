@@ -147,14 +147,47 @@ export default function RoomCheckOverviewPage() {
   }
 
   // ───────────── Handlers ─────────────
-  const goInspection = () => {
+  const ensureSession = async (): Promise<boolean> => {
+    if (!id || !user || !tenantId) return true
+    if (session) {
+      if (session.user_id === user.id) return true
+      // Người khác đang giữ phiên — chặn nếu không phải manager
+      if (!canTakeOver) {
+        toast.error(
+          `${session.user_name} đang kiểm phòng này. Liên hệ quản lý để tiếp quản.`,
+        )
+        return false
+      }
+      return true // manager sẽ chủ động bấm "Tiếp quản"
+    }
+    await createSession(id, checkType, user.full_name || 'Nhân viên', tenantId)
+    return true
+  }
+
+  const goInspection = async () => {
+    if (isOtherSession && !canTakeOver) {
+      toast.error('Phòng đang được người khác kiểm tra.')
+      return
+    }
+    const ok = await ensureSession()
+    if (!ok) return
     navigate(`/rooms/${id}/check-lean/inspection?type=${checkType}`)
   }
 
-  const handleResumeDraft = (_draft: DraftPayload) => {
+  const handleResumeDraft = async (_draft: DraftPayload) => {
+    const ok = await ensureSession()
+    if (!ok) return
     navigate(
       `/rooms/${id}/check-lean/inspection?type=${checkType}&resume=true`,
     )
+  }
+
+  const handleTakeOver = async () => {
+    if (!id || !user || !tenantId) return
+    const res = await takeOverSession(id, checkType, user.full_name || 'Quản lý', tenantId)
+    if (res) {
+      navigate(`/rooms/${id}/check-lean/inspection?type=${checkType}`)
+    }
   }
 
   const handleQuickConfirm = async () => {
