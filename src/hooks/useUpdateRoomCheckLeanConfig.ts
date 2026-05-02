@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
+import { logActivity } from '@/lib/activityLogger'
 import type { RoomCheckLeanConfig } from './useRoomCheckLeanConfig'
 
 /**
