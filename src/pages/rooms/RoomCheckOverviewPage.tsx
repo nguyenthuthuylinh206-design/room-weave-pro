@@ -147,20 +147,23 @@ export default function RoomCheckOverviewPage() {
   }
 
   // ───────────── Handlers ─────────────
+  /** Map LeanCheckType → RoomCheckType cho bảng session (không có 'periodic') */
+  const sessionType = (checkType === 'periodic' ? 'daily' : checkType) as
+    | 'daily' | 'checkin' | 'checkout' | 'maintenance'
+
   const ensureSession = async (): Promise<boolean> => {
     if (!id || !user || !tenantId) return true
     if (session) {
       if (session.user_id === user.id) return true
-      // Người khác đang giữ phiên — chặn nếu không phải manager
       if (!canTakeOver) {
         toast.error(
           `${session.user_name} đang kiểm phòng này. Liên hệ quản lý để tiếp quản.`,
         )
         return false
       }
-      return true // manager sẽ chủ động bấm "Tiếp quản"
+      return true
     }
-    await createSession(id, checkType, user.full_name || 'Nhân viên', tenantId)
+    await createSession(id, sessionType, user.full_name || 'Nhân viên', tenantId)
     return true
   }
 
