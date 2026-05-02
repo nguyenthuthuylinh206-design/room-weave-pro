@@ -240,6 +240,16 @@ export default function LeanInspectionPage() {
     !!id && !enrichLoading,
   )
 
+  // ────── Realtime takeover detection ──────
+  // Nếu session phòng này bị Manager khác tiếp quản (user_id khác user hiện tại),
+  // block UI để tránh user tiếp tục nhập rồi gặp conflict_room_updated khi submit.
+  const { user } = useUser()
+  const { session } = useRoomCheckSession(id)
+  const takenOver =
+    !!session && !!user?.id && session.user_id !== user.id
+  // Lưu lại tên người tiếp quản để hiển thị
+  const takenOverBy = takenOver ? session?.user_name : null
+
   // ────── Handlers ──────
   const reportedCount = Object.keys(issues).length
 
