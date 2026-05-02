@@ -54,6 +54,7 @@ const RoomDetailPage = lazyNamed(() => import("./pages/rooms/RoomDetailPage"), "
 const RoomFormPage = lazyNamed(() => import("./pages/rooms/RoomFormPage"), "RoomFormPage");
 const RoomStandardsPage = lazyNamed(() => import("./pages/rooms/RoomStandardsPage"), "RoomStandardsPage");
 const RoomCheckPage = lazyNamed(() => import("./pages/rooms/RoomCheckPage"), "RoomCheckPage");
+const RoomCheckRouter = lazy(() => import("./pages/rooms/RoomCheckRouter"));
 const RoomCheckOverviewPage = lazy(() => import("./pages/rooms/RoomCheckOverviewPage"));
 const LeanInspectionPage = lazy(() => import("./pages/rooms/LeanInspectionPage"));
 const LeanReviewPage = lazy(() => import("./pages/rooms/LeanReviewPage"));
@@ -357,7 +358,7 @@ const router = createBrowserRouter([
       { path: "rooms/new", element: <PermissionRoute module="rooms" action="create"><RoomFormPage /></PermissionRoute> },
       { path: "rooms/:id", element: <PermissionRoute module="rooms" action="update"><RoomDetailPage /></PermissionRoute> },
       { path: "rooms/:id/edit", element: <PermissionRoute module="rooms" action="update"><RoomFormPage /></PermissionRoute> },
-      { path: "rooms/:id/check", element: <PermissionRoute module="rooms" action="update"><RoomCheckPage /></PermissionRoute> },
+      { path: "rooms/:id/check", element: <PermissionRoute module="rooms" action="update"><RoomCheckRouter /></PermissionRoute> },
       { path: "rooms/:id/check-lean", element: <PermissionRoute module="rooms" action="update"><RoomCheckOverviewPage /></PermissionRoute> },
       { path: "rooms/:id/check-lean/inspection", element: <PermissionRoute module="rooms" action="update"><LeanInspectionPage /></PermissionRoute> },
       { path: "rooms/:id/check-lean/review", element: <PermissionRoute module="rooms" action="update"><LeanReviewPage /></PermissionRoute> },
