@@ -210,6 +210,8 @@ export default function RoomCheckOverviewPage() {
         photos: [],
       })
       setQuickOpen(false)
+      // Dọn session realtime nếu có (quick path không đi qua submit_room_check_lean)
+      try { await deleteSession(id) } catch {}
       navigate(
         `/rooms/${id}/check-lean/success?type=${checkType}&issues=0&checkId=${res.check_id}&quick=1`,
         { replace: true },
