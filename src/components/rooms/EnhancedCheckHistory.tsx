@@ -26,6 +26,9 @@ export function EnhancedCheckHistory({ checks }: EnhancedCheckHistoryProps) {
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([])
   const [showPhotoDialog, setShowPhotoDialog] = useState(false)
   const [expandedCheckId, setExpandedCheckId] = useState<string | null>(null)
+  const [reopenTarget, setReopenTarget] = useState<RoomCheckWithUser | null>(null)
+  const { user } = useUser()
+  const canReopen = isAdminUser(user) || isManager(user)
   
   // Filter checks by type
   const filteredChecks = filterType === 'all' 
