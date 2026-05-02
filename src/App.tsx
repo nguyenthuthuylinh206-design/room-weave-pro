@@ -56,6 +56,8 @@ const RoomStandardsPage = lazyNamed(() => import("./pages/rooms/RoomStandardsPag
 const RoomCheckPage = lazyNamed(() => import("./pages/rooms/RoomCheckPage"), "RoomCheckPage");
 const RoomCheckOverviewPage = lazy(() => import("./pages/rooms/RoomCheckOverviewPage"));
 const LeanInspectionPage = lazy(() => import("./pages/rooms/LeanInspectionPage"));
+const LeanReviewPage = lazy(() => import("./pages/rooms/LeanReviewPage"));
+const LeanSuccessPage = lazy(() => import("./pages/rooms/LeanSuccessPage"));
 
 // Bookings & Guests
 const BookingsPage = lazyNamed(() => import("./pages/bookings/BookingsPage"), "BookingsPage");
@@ -358,6 +360,8 @@ const router = createBrowserRouter([
       { path: "rooms/:id/check", element: <PermissionRoute module="rooms" action="update"><RoomCheckPage /></PermissionRoute> },
       { path: "rooms/:id/check-lean", element: <PermissionRoute module="rooms" action="update"><RoomCheckOverviewPage /></PermissionRoute> },
       { path: "rooms/:id/check-lean/inspection", element: <PermissionRoute module="rooms" action="update"><LeanInspectionPage /></PermissionRoute> },
+      { path: "rooms/:id/check-lean/review", element: <PermissionRoute module="rooms" action="update"><LeanReviewPage /></PermissionRoute> },
+      { path: "rooms/:id/check-lean/success", element: <PermissionRoute module="rooms" action="update"><LeanSuccessPage /></PermissionRoute> },
       { path: "rooms/standards", element: <PermissionRoute module="rooms"><RoomStandardsPage /></PermissionRoute> },
 
       // Supplements
