@@ -159,13 +159,16 @@ export default function RoomCheckOverviewPage() {
       return
     }
     try {
-      await quickSubmit({
+      const res = await quickSubmit({
         roomId: id,
         checkType: checkType as any,
         photos: [],
       })
       setQuickOpen(false)
-      navigate('/my-tasks')
+      navigate(
+        `/rooms/${id}/check-lean/success?type=${checkType}&issues=0&checkId=${res.check_id}&quick=1`,
+        { replace: true },
+      )
     } catch (err: any) {
       setQuickError(
         err?.message ||

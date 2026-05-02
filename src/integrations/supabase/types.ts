@@ -11332,6 +11332,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      undo_quick_room_check: {
+        Args: { _check_id: string; _reason?: string }
+        Returns: Json
+      }
       undo_room_delivery_confirmation:
         | { Args: { p_distribution_order_room_id: string }; Returns: Json }
         | {
