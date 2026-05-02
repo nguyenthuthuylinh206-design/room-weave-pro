@@ -145,7 +145,7 @@ export default function LeanInspectionPage() {
         const { data, error } = await supabase
           .from('items')
           .select(
-            'id, item_type, is_minibar, unit_price, item_categories(id, name, default_item_type)',
+            'id, item_type, is_chargeable, unit_price, item_categories(id, name, default_item_type)',
           )
           .in('id', ids)
         if (error) throw error
@@ -154,15 +154,21 @@ export default function LeanInspectionPage() {
         const out: EnrichedItem[] = items.map((it) => {
           const d = byId.get(it.item_id) as any
           const cat = d?.item_categories
+          const catName: string = cat?.name || it.category_name || 'Khác'
+          // Heuristic minibar: is_chargeable + thuộc nhóm consumable hoặc tên category chứa "minibar"
+          const isMinibar =
+            !!d?.is_chargeable &&
+            (((d?.item_type as ItemType) ?? cat?.default_item_type) === 'consumable' ||
+              /minibar/i.test(catName))
           return {
             ...it,
             item_type:
               (d?.item_type as ItemType) ??
               (cat?.default_item_type as ItemType) ??
               'equipment',
-            category_name: cat?.name || it.category_name || 'Khác',
+            category_name: catName,
             category_id: cat?.id || null,
-            is_minibar: !!d?.is_minibar,
+            is_minibar: isMinibar,
             unit_price: d?.unit_price ?? null,
           }
         })
