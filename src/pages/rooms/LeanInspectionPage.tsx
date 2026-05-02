@@ -193,6 +193,7 @@ export default function LeanInspectionPage() {
 
   // ────── Hydrate từ draft (nếu có ?resume=true) ──────
   const resumeRequested = params.get('resume') === 'true'
+  const editItemId = params.get('edit')
   const hydratedRef = useRef(false)
   useEffect(() => {
     if (hydratedRef.current || !id) return
@@ -208,6 +209,18 @@ export default function LeanInspectionPage() {
     }
     hydratedRef.current = true
   }, [id, resumeRequested])
+
+  // ────── Auto-mở sheet khi quay từ Review với ?edit={itemId} ──────
+  const editOpenedRef = useRef(false)
+  useEffect(() => {
+    if (editOpenedRef.current) return
+    if (!editItemId || !enriched.length) return
+    const target = enriched.find((it) => it.item_id === editItemId)
+    if (target) {
+      setSheetItem(target)
+      editOpenedRef.current = true
+    }
+  }, [editItemId, enriched])
 
   // ────── Autosave ──────
   const draftPayload: DraftShape = useMemo(
