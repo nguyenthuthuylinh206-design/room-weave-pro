@@ -251,8 +251,41 @@ export function EnhancedCheckHistory({ checks }: EnhancedCheckHistoryProps) {
                       {check.notes}
                     </p>
                   )}
-                  
-                  {/* Photos */}
+
+                  {/* Status + Reopen action */}
+                  {(() => {
+                    const status = (check as any).status as string | undefined
+                    const isReopened = status === 'reopened'
+                    const isUndone = status === 'undone'
+                    return (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {isReopened && (
+                          <span className="text-xs text-amber-600 font-medium">
+                            Đã mở lại — chờ kiểm lại
+                          </span>
+                        )}
+                        {isUndone && (
+                          <span className="text-xs text-muted-foreground italic">
+                            Đã hoàn tác
+                          </span>
+                        )}
+                        {canReopen && !isReopened && !isUndone && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                            onClick={() => setReopenTarget(check)}
+                          >
+                            <RotateCcw className="h-3 w-3 mr-1" />
+                            Mở lại
+                          </Button>
+                        )}
+                      </div>
+                    )
+                  })()}
+
+
                   {check.photos && Array.isArray(check.photos) && check.photos.length > 0 && (
                     <div className="space-y-1">
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
