@@ -376,6 +376,17 @@ export function EnhancedCheckHistory({ checks }: EnhancedCheckHistoryProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Reopen Dialog */}
+      {reopenTarget && (
+        <ReopenCheckDialog
+          checkId={reopenTarget.id}
+          checkedByName={reopenTarget.checked_by_name}
+          checkedAt={reopenTarget.checked_at}
+          open={!!reopenTarget}
+          onOpenChange={(v) => { if (!v) setReopenTarget(null) }}
+        />
+      )}
     </div>
     </div>
   )
