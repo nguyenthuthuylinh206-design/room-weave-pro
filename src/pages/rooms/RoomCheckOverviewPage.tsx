@@ -56,6 +56,12 @@ export default function RoomCheckOverviewPage() {
   const { data: leanCfg } = useRoomCheckLeanConfig(hotelId)
   const { mutateAsync: quickSubmit, isPending: isQuickSubmitting } = useQuickRoomCheck()
 
+  const { user, tenantId } = useUser()
+  const { session, createSession, deleteSession, takeOverSession } = useRoomCheckSession(id)
+  const canTakeOver = isAdminUser(user) || isManager(user)
+  const isOtherSession = !!session && session.user_id !== user?.id
+  const sessionMinutes = session ? getSessionDurationMinutes(session.started_at) : 0
+
   const [quickOpen, setQuickOpen] = useState(false)
   const [quickError, setQuickError] = useState<string | null>(null)
 
