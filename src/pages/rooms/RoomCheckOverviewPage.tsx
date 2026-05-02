@@ -11,7 +11,7 @@ import { LeanContextCard } from '@/components/rooms/lean/LeanContextCard'
 import { LeanChecklistPreview } from '@/components/rooms/lean/LeanChecklistPreview'
 import { ResumeDraftSheet, type DraftPayload } from '@/components/rooms/lean/ResumeDraftSheet'
 import { QuickPathConfirmSheet } from '@/components/rooms/lean/QuickPathConfirmSheet'
-import type { CheckType } from '@/lib/roomCheckConfig'
+type LeanCheckType = 'daily' | 'periodic' | 'checkin' | 'checkout' | 'maintenance'
 import { toast } from 'sonner'
 
 const CHECK_TYPE_LABEL: Record<string, string> = {
@@ -40,7 +40,8 @@ export default function RoomCheckOverviewPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
 
-  const checkType = (searchParams.get('type') as CheckType) || 'daily'
+  const checkType: LeanCheckType =
+    (searchParams.get('type') as LeanCheckType) || 'daily'
 
   const { data: roomData, isLoading, isError, refetch, isRefetching } = useRoom(id)
   const { data: currentBooking } = useRoomBooking(id)
