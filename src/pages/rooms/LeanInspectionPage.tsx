@@ -603,6 +603,36 @@ export default function LeanInspectionPage() {
         }
         onSubmit={handleIssueSubmit}
       />
+
+      {/* Takeover overlay — block khi Manager đã tiếp quản phiên kiểm */}
+      {takenOver && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center px-6"
+        >
+          <div className="max-w-sm w-full rounded-xl border bg-card p-5 shadow-lg space-y-4">
+            <div>
+              <h2 className="text-[20px] font-bold text-amber-700">
+                Phiên kiểm đã được tiếp quản
+              </h2>
+              <p className="text-[15px] text-muted-foreground mt-2">
+                {takenOverBy
+                  ? `${takenOverBy} đã tiếp quản phiên kiểm phòng này.`
+                  : 'Một quản lý đã tiếp quản phiên kiểm phòng này.'}{' '}
+                Bản nhập tạm của bạn vẫn còn trên máy nhưng không gửi được nữa.
+              </p>
+            </div>
+            <Button
+              onClick={() => navigate(`/rooms/${id}/check-lean`, { replace: true })}
+              className="w-full font-semibold text-[17px]"
+              style={{ minHeight: 52 }}
+            >
+              Quay lại tổng quan
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
