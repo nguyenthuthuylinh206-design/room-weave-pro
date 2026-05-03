@@ -34,9 +34,9 @@ BEGIN
     ('room_a',   v_room_a),   ('room_b',   v_room_b),
     ('user_a',   v_user_a),   ('user_b',   v_user_b);
 
-  INSERT INTO tenants (id, name) VALUES
-    (v_tenant_a, 'Tenant A Test'),
-    (v_tenant_b, 'Tenant B Test');
+  INSERT INTO tenants (id, name, email) VALUES
+    (v_tenant_a, 'Tenant A Test', 'a-' || substr(v_tenant_a::text,1,8) || '@test.local'),
+    (v_tenant_b, 'Tenant B Test', 'b-' || substr(v_tenant_b::text,1,8) || '@test.local');
 
   INSERT INTO hotels (id, tenant_id, name) VALUES
     (v_hotel_a, v_tenant_a, 'Hotel A'),
