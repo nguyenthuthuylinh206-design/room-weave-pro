@@ -25,14 +25,15 @@ DECLARE
   v_room_b   uuid := gen_random_uuid();
   v_user_a   uuid := gen_random_uuid();
   v_user_b   uuid := gen_random_uuid();
+  v_staff_a  uuid := gen_random_uuid();
 BEGIN
-  -- Lưu vào temp table để các test sau dùng
   CREATE TEMP TABLE IF NOT EXISTS _t (k text PRIMARY KEY, v uuid);
   INSERT INTO _t VALUES
     ('tenant_a', v_tenant_a), ('tenant_b', v_tenant_b),
     ('hotel_a',  v_hotel_a),  ('hotel_b',  v_hotel_b),
     ('room_a',   v_room_a),   ('room_b',   v_room_b),
-    ('user_a',   v_user_a),   ('user_b',   v_user_b);
+    ('user_a',   v_user_a),   ('user_b',   v_user_b),
+    ('staff_a',  v_staff_a);
 
   INSERT INTO tenants (id, name, email) VALUES
     (v_tenant_a, 'Tenant A Test', 'a-' || substr(v_tenant_a::text,1,8) || '@test.local'),
