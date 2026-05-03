@@ -133,9 +133,47 @@ export default function LeanReviewPage() {
     )
   }
 
+  const { data: leanCfg } = useRoomCheckLeanConfig(room?.hotel_id)
+
   const handleSubmit = async () => {
     if (!id) return
     setSubmitError(null)
+
+    // Client-side pre-validation — sớm, rõ ràng, không gọi mạng nếu hỏng
+    const badQty = issues.find((i) => !(Number(i.quantity) > 0))
+    if (badQty) {
+      setSubmitError(`Số lượng phải lớn hơn 0 cho "${badQty.item_name || 'một mục đã ghi'}".`)
+      return
+    }
+    if (leanCfg) {
+      if (leanCfg.photo_required_damaged_lost) {
+        const miss = issues.find(
+          (i) => (i.kind === 'damaged' || i.kind === 'lost') && (!i.photos || i.photos.length === 0),
+        )
+        if (miss) {
+          setSubmitError(`Cần chụp ảnh bằng chứng cho "${miss.item_name}" (Hỏng / Mất).`)
+          return
+        }
+      }
+      if (leanCfg.photo_required_missing_replace) {
+        const miss = issues.find(
+          (i) => i.kind === 'missing' && (!i.photos || i.photos.length === 0),
+        )
+        if (miss) {
+          setSubmitError(`Cần chụp ảnh bằng chứng cho "${miss.item_name}" (Thiếu / Cần thay).`)
+          return
+        }
+      }
+      if (leanCfg.photo_required_consumed_chargeable) {
+        const miss = issues.find(
+          (i) => i.kind === 'consumed' && (i.chargeToGuest ?? true) && (!i.photos || i.photos.length === 0),
+        )
+        if (miss) {
+          setSubmitError(`Cần chụp ảnh bằng chứng cho "${miss.item_name}" (Khách đã dùng – tính phí).`)
+          return
+        }
+      }
+    }
 
     // Group issues theo kind
     const itemsDamaged = issues
