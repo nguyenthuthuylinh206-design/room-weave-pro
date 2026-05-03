@@ -110,11 +110,24 @@ export default function LeanReviewPage() {
   const handleSubmit = async () => {
     if (!id) return
     setSubmitError(null)
+    setErrorItemId(null)
 
     // Client-side pre-validation — sớm, rõ ràng, không gọi mạng nếu hỏng
     const err = preSubmitValidate({ issues: issues as any, config: leanCfg ?? null })
     if (err) {
       setSubmitError(err.message)
+      if (err.itemId) {
+        setErrorItemId(err.itemId)
+        // Scroll & focus card
+        requestAnimationFrame(() => {
+          const el = itemRefs.current[err.itemId!]
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            const btn = el.querySelector<HTMLButtonElement>('button[data-edit-btn]')
+            btn?.focus({ preventScroll: true })
+          }
+        })
+      }
       return
     }
 
