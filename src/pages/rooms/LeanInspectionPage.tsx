@@ -241,14 +241,36 @@ export default function LeanInspectionPage() {
   )
 
   // ────── Realtime takeover detection ──────
-  // Nếu session phòng này bị Manager khác tiếp quản (user_id khác user hiện tại),
-  // block UI để tránh user tiếp tục nhập rồi gặp conflict_room_updated khi submit.
   const { user } = useUser()
   const { session } = useRoomCheckSession(id)
   const takenOver =
     !!session && !!user?.id && session.user_id !== user.id
-  // Lưu lại tên người tiếp quản để hiển thị
   const takenOverBy = takenOver ? session?.user_name : null
+
+  // Toast cảnh báo + auto redirect khi vừa bị tiếp quản (chạy 1 lần)
+  const takenOverNotifiedRef = useRef(false)
+  useEffect(() => {
+    if (!takenOver) {
+      takenOverNotifiedRef.current = false
+      return
+    }
+    if (takenOverNotifiedRef.current) return
+    takenOverNotifiedRef.current = true
+    toast.warning(
+      takenOverBy
+        ? `${takenOverBy} đã tiếp quản phiên kiểm`
+        : 'Phiên kiểm đã được tiếp quản',
+      {
+        description: 'Bạn sẽ được chuyển về tổng quan trong giây lát.',
+        duration: 4000,
+      },
+    )
+    const t = setTimeout(() => {
+      navigate(`/rooms/${id}/check-lean`, { replace: true })
+    }, 4000)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [takenOver])
 
   // ────── Handlers ──────
   const reportedCount = Object.keys(issues).length
