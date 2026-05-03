@@ -13,7 +13,7 @@
 BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap;
-SELECT plan(8);
+SELECT plan(13);
 
 -- ───────── Lấy fixtures từ DB hiện có ─────────
 CREATE TEMP TABLE _fix AS
