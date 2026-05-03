@@ -138,6 +138,7 @@ export function preSubmitValidate({ issues, config }: PreSubmitInput): PreSubmit
   if (badQty) {
     return {
       code: 'invalid_quantity',
+      itemId: badQty.item_id,
       itemName: badQty.item_name || 'một mục',
       message: `Số lượng phải lớn hơn 0 cho "${badQty.item_name || 'một mục đã ghi'}".`,
     }
@@ -151,6 +152,7 @@ export function preSubmitValidate({ issues, config }: PreSubmitInput): PreSubmit
     if (miss) {
       return {
         code: 'photo_required:damaged_lost',
+        itemId: miss.item_id,
         itemName: miss.item_name,
         message: `Cần chụp ảnh bằng chứng cho "${miss.item_name}" (Hỏng / Mất).`,
       }
@@ -163,6 +165,7 @@ export function preSubmitValidate({ issues, config }: PreSubmitInput): PreSubmit
     if (miss) {
       return {
         code: 'photo_required:missing_replace',
+        itemId: miss.item_id,
         itemName: miss.item_name,
         message: `Cần chụp ảnh bằng chứng cho "${miss.item_name}" (Thiếu / Cần thay).`,
       }
@@ -178,6 +181,7 @@ export function preSubmitValidate({ issues, config }: PreSubmitInput): PreSubmit
     if (miss) {
       return {
         code: 'photo_required:consumed_chargeable',
+        itemId: miss.item_id,
         itemName: miss.item_name,
         message: `Cần chụp ảnh bằng chứng cho "${miss.item_name}" (Khách đã dùng – tính phí).`,
       }
