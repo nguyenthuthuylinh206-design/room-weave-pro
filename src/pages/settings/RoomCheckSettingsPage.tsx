@@ -188,6 +188,8 @@ export default function RoomCheckSettingsPage() {
             </CardContent>
           </Card>
 
+          <RoomCheckSettingsHistory hotelId={hotelId} />
+
           <div className="flex justify-end sticky bottom-0 bg-background py-3">
             <Button onClick={handleSave} disabled={updateMut.isPending} size="lg">
               {updateMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
