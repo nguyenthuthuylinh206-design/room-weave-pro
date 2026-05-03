@@ -40,13 +40,12 @@ SELECT is(
   'Có ≥2 tenants với owner+room để test cross-tenant'
 );
 
--- Helpers (đặt ở pg_temp để không cần quyền schema public)
+-- Helper: chỉ set claims, KHÔNG SET ROLE (sandbox không có quyền)
 CREATE OR REPLACE FUNCTION pg_temp._set_jwt(_uid uuid) RETURNS void
 LANGUAGE plpgsql AS $$
 BEGIN
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', _uid::text, 'role', 'authenticated')::text, true);
-  PERFORM set_config('role', 'authenticated', true);
 END $$;
 
 -- Bind 2 tenants vào _t (k,v)
