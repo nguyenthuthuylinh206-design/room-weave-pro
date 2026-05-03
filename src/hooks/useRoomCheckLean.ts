@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
+import { mapLeanError } from '@/lib/roomCheckLeanErrors'
 
 /**
  * Lean Room Check — submit chuẩn (1 RPC, atomic, conflict check).
@@ -20,39 +21,6 @@ export interface SubmitRoomCheckLeanParams {
   itemsConsumed?: any[]
   itemsReplaced?: any[]
   taskId?: string | null
-}
-
-function mapLeanError(msg: string, rateLimitMin = 30): string {
-  if (msg.includes('conflict_room_updated'))
-    return 'Phòng này vừa có người cập nhật. Bạn cần tải lại trước khi gửi kết quả.'
-  if (msg.includes('photo_required:damaged_lost'))
-    return 'Cần chụp ảnh bằng chứng cho mục Hỏng / Mất trước khi gửi.'
-  if (msg.includes('photo_required:missing_replace'))
-    return 'Cần chụp ảnh bằng chứng cho mục Thiếu / Cần thay trước khi gửi.'
-  if (msg.includes('photo_required:consumed_chargeable'))
-    return 'Cần chụp ảnh bằng chứng cho mục Khách đã dùng (tính phí) trước khi gửi.'
-  if (msg.includes('photo_required'))
-    return 'Khách sạn yêu cầu chụp ảnh bằng chứng khi kiểm phòng.'
-  if (msg.includes('invalid_quantity'))
-    return 'Số lượng phải lớn hơn 0. Vui lòng kiểm tra lại các mục đã nhập.'
-  if (msg.includes('invalid_check_type'))
-    return 'Loại kiểm phòng không hợp lệ.'
-  if (msg.includes('task_not_found'))
-    return 'Không tìm thấy công việc liên quan.'
-  if (msg.includes('quick_path_disabled'))
-    return 'Khách sạn đã tắt chế độ kiểm nhanh.'
-  if (msg.startsWith('quick_rate_limited')) {
-    const m = msg.match(/quick_rate_limited:(\d+)/)
-    const min = m ? Number(m[1]) : rateLimitMin
-    return `Vừa có lần kiểm nhanh. Vui lòng đợi đủ ${min} phút giữa hai lần kiểm nhanh.`
-  }
-  if (msg.includes('quick_path_not_allowed'))
-    return 'Loại kiểm này không hỗ trợ chế độ nhanh.'
-  if (msg.includes('forbidden_tenant') || msg.includes('forbidden_role'))
-    return 'Bạn không có quyền thực hiện thao tác này.'
-  if (msg.includes('room_not_found')) return 'Không tìm thấy phòng.'
-  if (msg.includes('check_not_found')) return 'Không tìm thấy bản kiểm.'
-  return msg
 }
 
 export function useSubmitRoomCheckLean() {
