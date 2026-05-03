@@ -50,12 +50,7 @@ BEGIN
     (v_room_a, v_tenant_a, v_hotel_a, 'TST-A', 1, 'standard', 'vacant_clean'),
     (v_room_b, v_tenant_b, v_hotel_b, 'TST-B', 1, 'standard', 'vacant_clean');
 
-  -- auth.users rows are required by FK from public.users(id)
-  INSERT INTO auth.users (id, instance_id, email, aud, role, created_at, updated_at)
-  VALUES
-    (v_user_a, '00000000-0000-0000-0000-000000000000', 'a-' || substr(v_user_a::text,1,8) || '@test.local', 'authenticated', 'authenticated', now(), now()),
-    (v_user_b, '00000000-0000-0000-0000-000000000000', 'b-' || substr(v_user_b::text,1,8) || '@test.local', 'authenticated', 'authenticated', now(), now());
-
+  -- session_replication_role=replica → bỏ qua FK auth.users + trigger created_by
   INSERT INTO users (id, tenant_id, hotel_id, full_name, email, role, user_level_code) VALUES
     (v_user_a, v_tenant_a, v_hotel_a, 'User A', 'a-' || substr(v_user_a::text,1,8) || '@test.local', 'staff', 'tenant_owner'),
     (v_user_b, v_tenant_b, v_hotel_b, 'User B', 'b-' || substr(v_user_b::text,1,8) || '@test.local', 'staff', 'tenant_owner');
