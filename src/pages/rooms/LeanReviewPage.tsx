@@ -7,6 +7,7 @@ import { useRoom } from '@/hooks/useRooms'
 import { readLeanDraft, clearLeanDraft } from '@/hooks/useLeanDraft'
 import { useSubmitRoomCheckLean } from '@/hooks/useRoomCheckLean'
 import { useRoomCheckLeanConfig } from '@/hooks/useRoomCheckLeanConfig'
+import { sanitizeLeanDraft, preSubmitValidate } from '@/lib/roomCheckLeanErrors'
 import {
   LeanInlineError,
   LeanFullScreenError,
