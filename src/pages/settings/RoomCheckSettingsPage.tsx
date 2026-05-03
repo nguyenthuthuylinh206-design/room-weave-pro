@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Loader2, Info } from 'lucide-react'
+import { RoomCheckSettingsHistory } from '@/components/settings/RoomCheckSettingsHistory'
 
 export default function RoomCheckSettingsPage() {
   const { selectedHotel, availableHotels } = useHotelContext()
@@ -186,6 +187,8 @@ export default function RoomCheckSettingsPage() {
               </div>
             </CardContent>
           </Card>
+
+          <RoomCheckSettingsHistory hotelId={hotelId} />
 
           <div className="flex justify-end sticky bottom-0 bg-background py-3">
             <Button onClick={handleSave} disabled={updateMut.isPending} size="lg">
