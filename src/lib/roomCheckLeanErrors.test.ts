@@ -126,6 +126,7 @@ describe('preSubmitValidate', () => {
     })
     expect(err?.code).toBe('photo_required:damaged_lost')
     expect(err?.itemName).toBe('Khăn tắm')
+    expect(err?.itemId).toBeTruthy()
   })
 
   it('does NOT block missing/consumed when their flags are off', () => {

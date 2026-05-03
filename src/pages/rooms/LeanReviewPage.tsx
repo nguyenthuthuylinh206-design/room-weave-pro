@@ -63,6 +63,8 @@ export default function LeanReviewPage() {
 
   const [note, setNote] = useState('')
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [errorItemId, setErrorItemId] = useState<string | null>(null)
+  const itemRefs = useRef<Record<string, HTMLLIElement | null>>({})
   const draftRef = useRef<DraftShape | null>(null)
 
   // Đọc draft 1 lần — sanitize chống missing/invalid fields
@@ -108,11 +110,24 @@ export default function LeanReviewPage() {
   const handleSubmit = async () => {
     if (!id) return
     setSubmitError(null)
+    setErrorItemId(null)
 
     // Client-side pre-validation — sớm, rõ ràng, không gọi mạng nếu hỏng
     const err = preSubmitValidate({ issues: issues as any, config: leanCfg ?? null })
     if (err) {
       setSubmitError(err.message)
+      if (err.itemId) {
+        setErrorItemId(err.itemId)
+        // Scroll & focus card
+        requestAnimationFrame(() => {
+          const el = itemRefs.current[err.itemId!]
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            const btn = el.querySelector<HTMLButtonElement>('button[data-edit-btn]')
+            btn?.focus({ preventScroll: true })
+          }
+        })
+      }
       return
     }
 
@@ -280,10 +295,13 @@ export default function LeanReviewPage() {
               Vấn đề đã ghi nhận
             </h2>
             <ul className="space-y-2">
-              {issues.map((iss) => (
+              {issues.map((iss) => {
+                const isErr = errorItemId === iss.item_id
+                return (
                 <li
                   key={iss.item_id}
-                  className="rounded-xl border bg-card p-3"
+                  ref={(el) => { itemRefs.current[iss.item_id] = el }}
+                  className={`rounded-xl border bg-card p-3 transition-colors ${isErr ? 'border-destructive ring-2 ring-destructive/30' : ''}`}
                 >
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">
@@ -297,6 +315,11 @@ export default function LeanReviewPage() {
                       {iss.notes && (
                         <p className="text-[13px] text-muted-foreground mt-1 line-clamp-2">
                           {iss.notes}
+                        </p>
+                      )}
+                      {isErr && (
+                        <p className="text-[13px] text-destructive font-medium mt-1">
+                          Mục này cần được sửa trước khi gửi.
                         </p>
                       )}
                       {iss.photos.length > 0 && (
@@ -319,6 +342,7 @@ export default function LeanReviewPage() {
                     </div>
                     <button
                       type="button"
+                      data-edit-btn
                       onClick={() => handleEditIssue(iss.item_id)}
                       className="rounded-lg border-2 px-3 text-[14px] font-semibold active:bg-muted/50"
                       style={{ minHeight: 44 }}
@@ -327,7 +351,8 @@ export default function LeanReviewPage() {
                     </button>
                   </div>
                 </li>
-              ))}
+                )
+              })}
             </ul>
           </section>
         )}
