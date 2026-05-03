@@ -208,6 +208,17 @@ export default function LeanReviewPage() {
       )
     } catch (e: any) {
       setSubmitError(e?.message || LEAN_TEXT.errNetwork)
+      const sid: string | undefined = e?.itemId
+      if (sid) {
+        setErrorItemId(sid)
+        requestAnimationFrame(() => {
+          const el = itemRefs.current[sid]
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            el.querySelector<HTMLButtonElement>('button[data-edit-btn]')?.focus({ preventScroll: true })
+          }
+        })
+      }
     }
   }
 
