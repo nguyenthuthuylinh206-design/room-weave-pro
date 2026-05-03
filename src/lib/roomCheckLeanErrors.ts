@@ -125,6 +125,7 @@ export interface PreSubmitError {
     | 'photo_required:damaged_lost'
     | 'photo_required:missing_replace'
     | 'photo_required:consumed_chargeable'
+  itemId?: string
   itemName: string
   message: string
 }
