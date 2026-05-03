@@ -8,7 +8,7 @@ import {
 
 describe('mapLeanError', () => {
   it('maps conflict to Vietnamese reload message', () => {
-    expect(mapLeanError('conflict_room_updated')).toContain('tải lại trước khi gửi')
+    expect(mapLeanError('conflict_room_updated').message).toContain('tải lại trước khi gửi')
   })
 
   it.each([
@@ -16,31 +16,43 @@ describe('mapLeanError', () => {
     ['photo_required:missing_replace', 'Thiếu / Cần thay'],
     ['photo_required:consumed_chargeable', 'Khách đã dùng'],
   ])('maps %s to specific bucket message', (code, hint) => {
-    expect(mapLeanError(code)).toContain(hint)
+    expect(mapLeanError(code).message).toContain(hint)
   })
 
-  it('maps invalid_quantity', () => {
-    expect(mapLeanError('invalid_quantity')).toMatch(/lớn hơn 0/)
+  it('extracts itemId from server error tag', () => {
+    const out = mapLeanError('photo_required:damaged_lost:550e8400-e29b-41d4-a716-446655440000')
+    expect(out.itemId).toBe('550e8400-e29b-41d4-a716-446655440000')
+    expect(out.message).toContain('Hỏng / Mất')
+  })
+
+  it('extracts itemId from invalid_quantity', () => {
+    const out = mapLeanError('invalid_quantity:550e8400-e29b-41d4-a716-446655440000')
+    expect(out.itemId).toBe('550e8400-e29b-41d4-a716-446655440000')
+    expect(out.message).toMatch(/lớn hơn 0/)
+  })
+
+  it('maps invalid_quantity without itemId', () => {
+    expect(mapLeanError('invalid_quantity').message).toMatch(/lớn hơn 0/)
   })
 
   it('extracts rate limit minutes', () => {
-    expect(mapLeanError('quick_rate_limited:45')).toContain('45 phút')
+    expect(mapLeanError('quick_rate_limited:45').message).toContain('45 phút')
   })
 
   it('falls back to default rate limit minutes if number missing', () => {
-    expect(mapLeanError('quick_rate_limited', 30)).toContain('30 phút')
+    expect(mapLeanError('quick_rate_limited', 30).message).toContain('30 phút')
   })
 
   it('maps forbidden_tenant', () => {
-    expect(mapLeanError('forbidden_tenant')).toMatch(/không có quyền/)
+    expect(mapLeanError('forbidden_tenant').message).toMatch(/không có quyền/)
   })
 
   it('returns raw message for unknown error', () => {
-    expect(mapLeanError('something_weird')).toBe('something_weird')
+    expect(mapLeanError('something_weird').message).toBe('something_weird')
   })
 
   it('handles empty message', () => {
-    expect(mapLeanError('')).toMatch(/lỗi không xác định/)
+    expect(mapLeanError('').message).toMatch(/lỗi không xác định/)
   })
 })
 
