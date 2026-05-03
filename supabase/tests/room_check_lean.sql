@@ -67,7 +67,7 @@ INSERT INTO _t
   WHERE tenant_id = (SELECT v FROM _t WHERE k='tenant_b') LIMIT 1;
 
 -- ───────── Test: invalid_check_type ─────────
-SELECT _set_jwt((SELECT v FROM _t WHERE k='owner_a'));
+SELECT pg_temp._set_jwt((SELECT v FROM _t WHERE k='owner_a'));
 
 SELECT throws_like(
   format($q$ SELECT submit_room_check_lean(
@@ -106,7 +106,7 @@ SELECT throws_like(
 );
 
 -- ───────── Test: forbidden_tenant — owner_b cố submit room_a ─────────
-SELECT _set_jwt((SELECT v FROM _t WHERE k='owner_b'));
+SELECT pg_temp._set_jwt((SELECT v FROM _t WHERE k='owner_b'));
 
 SELECT throws_like(
   format($q$ SELECT submit_room_check_lean(
@@ -127,7 +127,7 @@ SELECT throws_like(
 );
 
 -- ───────── Test: quick_path_not_allowed for checkin ─────────
-SELECT _set_jwt((SELECT v FROM _t WHERE k='owner_a'));
+SELECT pg_temp._set_jwt((SELECT v FROM _t WHERE k='owner_a'));
 
 SELECT throws_like(
   format($q$ SELECT perform_quick_room_check(%L::uuid, 'checkin', NULL) $q$,
