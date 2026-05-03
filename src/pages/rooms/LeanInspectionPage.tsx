@@ -525,52 +525,58 @@ export default function LeanInspectionPage() {
                 return (
                   <li
                     key={it.item_id}
-                    className="border-b last:border-b-0"
-                    style={{ minHeight: 56 }}
+                    className="border-b last:border-b-0 flex items-stretch"
+                    style={{ minHeight: 64 }}
                   >
+                    {/* Vùng bấm chính: mở sheet để sửa/báo */}
                     <button
                       type="button"
                       onClick={() => openIssueFor(it)}
-                      className="w-full flex items-center gap-3 px-3 py-3 text-left active:bg-muted/50"
+                      className="flex-1 flex items-center gap-3 px-3 py-3 text-left active:bg-muted/50"
+                      aria-label={
+                        issue
+                          ? `Sửa ${it.item_name}`
+                          : `Báo vấn đề cho ${it.item_name}`
+                      }
                     >
                       <div className="flex-1 min-w-0">
                         <p className="text-[16px] font-medium leading-tight truncate">
                           {it.item_name}
                         </p>
                         {issue ? (
-                          <p className="text-[13px] mt-0.5 text-amber-700 font-medium">
+                          <p className="text-[13px] mt-0.5 text-amber-700 font-semibold">
                             {issueLabel(issue)} · SL {issue.quantity}
                             {issue.photos.length > 0 &&
                               ` · ${issue.photos.length} ảnh`}
                           </p>
                         ) : (
-                          <p className="text-[13px] mt-0.5 text-green-600">
+                          <p className="text-[13px] mt-0.5 text-green-600 font-medium">
                             Ổn
                           </p>
                         )}
                       </div>
-                      {issue ? (
+                      {!issue && (
                         <span
-                          role="button"
-                          aria-label="Bỏ"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            removeIssue(it.item_id)
-                          }}
-                          className="text-[14px] font-medium text-muted-foreground px-3 py-2"
-                          style={{ minHeight: 44 }}
-                        >
-                          Bỏ
-                        </span>
-                      ) : (
-                        <span
-                          className="text-[14px] font-semibold text-primary px-3 py-2 border rounded-lg"
+                          className="text-[14px] font-semibold text-primary px-3 py-2 border-2 border-primary/40 rounded-lg"
                           style={{ minHeight: 44 }}
                         >
                           Có vấn đề
                         </span>
                       )}
                     </button>
+
+                    {/* Nút "Bỏ" tách riêng — không nested để tránh bấm nhầm */}
+                    {issue && (
+                      <button
+                        type="button"
+                        onClick={() => removeIssue(it.item_id)}
+                        aria-label={`Bỏ vấn đề của ${it.item_name}`}
+                        className="px-4 text-[14px] font-semibold text-muted-foreground border-l active:bg-muted/50"
+                        style={{ minWidth: 64 }}
+                      >
+                        Bỏ
+                      </button>
+                    )}
                   </li>
                 )
               })}
