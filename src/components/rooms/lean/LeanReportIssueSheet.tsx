@@ -119,6 +119,16 @@ export function LeanReportIssueSheet({
     setUploadError(null)
   }, [open, initial])
 
+  // Khi user đổi loại sự cố ngay trong sheet → reset default chargeToGuest theo nghiệp vụ
+  const lastLevelRef = useRef<LeanIssueLevel1 | null>(null)
+  useEffect(() => {
+    if (!open) return
+    if (lastLevelRef.current === level1) return
+    lastLevelRef.current = level1
+    if (level1 === 'consumed_chargeable') setChargeToGuest(true)
+    else if (level1 === 'damaged_lost') setChargeToGuest(false)
+  }, [level1, open])
+
   const photoRequired = useMemo(() => {
     if (!level1) return false
     return photoRequiredFor[level1] === true
