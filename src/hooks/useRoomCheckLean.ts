@@ -40,7 +40,12 @@ export function useSubmitRoomCheckLean() {
         _items_replaced: (p.itemsReplaced ?? []) as any,
         _task_id: p.taskId ?? null,
       })
-      if (error) throw new Error(mapLeanError(error.message))
+      if (error) {
+        const m = mapLeanError(error.message)
+        const e = new Error(m.message) as Error & { itemId?: string }
+        e.itemId = m.itemId
+        throw e
+      }
       return data as {
         check_id: string
         room_id: string
