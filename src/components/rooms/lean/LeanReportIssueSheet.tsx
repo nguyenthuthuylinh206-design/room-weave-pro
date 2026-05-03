@@ -106,10 +106,15 @@ export function LeanReportIssueSheet({
   // Reset / hydrate mỗi lần mở
   useEffect(() => {
     if (!open) return
-    setLevel1((initial?.level1 as LeanIssueLevel1) ?? null)
+    const lvl = (initial?.level1 as LeanIssueLevel1) ?? null
+    setLevel1(lvl)
     setQuantity(Math.max(1, initial?.quantity ?? 1))
     setPhotos(initial?.photos ?? [])
-    setChargeToGuest(initial?.chargeToGuest ?? true)
+    // Mặc định nghiệp vụ:
+    //  - consumed_chargeable → Có (khách dùng minibar/đồ tính phí)
+    //  - damaged_lost → Không (housekeeping KHÔNG tự quyết phí, manager duyệt)
+    const defaultCharge = lvl === 'consumed_chargeable'
+    setChargeToGuest(initial?.chargeToGuest ?? defaultCharge)
     setNotes(initial?.notes ?? '')
     setUploadError(null)
   }, [open, initial])
