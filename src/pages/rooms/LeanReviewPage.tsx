@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useRoom } from '@/hooks/useRooms'
 import { readLeanDraft, clearLeanDraft } from '@/hooks/useLeanDraft'
 import { useSubmitRoomCheckLean } from '@/hooks/useRoomCheckLean'
+import { useRoomCheckLeanConfig } from '@/hooks/useRoomCheckLeanConfig'
 import {
   LeanInlineError,
   LeanFullScreenError,
