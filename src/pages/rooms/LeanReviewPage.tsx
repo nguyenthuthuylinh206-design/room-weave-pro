@@ -63,6 +63,8 @@ export default function LeanReviewPage() {
 
   const [note, setNote] = useState('')
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [errorItemId, setErrorItemId] = useState<string | null>(null)
+  const itemRefs = useRef<Record<string, HTMLLIElement | null>>({})
   const draftRef = useRef<DraftShape | null>(null)
 
   // Đọc draft 1 lần — sanitize chống missing/invalid fields
