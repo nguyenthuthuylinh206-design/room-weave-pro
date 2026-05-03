@@ -2,41 +2,72 @@
  * Mapping lỗi server (UPPER_SNAKE / lowercase tag) → thông điệp tiếng Việt cho UI Lean.
  * Tách ra module thuần để có thể unit-test mà không phải mock supabase.
  */
-export function mapLeanError(msg: string, rateLimitMin = 30): string {
-  if (!msg) return 'Đã có lỗi không xác định. Vui lòng thử lại.'
+export interface MappedLeanError {
+  message: string
+  itemId?: string
+}
+
+/**
+ * Mapping lỗi server (UPPER_SNAKE / lowercase tag) → thông điệp tiếng Việt cho UI Lean.
+ * Server tag dạng `photo_required:<bucket>:<item_id>` hoặc `invalid_quantity:<item_id>`
+ * sẽ được parse để trả về `itemId` cho UI scroll/focus.
+ */
+export function mapLeanError(msg: string, rateLimitMin = 30): MappedLeanError {
+  if (!msg) return { message: 'Đã có lỗi không xác định. Vui lòng thử lại.' }
+
+  // photo_required:<bucket>[:<item_id>]
+  const photoMatch = msg.match(/photo_required:([a-z_]+)(?::([0-9a-f-]+))?/i)
+  if (photoMatch) {
+    const bucket = photoMatch[1]
+    const itemId = photoMatch[2]
+    const label =
+      bucket === 'damaged_lost'
+        ? 'Hỏng / Mất'
+        : bucket === 'missing_replace'
+          ? 'Thiếu / Cần thay'
+          : bucket === 'consumed_chargeable'
+            ? 'Khách đã dùng (tính phí)'
+            : null
+    return {
+      message: label
+        ? `Cần chụp ảnh bằng chứng cho mục ${label} trước khi gửi.`
+        : 'Khách sạn yêu cầu chụp ảnh bằng chứng khi kiểm phòng.',
+      itemId,
+    }
+  }
+
+  // invalid_quantity[:<item_id>]
+  const qtyMatch = msg.match(/invalid_quantity(?::([0-9a-f-]+))?/i)
+  if (qtyMatch) {
+    return {
+      message: 'Số lượng phải lớn hơn 0. Vui lòng kiểm tra lại các mục đã nhập.',
+      itemId: qtyMatch[1],
+    }
+  }
+
   if (msg.includes('conflict_room_updated'))
-    return 'Phòng này vừa có người cập nhật. Bạn cần tải lại trước khi gửi kết quả.'
-  if (msg.includes('photo_required:damaged_lost'))
-    return 'Cần chụp ảnh bằng chứng cho mục Hỏng / Mất trước khi gửi.'
-  if (msg.includes('photo_required:missing_replace'))
-    return 'Cần chụp ảnh bằng chứng cho mục Thiếu / Cần thay trước khi gửi.'
-  if (msg.includes('photo_required:consumed_chargeable'))
-    return 'Cần chụp ảnh bằng chứng cho mục Khách đã dùng (tính phí) trước khi gửi.'
-  if (msg.includes('photo_required'))
-    return 'Khách sạn yêu cầu chụp ảnh bằng chứng khi kiểm phòng.'
-  if (msg.includes('invalid_quantity'))
-    return 'Số lượng phải lớn hơn 0. Vui lòng kiểm tra lại các mục đã nhập.'
+    return { message: 'Phòng này vừa có người cập nhật. Bạn cần tải lại trước khi gửi kết quả.' }
   if (msg.includes('invalid_check_type'))
-    return 'Loại kiểm phòng không hợp lệ.'
+    return { message: 'Loại kiểm phòng không hợp lệ.' }
   if (msg.includes('task_not_found'))
-    return 'Không tìm thấy công việc liên quan.'
+    return { message: 'Không tìm thấy công việc liên quan.' }
   if (msg.includes('quick_path_disabled'))
-    return 'Khách sạn đã tắt chế độ kiểm nhanh.'
+    return { message: 'Khách sạn đã tắt chế độ kiểm nhanh.' }
   if (msg.startsWith('quick_rate_limited') || msg.includes('quick_rate_limited:')) {
     const m = msg.match(/quick_rate_limited:(\d+)/)
     const min = m ? Number(m[1]) : rateLimitMin
-    return `Vừa có lần kiểm nhanh. Vui lòng đợi đủ ${min} phút giữa hai lần kiểm nhanh.`
+    return { message: `Vừa có lần kiểm nhanh. Vui lòng đợi đủ ${min} phút giữa hai lần kiểm nhanh.` }
   }
   if (msg.includes('quick_path_not_allowed'))
-    return 'Loại kiểm này không hỗ trợ chế độ nhanh.'
+    return { message: 'Loại kiểm này không hỗ trợ chế độ nhanh.' }
   if (msg.includes('forbidden_tenant'))
-    return 'Bạn không có quyền thao tác trên dữ liệu của khách sạn này.'
+    return { message: 'Bạn không có quyền thao tác trên dữ liệu của khách sạn này.' }
   if (msg.includes('forbidden_role'))
-    return 'Bạn không có quyền thực hiện thao tác này.'
-  if (msg.includes('room_not_found')) return 'Không tìm thấy phòng.'
-  if (msg.includes('check_not_found')) return 'Không tìm thấy bản kiểm.'
-  if (msg.includes('unauthorized')) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
-  return msg
+    return { message: 'Bạn không có quyền thực hiện thao tác này.' }
+  if (msg.includes('room_not_found')) return { message: 'Không tìm thấy phòng.' }
+  if (msg.includes('check_not_found')) return { message: 'Không tìm thấy bản kiểm.' }
+  if (msg.includes('unauthorized')) return { message: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.' }
+  return { message: msg }
 }
 
 // ───────────────────────── Draft sanitizer ─────────────────────────

@@ -13,7 +13,7 @@
 BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap;
-SELECT plan(8);
+SELECT plan(10);
 
 -- ───────── Lấy fixtures từ DB hiện có ─────────
 CREATE TEMP TABLE _fix AS
@@ -141,6 +141,60 @@ SELECT lives_ok(
     (SELECT v FROM _t WHERE k='room_a')),
   'periodic is a valid check_type'
 );
+
+-- ───────── Test: itemId được trả về cùng photo_required ─────────
+-- Submit damaged item không photo, item_id = '11111111-...'
+SELECT throws_like(
+  format($q$ SELECT submit_room_check_lean(
+    %L::uuid, 'daily', now(),
+    NULL, ARRAY[]::text[], '[]'::jsonb,
+    %L::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, NULL
+  ) $q$,
+    (SELECT v FROM _t WHERE k='room_a'),
+    '[{"item_id":"11111111-1111-1111-1111-111111111111","item_name":"X","quantity":2,"photos":[],"charge_to_guest":false}]'),
+  '%photo_required:damaged_lost:11111111-1111-1111-1111-111111111111%',
+  'Server includes item_id in photo_required tag'
+);
+
+-- ───────── Test: itemId trong invalid_quantity ─────────
+SELECT throws_like(
+  format($q$ SELECT submit_room_check_lean(
+    %L::uuid, 'daily', now(),
+    NULL, ARRAY[]::text[], '[]'::jsonb,
+    %L::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, NULL
+  ) $q$,
+    (SELECT v FROM _t WHERE k='room_a'),
+    '[{"item_id":"22222222-2222-2222-2222-222222222222","item_name":"X","quantity":0,"photos":[],"charge_to_guest":false}]'),
+  '%invalid_quantity:22222222-2222-2222-2222-222222222222%',
+  'Server includes item_id in invalid_quantity tag'
+);
+
+-- ───────── Skipped: rate-limit + reopen ─────────
+-- Yêu cầu role có quyền DELETE/INSERT trực tiếp trên room_checks
+-- (sandbox auth role bị RLS chặn). Khi chạy bằng service_role, bỏ comment
+-- block dưới + đổi plan() lên 13.
+--
+-- DELETE FROM public.room_checks
+--   WHERE room_id = (SELECT v FROM _t WHERE k='room_a')
+--     AND check_mode = 'quick'
+--     AND checked_at > now() - interval '60 minutes';
+-- SELECT lives_ok( format($q$ SELECT perform_quick_room_check(%L::uuid,'daily',NULL) $q$,
+--   (SELECT v FROM _t WHERE k='room_a')), 'Quick path lần đầu thành công');
+-- SELECT throws_like( format($q$ SELECT perform_quick_room_check(%L::uuid,'daily',NULL) $q$,
+--   (SELECT v FROM _t WHERE k='room_a')),
+--   '%quick_rate_limited%','Quick path lần 2 phải bị chặn');
+-- DO $$ DECLARE v uuid; BEGIN
+--   SELECT id INTO v FROM public.room_checks
+--    WHERE room_id=(SELECT v FROM _t WHERE k='room_a') AND check_mode='quick'
+--    ORDER BY checked_at DESC LIMIT 1;
+--   INSERT INTO _t VALUES ('check_a', v) ON CONFLICT (k) DO UPDATE SET v=EXCLUDED.v;
+-- END $$;
+-- SELECT lives_ok( format($q$ SELECT reopen_room_check(%L::uuid,'lý do test') $q$,
+--   (SELECT v FROM _t WHERE k='check_a')), 'tenant_owner có thể reopen');
+-- SELECT pg_temp._set_jwt((SELECT v FROM _t WHERE k='owner_b'));
+-- SELECT throws_like( format($q$ SELECT reopen_room_check(%L::uuid,'x') $q$,
+--   (SELECT v FROM _t WHERE k='check_a')),
+--   '%forbidden_tenant%','Cross-tenant reopen bị từ chối');
 
 SELECT * FROM finish();
 ROLLBACK;
