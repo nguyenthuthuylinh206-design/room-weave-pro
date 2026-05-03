@@ -1,19 +1,20 @@
 # Security Fixes — 2026-05-03
 
-Tài liệu ghi nhận các vấn đề bảo mật được phát hiện qua scan và cách xử lý.
+Tài liệu ghi nhận các vấn đề bảo mật phát hiện qua security scan và trạng thái xử lý.
+Đã verify lại bằng `run_security_scan` ngày 2026-05-03.
 
 ---
 
-## 1. Tổng quan
+## 1. Tổng quan trạng thái
 
-| # | Issue | Severity | Status | Loại fix |
-|---|-------|----------|--------|----------|
-| 1 | `booking_payments` cho phép đọc công khai | **error** | ✅ Fixed | Migration |
-| 2 | View `user_with_levels` có thể bypass RLS | **warn** | ✅ Fixed | Migration |
-| 3 | Bucket `guest-documents` public | **error** | ⚪ Ignored (by design) | Documented |
-| 4 | Realtime `realtime.messages` chưa có RLS | **error** | 🟡 Pending | Platform action |
-| 5 | SePay webhook không verify signature | **warn** | 🟡 Pending | Cấu hình secret |
-| 6 | Supabase linter long-tail (~460 warning) | **warn/info** | 🟡 Backlog | Incremental |
+| # | Issue | Severity | Status |
+|---|-------|----------|--------|
+| 1 | `booking_payments` cho phép đọc công khai | **error** | ✅ Fixed |
+| 2 | View `user_with_levels` có thể bypass RLS | **warn** | ✅ Fixed |
+| 3 | Bucket `guest-documents` public | **error** | ⚪ Ignored (by design) |
+| 4 | Realtime `realtime.messages` chưa có RLS | **error** | 🟡 Pending — cần platform action |
+| 5 | SePay webhook chưa bắt buộc signature | **warn** | 🟡 Pending — cần cấu hình secret |
+| 6 | Supabase linter long-tail (≈460 warning/info) | **warn/info** | 🟡 Backlog |
 
 ---
 
@@ -34,8 +35,9 @@ DROP POLICY IF EXISTS "Allow public read booking_payments by id"
 **Sau khi fix**
 - Chỉ còn policy `booking_payments_select` (authenticated, scoped theo `tenant_id = users.tenant_id`).
 - Insert/Update đã có policy tenant-scoped sẵn.
+- Verify: scan ngày 2026-05-03 không còn flag finding này.
 
-**Quy tắc**: Không bao giờ tái lập policy `USING (true)` cho `booking_payments` hay bất kỳ bảng tài chính/PII nào.
+> ⚠️ Quy tắc: Không bao giờ tái lập policy `USING (true)` cho `booking_payments` hay bất kỳ bảng tài chính/PII nào.
 
 ---
 
@@ -60,11 +62,11 @@ LEFT JOIN user_levels ul ON ul.code = u.user_level_code
 WHERE u.deleted_at IS NULL;
 ```
 
-**Quy tắc**: Mọi view đụng tới bảng nhạy cảm bắt buộc `WITH (security_invoker = true)`.
+> ⚠️ Quy tắc: Mọi view đụng tới bảng nhạy cảm bắt buộc `WITH (security_invoker = true)`.
 
 ---
 
-## 3. Ignored (by design)
+## 3. Ignored — by design
 
 ### 3.1 Bucket `guest-documents` public
 
@@ -86,10 +88,10 @@ WHERE u.deleted_at IS NULL;
 
 ## 4. Pending — cần thao tác platform
 
-### 4.1 Realtime channel chưa có RLS
+### 4.1 Realtime channel chưa có RLS (severity: error)
 
 **Vấn đề**
-- 24 bảng nhạy cảm (booking_payments, room_bookings, guests, staff_status, document_scan_sessions...) đang publish vào `supabase_realtime`.
+- 24 bảng nhạy cảm (`booking_payments`, `room_bookings`, `guests`, `staff_status`, `document_scan_sessions`...) đang publish vào `supabase_realtime`.
 - `realtime.messages` không có RLS → user authenticated có thể subscribe topic của tenant khác và nhận change events.
 
 **Hành động yêu cầu**
@@ -98,7 +100,7 @@ WHERE u.deleted_at IS NULL;
 3. Refactor client: đổi tên channel thành `tenant:{tenant_id}:bookings` thay vì `bookings` chung.
 
 **Workaround tạm thời**
-- Đảm bảo mọi `.on('postgres_changes', ...)` ở client đã filter `tenant_id` ở handler trước khi xử lý.
+- Đảm bảo mọi `.on('postgres_changes', ...)` ở client filter `tenant_id` ở handler trước khi xử lý.
 
 ---
 
@@ -117,7 +119,7 @@ WHERE u.deleted_at IS NULL;
 
 ### 4.3 Supabase linter long-tail
 
-Tổng ~460 warning/info từ scan, gồm:
+Tổng ≈460 warning/info từ scan, gồm:
 - `function_search_path_mutable` — function chưa `SET search_path = public`.
 - `materialized_view_in_api` — MV expose qua Data API.
 - `extension_in_public` — extension cài ở schema `public`.
@@ -128,19 +130,36 @@ Tổng ~460 warning/info từ scan, gồm:
 
 ---
 
-## 5. Quy tắc bảo mật cần nhớ (đã ghi vào @security-memory)
+## 5. Quy tắc bảo mật cần nhớ
 
-- **Không bao giờ**: policy `USING (true)` cho bảng tài chính/PII; lưu role ở `users`/`profiles`; sửa `src/integrations/supabase/{client,types}.ts` hay `.env`; client-side-only authorization.
+(đã được lưu vào `@security-memory` để guide các scan tương lai)
+
+- **Không bao giờ**:
+  - Policy `USING (true)` cho bảng tài chính/PII.
+  - Lưu role ở `users`/`profiles` (phải để ở `user_roles`).
+  - Sửa `src/integrations/supabase/{client,types}.ts` hay `.env`.
+  - Client-side-only authorization (luôn re-check qua RLS / `has_user_permission` RPC).
 - **Mọi view nhạy cảm** phải `WITH (security_invoker = true)`.
-- **Mọi function mới** phải `SET search_path = public` và `SECURITY INVOKER` mặc định.
+- **Mọi function mới** phải `SET search_path = public` và `SECURITY INVOKER` mặc định (trừ khi có lý do escalation rõ ràng).
 - **Mutation đa bảng** đi qua RPC atomic + audit log (`log_state_transition`).
-- **Bucket `guest-documents` public** là cố ý, không flag lại.
-- **Edge functions `verify_jwt = false`** trong `config.toml` (sepay-webhook, telegram-webhook, mobile-scan-upload, OTP flows...) là cố ý — mỗi function tự verify (signature/OTP/session).
+- **Bucket `guest-documents` public** là cố ý — không flag lại.
+- **Edge functions `verify_jwt = false`** (sepay-webhook, telegram-webhook, mobile-scan-upload, OTP flows...) là cố ý — mỗi function tự verify (signature/OTP/session token).
 
 ---
 
-## 6. Migration & file liên quan
+## 6. File & migration liên quan
 
-- Migration: `supabase/migrations/<timestamp>_fix_booking_payments_public_and_user_view.sql`
+- Migration: `supabase/migrations/<timestamp>_drop_public_booking_payments_and_invoker_view.sql`
 - Memory: `mem://~security-memory` (đã cập nhật)
 - Tài liệu: `docs/security-fixes-2026-05-03.md` (file này)
+
+---
+
+## 7. Verify checklist
+
+- [x] Re-run `security--run_security_scan` → `booking_payments_public_read` không còn xuất hiện.
+- [x] Re-run scan → `user_with_levels_no_rls_check` không còn xuất hiện.
+- [x] `guest_documents_bucket_public` đã marked ignored với lý do thiết kế.
+- [ ] Realtime Authorization cấu hình (chờ user thao tác trên dashboard).
+- [ ] `SEPAY_API_KEY` được set + bật "Có chứng thực" SePay (chờ user).
+- [ ] Bật Leaked Password Protection (HIBP) khi có cửa sổ release.
