@@ -34,9 +34,9 @@ BEGIN
     ('room_a',   v_room_a),   ('room_b',   v_room_b),
     ('user_a',   v_user_a),   ('user_b',   v_user_b);
 
-  INSERT INTO tenants (id, name, slug) VALUES
-    (v_tenant_a, 'Tenant A Test', 'test-a-' || substr(v_tenant_a::text,1,8)),
-    (v_tenant_b, 'Tenant B Test', 'test-b-' || substr(v_tenant_b::text,1,8));
+  INSERT INTO tenants (id, name) VALUES
+    (v_tenant_a, 'Tenant A Test'),
+    (v_tenant_b, 'Tenant B Test');
 
   INSERT INTO hotels (id, tenant_id, name) VALUES
     (v_hotel_a, v_tenant_a, 'Hotel A'),
@@ -46,9 +46,9 @@ BEGIN
     (v_room_a, v_tenant_a, v_hotel_a, 'TST-A', 'available'),
     (v_room_b, v_tenant_b, v_hotel_b, 'TST-B', 'available');
 
-  INSERT INTO profiles (id, tenant_id, full_name) VALUES
-    (v_user_a, v_tenant_a, 'User A'),
-    (v_user_b, v_tenant_b, 'User B');
+  INSERT INTO users (id, tenant_id, hotel_id, full_name, email, role) VALUES
+    (v_user_a, v_tenant_a, v_hotel_a, 'User A', 'a-' || substr(v_user_a::text,1,8) || '@test.local', 'staff'),
+    (v_user_b, v_tenant_b, v_hotel_b, 'User B', 'b-' || substr(v_user_b::text,1,8) || '@test.local', 'staff');
 END $$;
 
 -- Helper: set auth.uid()
