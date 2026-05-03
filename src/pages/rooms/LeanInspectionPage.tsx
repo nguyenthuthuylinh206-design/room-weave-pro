@@ -409,7 +409,7 @@ export default function LeanInspectionPage() {
               saveNow()
               toast.success('Đã lưu tạm.')
             }}
-            className="text-[15px] font-semibold text-primary px-2 py-1"
+            className="text-[16px] font-semibold text-primary px-3 py-2 border rounded-lg active:bg-muted/50"
             style={{ minHeight: 44 }}
           >
             Lưu tạm
