@@ -43,8 +43,8 @@ BEGIN
     (v_hotel_b, v_tenant_b, 'Hotel B');
 
   INSERT INTO rooms (id, tenant_id, hotel_id, room_number, floor, room_type, status) VALUES
-    (v_room_a, v_tenant_a, v_hotel_a, 'TST-A', 1, 'standard', 'available'),
-    (v_room_b, v_tenant_b, v_hotel_b, 'TST-B', 1, 'standard', 'available');
+    (v_room_a, v_tenant_a, v_hotel_a, 'TST-A', 1, 'standard', 'vacant_clean'),
+    (v_room_b, v_tenant_b, v_hotel_b, 'TST-B', 1, 'standard', 'vacant_clean');
 
   INSERT INTO users (id, tenant_id, hotel_id, full_name, email, role) VALUES
     (v_user_a, v_tenant_a, v_hotel_a, 'User A', 'a-' || substr(v_user_a::text,1,8) || '@test.local', 'staff'),
