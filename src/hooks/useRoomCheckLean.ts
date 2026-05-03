@@ -24,9 +24,21 @@ export interface SubmitRoomCheckLeanParams {
 
 function mapLeanError(msg: string, rateLimitMin = 30): string {
   if (msg.includes('conflict_room_updated'))
-    return 'Phòng vừa được người khác cập nhật. Vui lòng tải lại để xem dữ liệu mới nhất.'
+    return 'Phòng này vừa có người cập nhật. Bạn cần tải lại trước khi gửi kết quả.'
+  if (msg.includes('photo_required:damaged_lost'))
+    return 'Cần chụp ảnh bằng chứng cho mục Hỏng / Mất trước khi gửi.'
+  if (msg.includes('photo_required:missing_replace'))
+    return 'Cần chụp ảnh bằng chứng cho mục Thiếu / Cần thay trước khi gửi.'
+  if (msg.includes('photo_required:consumed_chargeable'))
+    return 'Cần chụp ảnh bằng chứng cho mục Khách đã dùng (tính phí) trước khi gửi.'
   if (msg.includes('photo_required'))
     return 'Khách sạn yêu cầu chụp ảnh bằng chứng khi kiểm phòng.'
+  if (msg.includes('invalid_quantity'))
+    return 'Số lượng phải lớn hơn 0. Vui lòng kiểm tra lại các mục đã nhập.'
+  if (msg.includes('invalid_check_type'))
+    return 'Loại kiểm phòng không hợp lệ.'
+  if (msg.includes('task_not_found'))
+    return 'Không tìm thấy công việc liên quan.'
   if (msg.includes('quick_path_disabled'))
     return 'Khách sạn đã tắt chế độ kiểm nhanh.'
   if (msg.startsWith('quick_rate_limited')) {
