@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -106,13 +106,28 @@ export function LeanReportIssueSheet({
   // Reset / hydrate mỗi lần mở
   useEffect(() => {
     if (!open) return
-    setLevel1((initial?.level1 as LeanIssueLevel1) ?? null)
+    const lvl = (initial?.level1 as LeanIssueLevel1) ?? null
+    setLevel1(lvl)
     setQuantity(Math.max(1, initial?.quantity ?? 1))
     setPhotos(initial?.photos ?? [])
-    setChargeToGuest(initial?.chargeToGuest ?? true)
+    // Mặc định nghiệp vụ:
+    //  - consumed_chargeable → Có (khách dùng minibar/đồ tính phí)
+    //  - damaged_lost → Không (housekeeping KHÔNG tự quyết phí, manager duyệt)
+    const defaultCharge = lvl === 'consumed_chargeable'
+    setChargeToGuest(initial?.chargeToGuest ?? defaultCharge)
     setNotes(initial?.notes ?? '')
     setUploadError(null)
   }, [open, initial])
+
+  // Khi user đổi loại sự cố ngay trong sheet → reset default chargeToGuest theo nghiệp vụ
+  const lastLevelRef = useRef<LeanIssueLevel1 | null>(null)
+  useEffect(() => {
+    if (!open) return
+    if (lastLevelRef.current === level1) return
+    lastLevelRef.current = level1
+    if (level1 === 'consumed_chargeable') setChargeToGuest(true)
+    else if (level1 === 'damaged_lost') setChargeToGuest(false)
+  }, [level1, open])
 
   const photoRequired = useMemo(() => {
     if (!level1) return false
@@ -206,7 +221,8 @@ export function LeanReportIssueSheet({
             <button
               type="button"
               onClick={() => setLevel1(null)}
-              className="text-[14px] text-muted-foreground underline"
+              className="rounded-lg border-2 px-4 py-2 text-[15px] font-semibold text-foreground active:bg-muted/50"
+              style={{ minHeight: 44 }}
             >
               ← Đổi loại vấn đề
             </button>
