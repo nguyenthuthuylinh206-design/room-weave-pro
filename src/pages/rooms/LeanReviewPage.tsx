@@ -68,38 +68,7 @@ export default function LeanReviewPage() {
   // Đọc draft 1 lần — sanitize chống missing/invalid fields
   if (!draftRef.current && id) {
     const env = readLeanDraft<DraftShape>(id)
-    const raw: any = env?.data
-    if (raw && typeof raw === 'object') {
-      const safeIssues: Record<string, LeanIssue> = {}
-      Object.entries(raw.issues || {}).forEach(([k, v]: [string, any]) => {
-        if (!v || typeof v !== 'object') return
-        const qty = Number(v.quantity)
-        if (!v.item_id || !v.kind || !Number.isFinite(qty) || qty <= 0) return
-        safeIssues[k] = {
-          item_id: String(v.item_id),
-          item_name: String(v.item_name || ''),
-          item_type: String(v.item_type || ''),
-          level1: v.level1 || 'damaged_lost',
-          kind: v.kind,
-          quantity: qty,
-          photos: Array.isArray(v.photos) ? v.photos.filter((p: any) => typeof p === 'string') : [],
-          chargeToGuest: typeof v.chargeToGuest === 'boolean' ? v.chargeToGuest : undefined,
-          notes: typeof v.notes === 'string' ? v.notes : undefined,
-        }
-      })
-      const safeMinibar: Record<string, number> = {}
-      Object.entries(raw.minibar || {}).forEach(([k, v]: [string, any]) => {
-        const n = Number(v)
-        if (Number.isFinite(n) && n > 0) safeMinibar[k] = n
-      })
-      draftRef.current = {
-        startedAt: typeof raw.startedAt === 'string' ? raw.startedAt : new Date().toISOString(),
-        issues: safeIssues,
-        minibar: safeMinibar,
-      }
-    } else {
-      draftRef.current = null
-    }
+    draftRef.current = (sanitizeLeanDraft(env?.data) as DraftShape | null) ?? null
   }
   const draft = draftRef.current
 
