@@ -40,8 +40,8 @@ SELECT is(
   'Có ≥2 tenants với owner+room để test cross-tenant'
 );
 
--- Helpers
-CREATE OR REPLACE FUNCTION _set_jwt(_uid uuid) RETURNS void
+-- Helpers (đặt ở pg_temp để không cần quyền schema public)
+CREATE OR REPLACE FUNCTION pg_temp._set_jwt(_uid uuid) RETURNS void
 LANGUAGE plpgsql AS $$
 BEGIN
   PERFORM set_config('request.jwt.claims',
