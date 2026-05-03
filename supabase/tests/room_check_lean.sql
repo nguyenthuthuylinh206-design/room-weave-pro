@@ -12,6 +12,9 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap;
 
+-- Bypass auth.users FK and other triggers during isolated test setup.
+SET LOCAL session_replication_role = replica;
+
 SELECT plan(8);
 
 -- ───────── Setup: tạo tenant/hotel/room/user ảo ─────────
