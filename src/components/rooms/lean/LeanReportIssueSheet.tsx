@@ -211,7 +211,8 @@ export function LeanReportIssueSheet({
             <button
               type="button"
               onClick={() => setLevel1(null)}
-              className="text-[14px] text-muted-foreground underline"
+              className="rounded-lg border-2 px-4 py-2 text-[15px] font-semibold text-foreground active:bg-muted/50"
+              style={{ minHeight: 44 }}
             >
               ← Đổi loại vấn đề
             </button>
