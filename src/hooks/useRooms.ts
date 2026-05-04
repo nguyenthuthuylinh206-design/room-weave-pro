@@ -128,7 +128,7 @@ export function useRoom(roomId: string | undefined) {
           notes,
           photos,
           checked_at,
-          users(full_name, avatar_url)
+          users!room_checks_checked_by_fkey(full_name, avatar_url)
         `
         )
         .eq('room_id', roomId)
