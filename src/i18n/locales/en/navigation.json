@@ -71,5 +71,7 @@
   "aiSettings": "AI Settings",
   "auditLog": "Audit Log",
   "telegram": "Telegram",
-  "notifications": "Notifications"
+  "notifications": "Notifications",
+  "assetGroupMigration": "Asset Classification",
+  "hotelPolicy": "Hotel Policy"
 }
