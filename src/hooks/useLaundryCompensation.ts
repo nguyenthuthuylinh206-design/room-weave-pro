@@ -46,9 +46,8 @@ export function useMarkBatchPartiallyReceived() {
     }) => {
       const { data, error } = await supabase.rpc('mark_batch_partially_received', {
         _batch_id: params.batchId,
-        _items_received: params.itemsReceived as any,
-        _notes: params.notes ?? null,
-      })
+        _items: params.itemsReceived as any,
+      } as any)
       if (error) throw error
       return data
     },
@@ -104,9 +103,7 @@ export function useCreateLinenBatch() {
         _item_id: params.itemId,
         _quantity: params.quantity,
         _batch_code: params.batchCode,
-        _hotel_id: params.hotelId,
-        _received_at: params.receivedAt ?? new Date().toISOString(),
-      })
+      } as any)
       if (error) throw error
       return data
     },
