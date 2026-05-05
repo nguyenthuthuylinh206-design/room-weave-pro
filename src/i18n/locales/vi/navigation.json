@@ -76,5 +76,7 @@
   "aiSettings": "Cài đặt AI",
   "auditLog": "Nhật ký thay đổi",
   "telegram": "Telegram",
-  "notifications": "Thông báo"
+  "notifications": "Thông báo",
+  "assetGroupMigration": "Phân loại tài sản",
+  "hotelPolicy": "Cấu hình khách sạn"
 }

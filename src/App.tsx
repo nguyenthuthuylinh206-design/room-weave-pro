@@ -96,6 +96,8 @@ const ChangePasswordPage = lazy(() => import("./pages/settings/ChangePasswordPag
 const PricingRulesPage = lazy(() => import("./pages/settings/PricingRulesPage"));
 const AISettingsPage = lazy(() => import("./pages/settings/AISettingsPage"));
 const AuditLogPage = lazy(() => import("./pages/settings/AuditLogPage"));
+const AssetGroupMigrationPage = lazy(() => import("./pages/settings/AssetGroupMigrationPage"));
+const HotelPolicyPage = lazy(() => import("./pages/settings/HotelPolicyPage"));
 
 // Reports
 const ReportsDashboardPage = lazyNamed(() => import("./pages/reports/ReportsDashboardPage"), "ReportsDashboardPage");
@@ -419,6 +421,8 @@ const router = createBrowserRouter([
       { path: "settings/pricing-rules", element: <PermissionRoute module="settings"><PricingRulesPage /></PermissionRoute> },
       { path: "settings/ai", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><AISettingsPage /></RoleGuard> },
       { path: "settings/audit-log", element: <RoleGuard allowedRoles={['super_admin', 'owner', 'hotel_manager', 'department_manager']}><AuditLogPage /></RoleGuard> },
+      { path: "settings/asset-group-migration", element: <RoleGuard allowedRoles={['super_admin', 'owner', 'hotel_manager']}><AssetGroupMigrationPage /></RoleGuard> },
+      { path: "settings/hotel-policy", element: <RoleGuard allowedRoles={['super_admin', 'owner', 'hotel_manager']}><HotelPolicyPage /></RoleGuard> },
 
       // Profile
       { path: "profile", element: <ProfilePage /> },
