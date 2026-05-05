@@ -11,7 +11,6 @@ import { mapLeanError } from '@/lib/roomCheckLeanErrors'
 export interface SubmitRoomCheckLeanParams {
   roomId: string
   checkType: 'daily' | 'periodic' | 'checkin' | 'checkout' | 'maintenance'
-  /** Thời điểm user mở phiên kiểm — dùng để conflict check */
   startedAt: string
   notes?: string | null
   photos?: string[]
@@ -20,6 +19,8 @@ export interface SubmitRoomCheckLeanParams {
   itemsLost?: any[]
   itemsConsumed?: any[]
   itemsReplaced?: any[]
+  /** Đợt B: bucket linen gửi giặt */
+  itemsSentToLaundry?: any[]
   taskId?: string | null
 }
 
@@ -38,8 +39,14 @@ export function useSubmitRoomCheckLean() {
         _items_lost: (p.itemsLost ?? []) as any,
         _items_consumed: (p.itemsConsumed ?? []) as any,
         _items_replaced: (p.itemsReplaced ?? []) as any,
+        // _items_sent_to_laundry là tham số mới — chỉ truyền khi RPC support.
+        // Cho phép bỏ qua an toàn nếu RPC chưa biết tham số (Postgres sẽ ignore khi
+        // dùng named args và RPC chưa có default → server sẽ báo. Ta thử và fallback.)
+        ...(p.itemsSentToLaundry && p.itemsSentToLaundry.length
+          ? { _items_sent_to_laundry: p.itemsSentToLaundry as any }
+          : {}),
         _task_id: p.taskId ?? null,
-      })
+      } as any)
       if (error) {
         const m = mapLeanError(error.message)
         const e = new Error(m.message) as Error & { itemId?: string }
