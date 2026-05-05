@@ -157,7 +157,7 @@ export default function LeanInspectionPage() {
         const { data, error } = await supabase
           .from('items')
           .select(
-            'id, item_type, is_chargeable, unit_price, item_categories(id, name, default_item_type)',
+            'id, item_type, is_chargeable, unit_price, asset_group, item_categories(id, name, default_item_type)',
           )
           .in('id', ids)
         if (error) throw error
@@ -167,7 +167,6 @@ export default function LeanInspectionPage() {
           const d = byId.get(it.item_id) as any
           const cat = d?.item_categories
           const catName: string = cat?.name || it.category_name || 'Khác'
-          // Heuristic minibar: is_chargeable + thuộc nhóm consumable hoặc tên category chứa "minibar"
           const isMinibar =
             !!d?.is_chargeable &&
             (((d?.item_type as ItemType) ?? cat?.default_item_type) === 'consumable' ||
@@ -182,6 +181,7 @@ export default function LeanInspectionPage() {
             category_id: cat?.id || null,
             is_minibar: isMinibar,
             unit_price: d?.unit_price ?? null,
+            asset_group: (d?.asset_group as AssetGroup) ?? null,
           }
         })
         setEnriched(out)
@@ -307,6 +307,13 @@ export default function LeanInspectionPage() {
         photos: result.photos,
         chargeToGuest: result.chargeToGuest,
         notes: result.notes,
+        uiActionKey: result.uiActionKey,
+        bucket: result.bucket,
+        issueRole: result.issueRole,
+        needsReview: result.needsReview,
+        assetGroup: result.assetGroup ?? (sheetItem.asset_group ?? undefined),
+        subReason: result.subReason,
+        extra: result.extra,
       },
     }))
   }
