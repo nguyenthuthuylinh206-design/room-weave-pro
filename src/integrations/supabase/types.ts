@@ -2209,6 +2209,119 @@ export type Database = {
           },
         ]
       }
+      hotel_policy: {
+        Row: {
+          created_at: string
+          description: string | null
+          hotel_id: string
+          id: string
+          is_active: boolean
+          policy_key: string
+          policy_value: Json
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          hotel_id: string
+          id?: string
+          is_active?: boolean
+          policy_key: string
+          policy_value: Json
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          hotel_id?: string
+          id?: string
+          is_active?: boolean
+          policy_key?: string
+          policy_value?: Json
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_policy_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "hotel_policy_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hotel_policy_history: {
+        Row: {
+          change_reason: string | null
+          changed_at: string
+          changed_by: string | null
+          changed_role: string | null
+          hotel_id: string
+          id: string
+          new_value: Json | null
+          new_version: number | null
+          old_value: Json | null
+          old_version: number | null
+          policy_id: string | null
+          policy_key: string
+          tenant_id: string
+        }
+        Insert: {
+          change_reason?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          changed_role?: string | null
+          hotel_id: string
+          id?: string
+          new_value?: Json | null
+          new_version?: number | null
+          old_value?: Json | null
+          old_version?: number | null
+          policy_id?: string | null
+          policy_key: string
+          tenant_id: string
+        }
+        Update: {
+          change_reason?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          changed_role?: string | null
+          hotel_id?: string
+          id?: string
+          new_value?: Json | null
+          new_version?: number | null
+          old_value?: Json | null
+          old_version?: number | null
+          policy_id?: string | null
+          policy_key?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_policy_history_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "hotel_policy"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hotel_services: {
         Row: {
           category: Database["public"]["Enums"]["service_category"]
@@ -2811,6 +2924,8 @@ export type Database = {
           from_warehouse_id: string | null
           hotel_id: string
           id: string
+          idempotency_key_hash: string | null
+          idempotency_key_raw: string | null
           item_id: string
           notes: string | null
           photos: string[] | null
@@ -2841,6 +2956,8 @@ export type Database = {
           from_warehouse_id?: string | null
           hotel_id: string
           id?: string
+          idempotency_key_hash?: string | null
+          idempotency_key_raw?: string | null
           item_id: string
           notes?: string | null
           photos?: string[] | null
@@ -2871,6 +2988,8 @@ export type Database = {
           from_warehouse_id?: string | null
           hotel_id?: string
           id?: string
+          idempotency_key_hash?: string | null
+          idempotency_key_raw?: string | null
           item_id?: string
           notes?: string | null
           photos?: string[] | null
@@ -3434,6 +3553,7 @@ export type Database = {
       }
       items: {
         Row: {
+          asset_group: Database["public"]["Enums"]["asset_group"] | null
           brand: string | null
           category_id: string | null
           charge_price: number | null
@@ -3448,6 +3568,7 @@ export type Database = {
           is_complimentary: boolean | null
           item_type: Database["public"]["Enums"]["item_type"]
           max_wash_cycles: number | null
+          migration_review_required: boolean
           minimum_stock: number | null
           model: string | null
           name: string
@@ -3469,6 +3590,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          asset_group?: Database["public"]["Enums"]["asset_group"] | null
           brand?: string | null
           category_id?: string | null
           charge_price?: number | null
@@ -3483,6 +3605,7 @@ export type Database = {
           is_complimentary?: boolean | null
           item_type?: Database["public"]["Enums"]["item_type"]
           max_wash_cycles?: number | null
+          migration_review_required?: boolean
           minimum_stock?: number | null
           model?: string | null
           name: string
@@ -3504,6 +3627,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          asset_group?: Database["public"]["Enums"]["asset_group"] | null
           brand?: string | null
           category_id?: string | null
           charge_price?: number | null
@@ -3518,6 +3642,7 @@ export type Database = {
           is_complimentary?: boolean | null
           item_type?: Database["public"]["Enums"]["item_type"]
           max_wash_cycles?: number | null
+          migration_review_required?: boolean
           minimum_stock?: number | null
           model?: string | null
           name?: string
@@ -9230,6 +9355,60 @@ export type Database = {
           },
         ]
       }
+      room_check_staff_items_view: {
+        Row: {
+          asset_group: Database["public"]["Enums"]["asset_group"] | null
+          badge_label: string | null
+          condition: string | null
+          display_name: string | null
+          hotel_id: string | null
+          item_code: string | null
+          item_id: string | null
+          item_type: Database["public"]["Enums"]["item_type"] | null
+          room_id: string | null
+          room_item_id: string | null
+          room_quantity_current: number | null
+          room_quantity_expected: number | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "items_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "items_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_items_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tap_funky: {
         Row: {
           args: string | null
@@ -9357,6 +9536,14 @@ export type Database = {
           p_tenant_id: string
         }
         Returns: string
+      }
+      apply_asset_group_mapping: {
+        Args: {
+          _hotel_id?: string
+          _override_existing?: boolean
+          _tenant_id: string
+        }
+        Returns: Json
       }
       apply_promo_code: {
         Args: {
@@ -11123,6 +11310,19 @@ export type Database = {
       pg_version: { Args: never; Returns: string }
       pg_version_num: { Args: never; Returns: number }
       pgtap_version: { Args: never; Returns: number }
+      preview_asset_group_mapping: {
+        Args: { _hotel_id?: string; _tenant_id: string }
+        Returns: {
+          confidence: string
+          current_group: Database["public"]["Enums"]["asset_group"]
+          item_code: string
+          item_id: string
+          item_name: string
+          item_type: string
+          needs_review: boolean
+          suggested_group: Database["public"]["Enums"]["asset_group"]
+        }[]
+      }
       process_expired_subscriptions: { Args: never; Returns: undefined }
       qc_approve_task: {
         Args: { _notes?: string; _score_override?: number; _task_id: string }
@@ -11564,6 +11764,24 @@ export type Database = {
         | "hotel_manager"
         | "department_manager"
         | "staff"
+      asset_group:
+        | "linen"
+        | "consumable_free"
+        | "minibar"
+        | "stationery"
+        | "equipment_large"
+        | "electronic_accessory"
+        | "furniture"
+        | "glassware"
+        | "bathroom_hardware"
+      charge_status:
+        | "not_applicable"
+        | "not_chargeable"
+        | "pending_manager_review"
+        | "pending_fo_confirm"
+        | "fo_rejected"
+        | "chargeable_confirmed"
+        | "chargeable_rejected"
       hk_qc_mode: "self" | "peer" | "strict"
       item_type: "linen" | "consumable" | "equipment" | "furniture"
       photo_evidence_mode: "none" | "on_issue" | "always"
@@ -11709,6 +11927,26 @@ export const Constants = {
         "hotel_manager",
         "department_manager",
         "staff",
+      ],
+      asset_group: [
+        "linen",
+        "consumable_free",
+        "minibar",
+        "stationery",
+        "equipment_large",
+        "electronic_accessory",
+        "furniture",
+        "glassware",
+        "bathroom_hardware",
+      ],
+      charge_status: [
+        "not_applicable",
+        "not_chargeable",
+        "pending_manager_review",
+        "pending_fo_confirm",
+        "fo_rejected",
+        "chargeable_confirmed",
+        "chargeable_rejected",
       ],
       hk_qc_mode: ["self", "peer", "strict"],
       item_type: ["linen", "consumable", "equipment", "furniture"],
