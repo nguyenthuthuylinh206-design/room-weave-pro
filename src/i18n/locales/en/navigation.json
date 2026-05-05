@@ -21,6 +21,8 @@
   "laundryRequests": "Room Requests",
   "laundryBatches": "Laundry Batches",
   "newBatch": "Create New Batch",
+  "laundryCompensation": "Laundry Compensation",
+  "newLinenBatch": "New Linen Batch",
   "laundryVendors": "Vendors",
   "addVendor": "Add Vendor",
   "vendors": "Vendors",
