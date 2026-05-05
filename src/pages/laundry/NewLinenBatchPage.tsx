@@ -18,10 +18,12 @@ import { useCreateLinenBatch, useLinenBatches } from '@/hooks/useLaundryCompensa
 export default function NewLinenBatchPage() {
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const { data: itemsData, isLoading: itemsLoading } = useItems()
-  const linenItems = useMemo(
-    () => (itemsData ?? []).filter((i: any) => i.item_type === 'linen'),
-    [itemsData],
-  )
+  const linenItems = useMemo(() => {
+    const arr: any[] = Array.isArray(itemsData)
+      ? (itemsData as any[])
+      : ((itemsData as any)?.items ?? [])
+    return arr.filter((i) => i.item_type === 'linen')
+  }, [itemsData])
 
   const [itemId, setItemId] = useState<string>('')
   const [quantity, setQuantity] = useState<string>('10')
