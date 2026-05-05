@@ -324,6 +324,76 @@ export type Database = {
           },
         ]
       }
+      batch_inventory: {
+        Row: {
+          batch_code: string
+          created_at: string
+          created_by: string | null
+          hotel_id: string
+          id: string
+          item_id: string
+          quantity_available: number
+          quantity_initial: number
+          received_at: string
+          retired_at: string | null
+          tenant_id: string
+          updated_at: string
+          wash_cycles: number
+        }
+        Insert: {
+          batch_code: string
+          created_at?: string
+          created_by?: string | null
+          hotel_id: string
+          id?: string
+          item_id: string
+          quantity_available: number
+          quantity_initial: number
+          received_at?: string
+          retired_at?: string | null
+          tenant_id: string
+          updated_at?: string
+          wash_cycles?: number
+        }
+        Update: {
+          batch_code?: string
+          created_at?: string
+          created_by?: string | null
+          hotel_id?: string
+          id?: string
+          item_id?: string
+          quantity_available?: number
+          quantity_initial?: number
+          received_at?: string
+          retired_at?: string | null
+          tenant_id?: string
+          updated_at?: string
+          wash_cycles?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_inventory_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "batch_inventory_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_inventory_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_consumables: {
         Row: {
           booking_id: string
@@ -3757,6 +3827,8 @@ export type Database = {
           actual_return_date: string | null
           batch_code: string
           compensation_amount: number | null
+          compensation_settled_at: string | null
+          compensation_settled_by: string | null
           created_at: string | null
           delivery_date: string | null
           delivery_person_name: string | null
@@ -3769,6 +3841,8 @@ export type Database = {
           items_damaged: number | null
           items_lost: number | null
           notes: string | null
+          partially_received_at: string | null
+          policy_snapshot: Json | null
           quality_rating: number | null
           receiver_name: string | null
           return_notes: string | null
@@ -3787,6 +3861,8 @@ export type Database = {
           actual_return_date?: string | null
           batch_code: string
           compensation_amount?: number | null
+          compensation_settled_at?: string | null
+          compensation_settled_by?: string | null
           created_at?: string | null
           delivery_date?: string | null
           delivery_person_name?: string | null
@@ -3799,6 +3875,8 @@ export type Database = {
           items_damaged?: number | null
           items_lost?: number | null
           notes?: string | null
+          partially_received_at?: string | null
+          policy_snapshot?: Json | null
           quality_rating?: number | null
           receiver_name?: string | null
           return_notes?: string | null
@@ -3817,6 +3895,8 @@ export type Database = {
           actual_return_date?: string | null
           batch_code?: string
           compensation_amount?: number | null
+          compensation_settled_at?: string | null
+          compensation_settled_by?: string | null
           created_at?: string | null
           delivery_date?: string | null
           delivery_person_name?: string | null
@@ -3829,6 +3909,8 @@ export type Database = {
           items_damaged?: number | null
           items_lost?: number | null
           notes?: string | null
+          partially_received_at?: string | null
+          policy_snapshot?: Json | null
           quality_rating?: number | null
           receiver_name?: string | null
           return_notes?: string | null
@@ -9537,6 +9619,10 @@ export type Database = {
         }
         Returns: string
       }
+      allocate_linen_fifo: {
+        Args: { _item_id: string; _quantity: number }
+        Returns: Json
+      }
       apply_asset_group_mapping: {
         Args: {
           _hotel_id?: string
@@ -9988,6 +10074,10 @@ export type Database = {
             }
             Returns: Json
           }
+      create_new_linen_batch: {
+        Args: { _batch_code: string; _item_id: string; _quantity: number }
+        Returns: Json
+      }
       create_notification: {
         Args: {
           p_action_url?: string
@@ -11257,6 +11347,11 @@ export type Database = {
         }
         Returns: number
       }
+      mark_batch_partially_received: {
+        Args: { _batch_id: string; _items: Json }
+        Returns: Json
+      }
+      mark_batches_compensation_needed: { Args: never; Returns: Json }
       mark_cannot_access: {
         Args: {
           p_actor_id?: string
@@ -11454,6 +11549,7 @@ export type Database = {
         Args: { p_reason: string; p_tenant_id: string }
         Returns: undefined
       }
+      settle_batch_compensation: { Args: { _batch_id: string }; Returns: Json }
       setup_new_tenant:
         | {
             Args: {
