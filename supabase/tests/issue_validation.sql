@@ -69,10 +69,10 @@ BEGIN
   IF v_id IS NULL THEN RAISE EXCEPTION 'FAIL [val-3]: insert hợp lệ thất bại'; END IF;
   RAISE NOTICE 'PASS [val-3] valid entry accepted (id=%)', v_id;
 
-  -- Case 4: không có issue_role vẫn OK (optional)
+  -- Case 4: không có issue_role vẫn OK (optional) — dùng check_type khác để né anti-duplicate
   INSERT INTO room_checks(room_id, checked_by, check_type, tenant_id, hotel_id,
       items_consumed, summary_ok_count, summary_issue_count)
-  VALUES (v_room.id, v_user, 'daily', v_room.tenant_id, v_room.hotel_id,
+  VALUES (v_room.id, v_user, 'periodic', v_room.tenant_id, v_room.hotel_id,
       '[{"item_id":"00000000-0000-0000-0000-000000000001","quantity":1}]'::jsonb,
       0, 1)
   RETURNING id INTO v_id;
@@ -81,7 +81,7 @@ BEGIN
   -- Case 5: derived_action role hợp lệ
   INSERT INTO room_checks(room_id, checked_by, check_type, tenant_id, hotel_id,
       items_replaced, summary_ok_count, summary_issue_count)
-  VALUES (v_room.id, v_user, 'daily', v_room.tenant_id, v_room.hotel_id,
+  VALUES (v_room.id, v_user, 'checkin', v_room.tenant_id, v_room.hotel_id,
       '[{"item_id":"00000000-0000-0000-0000-000000000001","quantity":3,"issue_role":"derived_action"}]'::jsonb,
       0, 1)
   RETURNING id INTO v_id;
