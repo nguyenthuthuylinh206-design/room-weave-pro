@@ -35,28 +35,25 @@ BEGIN
   RAISE NOTICE 'PASS [bridge-A] atomic_item_to_laundry là no-op trên items';
 
   -- ================ PART B ================
-  SELECT has_table_privilege(current_user, 'public.items', 'UPDATE') INTO v_can_update;
-  IF NOT v_can_update THEN
-    RAISE NOTICE 'SKIP [bridge-B] role % không có UPDATE trên items (chạy ở CI/service_role để verify trigger)', current_user;
-  ELSE
-    INSERT INTO laundry_batches(tenant_id, hotel_id, batch_code, total_items, total_weight_kg, status)
-    VALUES (v_tenant, v_hotel, 'TEST-BRIDGE-'||gen_random_uuid()::text, 5, 1.0, 'delivered')
-    RETURNING id INTO v_batch;
+  -- Sau khi vá SECURITY DEFINER cho trigger, mọi caller (kể cả role không UPDATE
+  -- quyền trên items) đều phải chạy được trigger này.
+  INSERT INTO laundry_batches(tenant_id, hotel_id, batch_code, total_items, total_weight_kg, status)
+  VALUES (v_tenant, v_hotel, 'TEST-BRIDGE-'||gen_random_uuid()::text, 5, 1.0, 'delivered')
+  RETURNING id INTO v_batch;
 
-    INSERT INTO laundry_batch_items(batch_id, item_id, quantity_delivered)
-    VALUES (v_batch, v_item.id, 5);
+  INSERT INTO laundry_batch_items(batch_id, item_id, quantity_delivered)
+  VALUES (v_batch, v_item.id, 5);
 
-    SELECT quantity_in_stock, COALESCE(quantity_in_laundry,0) INTO v_stock2, v_laund2
-    FROM items WHERE id = v_item.id;
+  SELECT quantity_in_stock, COALESCE(quantity_in_laundry,0) INTO v_stock2, v_laund2
+  FROM items WHERE id = v_item.id;
 
-    IF v_stock2 <> v_stock1 - 5 THEN
-      RAISE EXCEPTION 'FAIL [bridge-B-stock]: expected %, got %', v_stock1-5, v_stock2;
-    END IF;
-    IF v_laund2 <> v_laund1 + 5 THEN
-      RAISE EXCEPTION 'FAIL [bridge-B-laundry]: expected %, got %', v_laund1+5, v_laund2;
-    END IF;
-    RAISE NOTICE 'PASS [bridge-B] trigger trừ stock & cộng laundry đúng 1 lần (stock=%, laundry=%)', v_stock2, v_laund2;
+  IF v_stock2 <> v_stock1 - 5 THEN
+    RAISE EXCEPTION 'FAIL [bridge-B-stock]: expected %, got %', v_stock1-5, v_stock2;
   END IF;
+  IF v_laund2 <> v_laund1 + 5 THEN
+    RAISE EXCEPTION 'FAIL [bridge-B-laundry]: expected %, got %', v_laund1+5, v_laund2;
+  END IF;
+  RAISE NOTICE 'PASS [bridge-B] trigger (SECURITY DEFINER) trừ stock & cộng laundry đúng 1 lần (stock=%, laundry=%)', v_stock2, v_laund2;
 
   -- ================ PART C: tĩnh — đảm bảo create_laundry_batch_with_items không tự update items ================
   -- Chỉ kiểm tra định nghĩa function: không được chứa "update items" (đảm bảo single source of truth).
