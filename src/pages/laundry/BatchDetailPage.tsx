@@ -721,6 +721,17 @@ export function BatchDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <PartialReceiveDialog
+        open={partialReceiveOpen}
+        onOpenChange={setPartialReceiveOpen}
+        batchId={id || ''}
+        items={items.map((it: any) => ({
+          item_id: it.item_id,
+          item_name: it.item_name || it.item_code || '—',
+          quantity_sent: it.quantity ?? 0,
+        }))}
+      />
     </div>
   )
 }
