@@ -21,6 +21,7 @@ import {
 
 import type { RoomItemWithDetails } from '@/types/rooms.types'
 import type { ItemType } from '@/types/items.types'
+import type { AssetGroup } from '@/types/assetGroup.types'
 
 type LeanCheckType = 'daily' | 'periodic' | 'checkin' | 'checkout' | 'maintenance'
 
@@ -30,6 +31,7 @@ interface EnrichedItem extends RoomItemWithDetails {
   category_id: string | null
   is_minibar: boolean
   unit_price?: number | null
+  asset_group?: AssetGroup | null
 }
 
 /** Issue đã ghi nhận trong session — key theo item_id */
@@ -45,6 +47,14 @@ interface LeanIssue {
   notes?: string
   /** Riêng minibar: dùng để hiển thị stepper inline */
   minibarConsumedQty?: number
+  /** Đợt B */
+  uiActionKey?: string
+  bucket?: string
+  issueRole?: 'primary_issue' | 'derived_action'
+  needsReview?: boolean
+  assetGroup?: AssetGroup
+  subReason?: string
+  extra?: Record<string, any>
 }
 
 interface DraftShape {
