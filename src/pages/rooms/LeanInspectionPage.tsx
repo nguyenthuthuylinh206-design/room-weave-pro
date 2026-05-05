@@ -634,6 +634,7 @@ export default function LeanInspectionPage() {
         itemName={sheetItem?.item_name || ''}
         itemType={sheetItem?.item_type || 'equipment'}
         standardQuantity={sheetItem?.standard_quantity || 1}
+        assetGroup={sheetItem?.asset_group ?? null}
         photoRequiredFor={photoRequiredFor}
         initial={
           sheetItem && issues[sheetItem.item_id]
@@ -643,6 +644,7 @@ export default function LeanInspectionPage() {
                 photos: issues[sheetItem.item_id].photos,
                 chargeToGuest: issues[sheetItem.item_id].chargeToGuest,
                 notes: issues[sheetItem.item_id].notes,
+                subReason: issues[sheetItem.item_id].subReason,
               }
             : null
         }
