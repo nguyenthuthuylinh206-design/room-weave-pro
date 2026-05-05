@@ -34,6 +34,7 @@ import { BatchItemsTable } from '@/components/laundry/BatchItemsTable'
 import { PhotoGallery } from '@/components/shared/PhotoGallery'
 import { QRCodeDisplay } from '@/components/shared/QRCodeDisplay'
 import { UpdateCostDialog } from '@/components/laundry/UpdateCostDialog'
+import { PartialReceiveDialog } from '@/components/laundry/PartialReceiveDialog'
 import { 
   useLaundryBatch, 
   useUpdateBatchStatus, 
@@ -58,6 +59,7 @@ export function BatchDetailPage() {
     label: ''
   })
   const [stockInDialog, setStockInDialog] = useState(false)
+  const [partialReceiveOpen, setPartialReceiveOpen] = useState(false)
   
   const updateStatusMutation = useUpdateBatchStatus()
   const updateCostMutation = useUpdateBatchCost()
@@ -208,9 +210,22 @@ export function BatchDetailPage() {
             )}
             
             {batch.status === 'ready' && (
-              <Button onClick={() => navigate(`/laundry/batches/${id}/receive`)}>
-                <PackageIcon className="mr-2 h-4 w-4" />
-                Nhận đồ về
+              <>
+                <Button onClick={() => navigate(`/laundry/batches/${id}/receive`)}>
+                  <PackageIcon className="mr-2 h-4 w-4" />
+                  Nhận đồ về
+                </Button>
+                <Button variant="outline" onClick={() => setPartialReceiveOpen(true)}>
+                  <AlertTriangle className="mr-2 h-4 w-4" />
+                  Nhận thiếu
+                </Button>
+              </>
+            )}
+            
+            {(batch.status === 'partially_received' || batch.status === 'compensation_needed') && (
+              <Button variant="outline" onClick={() => navigate('/laundry/compensation')}>
+                <AlertTriangle className="mr-2 h-4 w-4" />
+                Xử lý đền bù
               </Button>
             )}
             
