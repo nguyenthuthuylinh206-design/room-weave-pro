@@ -77,8 +77,8 @@ const ReceiveBatchPage = lazyNamed(() => import("./pages/laundry/ReceiveBatchPag
 const VendorListPage = lazyNamed(() => import("./pages/laundry/VendorListPage"), "VendorListPage");
 const VendorDetailPage = lazyNamed(() => import("./pages/laundry/VendorDetailPage"), "VendorDetailPage");
 const VendorFormPage = lazyNamed(() => import("./pages/laundry/VendorFormPage"), "VendorFormPage");
-const LaundryCompensationPage = lazyNamed(() => import("./pages/laundry/LaundryCompensationPage"), "LaundryCompensationPage");
-const NewLinenBatchPage = lazyNamed(() => import("./pages/laundry/NewLinenBatchPage"), "NewLinenBatchPage");
+const LaundryCompensationPage = lazy(() => import("./pages/laundry/LaundryCompensationPage"));
+const NewLinenBatchPage = lazy(() => import("./pages/laundry/NewLinenBatchPage"));
 
 // Settings
 const GeneralSettingsPage = lazyNamed(() => import("./pages/settings/GeneralSettingsPage"), "GeneralSettingsPage");
