@@ -11595,22 +11595,40 @@ export type Database = {
         Args: { _room_check_id: string; _task_id: string }
         Returns: Json
       }
-      submit_room_check_lean: {
-        Args: {
-          _check_type: string
-          _items_consumed?: Json
-          _items_damaged?: Json
-          _items_lost?: Json
-          _items_missing?: Json
-          _items_replaced?: Json
-          _notes?: string
-          _photos?: string[]
-          _room_id: string
-          _started_at: string
-          _task_id?: string
-        }
-        Returns: Json
-      }
+      submit_room_check_lean:
+        | {
+            Args: {
+              _check_type: string
+              _items_consumed?: Json
+              _items_damaged?: Json
+              _items_lost?: Json
+              _items_missing?: Json
+              _items_replaced?: Json
+              _items_sent_to_laundry?: Json
+              _notes?: string
+              _photos?: string[]
+              _room_id: string
+              _started_at: string
+              _task_id?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _check_type: string
+              _items_consumed?: Json
+              _items_damaged?: Json
+              _items_lost?: Json
+              _items_missing?: Json
+              _items_replaced?: Json
+              _notes?: string
+              _photos?: string[]
+              _room_id: string
+              _started_at: string
+              _task_id?: string
+            }
+            Returns: Json
+          }
       sync_categories_for_hotel: {
         Args: { p_hotel_id: string; p_tenant_id: string }
         Returns: Json
