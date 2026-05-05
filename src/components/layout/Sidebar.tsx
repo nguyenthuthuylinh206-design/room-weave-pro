@@ -138,6 +138,8 @@ const navigation: NavItem[] = [
       { titleKey: 'laundryRequests', href: '/laundry?tab=requests', icon: Inbox, badgeKey: 'laundryRequests', group: 'Vận hành' },
       { titleKey: 'laundryBatches', href: '/laundry/batches', icon: Package, group: 'Vận hành' },
       { titleKey: 'newBatch', href: '/laundry/batches/new', icon: Plus, group: 'Vận hành' },
+      { titleKey: 'laundryCompensation', href: '/laundry/compensation', icon: AlertCircle, group: 'Vận hành' },
+      { titleKey: 'newLinenBatch', href: '/laundry/linen-batches/new', icon: Plus, group: 'Vận hành' },
       { titleKey: 'laundryVendors', href: '/laundry/vendors', icon: Building2, group: 'Nhà cung cấp' },
       { titleKey: 'addVendor', href: '/laundry/vendors/new', icon: Plus, group: 'Nhà cung cấp' },
     ],
