@@ -20,12 +20,20 @@ interface LeanIssue {
   item_id: string
   item_name: string
   item_type: string
-  level1: 'damaged_lost' | 'missing_replace' | 'consumed_chargeable'
+  level1: string
   kind: 'damaged' | 'lost' | 'missing' | 'consumed'
   quantity: number
   photos: string[]
   chargeToGuest?: boolean
   notes?: string
+  // Đợt B
+  uiActionKey?: string
+  bucket?: string
+  issueRole?: 'primary_issue' | 'derived_action'
+  needsReview?: boolean
+  assetGroup?: string
+  subReason?: string
+  extra?: Record<string, any>
 }
 
 interface DraftShape {
