@@ -207,6 +207,8 @@ const navigation: NavItem[] = [
       { titleKey: 'automation', href: '/settings/workflows', icon: Zap, minMode: 'full', group: 'Nghiệp vụ' },
       { titleKey: 'aiSettings', href: '/settings/ai', icon: Brain, group: 'Hệ thống' },
       { titleKey: 'auditLog', href: '/settings/audit-log', icon: History, group: 'Hệ thống' },
+      { titleKey: 'assetGroupMigration', href: '/settings/asset-group-migration', icon: Package, minMode: 'standard', group: 'Nghiệp vụ' },
+      { titleKey: 'hotelPolicy', href: '/settings/hotel-policy', icon: ScrollText, minMode: 'standard', group: 'Nghiệp vụ' },
     ],
   },
 ]
