@@ -20,12 +20,20 @@ interface LeanIssue {
   item_id: string
   item_name: string
   item_type: string
-  level1: 'damaged_lost' | 'missing_replace' | 'consumed_chargeable'
+  level1: string
   kind: 'damaged' | 'lost' | 'missing' | 'consumed'
   quantity: number
   photos: string[]
   chargeToGuest?: boolean
   notes?: string
+  // Đợt B
+  uiActionKey?: string
+  bucket?: string
+  issueRole?: 'primary_issue' | 'derived_action'
+  needsReview?: boolean
+  assetGroup?: string
+  subReason?: string
+  extra?: Record<string, any>
 }
 
 interface DraftShape {
@@ -131,58 +139,72 @@ export default function LeanReviewPage() {
       return
     }
 
-    // Group issues theo kind
-    const itemsDamaged = issues
-      .filter((i) => i.kind === 'damaged')
-      .map((i) => ({
+    // ── Đợt B: route theo `bucket` khi có; fallback theo `kind` (legacy) ──
+    type Entry = Record<string, any>
+    const buckets: Record<string, Entry[]> = {
+      items_missing: [],
+      items_damaged: [],
+      items_lost: [],
+      items_consumed: [],
+      items_replaced: [],
+      items_sent_to_laundry: [],
+    }
+
+    const buildBaseEntry = (i: LeanIssue): Entry => {
+      const base: Entry = {
         item_id: i.item_id,
         item_name: i.item_name,
         quantity: i.quantity,
         photos: i.photos,
         notes: i.notes,
-        charge_to_guest: i.chargeToGuest ?? false,
-      }))
-    const itemsLost = issues
-      .filter((i) => i.kind === 'lost')
-      .map((i) => ({
-        item_id: i.item_id,
-        item_name: i.item_name,
-        quantity: i.quantity,
-        photos: i.photos,
-        notes: i.notes,
-        charge_to_guest: i.chargeToGuest ?? false,
-      }))
-    const itemsMissing = issues
-      .filter((i) => i.kind === 'missing')
-      .map((i) => ({
-        item_id: i.item_id,
-        item_name: i.item_name,
-        quantity: i.quantity,
-        photos: i.photos,
-        notes: i.notes,
-      }))
-    const itemsConsumed = [
-      ...issues
-        .filter((i) => i.kind === 'consumed')
-        .map((i) => ({
-          item_id: i.item_id,
-          item_name: i.item_name,
-          quantity: i.quantity,
-          photos: i.photos,
-          notes: i.notes,
-          charge_to_guest: i.chargeToGuest ?? true,
-        })),
-      ...minibar.map((m) => ({
+        // ── Required by validate_room_check_issue_entries trigger
+        issue_role: i.issueRole ?? 'primary_issue',
+      }
+      if (i.chargeToGuest !== undefined) base.charge_to_guest = i.chargeToGuest
+      if (i.needsReview) base.needs_review = true
+      if (i.assetGroup) base.asset_group = i.assetGroup
+      if (i.uiActionKey) base.ui_action = i.uiActionKey
+      if (i.subReason) base.sub_reason = i.subReason
+      if (i.extra) Object.assign(base, i.extra)
+      return base
+    }
+
+    const kindToBucket: Record<LeanIssue['kind'], string> = {
+      damaged: 'items_damaged',
+      lost: 'items_lost',
+      missing: 'items_missing',
+      consumed: 'items_consumed',
+    }
+
+    for (const i of issues as LeanIssue[]) {
+      const target =
+        (i.bucket && buckets[i.bucket] ? i.bucket : null) ??
+        kindToBucket[i.kind] ??
+        'items_damaged'
+      buckets[target].push(buildBaseEntry(i))
+    }
+
+    // Minibar inline → vẫn cộng vào items_consumed
+    for (const m of minibar) {
+      buckets.items_consumed.push({
         item_id: m.item_id,
         item_name: m.name,
         quantity: m.qty,
         photos: [],
         charge_to_guest: true,
         source: 'minibar',
-      })),
-    ]
+        issue_role: 'primary_issue',
+      })
+    }
 
-    const allPhotos = issues.flatMap((i) => i.photos)
+    const itemsMissing = buckets.items_missing
+    const itemsDamaged = buckets.items_damaged
+    const itemsLost = buckets.items_lost
+    const itemsConsumed = buckets.items_consumed
+    const itemsReplaced = buckets.items_replaced
+    const itemsSentToLaundry = buckets.items_sent_to_laundry
+
+    const allPhotos = (issues as LeanIssue[]).flatMap((i) => i.photos)
 
     try {
       const res = await submitMutation.mutateAsync({
@@ -196,7 +218,8 @@ export default function LeanReviewPage() {
         itemsDamaged,
         itemsLost,
         itemsConsumed,
-        itemsReplaced: [],
+        itemsReplaced,
+        itemsSentToLaundry,
       })
       // Clear draft
       clearLeanDraft(id)

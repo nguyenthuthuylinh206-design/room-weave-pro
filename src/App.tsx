@@ -77,6 +77,8 @@ const ReceiveBatchPage = lazyNamed(() => import("./pages/laundry/ReceiveBatchPag
 const VendorListPage = lazyNamed(() => import("./pages/laundry/VendorListPage"), "VendorListPage");
 const VendorDetailPage = lazyNamed(() => import("./pages/laundry/VendorDetailPage"), "VendorDetailPage");
 const VendorFormPage = lazyNamed(() => import("./pages/laundry/VendorFormPage"), "VendorFormPage");
+const LaundryCompensationPage = lazy(() => import("./pages/laundry/LaundryCompensationPage"));
+const NewLinenBatchPage = lazy(() => import("./pages/laundry/NewLinenBatchPage"));
 
 // Settings
 const GeneralSettingsPage = lazyNamed(() => import("./pages/settings/GeneralSettingsPage"), "GeneralSettingsPage");
@@ -395,6 +397,8 @@ const router = createBrowserRouter([
       { path: "laundry/vendors/new", element: <PermissionRoute module="laundry" action="create"><VendorFormPage /></PermissionRoute> },
       { path: "laundry/vendors/:id", element: <PermissionRoute module="laundry"><VendorDetailPage /></PermissionRoute> },
       { path: "laundry/vendors/:id/edit", element: <PermissionRoute module="laundry" action="update"><VendorFormPage /></PermissionRoute> },
+      { path: "laundry/compensation", element: <PermissionRoute module="laundry"><LaundryCompensationPage /></PermissionRoute> },
+      { path: "laundry/linen-batches/new", element: <PermissionRoute module="laundry" action="create"><NewLinenBatchPage /></PermissionRoute> },
 
       // Settings
       { path: "settings", element: <Navigate to="/settings/general" replace /> },

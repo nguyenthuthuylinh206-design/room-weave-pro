@@ -21,6 +21,7 @@ import {
 
 import type { RoomItemWithDetails } from '@/types/rooms.types'
 import type { ItemType } from '@/types/items.types'
+import type { AssetGroup } from '@/types/assetGroup.types'
 
 type LeanCheckType = 'daily' | 'periodic' | 'checkin' | 'checkout' | 'maintenance'
 
@@ -30,6 +31,7 @@ interface EnrichedItem extends RoomItemWithDetails {
   category_id: string | null
   is_minibar: boolean
   unit_price?: number | null
+  asset_group?: AssetGroup | null
 }
 
 /** Issue đã ghi nhận trong session — key theo item_id */
@@ -45,6 +47,14 @@ interface LeanIssue {
   notes?: string
   /** Riêng minibar: dùng để hiển thị stepper inline */
   minibarConsumedQty?: number
+  /** Đợt B */
+  uiActionKey?: string
+  bucket?: string
+  issueRole?: 'primary_issue' | 'derived_action'
+  needsReview?: boolean
+  assetGroup?: AssetGroup
+  subReason?: string
+  extra?: Record<string, any>
 }
 
 interface DraftShape {
@@ -147,7 +157,7 @@ export default function LeanInspectionPage() {
         const { data, error } = await supabase
           .from('items')
           .select(
-            'id, item_type, is_chargeable, unit_price, item_categories(id, name, default_item_type)',
+            'id, item_type, is_chargeable, unit_price, asset_group, item_categories(id, name, default_item_type)',
           )
           .in('id', ids)
         if (error) throw error
@@ -157,7 +167,6 @@ export default function LeanInspectionPage() {
           const d = byId.get(it.item_id) as any
           const cat = d?.item_categories
           const catName: string = cat?.name || it.category_name || 'Khác'
-          // Heuristic minibar: is_chargeable + thuộc nhóm consumable hoặc tên category chứa "minibar"
           const isMinibar =
             !!d?.is_chargeable &&
             (((d?.item_type as ItemType) ?? cat?.default_item_type) === 'consumable' ||
@@ -172,6 +181,7 @@ export default function LeanInspectionPage() {
             category_id: cat?.id || null,
             is_minibar: isMinibar,
             unit_price: d?.unit_price ?? null,
+            asset_group: (d?.asset_group as AssetGroup) ?? null,
           }
         })
         setEnriched(out)
@@ -297,6 +307,13 @@ export default function LeanInspectionPage() {
         photos: result.photos,
         chargeToGuest: result.chargeToGuest,
         notes: result.notes,
+        uiActionKey: result.uiActionKey,
+        bucket: result.bucket,
+        issueRole: result.issueRole,
+        needsReview: result.needsReview,
+        assetGroup: result.assetGroup ?? (sheetItem.asset_group ?? undefined),
+        subReason: result.subReason,
+        extra: result.extra,
       },
     }))
   }
@@ -617,6 +634,7 @@ export default function LeanInspectionPage() {
         itemName={sheetItem?.item_name || ''}
         itemType={sheetItem?.item_type || 'equipment'}
         standardQuantity={sheetItem?.standard_quantity || 1}
+        assetGroup={sheetItem?.asset_group ?? null}
         photoRequiredFor={photoRequiredFor}
         initial={
           sheetItem && issues[sheetItem.item_id]
@@ -626,6 +644,7 @@ export default function LeanInspectionPage() {
                 photos: issues[sheetItem.item_id].photos,
                 chargeToGuest: issues[sheetItem.item_id].chargeToGuest,
                 notes: issues[sheetItem.item_id].notes,
+                subReason: issues[sheetItem.item_id].subReason,
               }
             : null
         }
