@@ -52,13 +52,16 @@ BEGIN
   SELECT id INTO v_hotel_id FROM public.hotels WHERE tenant_id = v_tenant_id LIMIT 1;
   IF v_hotel_id IS NULL THEN RAISE EXCEPTION 'NO_HOTEL_FOUND cho tenant %', v_tenant_id; END IF;
 
-  -- Fake auth user để pass permission check trong approve/ignore
-  v_user_id := gen_random_uuid();
+  -- Lấy user thật có role owner/hotel_manager/super_admin để pass permission check
+  SELECT ur.user_id INTO v_user_id
+  FROM public.user_roles ur
+  WHERE ur.role IN ('super_admin'::app_role, 'owner'::app_role, 'hotel_manager'::app_role)
+  LIMIT 1;
+  IF v_user_id IS NULL THEN RAISE EXCEPTION 'NO_PRIVILEGED_USER — cần ít nhất 1 user có role owner/hotel_manager'; END IF;
+
+  -- Set jwt.claims để auth.uid() trả về user này
   PERFORM set_config('request.jwt.claims',
     jsonb_build_object('sub', v_user_id::text, 'role', 'authenticated')::text, true);
-
-  -- Cấp role hotel_manager để qua forbidden_approve
-  INSERT INTO public.user_roles (user_id, role) VALUES (v_user_id, 'hotel_manager'::app_role);
 
   -- Vendor
   INSERT INTO public.vendors (tenant_id, name, code)
