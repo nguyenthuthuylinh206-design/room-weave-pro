@@ -40,18 +40,7 @@ DECLARE
   v_result     jsonb;
   v_failed     int := 0;
   v_passed     int := 0;
-
-  PROCEDURE assert_eq(_label text, _actual anyelement, _expected anyelement) AS $$
-  BEGIN
-    IF _actual IS NOT DISTINCT FROM _expected THEN
-      v_passed := v_passed + 1;
-      RAISE NOTICE '  ✅ % | got=%', _label, _actual;
-    ELSE
-      v_failed := v_failed + 1;
-      RAISE WARNING '  ❌ % | expected=% got=%', _label, _expected, _actual;
-    END IF;
-  END;
-  $$ LANGUAGE plpgsql;
+  v_total      int := 0;
 
 BEGIN
   -- ───────────────────────────────────────────────────────────────────────────
