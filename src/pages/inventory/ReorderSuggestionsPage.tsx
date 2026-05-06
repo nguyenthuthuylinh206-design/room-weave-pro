@@ -11,6 +11,7 @@ import {
 import { useHotelContext } from '@/contexts/HotelContext'
 import { ApproveReorderDialog } from '@/components/inventory/ApproveReorderDialog'
 import { IgnoreSuggestionDialog } from '@/components/inventory/IgnoreSuggestionDialog'
+import { ReorderSettingsDialog } from '@/components/inventory/ReorderSettingsDialog'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
 import { useUser } from '@/hooks/useUser'
 import { isAdminUser } from '@/lib/userAccess'
@@ -36,6 +37,7 @@ export default function ReorderSuggestionsPage() {
   const [vendorFilter, setVendorFilter] = useState<string>('all')
   const [approveOpen, setApproveOpen] = useState(false)
   const [ignoreTarget, setIgnoreTarget] = useState<{ id: string; name: string } | null>(null)
+  const [settingsTarget, setSettingsTarget] = useState<{ id: string; name: string } | null>(null)
 
   const filtered = useMemo(() => {
     return (suggestions ?? []).filter((s) => {
@@ -224,17 +226,53 @@ export default function ReorderSuggestionsPage() {
                     </td>
                     <td className="px-3 py-2 text-right">
                       {allowApprove && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs"
-                          onClick={() => setIgnoreTarget({ id: s.id, name: s.item?.name ?? '' })}
-                        >
-                          Bỏ qua
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => setSettingsTarget({ id: s.item_id, name: s.item?.name ?? '' })}
+                          >
+                            Cài đặt
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => setIgnoreTarget({ id: s.id, name: s.item?.name ?? '' })}
+                          >
+                            Bỏ qua
+                          </Button>
+                        </div>
                       )}
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <ApproveReorderDialog
+        open={approveOpen}
+        onOpenChange={setApproveOpen}
+        selected={selected}
+      />
+      <IgnoreSuggestionDialog
+        open={!!ignoreTarget}
+        onOpenChange={(o) => !o && setIgnoreTarget(null)}
+        suggestionId={ignoreTarget?.id ?? null}
+        itemName={ignoreTarget?.name}
+      />
+      <ReorderSettingsDialog
+        open={!!settingsTarget}
+        onOpenChange={(o) => !o && setSettingsTarget(null)}
+        itemId={settingsTarget?.id ?? null}
+        itemName={settingsTarget?.name}
+      />
                   </tr>
                 ))}
               </tbody>
