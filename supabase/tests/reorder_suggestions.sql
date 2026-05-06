@@ -78,11 +78,16 @@ BEGIN
   PERFORM set_config('request.jwt.claims',
     jsonb_build_object('sub', v_user_id::text, 'role', 'authenticated')::text, true);
 
-  -- Vendor
+  -- 2 vendors khác nhau để test gom theo vendor → 2 PO riêng
   INSERT INTO public.vendors (tenant_id, name, code, category)
   VALUES (v_tenant_id, 'TEST Vendor Reorder',
           'TEST-V-RO-' || substr(gen_random_uuid()::text, 1, 8), 'supplier')
   RETURNING id INTO v_vendor_id;
+
+  INSERT INTO public.vendors (tenant_id, name, code, category)
+  VALUES (v_tenant_id, 'TEST Vendor Reorder 2',
+          'TEST-V-RO2-' || substr(gen_random_uuid()::text, 1, 8), 'supplier')
+  RETURNING id INTO v_vendor_id2;
 
   -- Category (nếu cần)
   SELECT id INTO v_cat_id FROM public.item_categories WHERE tenant_id = v_tenant_id LIMIT 1;
