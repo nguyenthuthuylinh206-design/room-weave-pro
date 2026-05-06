@@ -66,7 +66,7 @@ BEGIN
   -- Vendor
   INSERT INTO public.vendors (tenant_id, name, code, category)
   VALUES (v_tenant_id, 'TEST Vendor Reorder',
-          'TEST-V-RO-' || substr(gen_random_uuid()::text, 1, 8), 'supplies')
+          'TEST-V-RO-' || substr(gen_random_uuid()::text, 1, 8), 'supplier')
   RETURNING id INTO v_vendor_id;
 
   -- Category (nếu cần)
