@@ -180,11 +180,11 @@ BEGIN
   v_result := public.ignore_reorder_suggestion(v_sugg_a, 'Đang chờ giá tốt hơn', 14);
   v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  ok = true', ((v_result->>'ok')::boolean)::text, (true)::text);
 
-  SELECT status INTO v_count FROM (
-    SELECT CASE status WHEN 'ignored' THEN 1 ELSE 0 END AS status
-    FROM public.reorder_suggestions WHERE id = v_sugg_a
-  ) x;
-  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  status = ignored', (v_count)::text, (1)::text);
+  DECLARE v_status text;
+  BEGIN
+    SELECT status INTO v_status FROM public.reorder_suggestions WHERE id = v_sugg_a;
+    v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  status = ignored', v_status, 'ignored');
+  END;
 
   PERFORM 1 FROM public.reorder_suggestions
    WHERE id = v_sugg_a AND ignored_until = CURRENT_DATE + 14 AND ignored_reason = 'Đang chờ giá tốt hơn';
