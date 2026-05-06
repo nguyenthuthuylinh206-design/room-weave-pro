@@ -11,6 +11,7 @@
   "adjustment": "Stock Adjustment",
   "transfer": "Transfer",
   "distribution": "Distribution Orders",
+  "reorder": "Reorder Suggestions",
   "warehouses": "Warehouses",
   "rooms": "Rooms",
   "roomsList": "Room List",

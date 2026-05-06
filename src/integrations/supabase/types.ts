@@ -3636,13 +3636,17 @@ export type Database = {
           id: string
           is_chargeable: boolean | null
           is_complimentary: boolean | null
+          is_perishable: boolean | null
           item_type: Database["public"]["Enums"]["item_type"]
+          last_outbound_at: string | null
+          lead_time_days: number | null
           max_wash_cycles: number | null
           migration_review_required: boolean
           minimum_stock: number | null
           model: string | null
           name: string
           name_en: string | null
+          preferred_vendor_id: string | null
           qr_code: string | null
           quantity_damaged: number | null
           quantity_in_laundry: number | null
@@ -3651,6 +3655,7 @@ export type Database = {
           quantity_lost: number | null
           quantity_pending: number | null
           quantity_total: number | null
+          reorder_max_qty: number | null
           reorder_point: number | null
           specifications: Json | null
           status: string | null
@@ -3673,13 +3678,17 @@ export type Database = {
           id?: string
           is_chargeable?: boolean | null
           is_complimentary?: boolean | null
+          is_perishable?: boolean | null
           item_type?: Database["public"]["Enums"]["item_type"]
+          last_outbound_at?: string | null
+          lead_time_days?: number | null
           max_wash_cycles?: number | null
           migration_review_required?: boolean
           minimum_stock?: number | null
           model?: string | null
           name: string
           name_en?: string | null
+          preferred_vendor_id?: string | null
           qr_code?: string | null
           quantity_damaged?: number | null
           quantity_in_laundry?: number | null
@@ -3688,6 +3697,7 @@ export type Database = {
           quantity_lost?: number | null
           quantity_pending?: number | null
           quantity_total?: number | null
+          reorder_max_qty?: number | null
           reorder_point?: number | null
           specifications?: Json | null
           status?: string | null
@@ -3710,13 +3720,17 @@ export type Database = {
           id?: string
           is_chargeable?: boolean | null
           is_complimentary?: boolean | null
+          is_perishable?: boolean | null
           item_type?: Database["public"]["Enums"]["item_type"]
+          last_outbound_at?: string | null
+          lead_time_days?: number | null
           max_wash_cycles?: number | null
           migration_review_required?: boolean
           minimum_stock?: number | null
           model?: string | null
           name?: string
           name_en?: string | null
+          preferred_vendor_id?: string | null
           qr_code?: string | null
           quantity_damaged?: number | null
           quantity_in_laundry?: number | null
@@ -3725,6 +3739,7 @@ export type Database = {
           quantity_lost?: number | null
           quantity_pending?: number | null
           quantity_total?: number | null
+          reorder_max_qty?: number | null
           reorder_point?: number | null
           specifications?: Json | null
           status?: string | null
@@ -3753,6 +3768,13 @@ export type Database = {
             columns: ["hotel_id"]
             isOneToOne: false
             referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "items_preferred_vendor_id_fkey"
+            columns: ["preferred_vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
           {
@@ -6059,6 +6081,84 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reorder_suggestions: {
+        Row: {
+          approved_by: string | null
+          converted_po_id: string | null
+          created_at: string
+          created_by: string | null
+          current_stock: number
+          hotel_id: string
+          id: string
+          ignored_by: string | null
+          ignored_reason: string | null
+          ignored_until: string | null
+          item_id: string
+          metadata: Json | null
+          on_order_qty: number
+          reason: string
+          status: string
+          suggested_qty: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          approved_by?: string | null
+          converted_po_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_stock?: number
+          hotel_id: string
+          id?: string
+          ignored_by?: string | null
+          ignored_reason?: string | null
+          ignored_until?: string | null
+          item_id: string
+          metadata?: Json | null
+          on_order_qty?: number
+          reason?: string
+          status?: string
+          suggested_qty: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          approved_by?: string | null
+          converted_po_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_stock?: number
+          hotel_id?: string
+          id?: string
+          ignored_by?: string | null
+          ignored_reason?: string | null
+          ignored_until?: string | null
+          item_id?: string
+          metadata?: Json | null
+          on_order_qty?: number
+          reason?: string
+          status?: string
+          suggested_qty?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reorder_suggestions_converted_po_id_fkey"
+            columns: ["converted_po_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reorder_suggestions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
             referencedColumns: ["id"]
           },
         ]
@@ -9642,6 +9742,10 @@ export type Database = {
       apply_room_standards:
         | { Args: { p_room_id: string }; Returns: Json }
         | { Args: { p_room_id: string; p_user_id?: string }; Returns: Json }
+      approve_reorder_suggestions: {
+        Args: { _suggestion_ids: string[] }
+        Returns: Json
+      }
       approve_task: {
         Args: { _note?: string; _task_id: string }
         Returns: {
@@ -9906,6 +10010,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      compute_reorder_suggestions: {
+        Args: { _hotel_id?: string; _item_id?: string; _tenant_id: string }
+        Returns: Json
       }
       confirm_delivery_from_room_check: {
         Args: { p_confirmed_by: string; p_room_order_id: string }
@@ -11272,6 +11380,14 @@ export type Database = {
       has_user_permission: {
         Args: { p_action: string; p_module: string; p_user_id: string }
         Returns: boolean
+      }
+      ignore_reorder_suggestion: {
+        Args: {
+          _ignore_days?: number
+          _reason?: string
+          _suggestion_id: string
+        }
+        Returns: Json
       }
       in_todo: { Args: never; Returns: boolean }
       increment_quantity_in_laundry: {
