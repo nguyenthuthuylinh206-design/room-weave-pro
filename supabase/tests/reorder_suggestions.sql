@@ -64,8 +64,9 @@ BEGIN
     jsonb_build_object('sub', v_user_id::text, 'role', 'authenticated')::text, true);
 
   -- Vendor
-  INSERT INTO public.vendors (tenant_id, name, code)
-  VALUES (v_tenant_id, 'TEST Vendor Reorder', 'TEST-V-RO-' || substr(gen_random_uuid()::text, 1, 8))
+  INSERT INTO public.vendors (tenant_id, name, code, category)
+  VALUES (v_tenant_id, 'TEST Vendor Reorder',
+          'TEST-V-RO-' || substr(gen_random_uuid()::text, 1, 8), 'supplies')
   RETURNING id INTO v_vendor_id;
 
   -- Category (nếu cần)
