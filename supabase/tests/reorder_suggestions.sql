@@ -229,28 +229,28 @@ BEGIN
   -- ═══════════════════════════════════════════════════════════════════════════
   -- TEST 6: approve_reorder_suggestions — gom theo (hotel, vendor) → tạo PO draft
   --   - Item D không có preferred_vendor → 1 PO riêng (vendor NULL)
-  --   - Item B có vendor v_vendor_id → 1 PO riêng
+  --   - Item E có vendor v_vendor_id → 1 PO riêng
   --   → kỳ vọng 2 PO
   -- ═══════════════════════════════════════════════════════════════════════════
   RAISE NOTICE '🧪 TEST 6 — approve gom theo vendor → tạo PO draft';
   SELECT id INTO v_sugg_d FROM public.reorder_suggestions
    WHERE item_id = v_item_d AND status = 'pending';
   SELECT id INTO v_sugg_id FROM public.reorder_suggestions
-   WHERE item_id = v_item_b AND status = 'pending';
+   WHERE item_id = v_item_e AND status = 'pending';
 
   v_result := public.approve_reorder_suggestions(ARRAY[v_sugg_d, v_sugg_id]);
-  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  converted_count = 2', ((v_result->>'converted_count')::int)::text, (2)::text);
-  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  tạo 2 PO (1 vendor + 1 NULL)', (jsonb_array_length(v_result->'po_ids'))::text, (2)::text);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  converted_count = 2', ((v_result->>'converted_count')::int)::text, '2');
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  tạo 2 PO (1 vendor + 1 NULL)', (jsonb_array_length(v_result->'po_ids'))::text, '2');
 
   SELECT count(*) INTO v_count FROM public.reorder_suggestions
    WHERE id IN (v_sugg_d, v_sugg_id) AND status = 'converted' AND converted_po_id IS NOT NULL;
-  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  2 suggestion đã chuyển status=converted + có po_id', (v_count)::text, (2)::text);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  2 suggestion đã chuyển status=converted + có po_id', (v_count)::text, '2');
 
   SELECT count(*) INTO v_count FROM public.purchase_orders
    WHERE id::text IN (
      SELECT jsonb_array_elements_text(v_result->'po_ids')
    ) AND status = 'draft';
-  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  cả 2 PO đều ở status=draft', (v_count)::text, (2)::text);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  cả 2 PO đều ở status=draft', (v_count)::text, '2');
 
   -- ═══════════════════════════════════════════════════════════════════════════
   -- TEST 7: permission & validation guard
