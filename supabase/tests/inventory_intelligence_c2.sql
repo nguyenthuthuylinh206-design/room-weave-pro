@@ -25,7 +25,7 @@ BEGIN
   SELECT created_by INTO v_user FROM inventory_transactions
    WHERE tenant_id = v_tenant LIMIT 1;
   IF v_user IS NULL THEN
-    SELECT id INTO v_user FROM profiles WHERE tenant_id = v_tenant LIMIT 1;
+    SELECT id INTO v_user FROM users WHERE tenant_id = v_tenant LIMIT 1;
   END IF;
 
   IF v_tenant IS NULL OR v_hotel IS NULL THEN
