@@ -1127,6 +1127,59 @@ export type Database = {
           },
         ]
       }
+      consumption_snapshots: {
+        Row: {
+          avg_daily_consumption: number
+          created_at: string
+          hotel_id: string
+          id: string
+          item_id: string
+          qty_consumed_30d: number
+          qty_consumed_7d: number
+          qty_consumed_90d: number
+          snapshot_date: string
+          stock_days_remaining: number | null
+          stock_on_date: number
+          tenant_id: string
+        }
+        Insert: {
+          avg_daily_consumption?: number
+          created_at?: string
+          hotel_id: string
+          id?: string
+          item_id: string
+          qty_consumed_30d?: number
+          qty_consumed_7d?: number
+          qty_consumed_90d?: number
+          snapshot_date?: string
+          stock_days_remaining?: number | null
+          stock_on_date?: number
+          tenant_id: string
+        }
+        Update: {
+          avg_daily_consumption?: number
+          created_at?: string
+          hotel_id?: string
+          id?: string
+          item_id?: string
+          qty_consumed_30d?: number
+          qty_consumed_7d?: number
+          qty_consumed_90d?: number
+          snapshot_date?: string
+          stock_days_remaining?: number | null
+          stock_on_date?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consumption_snapshots_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_field_values: {
         Row: {
           entity_id: string
@@ -10409,6 +10462,13 @@ export type Database = {
               total_value: number
             }[]
           }
+      get_consumption_trend: {
+        Args: { _days?: number; _item_id: string }
+        Returns: {
+          day: string
+          qty_out: number
+        }[]
+      }
       get_current_room_booking: {
         Args: { p_room_id: string }
         Returns: {
@@ -10454,6 +10514,26 @@ export type Database = {
       get_dashboard_stats: {
         Args: { p_hotel_id?: string; p_tenant_id: string }
         Returns: Json
+      }
+      get_dead_stock_report: {
+        Args: {
+          _days_threshold?: number
+          _hotel_id?: string
+          _tenant_id: string
+        }
+        Returns: {
+          asset_group: Database["public"]["Enums"]["asset_group"]
+          category_id: string
+          days_since_last_out: number
+          hotel_id: string
+          item_code: string
+          item_id: string
+          item_name: string
+          last_outbound_at: string
+          quantity_in_stock: number
+          total_value: number
+          unit_price: number
+        }[]
       }
       get_distribution_order_detail: {
         Args: { p_order_id: string }
@@ -11566,6 +11646,10 @@ export type Database = {
       }
       receive_batch: {
         Args: { p_actor_id?: string; p_batch_id: string }
+        Returns: Json
+      }
+      refresh_consumption_snapshots: {
+        Args: { _hotel_id?: string; _tenant_id: string }
         Returns: Json
       }
       refresh_monthly_expenses: { Args: never; Returns: undefined }
