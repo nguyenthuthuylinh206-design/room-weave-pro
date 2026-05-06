@@ -20,7 +20,8 @@ DECLARE
 BEGIN
   -- pick first active tenant + hotel for the harness
   SELECT t.id INTO v_tenant FROM tenants t
-   ORDER BY (t.subscription_status = 'active') DESC NULLS LAST LIMIT 1;
+   WHERE EXISTS (SELECT 1 FROM hotels h WHERE h.tenant_id = t.id)
+   ORDER BY (t.subscription_status = 'active') DESC LIMIT 1;
   SELECT h.id INTO v_hotel FROM hotels h WHERE h.tenant_id = v_tenant LIMIT 1;
   SELECT created_by INTO v_user FROM inventory_transactions
    WHERE tenant_id = v_tenant LIMIT 1;
