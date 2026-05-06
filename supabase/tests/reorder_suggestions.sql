@@ -160,29 +160,40 @@ BEGIN
 
   -- ═══════════════════════════════════════════════════════════════════════════
   -- TEST 3: realtime trigger — INSERT inventory_transactions kiểu 'out' tự sinh
-  --        suggestion + cập nhật last_outbound_at
+  --        suggestion + cập nhật last_outbound_at (KHÔNG cần UPDATE items)
   -- ═══════════════════════════════════════════════════════════════════════════
   RAISE NOTICE '🧪 TEST 3 — trigger realtime trên outbound transaction';
 
-  -- Đẩy item B xuống dưới ngưỡng bằng 1 outbound → kỳ vọng trigger sinh suggestion
-  UPDATE public.items SET quantity_in_stock = 8 WHERE id = v_item_b;  -- 8 < reorder_point 10
+  -- Tạo item E mới đã sẵn dưới ngưỡng (stock=2, reorder_point=10), chưa compute
+  INSERT INTO public.items (tenant_id, hotel_id, category_id, name, unit, unit_price,
+                            quantity_in_stock, quantity_total, minimum_stock,
+                            reorder_point, reorder_max_qty, preferred_vendor_id, status)
+  VALUES (v_tenant_id, v_hotel_id, v_cat_id, 'TEST_RO_E_trigger', 'cái', 5000,
+          2, 2, 1, 10, 30, v_vendor_id, 'active')
+  RETURNING id INTO v_item_e;
 
+  -- Verify chưa có suggestion
+  SELECT count(*) INTO v_count FROM public.reorder_suggestions WHERE item_id = v_item_e;
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  pre-insert: chưa có suggestion cho E', (v_count)::text, '0');
+
+  -- Insert outbound → trigger phải tự compute
   INSERT INTO public.inventory_transactions
     (tenant_id, hotel_id, item_id, transaction_type, transaction_category,
      quantity, unit_price, total_value, quantity_before, quantity_after,
      transaction_code, created_by, transaction_date)
   VALUES
-    (v_tenant_id, v_hotel_id, v_item_b, 'out', 'consume',
-     2, 10000, 20000, 10, 8,
+    (v_tenant_id, v_hotel_id, v_item_e, 'out', 'consume',
+     1, 5000, 5000, 2, 1,
      'TEST-OUT-' || substr(gen_random_uuid()::text, 1, 8), v_user_id, now());
 
   SELECT count(*) INTO v_count FROM public.reorder_suggestions
-   WHERE item_id = v_item_b AND status = 'pending';
-  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  trigger sinh suggestion cho B sau outbound', (v_count)::text, (1)::text);
+   WHERE item_id = v_item_e AND status = 'pending';
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  trigger tự sinh suggestion cho E sau outbound', (v_count)::text, '1');
 
-  -- last_outbound_at được cập nhật
-  PERFORM 1 FROM public.items WHERE id = v_item_b AND last_outbound_at IS NOT NULL;
-  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  last_outbound_at đã set cho B', (FOUND)::text, (true)::text);
+  -- last_outbound_at được trigger cập nhật
+  PERFORM 1 FROM public.items WHERE id = v_item_e AND last_outbound_at IS NOT NULL;
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  last_outbound_at đã set cho E', (FOUND)::text, 'true');
+
 
   -- ═══════════════════════════════════════════════════════════════════════════
   -- TEST 4: ignore_reorder_suggestion → status='ignored' + ignored_until tương lai
