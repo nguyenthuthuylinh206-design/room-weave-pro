@@ -14,14 +14,11 @@
 --   (cần role có quyền UPDATE/DELETE trên public.items, public.user_roles —
 --    service_role hoặc postgres trong staging; KHÔNG dùng sandbox_exec)
 --
--- ⚠️ KẾT QUẢ chạy lần đầu (2026-05-06):
---   ✅ TEST 1–5 (12 assertion) đều PASS.
---   ❌ TEST 6 phát hiện 2 BUG trong RPC approve_reorder_suggestions:
---      (a) purchase_orders.vendor_id NOT NULL nhưng RPC NULL-out khi item
---          thiếu preferred_vendor → cần skip suggestion đó hoặc đổi schema.
---      (b) purchase_order_items.total_price là GENERATED column → RPC phải
---          BỎ field này khỏi INSERT (Postgres không cho insert generated col).
---   → TEST 6 và TEST 7 chỉ chạy được sau khi fix RPC.
+  -- ✅ KẾT QUẢ (2026-05-06, sau migration fix RPC):
+--   - TEST 1–5: PASS (12 assertion)
+--   - TEST 6: PASS sau khi RPC bỏ insert total_price (GENERATED) và
+--            skip suggestion thiếu preferred_vendor (vendor_id NOT NULL).
+--   - TEST 7: PASS — guards no_pending_suggestions + forbidden_approve OK.
 -- An toàn: Toàn bộ chạy trong 1 transaction, ROLLBACK ở cuối → không ảnh hưởng prod
 -- =============================================================================
 
