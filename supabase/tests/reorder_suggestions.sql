@@ -223,16 +223,15 @@ BEGIN
   -- ═══════════════════════════════════════════════════════════════════════════
   RAISE NOTICE '🧪 TEST 7 — guards: no_pending_suggestions + forbidden_approve';
 
+  v_total := v_total + 1;
   BEGIN
     PERFORM public.approve_reorder_suggestions(ARRAY[v_sugg_d]); -- đã converted
-    v_failed := v_failed + 1;
     RAISE WARNING '  ❌ kỳ vọng raise no_pending_suggestions, nhưng không raise';
   EXCEPTION WHEN OTHERS THEN
     IF SQLERRM LIKE '%no_pending_suggestions%' THEN
       v_passed := v_passed + 1;
       RAISE NOTICE '  ✅ raise đúng "no_pending_suggestions"';
     ELSE
-      v_failed := v_failed + 1;
       RAISE WARNING '  ❌ raise sai: %', SQLERRM;
     END IF;
   END;
@@ -246,16 +245,15 @@ BEGIN
   SELECT id INTO v_sugg_id FROM public.reorder_suggestions
    WHERE item_id = v_item_b AND status = 'pending' LIMIT 1;
 
+  v_total := v_total + 1;
   BEGIN
     PERFORM public.approve_reorder_suggestions(ARRAY[v_sugg_id]);
-    v_failed := v_failed + 1;
     RAISE WARNING '  ❌ kỳ vọng raise forbidden_approve, nhưng không raise';
   EXCEPTION WHEN OTHERS THEN
     IF SQLERRM LIKE '%forbidden_approve%' THEN
       v_passed := v_passed + 1;
       RAISE NOTICE '  ✅ raise đúng "forbidden_approve" khi user không có role';
     ELSE
-      v_failed := v_failed + 1;
       RAISE WARNING '  ❌ raise sai: %', SQLERRM;
     END IF;
   END;
