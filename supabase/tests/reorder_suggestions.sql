@@ -182,7 +182,7 @@ BEGIN
      quantity, unit_price, total_value, quantity_before, quantity_after,
      transaction_code, created_by, transaction_date)
   VALUES
-    (v_tenant_id, v_hotel_id, v_item_e, 'out', 'consume',
+    (v_tenant_id, v_hotel_id, v_item_e, 'out', 'other',
      1, 5000, 5000, 2, 1,
      'TEST-OUT-' || substr(gen_random_uuid()::text, 1, 8), v_user_id, now());
 
@@ -285,7 +285,7 @@ BEGIN
      quantity, unit_price, total_value, quantity_before, quantity_after,
      transaction_code, created_by, transaction_date)
   VALUES
-    (v_tenant_id, v_hotel_id, v_item_e, 'out', 'consume',
+    (v_tenant_id, v_hotel_id, v_item_e, 'out', 'other',
      0, 5000, 0, 1, 1,
      'TEST-OUT2-' || substr(gen_random_uuid()::text, 1, 8), v_user_id, now());
 
