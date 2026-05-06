@@ -261,8 +261,9 @@ BEGIN
   -- ───────────────────────────────────────────────────────────────────────────
   -- SUMMARY
   -- ───────────────────────────────────────────────────────────────────────────
+  v_failed := v_total - v_passed;
   RAISE NOTICE '════════════════════════════════════════════════════════════';
-  RAISE NOTICE '📊 KẾT QUẢ: % passed, % failed', v_passed, v_failed;
+  RAISE NOTICE '📊 KẾT QUẢ: %/% passed, % failed', v_passed, v_total, v_failed;
   RAISE NOTICE '════════════════════════════════════════════════════════════';
 
   IF v_failed > 0 THEN
