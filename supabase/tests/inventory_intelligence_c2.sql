@@ -19,20 +19,20 @@ DECLARE
   v_passed int := 0;
 BEGIN
   -- pick first active tenant + hotel for the harness
-  SELECT t.id INTO v_tenant FROM tenants t
-   WHERE EXISTS (SELECT 1 FROM hotels h WHERE h.tenant_id = t.id)
-   ORDER BY (t.subscription_status = 'active') DESC LIMIT 1;
-  SELECT h.id INTO v_hotel FROM hotels h WHERE h.tenant_id = v_tenant LIMIT 1;
-  SELECT created_by INTO v_user FROM inventory_transactions
-   WHERE tenant_id = v_tenant LIMIT 1;
-  IF v_user IS NULL THEN
-    SELECT id INTO v_user FROM users WHERE tenant_id = v_tenant LIMIT 1;
-  END IF;
+  SELECT id INTO v_tenant FROM public.tenants ORDER BY created_at LIMIT 1;
+  IF v_tenant IS NULL THEN RAISE EXCEPTION 'NO_TENANT_FOUND'; END IF;
 
-  IF v_tenant IS NULL OR v_hotel IS NULL THEN
-    RAISE NOTICE 'No active tenant/hotel — skipping';
-    RETURN;
-  END IF;
+  SELECT id INTO v_hotel FROM public.hotels WHERE tenant_id = v_tenant LIMIT 1;
+  IF v_hotel IS NULL THEN RAISE EXCEPTION 'NO_HOTEL for tenant %', v_tenant; END IF;
+
+  SELECT ur.user_id INTO v_user
+  FROM public.user_roles ur
+  WHERE ur.role IN ('super_admin'::app_role, 'owner'::app_role, 'hotel_manager'::app_role)
+  LIMIT 1;
+  IF v_user IS NULL THEN RAISE EXCEPTION 'NO_PRIVILEGED_USER'; END IF;
+
+  PERFORM set_config('request.jwt.claims',
+    jsonb_build_object('sub', v_user::text, 'role', 'authenticated')::text, true);
 
   -- ============ SETUP ============
   -- Item A: active, recently consumed (should land in snapshot)
