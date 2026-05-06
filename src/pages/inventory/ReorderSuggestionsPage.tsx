@@ -273,25 +273,7 @@ export default function ReorderSuggestionsPage() {
         itemId={settingsTarget?.id ?? null}
         itemName={settingsTarget?.name}
       />
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      <ApproveReorderDialog
-        open={approveOpen}
-        onOpenChange={setApproveOpen}
-        selected={selected}
-      />
-      <IgnoreSuggestionDialog
-        open={!!ignoreTarget}
-        onOpenChange={(o) => !o && setIgnoreTarget(null)}
-        suggestionId={ignoreTarget?.id ?? null}
-        itemName={ignoreTarget?.name}
-      />
     </div>
   )
 }
+
