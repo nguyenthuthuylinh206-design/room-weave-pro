@@ -40,6 +40,7 @@ DECLARE
   v_hotel_id   uuid;
   v_user_id    uuid;
   v_vendor_id  uuid;
+  v_vendor_id2 uuid;
   v_cat_id     uuid;
   v_item_a     uuid;  -- below reorder_point → expect suggestion
   v_item_b     uuid;  -- above reorder_point → expect NO suggestion
