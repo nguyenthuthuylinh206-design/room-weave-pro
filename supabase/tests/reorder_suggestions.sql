@@ -109,33 +109,40 @@ BEGIN
   -- TEST 1: compute_reorder_suggestions tạo đúng 2 đề xuất (A, D); skip B, C
   -- ═══════════════════════════════════════════════════════════════════════════
   RAISE NOTICE '🧪 TEST 1 — compute tạo đúng đề xuất cho item dưới ngưỡng';
-  v_result := public.compute_reorder_suggestions(v_tenant_id, v_hotel_id);
-  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  created = 2 (A và D)', ((v_result->>'created')::int)::text, (2)::text);
 
-  SELECT count(*) INTO v_count FROM public.reorder_suggestions
-   WHERE tenant_id = v_tenant_id AND item_id IN (v_item_a, v_item_d) AND status = 'pending';
-  CALL assert_eq('  có 2 row pending cho A,D', v_count, 2);
+  -- Scope theo từng item test để tránh nhiễu bởi item thật của tenant
+  v_result := public.compute_reorder_suggestions(v_tenant_id, v_hotel_id, v_item_a);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  item A: created = 1', ((v_result->>'created')::int)::text, '1');
+
+  v_result := public.compute_reorder_suggestions(v_tenant_id, v_hotel_id, v_item_d);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  item D: created = 1', ((v_result->>'created')::int)::text, '1');
+
+  v_result := public.compute_reorder_suggestions(v_tenant_id, v_hotel_id, v_item_b);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  item B (đủ stock): created = 0', ((v_result->>'created')::int)::text, '0');
+
+  v_result := public.compute_reorder_suggestions(v_tenant_id, v_hotel_id, v_item_c);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  item C (no threshold): created = 0', ((v_result->>'created')::int)::text, '0');
 
   SELECT count(*) INTO v_count FROM public.reorder_suggestions
    WHERE item_id IN (v_item_b, v_item_c);
-  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  không tạo cho B (đủ stock) và C (no threshold)', (v_count)::text, (0)::text);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  không có row nào cho B, C', (v_count)::text, '0');
 
   -- Verify suggested_qty = max(reorder_max_qty, reorder_point*2) - effective_stock
   -- Item A: max(50, 10*2)=50, effective=5, suggested=45
   SELECT suggested_qty INTO v_count FROM public.reorder_suggestions WHERE item_id = v_item_a;
-  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  item A suggested_qty = 45', (v_count)::text, (45)::text);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  item A suggested_qty = 45', (v_count)::text, '45');
 
   -- ═══════════════════════════════════════════════════════════════════════════
   -- TEST 2: idempotent — gọi lại compute không tạo trùng (unique partial index)
   -- ═══════════════════════════════════════════════════════════════════════════
   RAISE NOTICE '🧪 TEST 2 — compute idempotent (không tạo trùng)';
-  v_result := public.compute_reorder_suggestions(v_tenant_id, v_hotel_id);
-  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  created = 0 (đã có pending)', ((v_result->>'created')::int)::text, (0)::text);
-  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  skipped = 2', ((v_result->>'skipped')::int)::text, (2)::text);
+  v_result := public.compute_reorder_suggestions(v_tenant_id, v_hotel_id, v_item_a);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  item A lần 2: created = 0', ((v_result->>'created')::int)::text, '0');
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  item A lần 2: skipped = 1', ((v_result->>'skipped')::int)::text, '1');
 
   SELECT count(*) INTO v_count FROM public.reorder_suggestions
    WHERE item_id IN (v_item_a, v_item_d) AND status = 'pending';
-  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  vẫn chỉ có 2 row pending (no duplicate)', (v_count)::text, (2)::text);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  vẫn chỉ có 2 row pending cho A,D (no duplicate)', (v_count)::text, '2');
 
   -- ═══════════════════════════════════════════════════════════════════════════
   -- TEST 3: realtime trigger — INSERT inventory_transactions kiểu 'out' tự sinh
