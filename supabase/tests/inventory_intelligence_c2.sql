@@ -22,7 +22,11 @@ BEGIN
   SELECT t.id INTO v_tenant FROM tenants t
    WHERE t.subscription_status = 'active' LIMIT 1;
   SELECT h.id INTO v_hotel FROM hotels h WHERE h.tenant_id = v_tenant LIMIT 1;
-  SELECT u.id INTO v_user FROM auth.users u LIMIT 1;
+  SELECT created_by INTO v_user FROM inventory_transactions
+   WHERE tenant_id = v_tenant LIMIT 1;
+  IF v_user IS NULL THEN
+    SELECT id INTO v_user FROM profiles WHERE tenant_id = v_tenant LIMIT 1;
+  END IF;
 
   IF v_tenant IS NULL OR v_hotel IS NULL THEN
     RAISE NOTICE 'No active tenant/hotel — skipping';
