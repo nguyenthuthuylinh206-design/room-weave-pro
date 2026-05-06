@@ -41,6 +41,7 @@ const DistributionOrderDetailPage = lazy(() => import("./pages/inventory/Distrib
 const CreateDistributionPage = lazy(() => import("./pages/inventory/CreateDistributionPage"));
 const CreateFromSupplementsPage = lazy(() => import("./pages/inventory/CreateFromSupplementsPage"));
 const TransferPage = lazy(() => import("./pages/inventory/TransferPage"));
+const ReorderSuggestionsPage = lazy(() => import("./pages/inventory/ReorderSuggestionsPage"));
 
 // Items
 const ItemsPage = lazyNamed(() => import("./pages/items/ItemsPage"), "ItemsPage");
@@ -350,6 +351,7 @@ const router = createBrowserRouter([
       { path: "inventory/distributions/new", element: <PermissionRoute module="inventory" action="create"><CreateDistributionPage /></PermissionRoute> },
       { path: "inventory/distributions/from-supplements", element: <PermissionRoute module="inventory" action="create"><CreateFromSupplementsPage /></PermissionRoute> },
       { path: "inventory/distributions/:id", element: <PermissionRoute module="inventory"><DistributionOrderDetailPage /></PermissionRoute> },
+      { path: "inventory/reorder", element: <PermissionRoute module="inventory"><ReorderSuggestionsPage /></PermissionRoute> },
 
       // Items
       { path: "items", element: <PermissionRoute module="items"><ItemsPage /></PermissionRoute> },
