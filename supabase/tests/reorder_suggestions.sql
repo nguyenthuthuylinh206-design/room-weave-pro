@@ -45,6 +45,7 @@ DECLARE
   v_item_b     uuid;  -- above reorder_point → expect NO suggestion
   v_item_c     uuid;  -- no reorder_point set → expect NO suggestion
   v_item_d     uuid;  -- below + no preferred_vendor → fallback group
+  v_item_e     uuid;  -- chỉ dùng cho TEST 3 (chưa compute trước)
   v_sugg_id    uuid;
   v_sugg_a     uuid;
   v_sugg_d     uuid;
