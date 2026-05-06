@@ -1,11 +1,24 @@
 -- =============================================================================
 -- Test suite: reorder_suggestions (Inventory Intelligence C1)
--- Mục tiêu: Verify trigger realtime + RPC compute/approve/ignore hoạt động đúng
--- Chạy: psql -f supabase/tests/reorder_suggestions.sql
--- An toàn: Toàn bộ chạy trong 1 transaction, ROLLBACK ở cuối → không ảnh hưởng dữ liệu prod
+-- Mục tiêu: Verify 7 case của trigger realtime + RPC compute/approve/ignore
+--   1. compute tạo đúng đề xuất cho item dưới ngưỡng (A,D); skip B,C
+--   2. compute idempotent — không tạo trùng (unique partial index)
+--   3. Trigger realtime trên outbound transaction → tự sinh suggestion + last_outbound_at
+--   4. ignore_reorder_suggestion → status=ignored + ignored_until tương lai
+--   5. compute tôn trọng ignored_until → không sinh lại suggestion đang ignore
+--   6. approve_reorder_suggestions gom theo (hotel,vendor) → tạo PO draft
+--   7. Guard: no_pending_suggestions + forbidden_approve khi user không có role
+--
+-- Chạy:
+--   psql "$SUPABASE_DB_URL" -f supabase/tests/reorder_suggestions.sql
+--   (cần role có quyền UPDATE/DELETE trên public.items, public.user_roles —
+--    service_role hoặc postgres trong staging; KHÔNG dùng sandbox_exec)
+-- An toàn: Toàn bộ chạy trong 1 transaction, ROLLBACK ở cuối → không ảnh hưởng prod
 -- =============================================================================
 
 BEGIN;
+SET LOCAL row_security = off;
+
 
 -- Helper assertion (sẽ ROLLBACK cùng transaction)
 CREATE OR REPLACE FUNCTION pg_temp.assert_eq(_label text, _actual text, _expected text)
