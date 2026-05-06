@@ -14,7 +14,7 @@ type: feature
 
 ## RPC (SECURITY DEFINER, search_path=public)
 - `compute_reorder_suggestions(_tenant_id, _hotel_id?, _item_id?)` → `{created, skipped}`. Idempotent qua INSERT WHERE NOT EXISTS. Tôn trọng `ignored_until >= today`. `suggested_qty = max(reorder_max_qty, reorder_point*2) - effective_stock`.
-- `approve_reorder_suggestions(_ids[])` — gom theo `(hotel_id, preferred_vendor_id)` → mỗi nhóm 1 PO `status='draft'`, ghi `converted_po_id`. Permission: super_admin|owner|hotel_manager. Audit qua `log_state_transition` (best-effort).
+- `approve_reorder_suggestions(_ids[])` → `{po_ids, converted_count, skipped_no_vendor_count, skipped_no_vendor_ids}`. Gom theo `(hotel_id, preferred_vendor_id)` → mỗi nhóm 1 PO `status='draft'`. **BỎ QUA** suggestion thiếu `preferred_vendor_id` (vì `purchase_orders.vendor_id` NOT NULL) — báo lại trong `skipped_no_vendor_*`. KHÔNG insert `purchase_order_items.total_price` (GENERATED column). Permission: super_admin|owner|hotel_manager. Audit qua `log_state_transition` (best-effort).
 - `ignore_reorder_suggestion(_id, _reason, _ignore_days=7)`.
 - Backfill `last_outbound_at` từ `inventory_transactions` 1 lần trong migration.
 
