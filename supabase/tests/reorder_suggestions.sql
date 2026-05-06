@@ -7,6 +7,20 @@
 
 BEGIN;
 
+-- Helper assertion (sẽ ROLLBACK cùng transaction)
+CREATE OR REPLACE FUNCTION pg_temp.assert_eq(_label text, _actual text, _expected text)
+RETURNS int LANGUAGE plpgsql AS $$
+BEGIN
+  IF _actual IS NOT DISTINCT FROM _expected THEN
+    RAISE NOTICE '  ✅ % | got=%', _label, _actual;
+    RETURN 1;
+  ELSE
+    RAISE WARNING '  ❌ % | expected=% got=%', _label, _expected, _actual;
+    RETURN 0;
+  END IF;
+END;
+$$;
+
 DO $TEST$
 DECLARE
   v_tenant_id  uuid;
