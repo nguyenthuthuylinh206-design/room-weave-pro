@@ -37,31 +37,31 @@ BEGIN
   -- ============ SETUP ============
   -- Item A: active, recently consumed (should land in snapshot)
   INSERT INTO items (tenant_id, hotel_id, code, name, unit, item_type,
-                     quantity_in_stock, unit_price, status, last_outbound_at)
+                     quantity_total, quantity_in_stock, unit_price, status, last_outbound_at)
   VALUES (v_tenant, v_hotel, 'C2_A_'||substr(gen_random_uuid()::text,1,6),
-          'C2 Item A', 'cái', 'consumable', 100, 50000, 'active', now() - INTERVAL '2 days')
+          'C2 Item A', 'cái', 'consumable', 100, 100, 50000, 'active', now() - INTERVAL '2 days')
   RETURNING id INTO v_item_a;
 
   -- Item B: active, no recent outbound
   INSERT INTO items (tenant_id, hotel_id, code, name, unit, item_type,
-                     quantity_in_stock, unit_price, status)
+                     quantity_total, quantity_in_stock, unit_price, status)
   VALUES (v_tenant, v_hotel, 'C2_B_'||substr(gen_random_uuid()::text,1,6),
-          'C2 Item B', 'cái', 'consumable', 30, 20000, 'active')
+          'C2 Item B', 'cái', 'consumable', 30, 30, 20000, 'active')
   RETURNING id INTO v_item_b;
 
   -- Item DEAD: stock > 0, no outbound for >120 days
   INSERT INTO items (tenant_id, hotel_id, code, name, unit, item_type,
-                     quantity_in_stock, unit_price, status, last_outbound_at)
+                     quantity_total, quantity_in_stock, unit_price, status, last_outbound_at)
   VALUES (v_tenant, v_hotel, 'C2_DEAD_'||substr(gen_random_uuid()::text,1,6),
-          'C2 Dead Item', 'cái', 'consumable', 50, 100000, 'active',
+          'C2 Dead Item', 'cái', 'consumable', 50, 50, 100000, 'active',
           now() - INTERVAL '120 days')
   RETURNING id INTO v_item_dead;
 
   -- Item INACTIVE: should be excluded everywhere
   INSERT INTO items (tenant_id, hotel_id, code, name, unit, item_type,
-                     quantity_in_stock, unit_price, status, last_outbound_at)
+                     quantity_total, quantity_in_stock, unit_price, status, last_outbound_at)
   VALUES (v_tenant, v_hotel, 'C2_INA_'||substr(gen_random_uuid()::text,1,6),
-          'C2 Inactive', 'cái', 'consumable', 999, 99999, 'inactive',
+          'C2 Inactive', 'cái', 'consumable', 999, 999, 99999, 'inactive',
           now() - INTERVAL '200 days')
   RETURNING id INTO v_item_inactive;
 
