@@ -117,7 +117,7 @@ BEGIN
   -- ═══════════════════════════════════════════════════════════════════════════
   RAISE NOTICE '🧪 TEST 1 — compute tạo đúng đề xuất cho item dưới ngưỡng';
   v_result := public.compute_reorder_suggestions(v_tenant_id, v_hotel_id);
-  CALL assert_eq('  created = 2 (A và D)', (v_result->>'created')::int, 2);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  created = 2 (A và D)', ((v_result->>'created')::int)::text, (2)::text);
 
   SELECT count(*) INTO v_count FROM public.reorder_suggestions
    WHERE tenant_id = v_tenant_id AND item_id IN (v_item_a, v_item_d) AND status = 'pending';
@@ -125,24 +125,24 @@ BEGIN
 
   SELECT count(*) INTO v_count FROM public.reorder_suggestions
    WHERE item_id IN (v_item_b, v_item_c);
-  CALL assert_eq('  không tạo cho B (đủ stock) và C (no threshold)', v_count, 0);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  không tạo cho B (đủ stock) và C (no threshold)', (v_count)::text, (0)::text);
 
   -- Verify suggested_qty = max(reorder_max_qty, reorder_point*2) - effective_stock
   -- Item A: max(50, 10*2)=50, effective=5, suggested=45
   SELECT suggested_qty INTO v_count FROM public.reorder_suggestions WHERE item_id = v_item_a;
-  CALL assert_eq('  item A suggested_qty = 45', v_count, 45);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  item A suggested_qty = 45', (v_count)::text, (45)::text);
 
   -- ═══════════════════════════════════════════════════════════════════════════
   -- TEST 2: idempotent — gọi lại compute không tạo trùng (unique partial index)
   -- ═══════════════════════════════════════════════════════════════════════════
   RAISE NOTICE '🧪 TEST 2 — compute idempotent (không tạo trùng)';
   v_result := public.compute_reorder_suggestions(v_tenant_id, v_hotel_id);
-  CALL assert_eq('  created = 0 (đã có pending)', (v_result->>'created')::int, 0);
-  CALL assert_eq('  skipped = 2', (v_result->>'skipped')::int, 2);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  created = 0 (đã có pending)', ((v_result->>'created')::int)::text, (0)::text);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  skipped = 2', ((v_result->>'skipped')::int)::text, (2)::text);
 
   SELECT count(*) INTO v_count FROM public.reorder_suggestions
    WHERE item_id IN (v_item_a, v_item_d) AND status = 'pending';
-  CALL assert_eq('  vẫn chỉ có 2 row pending (no duplicate)', v_count, 2);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  vẫn chỉ có 2 row pending (no duplicate)', (v_count)::text, (2)::text);
 
   -- ═══════════════════════════════════════════════════════════════════════════
   -- TEST 3: realtime trigger — INSERT inventory_transactions kiểu 'out' tự sinh
@@ -164,11 +164,11 @@ BEGIN
 
   SELECT count(*) INTO v_count FROM public.reorder_suggestions
    WHERE item_id = v_item_b AND status = 'pending';
-  CALL assert_eq('  trigger sinh suggestion cho B sau outbound', v_count, 1);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  trigger sinh suggestion cho B sau outbound', (v_count)::text, (1)::text);
 
   -- last_outbound_at được cập nhật
   PERFORM 1 FROM public.items WHERE id = v_item_b AND last_outbound_at IS NOT NULL;
-  CALL assert_eq('  last_outbound_at đã set cho B', FOUND, true);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  last_outbound_at đã set cho B', (FOUND)::text, (true)::text);
 
   -- ═══════════════════════════════════════════════════════════════════════════
   -- TEST 4: ignore_reorder_suggestion → status='ignored' + ignored_until tương lai
@@ -178,28 +178,28 @@ BEGIN
    WHERE item_id = v_item_a AND status = 'pending';
 
   v_result := public.ignore_reorder_suggestion(v_sugg_a, 'Đang chờ giá tốt hơn', 14);
-  CALL assert_eq('  ok = true', (v_result->>'ok')::boolean, true);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  ok = true', ((v_result->>'ok')::boolean)::text, (true)::text);
 
   SELECT status INTO v_count FROM (
     SELECT CASE status WHEN 'ignored' THEN 1 ELSE 0 END AS status
     FROM public.reorder_suggestions WHERE id = v_sugg_a
   ) x;
-  CALL assert_eq('  status = ignored', v_count, 1);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  status = ignored', (v_count)::text, (1)::text);
 
   PERFORM 1 FROM public.reorder_suggestions
    WHERE id = v_sugg_a AND ignored_until = CURRENT_DATE + 14 AND ignored_reason = 'Đang chờ giá tốt hơn';
-  CALL assert_eq('  ignored_until = today+14 và reason đúng', FOUND, true);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  ignored_until = today+14 và reason đúng', (FOUND)::text, (true)::text);
 
   -- ═══════════════════════════════════════════════════════════════════════════
   -- TEST 5: compute respect ignored_until → KHÔNG sinh lại suggestion cho A
   -- ═══════════════════════════════════════════════════════════════════════════
   RAISE NOTICE '🧪 TEST 5 — compute tôn trọng ignored_until';
   v_result := public.compute_reorder_suggestions(v_tenant_id, v_hotel_id, v_item_a);
-  CALL assert_eq('  created = 0 cho item A đang bị ignore', (v_result->>'created')::int, 0);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  created = 0 cho item A đang bị ignore', ((v_result->>'created')::int)::text, (0)::text);
 
   SELECT count(*) INTO v_count FROM public.reorder_suggestions
    WHERE item_id = v_item_a AND status = 'pending';
-  CALL assert_eq('  không có pending mới cho A', v_count, 0);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  không có pending mới cho A', (v_count)::text, (0)::text);
 
   -- ═══════════════════════════════════════════════════════════════════════════
   -- TEST 6: approve_reorder_suggestions — gom theo (hotel, vendor) → tạo PO draft
@@ -214,19 +214,18 @@ BEGIN
    WHERE item_id = v_item_b AND status = 'pending';
 
   v_result := public.approve_reorder_suggestions(ARRAY[v_sugg_d, v_sugg_id]);
-  CALL assert_eq('  converted_count = 2', (v_result->>'converted_count')::int, 2);
-  CALL assert_eq('  tạo 2 PO (1 vendor + 1 NULL)',
-                 jsonb_array_length(v_result->'po_ids'), 2);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  converted_count = 2', ((v_result->>'converted_count')::int)::text, (2)::text);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  tạo 2 PO (1 vendor + 1 NULL)', (jsonb_array_length(v_result->'po_ids'))::text, (2)::text);
 
   SELECT count(*) INTO v_count FROM public.reorder_suggestions
    WHERE id IN (v_sugg_d, v_sugg_id) AND status = 'converted' AND converted_po_id IS NOT NULL;
-  CALL assert_eq('  2 suggestion đã chuyển status=converted + có po_id', v_count, 2);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  2 suggestion đã chuyển status=converted + có po_id', (v_count)::text, (2)::text);
 
   SELECT count(*) INTO v_count FROM public.purchase_orders
    WHERE id::text IN (
      SELECT jsonb_array_elements_text(v_result->'po_ids')
    ) AND status = 'draft';
-  CALL assert_eq('  cả 2 PO đều ở status=draft', v_count, 2);
+  v_total := v_total + 1; v_passed := v_passed + pg_temp.assert_eq('  cả 2 PO đều ở status=draft', (v_count)::text, (2)::text);
 
   -- ═══════════════════════════════════════════════════════════════════════════
   -- TEST 7: permission & validation guard
