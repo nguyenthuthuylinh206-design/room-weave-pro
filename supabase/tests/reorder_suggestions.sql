@@ -116,9 +116,9 @@ BEGIN
 
   INSERT INTO public.items (tenant_id, hotel_id, category_id, name, unit, unit_price,
                             quantity_in_stock, quantity_total, minimum_stock,
-                            reorder_point, reorder_max_qty, status)
-  VALUES (v_tenant_id, v_hotel_id, v_cat_id, 'TEST_RO_D_no_vendor', 'cái', 8000,
-          2, 2, 1, 5, 20, 'active')
+                            reorder_point, reorder_max_qty, preferred_vendor_id, status)
+  VALUES (v_tenant_id, v_hotel_id, v_cat_id, 'TEST_RO_D_vendor2', 'cái', 8000,
+          2, 2, 1, 5, 20, v_vendor_id2, 'active')
   RETURNING id INTO v_item_d;
 
   RAISE NOTICE '────────────────────────────────────────────────────────────';
