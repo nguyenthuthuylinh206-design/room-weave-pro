@@ -11,6 +11,7 @@ export interface PendingCounts {
   maintenance: number
   adjustments: number
   tasks: number
+  reorderSuggestions: number
   // Aggregated counts for parent menus
   inventoryTotal: number
   laundryTotal: number
@@ -33,6 +34,7 @@ export function usePendingCounts() {
           maintenance: 0,
           adjustments: 0,
           tasks: 0,
+          reorderSuggestions: 0,
           inventoryTotal: 0,
           laundryTotal: 0,
           maintenanceTotal: 0,
@@ -92,6 +94,13 @@ export function usePendingCounts() {
         tasksQuery = tasksQuery.eq('assigned_to', user.id)
       }
 
+      let reorderQuery = supabase
+        .from('reorder_suggestions')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .eq('status', 'pending')
+      if (hotelId) reorderQuery = reorderQuery.eq('hotel_id', hotelId)
+
       const [
         supplementsRes,
         laundryRequestsRes,
@@ -99,6 +108,7 @@ export function usePendingCounts() {
         maintenanceRes,
         adjustmentsRes,
         tasksRes,
+        reorderRes,
       ] = await Promise.all([
         supplementsQuery,
         laundryRequestsQuery,
@@ -106,6 +116,7 @@ export function usePendingCounts() {
         maintenanceQuery,
         adjustmentsQuery,
         tasksQuery,
+        reorderQuery,
       ])
 
       const supplements = supplementsRes.count || 0
@@ -114,6 +125,7 @@ export function usePendingCounts() {
       const maintenance = maintenanceRes.count || 0
       const adjustments = adjustmentsRes.count || 0
       const tasks = tasksRes.count || 0
+      const reorderSuggestions = reorderRes.count || 0
 
       return {
         supplements,
@@ -122,8 +134,9 @@ export function usePendingCounts() {
         maintenance,
         adjustments,
         tasks,
+        reorderSuggestions,
         // Aggregated totals for parent menus
-        inventoryTotal: supplements + distributions + adjustments,
+        inventoryTotal: supplements + distributions + adjustments + reorderSuggestions,
         laundryTotal: laundryRequests,
         maintenanceTotal: maintenance,
       }
