@@ -76,7 +76,7 @@ export function ApproveReorderDialog({ open, onOpenChange, selected }: Props) {
 
           {groups.some((g) => g.key === NO_VENDOR_KEY) && (
             <div className="text-xs text-amber-600 px-1">
-              Một số item chưa gán nhà cung cấp ưu tiên — PO sẽ được tạo nháp không vendor, bạn cần chọn vendor sau.
+              Một số item chưa gán nhà cung cấp ưu tiên — các item này sẽ bị <b>bỏ qua</b> khi duyệt. Hãy gán nhà cung cấp ở "Cài đặt nhập lại" rồi duyệt lại.
             </div>
           )}
 
