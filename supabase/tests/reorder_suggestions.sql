@@ -272,14 +272,25 @@ BEGIN
     END IF;
   END;
 
-  -- Bỏ role để test forbidden
-  DELETE FROM public.user_roles WHERE user_id = v_user_id;
+  -- Đổi sang user UUID không có role để test forbidden_approve
+  -- (KHÔNG cần INSERT vào auth.users vì has_role chỉ query user_roles)
+  PERFORM set_config('request.jwt.claims',
+    jsonb_build_object('sub', gen_random_uuid()::text, 'role', 'authenticated')::text, true);
 
-  -- Tạo 1 suggestion mới để có pending
-  UPDATE public.items SET quantity_in_stock = 1 WHERE id = v_item_b;
-  PERFORM public.compute_reorder_suggestions(v_tenant_id, v_hotel_id, v_item_b);
+  -- Cần 1 suggestion pending để test guard. Item D đã converted, item A bị ignored,
+  -- item E đã converted ở TEST 6 → tạo lại suggestion cho E bằng cách insert outbound mới
+  -- (item E hiện stock=1, vẫn dưới ngưỡng → trigger sẽ compute → có pending mới)
+  INSERT INTO public.inventory_transactions
+    (tenant_id, hotel_id, item_id, transaction_type, transaction_category,
+     quantity, unit_price, total_value, quantity_before, quantity_after,
+     transaction_code, created_by, transaction_date)
+  VALUES
+    (v_tenant_id, v_hotel_id, v_item_e, 'out', 'consume',
+     0, 5000, 0, 1, 1,
+     'TEST-OUT2-' || substr(gen_random_uuid()::text, 1, 8), v_user_id, now());
+
   SELECT id INTO v_sugg_id FROM public.reorder_suggestions
-   WHERE item_id = v_item_b AND status = 'pending' LIMIT 1;
+   WHERE item_id = v_item_e AND status = 'pending' LIMIT 1;
 
   v_total := v_total + 1;
   BEGIN
