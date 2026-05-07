@@ -695,29 +695,37 @@ export default function LeanInspectionPage() {
       </footer>
 
       {/* Report Issue Sheet */}
-      <LeanReportIssueSheet
-        open={!!sheetItem}
-        onOpenChange={(v) => !v && setSheetItem(null)}
-        itemName={sheetItem?.item_name || ''}
-        itemType={sheetItem?.item_type || 'equipment'}
-        standardQuantity={sheetItem?.standard_quantity || 1}
-        assetGroup={sheetItem?.asset_group ?? null}
-        photoRequiredFor={photoRequiredFor}
-        initial={
-          sheetItem && issues[sheetItem.item_id]
-            ? {
-                level1: issues[sheetItem.item_id].level1,
-                quantity: issues[sheetItem.item_id].quantity,
-                photos: issues[sheetItem.item_id].photos,
-                chargeToGuest: issues[sheetItem.item_id].chargeToGuest,
-                notes: issues[sheetItem.item_id].notes,
-                subReasonKey: issues[sheetItem.item_id].subReason,
-              }
+      {(() => {
+        const sheetItem = sheetState?.item ?? null
+        const editingIssue =
+          sheetItem && sheetState?.issueId
+            ? (issues[sheetItem.item_id] ?? []).find((x) => x.id === sheetState.issueId) ?? null
             : null
-        }
-        onSubmit={handleIssueSubmit}
-      />
-
+        return (
+          <LeanReportIssueSheet
+            open={!!sheetItem}
+            onOpenChange={(v) => !v && setSheetState(null)}
+            itemName={sheetItem?.item_name || ''}
+            itemType={sheetItem?.item_type || 'equipment'}
+            standardQuantity={sheetItem?.standard_quantity || 1}
+            assetGroup={sheetItem?.asset_group ?? null}
+            photoRequiredFor={photoRequiredFor}
+            initial={
+              editingIssue
+                ? {
+                    level1: editingIssue.level1,
+                    quantity: editingIssue.quantity,
+                    photos: editingIssue.photos,
+                    chargeToGuest: editingIssue.chargeToGuest,
+                    notes: editingIssue.notes,
+                    subReasonKey: editingIssue.subReason,
+                  }
+                : null
+            }
+            onSubmit={handleIssueSubmit}
+          />
+        )
+      })()}
       {/* Takeover overlay — block khi Manager đã tiếp quản phiên kiểm */}
       {takenOver && (
         <div
