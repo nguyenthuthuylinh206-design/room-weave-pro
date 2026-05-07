@@ -24,6 +24,8 @@ interface ItemReorderSettings {
   lead_time_days: number | null
   is_perishable: boolean | null
   preferred_vendor_id: string | null
+  auto_reorder_enabled: boolean | null
+  safety_factor: number | null
 }
 
 const NO_VENDOR = '__none__'
