@@ -6648,45 +6648,66 @@ export type Database = {
         Row: {
           attempts: number
           created_at: string
+          dead_letter_at: string | null
+          dead_letter_reason: string | null
           hotel_id: string
           id: string
+          idempotency_key_hash: string | null
+          idempotency_key_raw: string | null
           issue_id: string
           job_kind: string
           last_error: string | null
+          next_retry_at: string
           payload: Json | null
           processed_at: string | null
           result: Json | null
+          retry_count: number
           room_check_id: string
+          schema_version: number
           status: string
           tenant_id: string
         }
         Insert: {
           attempts?: number
           created_at?: string
+          dead_letter_at?: string | null
+          dead_letter_reason?: string | null
           hotel_id: string
           id?: string
+          idempotency_key_hash?: string | null
+          idempotency_key_raw?: string | null
           issue_id: string
           job_kind: string
           last_error?: string | null
+          next_retry_at?: string
           payload?: Json | null
           processed_at?: string | null
           result?: Json | null
+          retry_count?: number
           room_check_id: string
+          schema_version?: number
           status?: string
           tenant_id: string
         }
         Update: {
           attempts?: number
           created_at?: string
+          dead_letter_at?: string | null
+          dead_letter_reason?: string | null
           hotel_id?: string
           id?: string
+          idempotency_key_hash?: string | null
+          idempotency_key_raw?: string | null
           issue_id?: string
           job_kind?: string
           last_error?: string | null
+          next_retry_at?: string
           payload?: Json | null
           processed_at?: string | null
           result?: Json | null
+          retry_count?: number
           room_check_id?: string
+          schema_version?: number
           status?: string
           tenant_id?: string
         }
@@ -11758,6 +11779,7 @@ export type Database = {
       no_plan: { Args: never; Returns: boolean[] }
       num_failed: { Args: never; Returns: number }
       os_name: { Args: never; Returns: string }
+      outbox_next_retry_at: { Args: { _retry_count: number }; Returns: string }
       pass:
         | { Args: never; Returns: string }
         | { Args: { "": string }; Returns: string }
@@ -11850,6 +11872,7 @@ export type Database = {
         Args: { p_actor_id?: string; p_batch_id: string }
         Returns: Json
       }
+      reconcile_room_check_outbox: { Args: { _hours?: number }; Returns: Json }
       refresh_consumption_snapshots: {
         Args: { _hotel_id?: string; _tenant_id: string }
         Returns: Json
