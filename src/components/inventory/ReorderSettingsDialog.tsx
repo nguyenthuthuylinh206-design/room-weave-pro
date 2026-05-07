@@ -201,6 +201,45 @@ export function ReorderSettingsDialog({ open, onOpenChange, itemId, itemName }: 
                   onCheckedChange={(v) => setForm({ ...form, is_perishable: v })}
                 />
               </div>
+
+              <div className="border rounded-lg p-2 space-y-2 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="auto" className="text-sm">Tự động gợi ý đặt hàng</Label>
+                    <p className="text-[10px] text-muted-foreground">
+                      Dự đoán theo tiêu thụ TB × ngày chờ × hệ số an toàn
+                    </p>
+                  </div>
+                  <Switch
+                    id="auto"
+                    checked={form.auto_reorder_enabled ?? false}
+                    onCheckedChange={(v) => setForm({ ...form, auto_reorder_enabled: v })}
+                  />
+                </div>
+                {form.auto_reorder_enabled && (
+                  <div className="space-y-1">
+                    <Label htmlFor="sf" className="text-xs">Hệ số an toàn</Label>
+                    <Input
+                      id="sf"
+                      type="number"
+                      step="0.1"
+                      min={1}
+                      max={3}
+                      value={form.safety_factor ?? 1.3}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          safety_factor: parseFloat(e.target.value || '1.3'),
+                        })
+                      }
+                      className="h-8"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Mặc định 1.3 (dư 30% phòng đột biến)
+                    </p>
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>
