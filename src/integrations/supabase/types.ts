@@ -7017,6 +7017,7 @@ export type Database = {
           reviewed_by: string | null
           room_id: string
           score_override: number | null
+          started_at: string | null
           status: string
           summary_issue_count: number
           summary_ok_count: number
@@ -7048,6 +7049,7 @@ export type Database = {
           reviewed_by?: string | null
           room_id: string
           score_override?: number | null
+          started_at?: string | null
           status?: string
           summary_issue_count?: number
           summary_ok_count?: number
@@ -7079,6 +7081,7 @@ export type Database = {
           reviewed_by?: string | null
           room_id?: string
           score_override?: number | null
+          started_at?: string | null
           status?: string
           summary_issue_count?: number
           summary_ok_count?: number
