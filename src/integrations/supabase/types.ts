@@ -3707,6 +3707,7 @@ export type Database = {
           last_outbound_at: string | null
           lead_time_days: number | null
           max_wash_cycles: number | null
+          migration_review_reason: string | null
           migration_review_required: boolean
           minimum_stock: number | null
           model: string | null
@@ -3751,6 +3752,7 @@ export type Database = {
           last_outbound_at?: string | null
           lead_time_days?: number | null
           max_wash_cycles?: number | null
+          migration_review_reason?: string | null
           migration_review_required?: boolean
           minimum_stock?: number | null
           model?: string | null
@@ -3795,6 +3797,7 @@ export type Database = {
           last_outbound_at?: string | null
           lead_time_days?: number | null
           max_wash_cycles?: number | null
+          migration_review_reason?: string | null
           migration_review_required?: boolean
           minimum_stock?: number | null
           model?: string | null
@@ -6701,13 +6704,14 @@ export type Database = {
         Row: {
           asset_group: string | null
           bucket: string
+          charge_status: Database["public"]["Enums"]["charge_status"]
           charge_to_guest: boolean | null
           client_issue_id: string | null
           created_at: string
           extra: Json | null
           hotel_id: string
           id: string
-          issue_role: string
+          issue_role: Database["public"]["Enums"]["issue_role"]
           item_id: string | null
           item_name: string | null
           item_type: string | null
@@ -6715,25 +6719,30 @@ export type Database = {
           needs_review: boolean | null
           notes: string | null
           photos: string[] | null
+          quality_issue: boolean
           quantity: number
+          retire_reason: string | null
+          review_reason: string | null
           room_check_id: string
           room_id: string
           source: string | null
           source_issue_id: string | null
           sub_reason: string | null
+          suspicious: boolean
           tenant_id: string
           ui_action: string | null
         }
         Insert: {
           asset_group?: string | null
           bucket: string
+          charge_status?: Database["public"]["Enums"]["charge_status"]
           charge_to_guest?: boolean | null
           client_issue_id?: string | null
           created_at?: string
           extra?: Json | null
           hotel_id: string
           id?: string
-          issue_role?: string
+          issue_role?: Database["public"]["Enums"]["issue_role"]
           item_id?: string | null
           item_name?: string | null
           item_type?: string | null
@@ -6741,25 +6750,30 @@ export type Database = {
           needs_review?: boolean | null
           notes?: string | null
           photos?: string[] | null
+          quality_issue?: boolean
           quantity: number
+          retire_reason?: string | null
+          review_reason?: string | null
           room_check_id: string
           room_id: string
           source?: string | null
           source_issue_id?: string | null
           sub_reason?: string | null
+          suspicious?: boolean
           tenant_id: string
           ui_action?: string | null
         }
         Update: {
           asset_group?: string | null
           bucket?: string
+          charge_status?: Database["public"]["Enums"]["charge_status"]
           charge_to_guest?: boolean | null
           client_issue_id?: string | null
           created_at?: string
           extra?: Json | null
           hotel_id?: string
           id?: string
-          issue_role?: string
+          issue_role?: Database["public"]["Enums"]["issue_role"]
           item_id?: string | null
           item_name?: string | null
           item_type?: string | null
@@ -6767,12 +6781,16 @@ export type Database = {
           needs_review?: boolean | null
           notes?: string | null
           photos?: string[] | null
+          quality_issue?: boolean
           quantity?: number
+          retire_reason?: string | null
+          review_reason?: string | null
           room_check_id?: string
           room_id?: string
           source?: string | null
           source_issue_id?: string | null
           sub_reason?: string | null
+          suspicious?: boolean
           tenant_id?: string
           ui_action?: string | null
         }
@@ -12288,6 +12306,7 @@ export type Database = {
         | "chargeable_confirmed"
         | "chargeable_rejected"
       hk_qc_mode: "self" | "peer" | "strict"
+      issue_role: "primary_issue" | "derived_action"
       item_type: "linen" | "consumable" | "equipment" | "furniture"
       photo_evidence_mode: "none" | "on_issue" | "always"
       service_category:
@@ -12454,6 +12473,7 @@ export const Constants = {
         "chargeable_rejected",
       ],
       hk_qc_mode: ["self", "peer", "strict"],
+      issue_role: ["primary_issue", "derived_action"],
       item_type: ["linen", "consumable", "equipment", "furniture"],
       photo_evidence_mode: ["none", "on_issue", "always"],
       service_category: [
