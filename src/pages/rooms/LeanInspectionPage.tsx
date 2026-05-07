@@ -685,9 +685,9 @@ export default function LeanInspectionPage() {
             style={{ minHeight: 56 }}
           >
             Tiếp tục
-            {reportedCount > 0 && (
+            {totalIssueCount > 0 && (
               <span className="ml-2 text-[14px] font-medium opacity-80">
-                · {reportedCount} sự cố
+                · {totalIssueCount} sự cố / {reportedCount} mục
               </span>
             )}
           </Button>
