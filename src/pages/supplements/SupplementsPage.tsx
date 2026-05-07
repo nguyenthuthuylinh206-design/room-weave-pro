@@ -62,12 +62,18 @@ export function SupplementsPage() {
   const [filters, setFilters] = useState({
     status: searchParams.get('status') || '',
     search: searchParams.get('search') || '',
+    source: searchParams.get('source') || '',
   })
   
-  const { data: requests, isLoading } = useSupplementRequests({
+  const { data: rawRequests, isLoading } = useSupplementRequests({
     status: filters.status && filters.status !== 'all' ? filters.status : undefined,
     search: filters.search || undefined,
   })
+  const requests = filters.source === 'room_check'
+    ? (rawRequests ?? []).filter(r => !!r.room_check_id)
+    : filters.source === 'manual'
+      ? (rawRequests ?? []).filter(r => !r.room_check_id)
+      : rawRequests
   
   const { data: pendingCount } = usePendingSupplementCount()
   
@@ -196,12 +202,23 @@ export function SupplementsPage() {
             <SelectItem value="rejected">Từ chối</SelectItem>
           </SelectContent>
         </Select>
-        {(filters.status || filters.search) && (
+        <Select
+          value={filters.source || 'all'}
+          onValueChange={(value) => handleFilterChange('source', value === 'all' ? '' : value)}
+        >
+          <SelectTrigger className="w-40"><SelectValue placeholder="Nguồn" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Mọi nguồn</SelectItem>
+            <SelectItem value="room_check">Từ kiểm tra phòng</SelectItem>
+            <SelectItem value="manual">Tạo thủ công</SelectItem>
+          </SelectContent>
+        </Select>
+        {(filters.status || filters.search || filters.source) && (
           <Button 
             variant="ghost" 
             size="sm"
             onClick={() => {
-              setFilters({ status: '', search: '' })
+              setFilters({ status: '', search: '', source: '' })
               setSearchParams(new URLSearchParams())
             }}
           >
