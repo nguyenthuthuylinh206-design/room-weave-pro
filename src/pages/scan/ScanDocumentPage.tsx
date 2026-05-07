@@ -48,26 +48,8 @@ export default function ScanDocumentPage() {
     setErrorMsg('')
 
     try {
-      // Re-fetch fresh session data
-      const { data: freshSession } = await supabase
-        .from('document_scan_sessions')
-        .select('*')
-        .eq('id', sessionId)
-        .single()
-
-      if (!freshSession || (freshSession.status !== 'pending' && freshSession.status !== 'failed')) {
-        throw new Error('Phiên quét không hợp lệ hoặc đã hoàn thành')
-      }
-
-      // Reset failed session back to pending
-      if (freshSession.status === 'failed') {
-        await supabase
-          .from('document_scan_sessions')
-          .update({ status: 'pending' })
-          .eq('id', sessionId)
-      }
-
-      setSessionData(freshSession)
+      // mobile-scan-upload (service role) re-validates session status server-side
+      // and accepts both 'pending' and 'failed' (auto-resetting failed→pending).
 
       // Compress image
       console.log('[ScanDoc] Compressing image...')
@@ -81,7 +63,7 @@ export default function ScanDocumentPage() {
         body: {
           sessionId,
           imageBase64: base64,
-          documentType: freshSession.document_type,
+          documentType: sessionData?.document_type,
         },
       })
 
