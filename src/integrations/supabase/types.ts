@@ -707,6 +707,7 @@ export type Database = {
       }
       chargeable_consumptions: {
         Row: {
+          approval_status: string
           billed_at: string | null
           booking_id: string
           created_at: string | null
@@ -719,6 +720,9 @@ export type Database = {
           quantity: number
           recorded_at: string | null
           recorded_by: string | null
+          reject_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           room_id: string
           tenant_id: string
           total_amount: number | null
@@ -726,6 +730,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          approval_status?: string
           billed_at?: string | null
           booking_id: string
           created_at?: string | null
@@ -738,6 +743,9 @@ export type Database = {
           quantity?: number
           recorded_at?: string | null
           recorded_by?: string | null
+          reject_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           room_id: string
           tenant_id: string
           total_amount?: number | null
@@ -745,6 +753,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          approval_status?: string
           billed_at?: string | null
           booking_id?: string
           created_at?: string | null
@@ -757,6 +766,9 @@ export type Database = {
           quantity?: number
           recorded_at?: string | null
           recorded_by?: string | null
+          reject_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           room_id?: string
           tenant_id?: string
           total_amount?: number | null
@@ -11900,6 +11912,12 @@ export type Database = {
       return_to_stock_for_stop: {
         Args: { p_actor_id?: string; p_room_order_id: string }
         Returns: Json
+      }
+      review_chargeable_consumptions: {
+        Args: { p_decision: string; p_ids: string[]; p_reason?: string }
+        Returns: {
+          updated_count: number
+        }[]
       }
       run_auto_reorder_daily: { Args: never; Returns: Json }
       runtests:
