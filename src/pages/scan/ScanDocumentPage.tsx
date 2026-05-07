@@ -19,25 +19,15 @@ export default function ScanDocumentPage() {
   useEffect(() => {
     if (!sessionId) return
     const autoOpen = async () => {
-      const { data, error } = await supabase.functions.invoke('get-scan-session', {
-        body: null,
-        method: 'GET' as any,
-        headers: {},
-        // pass via query string
-      } as any)
-      // Fallback to direct fetch since invoke doesn't support querystring cleanly
-      let session: any = data?.session
-      if (!session) {
-        try {
-          const url = `${(supabase as any).functionsUrl || ''}/get-scan-session?sessionId=${sessionId}`
-          const resp = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-scan-session?sessionId=${sessionId}`,
-            { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } },
-          )
-          const json = await resp.json()
-          session = json?.session
-        } catch (_) {}
-      }
+      let session: any = null
+      try {
+        const resp = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-scan-session?sessionId=${sessionId}`,
+          { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } },
+        )
+        const json = await resp.json()
+        session = json?.session
+      } catch (_) {}
       if (!session || session.status !== 'pending') {
         setSessionInvalid(true)
         setStatus('error')
