@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
@@ -294,9 +294,9 @@ export function LeanReportIssueSheet({
           <SheetTitle className="text-[20px] font-bold leading-tight">
             {itemName}
           </SheetTitle>
-          <p className="text-[14px] text-muted-foreground">
+          <SheetDescription className="text-[14px] text-muted-foreground">
             Tiêu chuẩn: {standardQuantity}
-          </p>
+          </SheetDescription>
         </SheetHeader>
 
         {/* ── L1: 4 lựa chọn ── */}
