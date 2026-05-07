@@ -6629,6 +6629,62 @@ export type Database = {
           },
         ]
       }
+      room_check_issue_outbox: {
+        Row: {
+          attempts: number
+          created_at: string
+          hotel_id: string
+          id: string
+          issue_id: string
+          job_kind: string
+          last_error: string | null
+          payload: Json | null
+          processed_at: string | null
+          result: Json | null
+          room_check_id: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          hotel_id: string
+          id?: string
+          issue_id: string
+          job_kind: string
+          last_error?: string | null
+          payload?: Json | null
+          processed_at?: string | null
+          result?: Json | null
+          room_check_id: string
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          hotel_id?: string
+          id?: string
+          issue_id?: string
+          job_kind?: string
+          last_error?: string | null
+          payload?: Json | null
+          processed_at?: string | null
+          result?: Json | null
+          room_check_id?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_check_issue_outbox_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "room_check_issues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_check_issues: {
         Row: {
           asset_group: string | null
@@ -11727,6 +11783,10 @@ export type Database = {
         }[]
       }
       process_expired_subscriptions: { Args: never; Returns: undefined }
+      process_room_check_issue_outbox: {
+        Args: { _limit?: number }
+        Returns: Json
+      }
       qc_approve_task: {
         Args: { _notes?: string; _score_override?: number; _task_id: string }
         Returns: Json
