@@ -109,6 +109,8 @@ const navigation: NavItem[] = [
       { titleKey: 'adjustment', href: '/inventory/adjustments', icon: ClipboardCheck, badgeKey: 'adjustments', group: 'Xuất nhập kho' },
       { titleKey: 'distribution', href: '/inventory/distributions', icon: Truck, badgeKey: 'distributions', group: 'Xuất nhập kho' },
       { titleKey: 'reorder', href: '/inventory/reorder', icon: PackageSearch, badgeKey: 'reorderSuggestions', group: 'Xuất nhập kho' },
+      { titleKey: 'deadStock', href: '/inventory/dead-stock', icon: PackageSearch, group: 'Phân tích' },
+      { titleKey: 'consumptionAnalytics', href: '/inventory/analytics', icon: LayoutDashboard, group: 'Phân tích' },
       { titleKey: 'supplements', href: '/supplements', icon: Package, badgeKey: 'supplements', group: 'Thiết lập' },
       { titleKey: 'warehouses', href: '/settings/warehouses', icon: Warehouse, group: 'Thiết lập' },
     ],

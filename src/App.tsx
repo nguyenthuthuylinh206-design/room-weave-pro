@@ -42,6 +42,8 @@ const CreateDistributionPage = lazy(() => import("./pages/inventory/CreateDistri
 const CreateFromSupplementsPage = lazy(() => import("./pages/inventory/CreateFromSupplementsPage"));
 const TransferPage = lazy(() => import("./pages/inventory/TransferPage"));
 const ReorderSuggestionsPage = lazy(() => import("./pages/inventory/ReorderSuggestionsPage"));
+const DeadStockPage = lazy(() => import("./pages/inventory/DeadStockPage"));
+const InventoryAnalyticsPage = lazy(() => import("./pages/inventory/InventoryAnalyticsPage"));
 
 // Items
 const ItemsPage = lazyNamed(() => import("./pages/items/ItemsPage"), "ItemsPage");
@@ -352,6 +354,8 @@ const router = createBrowserRouter([
       { path: "inventory/distributions/from-supplements", element: <PermissionRoute module="inventory" action="create"><CreateFromSupplementsPage /></PermissionRoute> },
       { path: "inventory/distributions/:id", element: <PermissionRoute module="inventory"><DistributionOrderDetailPage /></PermissionRoute> },
       { path: "inventory/reorder", element: <PermissionRoute module="inventory"><ReorderSuggestionsPage /></PermissionRoute> },
+      { path: "inventory/dead-stock", element: <PermissionRoute module="inventory"><DeadStockPage /></PermissionRoute> },
+      { path: "inventory/analytics", element: <PermissionRoute module="inventory"><InventoryAnalyticsPage /></PermissionRoute> },
 
       // Items
       { path: "items", element: <PermissionRoute module="items"><ItemsPage /></PermissionRoute> },

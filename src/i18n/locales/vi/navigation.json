@@ -14,6 +14,8 @@
   "transfer": "Chuyển kho",
   "distribution": "Phiếu giao hàng",
   "reorder": "Đề xuất nhập hàng",
+  "deadStock": "Tồn kho ứ đọng",
+  "consumptionAnalytics": "Phân tích tiêu thụ",
   "warehouses": "Quản lý kho",
   "rooms": "Phòng",
   "roomsList": "Danh sách phòng",
