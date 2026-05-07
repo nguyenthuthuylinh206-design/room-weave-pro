@@ -509,11 +509,11 @@ export default function LeanInspectionPage() {
             </header>
             <ul>
               {g.items.map((it) => {
-                const issue = issues[it.item_id]
+                const issueList = issues[it.item_id] ?? []
                 const isMinibar = it.is_minibar
                 const minibarQty = minibar[it.item_id] ?? 0
 
-                if (isMinibar && showMinibarDeep && !issue) {
+                if (isMinibar && showMinibarDeep && issueList.length === 0) {
                   return (
                     <li
                       key={it.item_id}
@@ -526,9 +526,7 @@ export default function LeanInspectionPage() {
                             {it.item_name}
                           </p>
                           <p className="text-[13px] text-muted-foreground mt-0.5">
-                            {minibarQty > 0
-                              ? `Đã dùng ${minibarQty}`
-                              : 'Chưa dùng'}
+                            {minibarQty > 0 ? `Đã dùng ${minibarQty}` : 'Chưa dùng'}
                           </p>
                         </div>
                         {minibarQty === 0 ? (
@@ -561,9 +559,7 @@ export default function LeanInspectionPage() {
                             </div>
                             <button
                               type="button"
-                              onClick={() =>
-                                setMinibarQty(it.item_id, minibarQty + 1)
-                              }
+                              onClick={() => setMinibarQty(it.item_id, minibarQty + 1)}
                               className="rounded-lg border-2 text-xl font-bold active:bg-muted/50"
                               style={{ width: 56, height: 56 }}
                               aria-label="Tăng"
@@ -577,61 +573,94 @@ export default function LeanInspectionPage() {
                   )
                 }
 
-                return (
-                  <li
-                    key={it.item_id}
-                    className="border-b last:border-b-0 flex items-stretch"
-                    style={{ minHeight: 64 }}
-                  >
-                    {/* Vùng bấm chính: mở sheet để sửa/báo */}
-                    <button
-                      type="button"
-                      onClick={() => openIssueFor(it)}
-                      className="flex-1 flex items-center gap-3 px-3 py-3 text-left active:bg-muted/50"
-                      aria-label={
-                        issue
-                          ? `Sửa ${it.item_name}`
-                          : `Báo vấn đề cho ${it.item_name}`
-                      }
+                if (issueList.length === 0) {
+                  // Item ổn — hàng đơn giản, bấm để báo vấn đề
+                  return (
+                    <li
+                      key={it.item_id}
+                      className="border-b last:border-b-0 flex items-stretch"
+                      style={{ minHeight: 64 }}
                     >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[16px] font-medium leading-tight truncate">
-                          {it.item_name}
-                        </p>
-                        {issue ? (
-                          <p className="text-[13px] mt-0.5 text-amber-700 font-semibold">
-                            {issueLabel(issue)} · SL {issue.quantity}
-                            {issue.photos.length > 0 &&
-                              ` · ${issue.photos.length} ảnh`}
+                      <button
+                        type="button"
+                        onClick={() => openNewIssueFor(it)}
+                        className="flex-1 flex items-center gap-3 px-3 py-3 text-left active:bg-muted/50"
+                        aria-label={`Báo vấn đề cho ${it.item_name}`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[16px] font-medium leading-tight truncate">
+                            {it.item_name}
                           </p>
-                        ) : (
                           <p className="text-[13px] mt-0.5 text-green-600 font-medium">
                             Ổn
                           </p>
-                        )}
-                      </div>
-                      {!issue && (
+                        </div>
                         <span
                           className="text-[14px] font-semibold text-primary px-3 py-2 border-2 border-primary/40 rounded-lg"
                           style={{ minHeight: 44 }}
                         >
                           Có vấn đề
                         </span>
-                      )}
-                    </button>
-
-                    {/* Nút "Bỏ" tách riêng — không nested để tránh bấm nhầm */}
-                    {issue && (
-                      <button
-                        type="button"
-                        onClick={() => removeIssue(it.item_id)}
-                        aria-label={`Bỏ vấn đề của ${it.item_name}`}
-                        className="px-4 text-[14px] font-semibold text-muted-foreground border-l active:bg-muted/50"
-                        style={{ minWidth: 64 }}
-                      >
-                        Bỏ
                       </button>
-                    )}
+                    </li>
+                  )
+                }
+
+                // Item có ≥1 issue — render list + nút thêm
+                return (
+                  <li
+                    key={it.item_id}
+                    className="border-b last:border-b-0 px-3 py-3 space-y-2"
+                  >
+                    <p className="text-[16px] font-medium leading-tight truncate">
+                      {it.item_name}
+                      <span className="ml-2 text-[12px] font-medium text-muted-foreground">
+                        {issueList.length} sự cố
+                      </span>
+                    </p>
+                    <ul className="space-y-1.5">
+                      {issueList.map((iss) => (
+                        <li
+                          key={iss.id}
+                          className="flex items-stretch border rounded-lg overflow-hidden"
+                          style={{ minHeight: 56 }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => openEditIssue(it, iss.id)}
+                            className="flex-1 px-3 py-2 text-left active:bg-muted/50"
+                            aria-label={`Sửa sự cố ${iss.item_name}`}
+                          >
+                            <p className="text-[14px] font-semibold text-amber-700 leading-tight">
+                              {issueLabel(iss)} · SL {iss.quantity}
+                              {iss.photos.length > 0 && ` · ${iss.photos.length} ảnh`}
+                            </p>
+                            {iss.notes && (
+                              <p className="text-[12px] text-muted-foreground mt-0.5 line-clamp-1">
+                                {iss.notes}
+                              </p>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeIssue(it.item_id, iss.id)}
+                            aria-label="Bỏ sự cố này"
+                            className="px-3 text-[13px] font-semibold text-muted-foreground border-l active:bg-muted/50"
+                            style={{ minWidth: 56 }}
+                          >
+                            Bỏ
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      type="button"
+                      onClick={() => openNewIssueFor(it)}
+                      className="w-full text-[14px] font-semibold text-primary py-2 border-2 border-dashed border-primary/40 rounded-lg active:bg-muted/50"
+                      style={{ minHeight: 44 }}
+                    >
+                      + Thêm sự cố khác
+                    </button>
                   </li>
                 )
               })}
