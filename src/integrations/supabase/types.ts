@@ -6629,6 +6629,102 @@ export type Database = {
           },
         ]
       }
+      room_check_issues: {
+        Row: {
+          asset_group: string | null
+          bucket: string
+          charge_to_guest: boolean | null
+          client_issue_id: string | null
+          created_at: string
+          extra: Json | null
+          hotel_id: string
+          id: string
+          issue_role: string
+          item_id: string | null
+          item_name: string | null
+          item_type: string | null
+          kind: string | null
+          needs_review: boolean | null
+          notes: string | null
+          photos: string[] | null
+          quantity: number
+          room_check_id: string
+          room_id: string
+          source: string | null
+          source_issue_id: string | null
+          sub_reason: string | null
+          tenant_id: string
+          ui_action: string | null
+        }
+        Insert: {
+          asset_group?: string | null
+          bucket: string
+          charge_to_guest?: boolean | null
+          client_issue_id?: string | null
+          created_at?: string
+          extra?: Json | null
+          hotel_id: string
+          id?: string
+          issue_role?: string
+          item_id?: string | null
+          item_name?: string | null
+          item_type?: string | null
+          kind?: string | null
+          needs_review?: boolean | null
+          notes?: string | null
+          photos?: string[] | null
+          quantity: number
+          room_check_id: string
+          room_id: string
+          source?: string | null
+          source_issue_id?: string | null
+          sub_reason?: string | null
+          tenant_id: string
+          ui_action?: string | null
+        }
+        Update: {
+          asset_group?: string | null
+          bucket?: string
+          charge_to_guest?: boolean | null
+          client_issue_id?: string | null
+          created_at?: string
+          extra?: Json | null
+          hotel_id?: string
+          id?: string
+          issue_role?: string
+          item_id?: string | null
+          item_name?: string | null
+          item_type?: string | null
+          kind?: string | null
+          needs_review?: boolean | null
+          notes?: string | null
+          photos?: string[] | null
+          quantity?: number
+          room_check_id?: string
+          room_id?: string
+          source?: string | null
+          source_issue_id?: string | null
+          sub_reason?: string | null
+          tenant_id?: string
+          ui_action?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_check_issues_room_check_id_fkey"
+            columns: ["room_check_id"]
+            isOneToOne: false
+            referencedRelation: "room_checks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_check_issues_source_issue_id_fkey"
+            columns: ["source_issue_id"]
+            isOneToOne: false
+            referencedRelation: "room_check_issues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_check_sessions: {
         Row: {
           check_type: string
