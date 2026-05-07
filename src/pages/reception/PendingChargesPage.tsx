@@ -35,7 +35,7 @@ type Row = {
 }
 
 export default function PendingChargesPage() {
-  const { tenantId } = useUser()
+  const { tenantId, role } = useUser()
   const { selectedHotel } = useHotelContext()
   const qc = useQueryClient()
   const [statusFilter, setStatusFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending')
@@ -43,6 +43,10 @@ export default function PendingChargesPage() {
   const [selected, setSelected] = useState<Record<string, boolean>>({})
   const [rejectOpen, setRejectOpen] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
+  const [overrideRow, setOverrideRow] = useState<Row | null>(null)
+  const [overrideDecision, setOverrideDecision] = useState<'approved' | 'rejected'>('approved')
+  const [overrideReason, setOverrideReason] = useState('')
+  const isManager = ['super_admin','owner','hotel_manager','department_manager'].includes(role ?? '')
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ['pending-charges', tenantId, selectedHotel?.id, statusFilter],
