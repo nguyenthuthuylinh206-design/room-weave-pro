@@ -7,15 +7,9 @@ export interface MappedLeanError {
   itemId?: string
 }
 
-/**
- * Mapping lỗi server (UPPER_SNAKE / lowercase tag) → thông điệp tiếng Việt cho UI Lean.
- * Server tag dạng `photo_required:<bucket>:<item_id>` hoặc `invalid_quantity:<item_id>`
- * sẽ được parse để trả về `itemId` cho UI scroll/focus.
- */
 export function mapLeanError(msg: string, rateLimitMin = 30): MappedLeanError {
   if (!msg) return { message: 'Đã có lỗi không xác định. Vui lòng thử lại.' }
 
-  // photo_required:<bucket>[:<item_id>]
   const photoMatch = msg.match(/photo_required:([a-z_]+)(?::([0-9a-f-]+))?/i)
   if (photoMatch) {
     const bucket = photoMatch[1]
@@ -36,12 +30,23 @@ export function mapLeanError(msg: string, rateLimitMin = 30): MappedLeanError {
     }
   }
 
-  // invalid_quantity[:<item_id>]
   const qtyMatch = msg.match(/invalid_quantity(?::([0-9a-f-]+))?/i)
   if (qtyMatch) {
     return {
       message: 'Số lượng phải lớn hơn 0. Vui lòng kiểm tra lại các mục đã nhập.',
       itemId: qtyMatch[1],
+    }
+  }
+
+  // primary_quantity_exceeds_standard:<item_id>:<sum>:<standard>
+  const exceedMatch = msg.match(
+    /primary_quantity_exceeds_standard(?::([0-9a-f-]+))?(?::(\d+))?(?::(\d+))?/i,
+  )
+  if (exceedMatch) {
+    return {
+      message:
+        'Tổng số lượng sự cố chính của một mục vượt quá số đồ chuẩn của phòng. Vui lòng giảm bớt hoặc gộp lại.',
+      itemId: exceedMatch[1],
     }
   }
 
@@ -73,9 +78,12 @@ export function mapLeanError(msg: string, rateLimitMin = 30): MappedLeanError {
 // ───────────────────────── Draft sanitizer ─────────────────────────
 
 export type LeanIssueKind = 'damaged' | 'lost' | 'missing' | 'consumed'
-export type LeanIssueLevel1 = 'damaged_lost' | 'missing_replace' | 'consumed_chargeable'
+export type LeanIssueLevel1 = string
+export type LeanIssueRole = 'primary_issue' | 'derived_action'
 
 export interface SanitizedLeanIssue {
+  /** Local id để key/edit — luôn được sinh nếu draft cũ thiếu */
+  id: string
   item_id: string
   item_name: string
   item_type: string
@@ -85,42 +93,92 @@ export interface SanitizedLeanIssue {
   photos: string[]
   chargeToGuest?: boolean
   notes?: string
+  /** Đợt B */
+  uiActionKey?: string
+  subReasonKey?: string
+  bucket?: string
+  issueRole?: LeanIssueRole
+  needsReview?: boolean
+  assetGroup?: string
+  derivedActionKey?: string
+  extra?: Record<string, any>
 }
 
 export interface SanitizedLeanDraft {
   startedAt: string
-  issues: Record<string, SanitizedLeanIssue>
+  /** Multi-issue per item — array */
+  issues: Record<string, SanitizedLeanIssue[]>
   minibar: Record<string, number>
 }
 
 const VALID_KINDS: LeanIssueKind[] = ['damaged', 'lost', 'missing', 'consumed']
-const VALID_LEVEL1: LeanIssueLevel1[] = ['damaged_lost', 'missing_replace', 'consumed_chargeable']
+const VALID_ROLES: LeanIssueRole[] = ['primary_issue', 'derived_action']
+
+function genId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return (crypto as any).randomUUID()
+  }
+  return `iss_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+}
+
+function sanitizeOne(it: any): SanitizedLeanIssue | null {
+  if (!it || typeof it !== 'object') return null
+  const qty = Number(it.quantity)
+  if (!it.item_id || !VALID_KINDS.includes(it.kind) || !Number.isFinite(qty) || qty <= 0) {
+    return null
+  }
+  const role: LeanIssueRole = VALID_ROLES.includes(it.issueRole) ? it.issueRole : 'primary_issue'
+  return {
+    id: typeof it.id === 'string' && it.id ? it.id : genId(),
+    item_id: String(it.item_id),
+    item_name: String(it.item_name || ''),
+    item_type: String(it.item_type || ''),
+    level1: typeof it.level1 === 'string' ? it.level1 : 'damaged_lost',
+    kind: it.kind,
+    quantity: qty,
+    photos: Array.isArray(it.photos) ? it.photos.filter((p: any) => typeof p === 'string') : [],
+    chargeToGuest: typeof it.chargeToGuest === 'boolean' ? it.chargeToGuest : undefined,
+    notes: typeof it.notes === 'string' ? it.notes : undefined,
+    uiActionKey: typeof it.uiActionKey === 'string' ? it.uiActionKey : undefined,
+    subReasonKey:
+      typeof it.subReasonKey === 'string'
+        ? it.subReasonKey
+        // Backward compat: draft cũ dùng `subReason` (free-text). Bỏ qua text dài,
+        // chỉ giữ nếu nhìn như enum key (chữ + dấu chấm/underscore).
+        : typeof it.subReason === 'string' && /^[a-z0-9_.]{2,40}$/i.test(it.subReason)
+          ? it.subReason
+          : undefined,
+    bucket: typeof it.bucket === 'string' ? it.bucket : undefined,
+    issueRole: role,
+    needsReview: typeof it.needsReview === 'boolean' ? it.needsReview : undefined,
+    assetGroup: typeof it.assetGroup === 'string' ? it.assetGroup : undefined,
+    derivedActionKey: typeof it.derivedActionKey === 'string' ? it.derivedActionKey : undefined,
+    extra:
+      it.extra && typeof it.extra === 'object' && !Array.isArray(it.extra) ? it.extra : undefined,
+  }
+}
 
 /**
  * Chịu được draft thiếu/sai field. Drop entry không hợp lệ thay vì throw.
+ * Hỗ trợ migration legacy: `issues[itemId] = LeanIssue` → `issues[itemId] = [LeanIssue]`.
  */
 export function sanitizeLeanDraft(raw: unknown): SanitizedLeanDraft | null {
   if (!raw || typeof raw !== 'object') return null
   const r = raw as any
-  const safeIssues: Record<string, SanitizedLeanIssue> = {}
+  const safeIssues: Record<string, SanitizedLeanIssue[]> = {}
   if (r.issues && typeof r.issues === 'object') {
     for (const [k, v] of Object.entries(r.issues)) {
-      const it = v as any
-      if (!it || typeof it !== 'object') continue
-      const qty = Number(it.quantity)
-      if (!it.item_id || !VALID_KINDS.includes(it.kind) || !Number.isFinite(qty) || qty <= 0) continue
-      const level1: LeanIssueLevel1 = VALID_LEVEL1.includes(it.level1) ? it.level1 : 'damaged_lost'
-      safeIssues[k] = {
-        item_id: String(it.item_id),
-        item_name: String(it.item_name || ''),
-        item_type: String(it.item_type || ''),
-        level1,
-        kind: it.kind,
-        quantity: qty,
-        photos: Array.isArray(it.photos) ? it.photos.filter((p: any) => typeof p === 'string') : [],
-        chargeToGuest: typeof it.chargeToGuest === 'boolean' ? it.chargeToGuest : undefined,
-        notes: typeof it.notes === 'string' ? it.notes : undefined,
+      const list: SanitizedLeanIssue[] = []
+      if (Array.isArray(v)) {
+        for (const entry of v) {
+          const s = sanitizeOne(entry)
+          if (s) list.push(s)
+        }
+      } else {
+        const s = sanitizeOne(v)
+        if (s) list.push(s)
       }
+      if (list.length > 0) safeIssues[k] = list
     }
   }
   const safeMinibar: Record<string, number> = {}
@@ -137,6 +195,13 @@ export function sanitizeLeanDraft(raw: unknown): SanitizedLeanDraft | null {
   }
 }
 
+/** Helper: flatten issues object → array */
+export function flattenIssues(
+  issues: Record<string, SanitizedLeanIssue[]>,
+): SanitizedLeanIssue[] {
+  return Object.values(issues).flat()
+}
+
 // ───────── Pre-submit validation theo per-hotel config ─────────
 
 export interface LeanPhotoConfig {
@@ -146,8 +211,11 @@ export interface LeanPhotoConfig {
 }
 
 export interface PreSubmitInput {
+  /** Chấp nhận cả array (đã flatten) cho gọn */
   issues: SanitizedLeanIssue[]
   config?: LeanPhotoConfig | null
+  /** Map item_id → standard_quantity của phòng — dùng cho constraint §8.3 */
+  standardByItem?: Record<string, number>
 }
 
 export interface PreSubmitError {
@@ -156,6 +224,7 @@ export interface PreSubmitError {
     | 'photo_required:damaged_lost'
     | 'photo_required:missing_replace'
     | 'photo_required:consumed_chargeable'
+    | 'primary_quantity_exceeds_standard'
   itemId?: string
   itemName: string
   message: string
@@ -163,8 +232,17 @@ export interface PreSubmitError {
 
 /**
  * Trả về null nếu OK, hoặc lỗi đầu tiên gặp phải (item-level).
+ *
+ * Thứ tự kiểm:
+ *  1. quantity > 0
+ *  2. constraint §8.3: sum(primary_issue.quantity by item) ≤ standard_quantity
+ *  3. photo per kind theo per-hotel config
  */
-export function preSubmitValidate({ issues, config }: PreSubmitInput): PreSubmitError | null {
+export function preSubmitValidate({
+  issues,
+  config,
+  standardByItem,
+}: PreSubmitInput): PreSubmitError | null {
   const badQty = issues.find((i) => !(Number(i.quantity) > 0))
   if (badQty) {
     return {
@@ -174,6 +252,30 @@ export function preSubmitValidate({ issues, config }: PreSubmitInput): PreSubmit
       message: `Số lượng phải lớn hơn 0 cho "${badQty.item_name || 'một mục đã ghi'}".`,
     }
   }
+
+  // §8.3 — chỉ tính primary_issue
+  if (standardByItem) {
+    const sumByItem: Record<string, { qty: number; name: string }> = {}
+    for (const i of issues) {
+      const role = i.issueRole ?? 'primary_issue'
+      if (role !== 'primary_issue') continue
+      const cur = sumByItem[i.item_id] ?? { qty: 0, name: i.item_name }
+      cur.qty += Number(i.quantity) || 0
+      sumByItem[i.item_id] = cur
+    }
+    for (const [itemId, agg] of Object.entries(sumByItem)) {
+      const std = standardByItem[itemId]
+      if (typeof std === 'number' && std > 0 && agg.qty > std) {
+        return {
+          code: 'primary_quantity_exceeds_standard',
+          itemId,
+          itemName: agg.name,
+          message: `"${agg.name}": tổng số lượng sự cố chính (${agg.qty}) vượt quá số đồ chuẩn của phòng (${std}). Hãy gộp lại hoặc giảm bớt.`,
+        }
+      }
+    }
+  }
+
   if (!config) return null
 
   if (config.photo_required_damaged_lost) {
