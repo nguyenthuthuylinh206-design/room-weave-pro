@@ -394,6 +394,9 @@ const router = createBrowserRouter([
       // Guest Invoices
       { path: "guest-invoices", element: <PermissionRoute module="bookings"><GuestInvoicesPage /></PermissionRoute> },
 
+      // Reception
+      { path: "reception/pending-charges", element: <PermissionRoute module="bookings"><PendingChargesPage /></PermissionRoute> },
+
       // Laundry
       { path: "laundry", element: <PermissionRoute module="laundry"><LaundryDashboardPage /></PermissionRoute> },
       { path: "laundry/batches", element: <PermissionRoute module="laundry"><LaundryBatchesPage /></PermissionRoute> },
