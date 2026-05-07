@@ -12,48 +12,50 @@ import type { ItemType } from '@/types/items.types'
 import type { AssetGroup } from '@/types/assetGroup.types'
 import {
   getL1Options,
+  findL1Option,
   resolveBucket,
+  requiresSubReason,
+  getDerivedActionKey,
   type L1Option,
+  type BucketResolution,
 } from '@/lib/issueBucketMapping'
+import { SubReasonPicker } from './SubReasonPicker'
 
 /**
- * LeanReportIssueSheet — 2 tầng, mở rộng theo asset_group (Đợt B).
+ * LeanReportIssueSheet — Phase B1.
  *
- * Backward compatible:
- *  - Nếu KHÔNG truyền `assetGroup` → giữ nguyên 3 lựa chọn lớn (legacy mode).
- *  - Nếu CÓ `assetGroup` → render L1 theo nhóm (3-5 lựa chọn) + sub_reason text khi cần.
+ * Đường đi:
+ *  1. L1 (4 lựa chọn theo asset_group)
+ *  2. Sub-reason ENUM (radio) nếu L1 yêu cầu
+ *  3. Stepper số lượng + ảnh + tính phí + ghi chú
+ *
+ * Backward compatible: nếu KHÔNG truyền `assetGroup` → fallback legacy 3 lựa chọn lớn
+ * (giữ cho luồng cũ chưa migrate sang asset_group).
  */
 
 export type LeanIssueLevel1 =
   | 'damaged_lost'
   | 'missing_replace'
   | 'consumed_chargeable'
-  // ── action_key dạng `<group>.<action>` cũng được chấp nhận
   | string
 
 export interface LeanIssueResult {
-  /** Action key — legacy hoặc `<group>.<action>` */
   level1: LeanIssueLevel1
-  /** Chuẩn hoá để parent gom vào jsonb buckets (legacy) */
+  /** Map về kind cũ để giữ tương thích với code render hiện tại */
   kind: 'damaged' | 'lost' | 'missing' | 'consumed'
   quantity: number
   photos: string[]
   chargeToGuest?: boolean
   notes?: string
-  /** ── Mới (Đợt B): các thông tin tinh chỉnh ── */
-  /** UI action key đầy đủ — `<group>.<action>` */
   uiActionKey?: string
-  /** Bucket trong jsonb */
+  /** ENUM key, không còn free-text */
+  subReasonKey?: string
   bucket?: string
-  /** primary_issue | derived_action */
   issueRole?: 'primary_issue' | 'derived_action'
-  /** Có cần manager review không */
   needsReview?: boolean
-  /** Snapshot asset_group tại thời điểm submit */
   assetGroup?: AssetGroup
-  /** Lý do phụ (text) khi L1 yêu cầu */
-  subReason?: string
-  /** Field bổ sung từ resolution.extra */
+  /** Derived action sinh thêm (nếu có) — parent dùng để insert issue_role='derived_action' */
+  derivedActionKey?: string
   extra?: Record<string, any>
 }
 
@@ -63,9 +65,8 @@ export interface LeanReportIssueSheetProps {
   itemName: string
   itemType: ItemType
   standardQuantity: number
-  /** Đợt B: nếu có, render L1 theo nhóm tài sản */
   assetGroup?: AssetGroup | null
-  /** Per-hotel rule: nhánh nào BẮT BUỘC ảnh */
+  /** Per-hotel rule fallback theo bucket */
   photoRequiredFor: {
     damaged_lost: boolean
     missing_replace: boolean
@@ -75,61 +76,75 @@ export interface LeanReportIssueSheetProps {
   onSubmit: (result: LeanIssueResult) => void
 }
 
-/** ── Legacy 3 lựa chọn ── */
+// ── Legacy fallback (3 lựa chọn) khi không có asset_group ──
 const LEGACY_L1: L1Option[] = [
   {
     key: 'damaged_lost',
     title: 'Đồ hỏng / mất',
     example: 'Ví dụ: TV không lên, mất khăn tắm',
+    defaultResolution: {
+      bucket: 'items_damaged',
+      issue_role: 'primary_issue',
+      needs_review: true,
+    },
   },
   {
     key: 'missing_replace',
     title: 'Thiếu / cần thay',
     example: 'Ví dụ: Thiếu 1 gối, cần thay ga giường',
+    defaultResolution: {
+      bucket: 'items_missing',
+      issue_role: 'primary_issue',
+      needs_review: false,
+    },
   },
   {
     key: 'consumed_chargeable',
     title: 'Khách đã dùng / cần ghi nhận',
     example: 'Ví dụ: Khách dùng 2 nước suối minibar',
     defaultCharge: true,
+    defaultResolution: {
+      bucket: 'items_consumed',
+      issue_role: 'primary_issue',
+      needs_review: false,
+    },
   },
 ]
 
-function deriveKindLegacy(l1: string): LeanIssueResult['kind'] {
-  if (l1 === 'damaged_lost') return 'damaged'
-  if (l1 === 'missing_replace') return 'missing'
-  return 'consumed'
-}
-
-/** Map từ bucket → kind cho parent legacy compatibility */
 function bucketToKind(bucket: string): LeanIssueResult['kind'] {
   if (bucket === 'items_lost') return 'lost'
   if (bucket === 'items_missing') return 'missing'
   if (bucket === 'items_consumed') return 'consumed'
-  if (bucket === 'items_replaced') return 'missing' // suy ra needs replacement
-  if (bucket === 'items_sent_to_laundry') return 'missing' // tạm coi
+  if (bucket === 'items_replaced') return 'missing'
+  if (bucket === 'items_sent_to_laundry') return 'missing'
   return 'damaged'
 }
 
-/** Phân loại photo-required cho action key dạng `<group>.<action>` */
-function isPhotoRequiredForActionKey(
-  actionKey: string,
+function isPhotoRequired(
+  resolution: BucketResolution,
   photoRequiredFor: LeanReportIssueSheetProps['photoRequiredFor'],
 ): boolean {
-  // Legacy keys
-  if (actionKey === 'damaged_lost') return photoRequiredFor.damaged_lost
-  if (actionKey === 'missing_replace') return photoRequiredFor.missing_replace
-  if (actionKey === 'consumed_chargeable') return photoRequiredFor.consumed_chargeable
-
-  // Asset-group action keys → map theo bucket
-  const res = resolveBucket(actionKey)
-  if (res.bucket === 'items_damaged' || res.bucket === 'items_lost') {
+  if (resolution.photo_required !== undefined) return resolution.photo_required
+  if (resolution.bucket === 'items_damaged' || resolution.bucket === 'items_lost') {
     return photoRequiredFor.damaged_lost
   }
-  if (res.bucket === 'items_missing' || res.bucket === 'items_replaced' || res.bucket === 'items_sent_to_laundry') {
+  if (
+    resolution.bucket === 'items_missing' ||
+    resolution.bucket === 'items_replaced' ||
+    resolution.bucket === 'items_sent_to_laundry'
+  ) {
     return photoRequiredFor.missing_replace
   }
-  if (res.bucket === 'items_consumed') return photoRequiredFor.consumed_chargeable
+  if (resolution.bucket === 'items_consumed') {
+    return photoRequiredFor.consumed_chargeable
+  }
+  return false
+}
+
+function showChargeToggleFor(resolution: BucketResolution, group?: AssetGroup | null) {
+  // Chỉ hiển thị toggle với minibar / consumed / lost+missing có khả năng tính phí
+  if (group === 'minibar') return true
+  if (resolution.bucket === 'items_consumed') return true
   return false
 }
 
@@ -151,61 +166,67 @@ export function LeanReportIssueSheet({
   )
 
   const [level1, setLevel1] = useState<string | null>(null)
+  const [subReasonKey, setSubReasonKey] = useState<string | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [photos, setPhotos] = useState<string[]>([])
   const [chargeToGuest, setChargeToGuest] = useState<boolean>(true)
   const [notes, setNotes] = useState('')
-  const [subReason, setSubReason] = useState('')
   const [uploadError, setUploadError] = useState<string | null>(null)
 
   const { tenantId } = useUser()
   const { uploadImage, isUploading } = useImageUpload()
 
-  // Reset / hydrate mỗi lần mở
+  // Hydrate khi mở
   useEffect(() => {
     if (!open) return
     const lvl = (initial?.level1 as string) ?? null
     setLevel1(lvl)
+    setSubReasonKey(initial?.subReasonKey ?? null)
     setQuantity(Math.max(1, initial?.quantity ?? 1))
     setPhotos(initial?.photos ?? [])
     const opt = l1Options.find((o) => o.key === lvl)
-    const defaultCharge = opt?.defaultCharge ?? false
-    setChargeToGuest(initial?.chargeToGuest ?? defaultCharge)
+    setChargeToGuest(initial?.chargeToGuest ?? opt?.defaultCharge ?? false)
     setNotes(initial?.notes ?? '')
-    setSubReason(initial?.subReason ?? '')
     setUploadError(null)
   }, [open, initial, l1Options])
 
-  // Khi user đổi loại sự cố ngay trong sheet
+  // Đổi L1 → reset subReason + chargeToGuest theo default
   const lastLevelRef = useRef<string | null>(null)
   useEffect(() => {
     if (!open) return
     if (lastLevelRef.current === level1) return
     lastLevelRef.current = level1
     if (!level1) return
+    setSubReasonKey(null)
     const opt = l1Options.find((o) => o.key === level1)
     if (opt?.defaultCharge !== undefined) setChargeToGuest(opt.defaultCharge)
   }, [level1, open, l1Options])
 
-  const photoRequired = useMemo(() => {
-    if (!level1) return false
-    return isPhotoRequiredForActionKey(level1, photoRequiredFor)
-  }, [level1, photoRequiredFor])
+  const currentL1 = useMemo(() => (level1 ? findL1Option(level1) : undefined) ?? l1Options.find((o) => o.key === level1), [level1, l1Options])
 
-  const subReasonRequired = useMemo(() => {
-    const opt = l1Options.find((o) => o.key === level1)
-    return !!opt?.subReasonRequired
-  }, [level1, l1Options])
+  const needSubReason = useMemo(
+    () => (level1 ? requiresSubReason(level1) : false),
+    [level1],
+  )
 
-  // Toggle "Tính phí" chỉ hiện cho minibar/consumed/damaged_lost legacy
+  const resolution = useMemo<BucketResolution | null>(() => {
+    if (!level1) return null
+    if (useAssetMode) return resolveBucket(level1, subReasonKey ?? undefined)
+    return currentL1?.defaultResolution ?? null
+  }, [level1, subReasonKey, useAssetMode, currentL1])
+
+  const photoRequired = useMemo(
+    () => (resolution ? isPhotoRequired(resolution, photoRequiredFor) : false),
+    [resolution, photoRequiredFor],
+  )
+
   const showChargeToggle = useMemo(() => {
-    if (!level1) return false
+    if (!resolution) return false
     if (!useAssetMode) {
       return level1 === 'consumed_chargeable' || level1 === 'damaged_lost'
     }
-    // Asset mode — chỉ hiện cho minibar và damage có khả năng tính phí
-    return assetGroup === 'minibar' || level1.endsWith('.broken') || level1.endsWith('.damaged') || level1.endsWith('.lost') || level1.endsWith('.missing')
-  }, [level1, useAssetMode, assetGroup])
+    return showChargeToggleFor(resolution, assetGroup)
+  }, [resolution, useAssetMode, level1, assetGroup])
 
   const handlePickPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -214,59 +235,53 @@ export function LeanReportIssueSheet({
     try {
       const uploaded = await uploadImage(file, tenantId)
       if (uploaded?.url) setPhotos((p) => [...p, uploaded.url])
-    } catch (err: any) {
-      setUploadError(
-        'Ảnh chưa gửi lên được. Bạn có thể thử lại hoặc chụp ảnh khác.',
-      )
+    } catch {
+      setUploadError('Ảnh chưa gửi lên được. Bạn có thể thử lại hoặc chụp ảnh khác.')
     } finally {
       e.target.value = ''
     }
   }
 
   const handleSubmit = () => {
-    if (!level1) return
+    if (!level1 || !resolution) return
     if (quantity < 1) {
       toast.error('Chọn số lượng cần xử lý.')
+      return
+    }
+    if (needSubReason && !subReasonKey) {
+      toast.error('Chọn lý do cụ thể trước khi lưu.')
       return
     }
     if (photoRequired && photos.length === 0) {
       toast.error('Mục này cần ít nhất 1 ảnh để gửi.')
       return
     }
-    if (subReasonRequired && subReason.trim().length < 3) {
-      toast.error('Cần mô tả ngắn lý do (ít nhất 3 ký tự).')
-      return
-    }
 
-    if (useAssetMode) {
-      const res = resolveBucket(level1)
-      onSubmit({
-        level1,
-        kind: bucketToKind(res.bucket),
-        quantity,
-        photos,
-        chargeToGuest: showChargeToggle ? chargeToGuest : undefined,
-        notes: notes.trim() || undefined,
-        uiActionKey: level1,
-        bucket: res.bucket,
-        issueRole: res.issue_role,
-        needsReview: res.needs_review,
-        assetGroup: assetGroup as AssetGroup,
-        subReason: subReason.trim() || undefined,
-        extra: res.extra,
-      })
-    } else {
-      onSubmit({
-        level1,
-        kind: deriveKindLegacy(level1),
-        quantity,
-        photos,
-        chargeToGuest: showChargeToggle ? chargeToGuest : undefined,
-        notes: notes.trim() || undefined,
-      })
-    }
+    const derivedActionKey = useAssetMode
+      ? getDerivedActionKey(level1, subReasonKey ?? undefined)
+      : null
+
+    onSubmit({
+      level1,
+      kind: bucketToKind(resolution.bucket),
+      quantity,
+      photos,
+      chargeToGuest: showChargeToggle ? chargeToGuest : undefined,
+      notes: notes.trim() || undefined,
+      uiActionKey: useAssetMode ? level1 : undefined,
+      subReasonKey: subReasonKey ?? undefined,
+      bucket: resolution.bucket,
+      issueRole: resolution.issue_role,
+      needsReview: resolution.needs_review,
+      assetGroup: useAssetMode ? (assetGroup as AssetGroup) : undefined,
+      derivedActionKey: derivedActionKey ?? undefined,
+      extra: resolution.extra,
+    })
     onOpenChange(false)
   }
+
+  // Khi đang ở sub-reason step → nút back về L1
+  const showSubReasonStep = !!level1 && needSubReason && !subReasonKey
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -284,12 +299,10 @@ export function LeanReportIssueSheet({
           </p>
         </SheetHeader>
 
-        {/* ====== L1: lựa chọn lớn ====== */}
+        {/* ── L1: 4 lựa chọn ── */}
         {!level1 && (
           <div className="px-4 pb-6 space-y-3">
-            <p className="text-[16px] text-muted-foreground">
-              Chọn loại vấn đề
-            </p>
+            <p className="text-[16px] text-muted-foreground">Chọn loại vấn đề</p>
             {l1Options.map((opt) => (
               <button
                 key={opt.key}
@@ -309,8 +322,8 @@ export function LeanReportIssueSheet({
           </div>
         )}
 
-        {/* ====== L2: form tối giản ====== */}
-        {level1 && (
+        {/* ── Sub-reason step ── */}
+        {showSubReasonStep && currentL1?.subReasons && (
           <div className="px-4 pb-6 space-y-5">
             <button
               type="button"
@@ -320,8 +333,50 @@ export function LeanReportIssueSheet({
             >
               ← Đổi loại vấn đề
             </button>
+            <div className="rounded-lg bg-muted/30 px-3 py-2">
+              <div className="text-[15px] font-semibold">{currentL1.title}</div>
+              <div className="text-[13px] text-muted-foreground">
+                {currentL1.example}
+              </div>
+            </div>
+            <SubReasonPicker
+              options={currentL1.subReasons}
+              value={subReasonKey}
+              onChange={setSubReasonKey}
+            />
+          </div>
+        )}
 
-            {/* Quantity stepper */}
+        {/* ── Form chính: stepper / ảnh / charge / note ── */}
+        {level1 && (!needSubReason || subReasonKey) && (
+          <div className="px-4 pb-6 space-y-5">
+            <button
+              type="button"
+              onClick={() => {
+                if (needSubReason) {
+                  setSubReasonKey(null)
+                } else {
+                  setLevel1(null)
+                }
+              }}
+              className="rounded-lg border-2 px-4 py-2 text-[15px] font-semibold text-foreground active:bg-muted/50"
+              style={{ minHeight: 44 }}
+            >
+              ← {needSubReason ? 'Đổi lý do' : 'Đổi loại vấn đề'}
+            </button>
+
+            {needSubReason && currentL1?.subReasons && (
+              <div className="rounded-lg bg-muted/30 px-3 py-2">
+                <div className="text-[13px] text-muted-foreground">
+                  {currentL1.title}
+                </div>
+                <div className="text-[15px] font-semibold">
+                  {currentL1.subReasons.find((s) => s.key === subReasonKey)?.label}
+                </div>
+              </div>
+            )}
+
+            {/* Quantity */}
             <div>
               <Label className="text-[14px] font-semibold">Số lượng</Label>
               <div className="mt-2 flex items-center justify-center gap-4">
@@ -357,22 +412,6 @@ export function LeanReportIssueSheet({
                 </p>
               )}
             </div>
-
-            {/* Sub-reason text (Đợt B) */}
-            {subReasonRequired && (
-              <div>
-                <Label className="text-[14px] font-semibold">
-                  Mô tả ngắn lý do <span className="text-destructive">*</span>
-                </Label>
-                <Textarea
-                  value={subReason}
-                  onChange={(e) => setSubReason(e.target.value)}
-                  placeholder="Ví dụ: Vết máu ở góc khăn tắm lớn"
-                  className="mt-2 text-[16px] resize-none"
-                  rows={2}
-                />
-              </div>
-            )}
 
             {/* Ảnh */}
             <div>
@@ -457,7 +496,7 @@ export function LeanReportIssueSheet({
               )}
             </div>
 
-            {/* Tính phí khách? */}
+            {/* Charge toggle */}
             {showChargeToggle && (
               <div>
                 <Label className="text-[14px] font-semibold">Tính phí khách?</Label>
@@ -492,7 +531,7 @@ export function LeanReportIssueSheet({
               </div>
             )}
 
-            {/* Note tự do */}
+            {/* Note */}
             <div>
               <Label className="text-[14px] font-semibold">Ghi chú (tuỳ chọn)</Label>
               <Textarea
