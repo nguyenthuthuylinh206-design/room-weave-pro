@@ -10,7 +10,7 @@ import { useRefreshSnapshots } from '@/hooks/useConsumptionAnalytics'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { formatCurrency } from '@/lib/utils'
 import { Link } from 'react-router-dom'
-import { exportToCSV } from '@/lib/csv'
+import { downloadCsv } from '@/lib/csv'
 
 const THRESHOLDS = [
   { value: 30, label: '30 ngày' },
@@ -40,7 +40,7 @@ export default function DeadStockPage() {
 
   const handleExport = () => {
     if (!filtered.length) return
-    exportToCSV(
+    downloadCsv(
       filtered.map((r) => ({
         Mã: r.item_code,
         'Tên tài sản': r.item_name,
@@ -50,7 +50,7 @@ export default function DeadStockPage() {
         'Lần xuất cuối': r.last_outbound_at ?? 'Chưa từng xuất',
         'Số ngày không xuất': r.days_since_last_out ?? '—',
       })),
-      `dead-stock-${days}d-${new Date().toISOString().slice(0, 10)}`,
+      `dead-stock-${days}d-${new Date().toISOString().slice(0, 10)}.csv`,
     )
   }
 
