@@ -3677,6 +3677,7 @@ export type Database = {
       items: {
         Row: {
           asset_group: Database["public"]["Enums"]["asset_group"] | null
+          auto_reorder_enabled: boolean
           brand: string | null
           category_id: string | null
           charge_price: number | null
@@ -3710,6 +3711,7 @@ export type Database = {
           quantity_total: number | null
           reorder_max_qty: number | null
           reorder_point: number | null
+          safety_factor: number
           specifications: Json | null
           status: string | null
           tenant_id: string
@@ -3719,6 +3721,7 @@ export type Database = {
         }
         Insert: {
           asset_group?: Database["public"]["Enums"]["asset_group"] | null
+          auto_reorder_enabled?: boolean
           brand?: string | null
           category_id?: string | null
           charge_price?: number | null
@@ -3752,6 +3755,7 @@ export type Database = {
           quantity_total?: number | null
           reorder_max_qty?: number | null
           reorder_point?: number | null
+          safety_factor?: number
           specifications?: Json | null
           status?: string | null
           tenant_id: string
@@ -3761,6 +3765,7 @@ export type Database = {
         }
         Update: {
           asset_group?: Database["public"]["Enums"]["asset_group"] | null
+          auto_reorder_enabled?: boolean
           brand?: string | null
           category_id?: string | null
           charge_price?: number | null
@@ -3794,6 +3799,7 @@ export type Database = {
           quantity_total?: number | null
           reorder_max_qty?: number | null
           reorder_point?: number | null
+          safety_factor?: number
           specifications?: Json | null
           status?: string | null
           tenant_id?: string
@@ -4799,7 +4805,9 @@ export type Database = {
           created_at: string | null
           critical_stock_threshold: number | null
           daily_report_time: string | null
+          email_critical_stock: boolean
           email_daily_report: boolean | null
+          email_dead_stock_digest: boolean
           email_laundry_completed: boolean | null
           email_low_stock: boolean | null
           email_maintenance_new: boolean | null
@@ -4828,7 +4836,9 @@ export type Database = {
           created_at?: string | null
           critical_stock_threshold?: number | null
           daily_report_time?: string | null
+          email_critical_stock?: boolean
           email_daily_report?: boolean | null
+          email_dead_stock_digest?: boolean
           email_laundry_completed?: boolean | null
           email_low_stock?: boolean | null
           email_maintenance_new?: boolean | null
@@ -4857,7 +4867,9 @@ export type Database = {
           created_at?: string | null
           critical_stock_threshold?: number | null
           daily_report_time?: string | null
+          email_critical_stock?: boolean
           email_daily_report?: boolean | null
+          email_dead_stock_digest?: boolean
           email_laundry_completed?: boolean | null
           email_low_stock?: boolean | null
           email_maintenance_new?: boolean | null
@@ -10064,6 +10076,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      compute_auto_reorder_suggestions: {
+        Args: { _hotel_id?: string; _tenant_id: string }
+        Returns: Json
+      }
       compute_reorder_suggestions: {
         Args: { _hotel_id?: string; _item_id?: string; _tenant_id: string }
         Returns: Json
@@ -11729,6 +11745,7 @@ export type Database = {
         Args: { p_actor_id?: string; p_room_order_id: string }
         Returns: Json
       }
+      run_auto_reorder_daily: { Args: never; Returns: Json }
       runtests:
         | { Args: never; Returns: string[] }
         | { Args: { "": string }; Returns: string[] }
