@@ -207,9 +207,12 @@ export default function LeanInspectionPage() {
 
   // ────── State chính ──────
   const startedAtRef = useRef<string>(new Date().toISOString())
-  const [issues, setIssues] = useState<Record<string, LeanIssue>>({})
+  const [issues, setIssues] = useState<Record<string, LeanIssue[]>>({})
   const [minibar, setMinibar] = useState<Record<string, number>>({})
-  const [sheetItem, setSheetItem] = useState<EnrichedItem | null>(null)
+  /** sheet trạng thái: item + (issueId nếu sửa, null nếu thêm mới) */
+  const [sheetState, setSheetState] = useState<
+    { item: EnrichedItem; issueId: string | null } | null
+  >(null)
 
   // ────── Hydrate từ draft (nếu có ?resume=true) ──────
   const resumeRequested = params.get('resume') === 'true'
@@ -224,7 +227,17 @@ export default function LeanInspectionPage() {
     const env = readLeanDraft<DraftShape>(id)
     if (env?.data) {
       startedAtRef.current = env.data.startedAt || startedAtRef.current
-      setIssues(env.data.issues || {})
+      // Migrate draft cũ (issues[itemId] = LeanIssue) → array
+      const raw: any = env.data.issues || {}
+      const migrated: Record<string, LeanIssue[]> = {}
+      for (const [k, v] of Object.entries(raw)) {
+        if (Array.isArray(v)) {
+          migrated[k] = (v as any[]).map((x) => ({ ...x, id: x.id || genIssueId() }))
+        } else if (v && typeof v === 'object') {
+          migrated[k] = [{ ...(v as LeanIssue), id: (v as any).id || genIssueId() }]
+        }
+      }
+      setIssues(migrated)
       setMinibar(env.data.minibar || {})
     }
     hydratedRef.current = true
@@ -237,10 +250,12 @@ export default function LeanInspectionPage() {
     if (!editItemId || !enriched.length) return
     const target = enriched.find((it) => it.item_id === editItemId)
     if (target) {
-      setSheetItem(target)
+      const list = issues[editItemId]
+      const first = list && list.length > 0 ? list[0].id : null
+      setSheetState({ item: target, issueId: first })
       editOpenedRef.current = true
     }
-  }, [editItemId, enriched])
+  }, [editItemId, enriched, issues])
 
   // ────── Autosave ──────
   const draftPayload: DraftShape = useMemo(
@@ -291,24 +306,29 @@ export default function LeanInspectionPage() {
   }, [takenOver])
 
   // ────── Handlers ──────
-  const reportedCount = Object.keys(issues).length
+  /** Số mục có ít nhất 1 issue */
+  const reportedCount = Object.values(issues).filter((l) => l.length > 0).length
+  /** Tổng số issues */
+  const totalIssueCount = Object.values(issues).reduce((s, l) => s + l.length, 0)
 
-  const openIssueFor = (it: EnrichedItem) => {
-    if (it.is_minibar) {
-      // Minibar dùng row inline, không mở sheet — chỉ mở khi user muốn
-      // báo "hỏng/mất/thiếu" cho item minibar (bypass: vẫn cho mở sheet)
-    }
-    setSheetItem(it)
+  const openNewIssueFor = (it: EnrichedItem) => {
+    setSheetState({ item: it, issueId: null })
+  }
+
+  const openEditIssue = (it: EnrichedItem, issueId: string) => {
+    setSheetState({ item: it, issueId })
   }
 
   const handleIssueSubmit = (result: LeanIssueResult) => {
-    if (!sheetItem) return
-    setIssues((prev) => ({
-      ...prev,
-      [sheetItem.item_id]: {
-        item_id: sheetItem.item_id,
-        item_name: sheetItem.item_name,
-        item_type: sheetItem.item_type,
+    if (!sheetState) return
+    const { item, issueId } = sheetState
+    setIssues((prev) => {
+      const list = prev[item.item_id] ? [...prev[item.item_id]] : []
+      const newIssue: LeanIssue = {
+        id: issueId || genIssueId(),
+        item_id: item.item_id,
+        item_name: item.item_name,
+        item_type: item.item_type,
         level1: result.level1,
         kind: result.kind,
         quantity: result.quantity,
@@ -319,17 +339,27 @@ export default function LeanInspectionPage() {
         bucket: result.bucket,
         issueRole: result.issueRole,
         needsReview: result.needsReview,
-        assetGroup: result.assetGroup ?? (sheetItem.asset_group ?? undefined),
+        assetGroup: result.assetGroup ?? (item.asset_group ?? undefined),
         subReason: result.subReasonKey,
         extra: result.extra,
-      },
-    }))
+      }
+      if (issueId) {
+        const idx = list.findIndex((x) => x.id === issueId)
+        if (idx >= 0) list[idx] = newIssue
+        else list.push(newIssue)
+      } else {
+        list.push(newIssue)
+      }
+      return { ...prev, [item.item_id]: list }
+    })
   }
 
-  const removeIssue = (itemId: string) => {
+  const removeIssue = (itemId: string, issueId: string) => {
     setIssues((prev) => {
+      const list = (prev[itemId] || []).filter((x) => x.id !== issueId)
       const next = { ...prev }
-      delete next[itemId]
+      if (list.length === 0) delete next[itemId]
+      else next[itemId] = list
       return next
     })
   }
