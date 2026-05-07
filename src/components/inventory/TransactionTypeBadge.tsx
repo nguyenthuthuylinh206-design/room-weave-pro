@@ -45,14 +45,20 @@ const typeConfig: Record<TransactionType, {
   },
 }
 
+const fallbackConfig = {
+  icon: AlertCircle,
+  label: 'Khác',
+  className: 'bg-gray-100 text-gray-800 hover:bg-gray-200',
+}
+
 export function TransactionTypeBadge({ type, className }: TransactionTypeBadgeProps) {
-  const config = typeConfig[type]
+  const config = typeConfig[type] ?? fallbackConfig
   const Icon = config.icon
-  
+
   return (
     <Badge className={cn(config.className, className)}>
       <Icon className="mr-1 h-3 w-3" />
-      {config.label}
+      {config.label || String(type ?? '—')}
     </Badge>
   )
 }
