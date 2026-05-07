@@ -644,7 +644,7 @@ export default function LeanInspectionPage() {
                 photos: issues[sheetItem.item_id].photos,
                 chargeToGuest: issues[sheetItem.item_id].chargeToGuest,
                 notes: issues[sheetItem.item_id].notes,
-                subReason: issues[sheetItem.item_id].subReason,
+                subReasonKey: issues[sheetItem.item_id].subReason,
               }
             : null
         }
