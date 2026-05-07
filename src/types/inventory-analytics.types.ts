@@ -14,6 +14,12 @@ export interface ConsumptionSnapshot {
   stock_on_date: number
   stock_days_remaining: number | null // NULL when avg_daily=0 (cannot project)
   created_at: string
+  item?: {
+    id: string
+    name: string
+    item_code: string
+    unit_price: number | null
+  } | null
 }
 
 export interface DeadStockRow {

@@ -16,6 +16,7 @@ import { InventoryValueChart } from '@/components/inventory/InventoryValueChart'
 import { QuickInboundDialog } from '@/components/inventory/QuickInboundDialog'
 import { QuickOutboundDialog } from '@/components/inventory/QuickOutboundDialog'
 import { MobileInventoryDashboard } from '@/components/inventory/MobileInventoryDashboard'
+import { InventoryAlertsWidget } from '@/components/inventory/InventoryAlertsWidget'
 import { useInventoryDashboard } from '@/hooks/useInventoryDashboard'
 import { useBreakpoint } from '@/lib/breakpoints'
 
@@ -124,7 +125,7 @@ export function InventoryDashboardPage() {
         />
       </div>
       
-      {/* Main Content: Low Stock (4 cols) | Chart (5 cols) | Transactions (3 cols) - gap-4 = 16px */}
+      {/* Main Content: Low Stock | Chart | Alerts | Transactions */}
       <div className="grid gap-4 lg:grid-cols-12">
         <div id="low-stock-section" className="lg:col-span-4">
           <LowStockAlert />
@@ -132,7 +133,8 @@ export function InventoryDashboardPage() {
         <div className="lg:col-span-5">
           <InventoryValueChart />
         </div>
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 space-y-4">
+          <InventoryAlertsWidget />
           <RecentTransactions />
         </div>
       </div>
