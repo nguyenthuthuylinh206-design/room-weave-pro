@@ -70,6 +70,7 @@ const GuestsPage = lazy(() => import("./pages/guests/GuestsPage"));
 const GuestDetailPage = lazy(() => import("./pages/guests/GuestDetailPage"));
 const LostFoundPage = lazy(() => import("./pages/lost-found/LostFoundPage"));
 const GuestInvoicesPage = lazy(() => import("./pages/invoices/GuestInvoicesPage"));
+const PendingChargesPage = lazy(() => import("./pages/reception/PendingChargesPage"));
 
 // Laundry
 const LaundryDashboardPage = lazyNamed(() => import("./pages/laundry/LaundryDashboardPage"), "LaundryDashboardPage");
@@ -392,6 +393,9 @@ const router = createBrowserRouter([
 
       // Guest Invoices
       { path: "guest-invoices", element: <PermissionRoute module="bookings"><GuestInvoicesPage /></PermissionRoute> },
+
+      // Reception
+      { path: "reception/pending-charges", element: <PermissionRoute module="bookings"><PendingChargesPage /></PermissionRoute> },
 
       // Laundry
       { path: "laundry", element: <PermissionRoute module="laundry"><LaundryDashboardPage /></PermissionRoute> },
