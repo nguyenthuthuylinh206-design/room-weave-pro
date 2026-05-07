@@ -132,6 +132,22 @@ export default function PendingChargesPage() {
     onError: (e: any) => toast.error('Lỗi: ' + e.message),
   })
 
+  const overrideMut = useMutation({
+    mutationFn: async ({ id, dec, rs }: { id: string; dec: 'approved' | 'rejected'; rs: string }) => {
+      const { data, error } = await supabase.rpc('manager_override_charge', {
+        p_charge_id: id, p_decision: dec, p_override_reason: rs,
+      })
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      toast.success('Đã ghi đè quyết định')
+      setOverrideRow(null); setOverrideReason('')
+      qc.invalidateQueries({ queryKey: ['pending-charges'] })
+    },
+    onError: (e: any) => toast.error('Lỗi: ' + e.message),
+  })
+
   const toggleAll = () => {
     if (allSelected) setSelected({})
     else setSelected(Object.fromEntries(filtered.map(r => [r.id, true])))
