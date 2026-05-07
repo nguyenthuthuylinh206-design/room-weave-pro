@@ -125,6 +125,12 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+    if (session.status === "failed") {
+      await supabase
+        .from("document_scan_sessions")
+        .update({ status: "pending" })
+        .eq("id", sessionId);
+    }
 
     const docType = documentType || session.document_type || "cccd";
     const settings = await getAiSettings(supabase, session.tenant_id);
