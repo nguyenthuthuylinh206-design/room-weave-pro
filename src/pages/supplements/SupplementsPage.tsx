@@ -207,7 +207,7 @@ export function SupplementsPage() {
             variant="ghost" 
             size="sm"
             onClick={() => {
-              setFilters({ status: '', search: '' })
+              setFilters({ status: '', search: '', source: '' })
               setSearchParams(new URLSearchParams())
             }}
           >
