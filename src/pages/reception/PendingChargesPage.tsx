@@ -319,11 +319,6 @@ export default function PendingChargesPage() {
             >Xác nhận ghi đè</Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
-            )
-          })
-        )}
-      </div>
 
       <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
         <DialogContent>
