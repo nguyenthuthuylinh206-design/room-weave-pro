@@ -19,18 +19,22 @@ export default function ScanDocumentPage() {
   useEffect(() => {
     if (!sessionId) return
     const autoOpen = async () => {
-      const { data } = await supabase
-        .from('document_scan_sessions')
-        .select('*')
-        .eq('id', sessionId)
-        .single()
-      if (!data || data.status !== 'pending') {
+      let session: any = null
+      try {
+        const resp = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-scan-session?sessionId=${sessionId}`,
+          { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } },
+        )
+        const json = await resp.json()
+        session = json?.session
+      } catch (_) {}
+      if (!session || session.status !== 'pending') {
         setSessionInvalid(true)
         setStatus('error')
         setErrorMsg('Phiên quét không hợp lệ hoặc đã hoàn thành')
         return
       }
-      setSessionData(data)
+      setSessionData(session)
       setTimeout(() => fileInputRef.current?.click(), 300)
     }
     autoOpen()
@@ -44,26 +48,8 @@ export default function ScanDocumentPage() {
     setErrorMsg('')
 
     try {
-      // Re-fetch fresh session data
-      const { data: freshSession } = await supabase
-        .from('document_scan_sessions')
-        .select('*')
-        .eq('id', sessionId)
-        .single()
-
-      if (!freshSession || (freshSession.status !== 'pending' && freshSession.status !== 'failed')) {
-        throw new Error('Phiên quét không hợp lệ hoặc đã hoàn thành')
-      }
-
-      // Reset failed session back to pending
-      if (freshSession.status === 'failed') {
-        await supabase
-          .from('document_scan_sessions')
-          .update({ status: 'pending' })
-          .eq('id', sessionId)
-      }
-
-      setSessionData(freshSession)
+      // mobile-scan-upload (service role) re-validates session status server-side
+      // and accepts both 'pending' and 'failed' (auto-resetting failed→pending).
 
       // Compress image
       console.log('[ScanDoc] Compressing image...')
@@ -77,7 +63,7 @@ export default function ScanDocumentPage() {
         body: {
           sessionId,
           imageBase64: base64,
-          documentType: freshSession.document_type,
+          documentType: sessionData?.document_type,
         },
       })
 
