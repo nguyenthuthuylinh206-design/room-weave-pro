@@ -42,6 +42,8 @@ export function ReorderSettingsDialog({ open, onOpenChange, itemId, itemName }: 
     lead_time_days: 7,
     is_perishable: false,
     preferred_vendor_id: null,
+    auto_reorder_enabled: false,
+    safety_factor: 1.3,
   })
 
   useEffect(() => {
@@ -49,7 +51,7 @@ export function ReorderSettingsDialog({ open, onOpenChange, itemId, itemName }: 
     setLoading(true)
     supabase
       .from('items')
-      .select('reorder_point, reorder_max_qty, lead_time_days, is_perishable, preferred_vendor_id')
+      .select('reorder_point, reorder_max_qty, lead_time_days, is_perishable, preferred_vendor_id, auto_reorder_enabled, safety_factor')
       .eq('id', itemId)
       .eq('tenant_id', tenantId)
       .maybeSingle()
@@ -63,6 +65,8 @@ export function ReorderSettingsDialog({ open, onOpenChange, itemId, itemName }: 
             lead_time_days: (data as any).lead_time_days ?? 7,
             is_perishable: (data as any).is_perishable ?? false,
             preferred_vendor_id: (data as any).preferred_vendor_id ?? null,
+            auto_reorder_enabled: (data as any).auto_reorder_enabled ?? false,
+            safety_factor: (data as any).safety_factor ?? 1.3,
           })
         }
         setLoading(false)
@@ -80,6 +84,8 @@ export function ReorderSettingsDialog({ open, onOpenChange, itemId, itemName }: 
         lead_time_days: form.lead_time_days ?? 7,
         is_perishable: form.is_perishable ?? false,
         preferred_vendor_id: form.preferred_vendor_id,
+        auto_reorder_enabled: form.auto_reorder_enabled ?? false,
+        safety_factor: form.safety_factor ?? 1.3,
       } as any)
       .eq('id', itemId)
       .eq('tenant_id', tenantId)
