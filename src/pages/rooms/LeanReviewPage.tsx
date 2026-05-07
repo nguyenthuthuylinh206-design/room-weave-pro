@@ -7,7 +7,13 @@ import { useRoom } from '@/hooks/useRooms'
 import { readLeanDraft, clearLeanDraft } from '@/hooks/useLeanDraft'
 import { useSubmitRoomCheckLean } from '@/hooks/useRoomCheckLean'
 import { useRoomCheckLeanConfig } from '@/hooks/useRoomCheckLeanConfig'
-import { sanitizeLeanDraft, preSubmitValidate } from '@/lib/roomCheckLeanErrors'
+import {
+  sanitizeLeanDraft,
+  preSubmitValidate,
+  flattenIssues,
+  type SanitizedLeanIssue,
+  type SanitizedLeanDraft,
+} from '@/lib/roomCheckLeanErrors'
 import {
   LeanInlineError,
   LeanFullScreenError,
@@ -16,44 +22,19 @@ import {
 
 type LeanCheckType = 'daily' | 'periodic' | 'checkin' | 'checkout' | 'maintenance'
 
-interface LeanIssue {
-  item_id: string
-  item_name: string
-  item_type: string
-  level1: string
-  kind: 'damaged' | 'lost' | 'missing' | 'consumed'
-  quantity: number
-  photos: string[]
-  chargeToGuest?: boolean
-  notes?: string
-  // Đợt B
-  uiActionKey?: string
-  bucket?: string
-  issueRole?: 'primary_issue' | 'derived_action'
-  needsReview?: boolean
-  assetGroup?: string
-  subReason?: string
-  extra?: Record<string, any>
-}
-
-interface DraftShape {
-  startedAt: string
-  issues: Record<string, LeanIssue>
-  minibar: Record<string, number>
-}
-
-const CHECK_TYPE_LABEL: Record<string, string> = {
-  daily: 'Kiểm hằng ngày',
-  periodic: 'Kiểm định kỳ',
-  checkin: 'Nhận phòng',
-  checkout: 'Trả phòng',
-  maintenance: 'Bảo trì',
-}
-
-const ISSUE_LABEL: Record<LeanIssue['level1'], string> = {
+const LEGACY_ISSUE_LABEL: Record<string, string> = {
   damaged_lost: 'Đồ hỏng / mất',
   missing_replace: 'Thiếu / cần thay',
   consumed_chargeable: 'Khách đã dùng',
+}
+
+function labelForIssue(iss: SanitizedLeanIssue): string {
+  if (LEGACY_ISSUE_LABEL[iss.level1]) return LEGACY_ISSUE_LABEL[iss.level1]
+  // asset-group action key — last segment as fallback
+  const seg = iss.level1.split('.').slice(1).join('.') || iss.level1
+  return seg
+    .replace(/_/g, ' ')
+    .replace(/^./, (c) => c.toUpperCase())
 }
 
 export default function LeanReviewPage() {
@@ -73,16 +54,18 @@ export default function LeanReviewPage() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [errorItemId, setErrorItemId] = useState<string | null>(null)
   const itemRefs = useRef<Record<string, HTMLLIElement | null>>({})
-  const draftRef = useRef<DraftShape | null>(null)
+  const draftRef = useRef<SanitizedLeanDraft | null>(null)
 
-  // Đọc draft 1 lần — sanitize chống missing/invalid fields
   if (!draftRef.current && id) {
-    const env = readLeanDraft<DraftShape>(id)
-    draftRef.current = (sanitizeLeanDraft(env?.data) as DraftShape | null) ?? null
+    const env = readLeanDraft<unknown>(id)
+    draftRef.current = sanitizeLeanDraft(env?.data) ?? null
   }
   const draft = draftRef.current
 
-  const issues = useMemo(() => Object.values(draft?.issues || {}), [draft])
+  const issues = useMemo(
+    () => (draft ? flattenIssues(draft.issues) : []),
+    [draft],
+  )
   const minibar = useMemo(
     () =>
       Object.entries(draft?.minibar || {})
@@ -94,10 +77,22 @@ export default function LeanReviewPage() {
     [draft, items],
   )
 
+  // Map item_id → standard_quantity cho constraint §8.3
+  const standardByItem = useMemo(() => {
+    const out: Record<string, number> = {}
+    for (const it of items) out[it.item_id] = it.standard_quantity ?? 0
+    return out
+  }, [items])
+
   const totalItems = items.length
   const issueCount = issues.length
   const minibarCount = minibar.reduce((sum, m) => sum + m.qty, 0)
-  const okCount = Math.max(0, totalItems - issueCount)
+  // Số mục có ít nhất 1 vấn đề (không phải tổng số issue)
+  const itemsWithIssue = useMemo(
+    () => new Set(issues.map((i) => i.item_id)).size,
+    [issues],
+  )
+  const okCount = Math.max(0, totalItems - itemsWithIssue)
 
   const submitMutation = useSubmitRoomCheckLean()
 
@@ -120,13 +115,15 @@ export default function LeanReviewPage() {
     setSubmitError(null)
     setErrorItemId(null)
 
-    // Client-side pre-validation — sớm, rõ ràng, không gọi mạng nếu hỏng
-    const err = preSubmitValidate({ issues: issues as any, config: leanCfg ?? null })
+    const err = preSubmitValidate({
+      issues,
+      config: leanCfg ?? null,
+      standardByItem,
+    })
     if (err) {
       setSubmitError(err.message)
       if (err.itemId) {
         setErrorItemId(err.itemId)
-        // Scroll & focus card
         requestAnimationFrame(() => {
           const el = itemRefs.current[err.itemId!]
           if (el) {
@@ -139,7 +136,6 @@ export default function LeanReviewPage() {
       return
     }
 
-    // ── Đợt B: route theo `bucket` khi có; fallback theo `kind` (legacy) ──
     type Entry = Record<string, any>
     const buckets: Record<string, Entry[]> = {
       items_missing: [],
@@ -150,41 +146,64 @@ export default function LeanReviewPage() {
       items_sent_to_laundry: [],
     }
 
-    const buildBaseEntry = (i: LeanIssue): Entry => {
+    const buildBaseEntry = (i: SanitizedLeanIssue): Entry => {
       const base: Entry = {
         item_id: i.item_id,
         item_name: i.item_name,
         quantity: i.quantity,
         photos: i.photos,
         notes: i.notes,
-        // ── Required by validate_room_check_issue_entries trigger
         issue_role: i.issueRole ?? 'primary_issue',
       }
       if (i.chargeToGuest !== undefined) base.charge_to_guest = i.chargeToGuest
       if (i.needsReview) base.needs_review = true
       if (i.assetGroup) base.asset_group = i.assetGroup
       if (i.uiActionKey) base.ui_action = i.uiActionKey
-      if (i.subReason) base.sub_reason = i.subReason
+      if (i.subReasonKey) base.sub_reason = i.subReasonKey
       if (i.extra) Object.assign(base, i.extra)
       return base
     }
 
-    const kindToBucket: Record<LeanIssue['kind'], string> = {
+    const kindToBucket: Record<SanitizedLeanIssue['kind'], string> = {
       damaged: 'items_damaged',
       lost: 'items_lost',
       missing: 'items_missing',
       consumed: 'items_consumed',
     }
 
-    for (const i of issues as LeanIssue[]) {
+    for (const i of issues) {
       const target =
         (i.bucket && buckets[i.bucket] ? i.bucket : null) ??
         kindToBucket[i.kind] ??
         'items_damaged'
       buckets[target].push(buildBaseEntry(i))
+
+      // Đợt B+: derived_action dạng `<group>.<action>` → đẩy thêm 1 entry tách bạch
+      if (i.derivedActionKey) {
+        // Lazy import để tránh circular: resolve ở client cho derived
+        // (không gọi network) — dùng module helper.
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const { resolveBucket } = require('@/lib/issueBucketMapping')
+          const r = resolveBucket(i.derivedActionKey)
+          if (r?.bucket && buckets[r.bucket]) {
+            buckets[r.bucket].push({
+              item_id: i.item_id,
+              item_name: i.item_name,
+              quantity: i.quantity,
+              photos: [],
+              issue_role: 'derived_action',
+              source_issue_action: i.uiActionKey,
+              ui_action: i.derivedActionKey,
+              ...(r.extra ?? {}),
+            })
+          }
+        } catch {
+          // ignore
+        }
+      }
     }
 
-    // Minibar inline → vẫn cộng vào items_consumed
     for (const m of minibar) {
       buckets.items_consumed.push({
         item_id: m.item_id,
@@ -197,14 +216,7 @@ export default function LeanReviewPage() {
       })
     }
 
-    const itemsMissing = buckets.items_missing
-    const itemsDamaged = buckets.items_damaged
-    const itemsLost = buckets.items_lost
-    const itemsConsumed = buckets.items_consumed
-    const itemsReplaced = buckets.items_replaced
-    const itemsSentToLaundry = buckets.items_sent_to_laundry
-
-    const allPhotos = (issues as LeanIssue[]).flatMap((i) => i.photos)
+    const allPhotos = issues.flatMap((i) => i.photos)
 
     try {
       const res = await submitMutation.mutateAsync({
@@ -214,14 +226,13 @@ export default function LeanReviewPage() {
           draft?.startedAt || startedAtFromQuery || new Date().toISOString(),
         notes: note.trim() || null,
         photos: allPhotos,
-        itemsMissing,
-        itemsDamaged,
-        itemsLost,
-        itemsConsumed,
-        itemsReplaced,
-        itemsSentToLaundry,
+        itemsMissing: buckets.items_missing,
+        itemsDamaged: buckets.items_damaged,
+        itemsLost: buckets.items_lost,
+        itemsConsumed: buckets.items_consumed,
+        itemsReplaced: buckets.items_replaced,
+        itemsSentToLaundry: buckets.items_sent_to_laundry,
       })
-      // Clear draft
       clearLeanDraft(id)
       navigate(
         `/rooms/${id}/check-lean/success?type=${checkType}&issues=${
@@ -245,7 +256,6 @@ export default function LeanReviewPage() {
     }
   }
 
-  // ───────── Loading ─────────
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
@@ -277,7 +287,6 @@ export default function LeanReviewPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background pb-[calc(env(safe-area-inset-bottom)+128px)]">
-      {/* Header */}
       <header className="px-4 pt-3 pb-3 border-b sticky top-0 bg-background z-10">
         <div className="flex items-start gap-2">
           <Button
@@ -303,9 +312,7 @@ export default function LeanReviewPage() {
         </div>
       </header>
 
-      {/* Body */}
       <main className="flex-1 px-4 py-4 space-y-4">
-        {/* Summary card */}
         <section className="rounded-xl border bg-card p-4">
           <p className="text-[13px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">
             Tổng kết
@@ -322,7 +329,6 @@ export default function LeanReviewPage() {
           )}
         </section>
 
-        {/* Issues */}
         {issueCount > 0 && (
           <section>
             <h2 className="text-[14px] font-bold uppercase tracking-wide mb-2 text-muted-foreground">
@@ -331,67 +337,79 @@ export default function LeanReviewPage() {
             <ul className="space-y-2">
               {issues.map((iss) => {
                 const isErr = errorItemId === iss.item_id
+                const isDerived = iss.issueRole === 'derived_action'
                 return (
-                <li
-                  key={iss.item_id}
-                  ref={(el) => { itemRefs.current[iss.item_id] = el }}
-                  className={`rounded-xl border bg-card p-3 transition-colors ${isErr ? 'border-destructive ring-2 ring-destructive/30' : ''}`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[16px] font-semibold leading-tight">
-                        {iss.item_name}
-                      </p>
-                      <p className="text-[14px] text-amber-700 mt-0.5">
-                        {ISSUE_LABEL[iss.level1]} · SL {iss.quantity}
-                        {iss.chargeToGuest === true && ' · Tính phí khách'}
-                      </p>
-                      {iss.notes && (
-                        <p className="text-[13px] text-muted-foreground mt-1 line-clamp-2">
-                          {iss.notes}
-                        </p>
-                      )}
-                      {isErr && (
-                        <p className="text-[13px] text-destructive font-medium mt-1">
-                          Mục này cần được sửa trước khi gửi.
-                        </p>
-                      )}
-                      {iss.photos.length > 0 && (
-                        <div className="mt-2 flex gap-1.5">
-                          {iss.photos.slice(0, 4).map((url, i) => (
-                            <img
-                              key={i}
-                              src={url}
-                              alt=""
-                              className="w-12 h-12 rounded-md object-cover border"
-                            />
-                          ))}
-                          {iss.photos.length > 4 && (
-                            <div className="w-12 h-12 rounded-md border bg-muted flex items-center justify-center text-[12px] font-medium">
-                              +{iss.photos.length - 4}
-                            </div>
+                  <li
+                    key={iss.id}
+                    ref={(el) => {
+                      itemRefs.current[iss.item_id] = el
+                    }}
+                    className={`rounded-xl border bg-card p-3 transition-colors ${
+                      isErr ? 'border-destructive ring-2 ring-destructive/30' : ''
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[16px] font-semibold leading-tight">
+                          {iss.item_name}
+                          {isDerived && (
+                            <span className="ml-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                              · Tự động
+                            </span>
                           )}
-                        </div>
+                        </p>
+                        <p className="text-[14px] text-amber-700 mt-0.5">
+                          {labelForIssue(iss)} · SL {iss.quantity}
+                          {iss.chargeToGuest === true && ' · Tính phí khách'}
+                          {iss.needsReview && ' · Cần duyệt'}
+                        </p>
+                        {iss.notes && (
+                          <p className="text-[13px] text-muted-foreground mt-1 line-clamp-2">
+                            {iss.notes}
+                          </p>
+                        )}
+                        {isErr && (
+                          <p className="text-[13px] text-destructive font-medium mt-1">
+                            Mục này cần được sửa trước khi gửi.
+                          </p>
+                        )}
+                        {iss.photos.length > 0 && (
+                          <div className="mt-2 flex gap-1.5">
+                            {iss.photos.slice(0, 4).map((url, i) => (
+                              <img
+                                key={i}
+                                src={url}
+                                alt=""
+                                className="w-12 h-12 rounded-md object-cover border"
+                              />
+                            ))}
+                            {iss.photos.length > 4 && (
+                              <div className="w-12 h-12 rounded-md border bg-muted flex items-center justify-center text-[12px] font-medium">
+                                +{iss.photos.length - 4}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      {!isDerived && (
+                        <button
+                          type="button"
+                          data-edit-btn
+                          onClick={() => handleEditIssue(iss.item_id)}
+                          className="rounded-lg border-2 px-3 text-[14px] font-semibold active:bg-muted/50"
+                          style={{ minHeight: 44 }}
+                        >
+                          Sửa lại
+                        </button>
                       )}
                     </div>
-                    <button
-                      type="button"
-                      data-edit-btn
-                      onClick={() => handleEditIssue(iss.item_id)}
-                      className="rounded-lg border-2 px-3 text-[14px] font-semibold active:bg-muted/50"
-                      style={{ minHeight: 44 }}
-                    >
-                      Sửa lại
-                    </button>
-                  </div>
-                </li>
+                  </li>
                 )
               })}
             </ul>
           </section>
         )}
 
-        {/* Minibar */}
         {minibar.length > 0 && (
           <section>
             <h2 className="text-[14px] font-bold uppercase tracking-wide mb-2 text-muted-foreground">
@@ -413,7 +431,6 @@ export default function LeanReviewPage() {
           </section>
         )}
 
-        {/* Note */}
         <section>
           <h2 className="text-[14px] font-bold uppercase tracking-wide mb-2 text-muted-foreground">
             Ghi chú chung (tuỳ chọn)
@@ -427,7 +444,6 @@ export default function LeanReviewPage() {
           />
         </section>
 
-        {/* Submit error */}
         {submitError && (
           <LeanInlineError
             message={submitError}
@@ -436,7 +452,6 @@ export default function LeanReviewPage() {
         )}
       </main>
 
-      {/* Sticky footer */}
       <footer className="fixed left-0 right-0 bottom-0 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] bg-background border-t z-20">
         <div className="flex flex-col gap-2 max-w-md mx-auto">
           <Button
