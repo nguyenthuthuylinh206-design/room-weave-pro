@@ -39,10 +39,12 @@ export default function RoomCheckRouter() {
     !!params.get('distribution_order_id') ||
     !!params.get('room_order_id') ||
     !!params.get('inspection')
+  // Opt-in Lean cho replenish/delivery khi URL có ?lean=1 (giai đoạn pilot song song)
+  const optInLean = params.get('lean') === '1'
 
   // Lean v1 KHÔNG bao quát: delivery + replenish + checkout-inspection legacy.
-  // Giữ wizard cũ cho các flow này.
-  if (wizardOnlyType || hasDistribution) {
+  // Giữ wizard cũ trừ khi user opt-in.
+  if ((wizardOnlyType || hasDistribution) && !optInLean) {
     return (
       <Suspense fallback={null}>
         <RoomCheckPage />
