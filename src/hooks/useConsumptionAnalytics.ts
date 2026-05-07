@@ -29,7 +29,7 @@ export function useLatestConsumptionSnapshots(limit: number = 200) {
 
       let q = supabase
         .from('consumption_snapshots')
-        .select('*')
+        .select('*, item:items(id, name, item_code, unit_price)')
         .eq('tenant_id', tenant.id)
         .order('snapshot_date', { ascending: false })
         .limit(limit)
@@ -40,7 +40,7 @@ export function useLatestConsumptionSnapshots(limit: number = 200) {
 
       const { data, error } = await q
       if (error) throw error
-      return (data ?? []) as ConsumptionSnapshot[]
+      return (data ?? []) as unknown as ConsumptionSnapshot[]
     },
     enabled: !!tenant?.id && (isAllHotelsMode || !!selectedHotel?.id),
     staleTime: 60 * 1000,
