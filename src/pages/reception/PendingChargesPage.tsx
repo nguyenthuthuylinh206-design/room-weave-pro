@@ -267,7 +267,7 @@ export default function PendingChargesPage() {
                 <div className="col-span-2 md:col-span-1 text-right text-xs">{statusText}</div>
                 <div className="col-span-2 hidden md:block text-right text-xs text-muted-foreground">
                   {format(new Date(r.recorded_at), 'dd/MM HH:mm')}
-                  {isManager && r.approval_status !== 'pending' && !r.is_billed && (
+                  {isManager && r.approval_status !== 'pending' && (
                     <div className="mt-1">
                       <button
                         type="button"
