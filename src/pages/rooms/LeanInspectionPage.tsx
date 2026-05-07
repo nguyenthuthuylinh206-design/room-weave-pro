@@ -34,8 +34,10 @@ interface EnrichedItem extends RoomItemWithDetails {
   asset_group?: AssetGroup | null
 }
 
-/** Issue đã ghi nhận trong session — key theo item_id */
+/** Issue đã ghi nhận trong session — multi-issue per item */
 interface LeanIssue {
+  /** Local id để key/edit từng issue */
+  id: string
   item_id: string
   item_name: string
   item_type: ItemType
@@ -45,8 +47,6 @@ interface LeanIssue {
   photos: string[]
   chargeToGuest?: boolean
   notes?: string
-  /** Riêng minibar: dùng để hiển thị stepper inline */
-  minibarConsumedQty?: number
   /** Đợt B */
   uiActionKey?: string
   bucket?: string
@@ -59,9 +59,17 @@ interface LeanIssue {
 
 interface DraftShape {
   startedAt: string
-  issues: Record<string, LeanIssue>
+  /** issues[itemId] = list */
+  issues: Record<string, LeanIssue[]>
   /** Minibar inline: itemId -> qty đã dùng (chưa cần ảnh) */
   minibar: Record<string, number>
+}
+
+function genIssueId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return (crypto as any).randomUUID()
+  }
+  return `iss_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 }
 
 /** Nhóm Lean — theo spec */
@@ -199,9 +207,12 @@ export default function LeanInspectionPage() {
 
   // ────── State chính ──────
   const startedAtRef = useRef<string>(new Date().toISOString())
-  const [issues, setIssues] = useState<Record<string, LeanIssue>>({})
+  const [issues, setIssues] = useState<Record<string, LeanIssue[]>>({})
   const [minibar, setMinibar] = useState<Record<string, number>>({})
-  const [sheetItem, setSheetItem] = useState<EnrichedItem | null>(null)
+  /** sheet trạng thái: item + (issueId nếu sửa, null nếu thêm mới) */
+  const [sheetState, setSheetState] = useState<
+    { item: EnrichedItem; issueId: string | null } | null
+  >(null)
 
   // ────── Hydrate từ draft (nếu có ?resume=true) ──────
   const resumeRequested = params.get('resume') === 'true'
@@ -216,7 +227,17 @@ export default function LeanInspectionPage() {
     const env = readLeanDraft<DraftShape>(id)
     if (env?.data) {
       startedAtRef.current = env.data.startedAt || startedAtRef.current
-      setIssues(env.data.issues || {})
+      // Migrate draft cũ (issues[itemId] = LeanIssue) → array
+      const raw: any = env.data.issues || {}
+      const migrated: Record<string, LeanIssue[]> = {}
+      for (const [k, v] of Object.entries(raw)) {
+        if (Array.isArray(v)) {
+          migrated[k] = (v as any[]).map((x) => ({ ...x, id: x.id || genIssueId() }))
+        } else if (v && typeof v === 'object') {
+          migrated[k] = [{ ...(v as LeanIssue), id: (v as any).id || genIssueId() }]
+        }
+      }
+      setIssues(migrated)
       setMinibar(env.data.minibar || {})
     }
     hydratedRef.current = true
@@ -229,10 +250,12 @@ export default function LeanInspectionPage() {
     if (!editItemId || !enriched.length) return
     const target = enriched.find((it) => it.item_id === editItemId)
     if (target) {
-      setSheetItem(target)
+      const list = issues[editItemId]
+      const first = list && list.length > 0 ? list[0].id : null
+      setSheetState({ item: target, issueId: first })
       editOpenedRef.current = true
     }
-  }, [editItemId, enriched])
+  }, [editItemId, enriched, issues])
 
   // ────── Autosave ──────
   const draftPayload: DraftShape = useMemo(
@@ -283,24 +306,29 @@ export default function LeanInspectionPage() {
   }, [takenOver])
 
   // ────── Handlers ──────
-  const reportedCount = Object.keys(issues).length
+  /** Số mục có ít nhất 1 issue */
+  const reportedCount = Object.values(issues).filter((l) => l.length > 0).length
+  /** Tổng số issues */
+  const totalIssueCount = Object.values(issues).reduce((s, l) => s + l.length, 0)
 
-  const openIssueFor = (it: EnrichedItem) => {
-    if (it.is_minibar) {
-      // Minibar dùng row inline, không mở sheet — chỉ mở khi user muốn
-      // báo "hỏng/mất/thiếu" cho item minibar (bypass: vẫn cho mở sheet)
-    }
-    setSheetItem(it)
+  const openNewIssueFor = (it: EnrichedItem) => {
+    setSheetState({ item: it, issueId: null })
+  }
+
+  const openEditIssue = (it: EnrichedItem, issueId: string) => {
+    setSheetState({ item: it, issueId })
   }
 
   const handleIssueSubmit = (result: LeanIssueResult) => {
-    if (!sheetItem) return
-    setIssues((prev) => ({
-      ...prev,
-      [sheetItem.item_id]: {
-        item_id: sheetItem.item_id,
-        item_name: sheetItem.item_name,
-        item_type: sheetItem.item_type,
+    if (!sheetState) return
+    const { item, issueId } = sheetState
+    setIssues((prev) => {
+      const list = prev[item.item_id] ? [...prev[item.item_id]] : []
+      const newIssue: LeanIssue = {
+        id: issueId || genIssueId(),
+        item_id: item.item_id,
+        item_name: item.item_name,
+        item_type: item.item_type,
         level1: result.level1,
         kind: result.kind,
         quantity: result.quantity,
@@ -311,17 +339,27 @@ export default function LeanInspectionPage() {
         bucket: result.bucket,
         issueRole: result.issueRole,
         needsReview: result.needsReview,
-        assetGroup: result.assetGroup ?? (sheetItem.asset_group ?? undefined),
+        assetGroup: result.assetGroup ?? (item.asset_group ?? undefined),
         subReason: result.subReasonKey,
         extra: result.extra,
-      },
-    }))
+      }
+      if (issueId) {
+        const idx = list.findIndex((x) => x.id === issueId)
+        if (idx >= 0) list[idx] = newIssue
+        else list.push(newIssue)
+      } else {
+        list.push(newIssue)
+      }
+      return { ...prev, [item.item_id]: list }
+    })
   }
 
-  const removeIssue = (itemId: string) => {
+  const removeIssue = (itemId: string, issueId: string) => {
     setIssues((prev) => {
+      const list = (prev[itemId] || []).filter((x) => x.id !== issueId)
       const next = { ...prev }
-      delete next[itemId]
+      if (list.length === 0) delete next[itemId]
+      else next[itemId] = list
       return next
     })
   }
@@ -471,11 +509,11 @@ export default function LeanInspectionPage() {
             </header>
             <ul>
               {g.items.map((it) => {
-                const issue = issues[it.item_id]
+                const issueList = issues[it.item_id] ?? []
                 const isMinibar = it.is_minibar
                 const minibarQty = minibar[it.item_id] ?? 0
 
-                if (isMinibar && showMinibarDeep && !issue) {
+                if (isMinibar && showMinibarDeep && issueList.length === 0) {
                   return (
                     <li
                       key={it.item_id}
@@ -488,9 +526,7 @@ export default function LeanInspectionPage() {
                             {it.item_name}
                           </p>
                           <p className="text-[13px] text-muted-foreground mt-0.5">
-                            {minibarQty > 0
-                              ? `Đã dùng ${minibarQty}`
-                              : 'Chưa dùng'}
+                            {minibarQty > 0 ? `Đã dùng ${minibarQty}` : 'Chưa dùng'}
                           </p>
                         </div>
                         {minibarQty === 0 ? (
@@ -523,9 +559,7 @@ export default function LeanInspectionPage() {
                             </div>
                             <button
                               type="button"
-                              onClick={() =>
-                                setMinibarQty(it.item_id, minibarQty + 1)
-                              }
+                              onClick={() => setMinibarQty(it.item_id, minibarQty + 1)}
                               className="rounded-lg border-2 text-xl font-bold active:bg-muted/50"
                               style={{ width: 56, height: 56 }}
                               aria-label="Tăng"
@@ -539,61 +573,94 @@ export default function LeanInspectionPage() {
                   )
                 }
 
-                return (
-                  <li
-                    key={it.item_id}
-                    className="border-b last:border-b-0 flex items-stretch"
-                    style={{ minHeight: 64 }}
-                  >
-                    {/* Vùng bấm chính: mở sheet để sửa/báo */}
-                    <button
-                      type="button"
-                      onClick={() => openIssueFor(it)}
-                      className="flex-1 flex items-center gap-3 px-3 py-3 text-left active:bg-muted/50"
-                      aria-label={
-                        issue
-                          ? `Sửa ${it.item_name}`
-                          : `Báo vấn đề cho ${it.item_name}`
-                      }
+                if (issueList.length === 0) {
+                  // Item ổn — hàng đơn giản, bấm để báo vấn đề
+                  return (
+                    <li
+                      key={it.item_id}
+                      className="border-b last:border-b-0 flex items-stretch"
+                      style={{ minHeight: 64 }}
                     >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[16px] font-medium leading-tight truncate">
-                          {it.item_name}
-                        </p>
-                        {issue ? (
-                          <p className="text-[13px] mt-0.5 text-amber-700 font-semibold">
-                            {issueLabel(issue)} · SL {issue.quantity}
-                            {issue.photos.length > 0 &&
-                              ` · ${issue.photos.length} ảnh`}
+                      <button
+                        type="button"
+                        onClick={() => openNewIssueFor(it)}
+                        className="flex-1 flex items-center gap-3 px-3 py-3 text-left active:bg-muted/50"
+                        aria-label={`Báo vấn đề cho ${it.item_name}`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[16px] font-medium leading-tight truncate">
+                            {it.item_name}
                           </p>
-                        ) : (
                           <p className="text-[13px] mt-0.5 text-green-600 font-medium">
                             Ổn
                           </p>
-                        )}
-                      </div>
-                      {!issue && (
+                        </div>
                         <span
                           className="text-[14px] font-semibold text-primary px-3 py-2 border-2 border-primary/40 rounded-lg"
                           style={{ minHeight: 44 }}
                         >
                           Có vấn đề
                         </span>
-                      )}
-                    </button>
-
-                    {/* Nút "Bỏ" tách riêng — không nested để tránh bấm nhầm */}
-                    {issue && (
-                      <button
-                        type="button"
-                        onClick={() => removeIssue(it.item_id)}
-                        aria-label={`Bỏ vấn đề của ${it.item_name}`}
-                        className="px-4 text-[14px] font-semibold text-muted-foreground border-l active:bg-muted/50"
-                        style={{ minWidth: 64 }}
-                      >
-                        Bỏ
                       </button>
-                    )}
+                    </li>
+                  )
+                }
+
+                // Item có ≥1 issue — render list + nút thêm
+                return (
+                  <li
+                    key={it.item_id}
+                    className="border-b last:border-b-0 px-3 py-3 space-y-2"
+                  >
+                    <p className="text-[16px] font-medium leading-tight truncate">
+                      {it.item_name}
+                      <span className="ml-2 text-[12px] font-medium text-muted-foreground">
+                        {issueList.length} sự cố
+                      </span>
+                    </p>
+                    <ul className="space-y-1.5">
+                      {issueList.map((iss) => (
+                        <li
+                          key={iss.id}
+                          className="flex items-stretch border rounded-lg overflow-hidden"
+                          style={{ minHeight: 56 }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => openEditIssue(it, iss.id)}
+                            className="flex-1 px-3 py-2 text-left active:bg-muted/50"
+                            aria-label={`Sửa sự cố ${iss.item_name}`}
+                          >
+                            <p className="text-[14px] font-semibold text-amber-700 leading-tight">
+                              {issueLabel(iss)} · SL {iss.quantity}
+                              {iss.photos.length > 0 && ` · ${iss.photos.length} ảnh`}
+                            </p>
+                            {iss.notes && (
+                              <p className="text-[12px] text-muted-foreground mt-0.5 line-clamp-1">
+                                {iss.notes}
+                              </p>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeIssue(it.item_id, iss.id)}
+                            aria-label="Bỏ sự cố này"
+                            className="px-3 text-[13px] font-semibold text-muted-foreground border-l active:bg-muted/50"
+                            style={{ minWidth: 56 }}
+                          >
+                            Bỏ
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      type="button"
+                      onClick={() => openNewIssueFor(it)}
+                      className="w-full text-[14px] font-semibold text-primary py-2 border-2 border-dashed border-primary/40 rounded-lg active:bg-muted/50"
+                      style={{ minHeight: 44 }}
+                    >
+                      + Thêm sự cố khác
+                    </button>
                   </li>
                 )
               })}
@@ -618,9 +685,9 @@ export default function LeanInspectionPage() {
             style={{ minHeight: 56 }}
           >
             Tiếp tục
-            {reportedCount > 0 && (
+            {totalIssueCount > 0 && (
               <span className="ml-2 text-[14px] font-medium opacity-80">
-                · {reportedCount} sự cố
+                · {totalIssueCount} sự cố / {reportedCount} mục
               </span>
             )}
           </Button>
@@ -628,29 +695,37 @@ export default function LeanInspectionPage() {
       </footer>
 
       {/* Report Issue Sheet */}
-      <LeanReportIssueSheet
-        open={!!sheetItem}
-        onOpenChange={(v) => !v && setSheetItem(null)}
-        itemName={sheetItem?.item_name || ''}
-        itemType={sheetItem?.item_type || 'equipment'}
-        standardQuantity={sheetItem?.standard_quantity || 1}
-        assetGroup={sheetItem?.asset_group ?? null}
-        photoRequiredFor={photoRequiredFor}
-        initial={
-          sheetItem && issues[sheetItem.item_id]
-            ? {
-                level1: issues[sheetItem.item_id].level1,
-                quantity: issues[sheetItem.item_id].quantity,
-                photos: issues[sheetItem.item_id].photos,
-                chargeToGuest: issues[sheetItem.item_id].chargeToGuest,
-                notes: issues[sheetItem.item_id].notes,
-                subReasonKey: issues[sheetItem.item_id].subReason,
-              }
+      {(() => {
+        const sheetItem = sheetState?.item ?? null
+        const editingIssue =
+          sheetItem && sheetState?.issueId
+            ? (issues[sheetItem.item_id] ?? []).find((x) => x.id === sheetState.issueId) ?? null
             : null
-        }
-        onSubmit={handleIssueSubmit}
-      />
-
+        return (
+          <LeanReportIssueSheet
+            open={!!sheetItem}
+            onOpenChange={(v) => !v && setSheetState(null)}
+            itemName={sheetItem?.item_name || ''}
+            itemType={sheetItem?.item_type || 'equipment'}
+            standardQuantity={sheetItem?.standard_quantity || 1}
+            assetGroup={sheetItem?.asset_group ?? null}
+            photoRequiredFor={photoRequiredFor}
+            initial={
+              editingIssue
+                ? {
+                    level1: editingIssue.level1,
+                    quantity: editingIssue.quantity,
+                    photos: editingIssue.photos,
+                    chargeToGuest: editingIssue.chargeToGuest,
+                    notes: editingIssue.notes,
+                    subReasonKey: editingIssue.subReason,
+                  }
+                : null
+            }
+            onSubmit={handleIssueSubmit}
+          />
+        )
+      })()}
       {/* Takeover overlay — block khi Manager đã tiếp quản phiên kiểm */}
       {takenOver && (
         <div
