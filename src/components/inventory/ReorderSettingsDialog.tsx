@@ -24,6 +24,8 @@ interface ItemReorderSettings {
   lead_time_days: number | null
   is_perishable: boolean | null
   preferred_vendor_id: string | null
+  auto_reorder_enabled: boolean | null
+  safety_factor: number | null
 }
 
 const NO_VENDOR = '__none__'
@@ -40,6 +42,8 @@ export function ReorderSettingsDialog({ open, onOpenChange, itemId, itemName }: 
     lead_time_days: 7,
     is_perishable: false,
     preferred_vendor_id: null,
+    auto_reorder_enabled: false,
+    safety_factor: 1.3,
   })
 
   useEffect(() => {
@@ -47,7 +51,7 @@ export function ReorderSettingsDialog({ open, onOpenChange, itemId, itemName }: 
     setLoading(true)
     supabase
       .from('items')
-      .select('reorder_point, reorder_max_qty, lead_time_days, is_perishable, preferred_vendor_id')
+      .select('reorder_point, reorder_max_qty, lead_time_days, is_perishable, preferred_vendor_id, auto_reorder_enabled, safety_factor')
       .eq('id', itemId)
       .eq('tenant_id', tenantId)
       .maybeSingle()
@@ -61,6 +65,8 @@ export function ReorderSettingsDialog({ open, onOpenChange, itemId, itemName }: 
             lead_time_days: (data as any).lead_time_days ?? 7,
             is_perishable: (data as any).is_perishable ?? false,
             preferred_vendor_id: (data as any).preferred_vendor_id ?? null,
+            auto_reorder_enabled: (data as any).auto_reorder_enabled ?? false,
+            safety_factor: (data as any).safety_factor ?? 1.3,
           })
         }
         setLoading(false)
@@ -78,6 +84,8 @@ export function ReorderSettingsDialog({ open, onOpenChange, itemId, itemName }: 
         lead_time_days: form.lead_time_days ?? 7,
         is_perishable: form.is_perishable ?? false,
         preferred_vendor_id: form.preferred_vendor_id,
+        auto_reorder_enabled: form.auto_reorder_enabled ?? false,
+        safety_factor: form.safety_factor ?? 1.3,
       } as any)
       .eq('id', itemId)
       .eq('tenant_id', tenantId)
@@ -192,6 +200,45 @@ export function ReorderSettingsDialog({ open, onOpenChange, itemId, itemName }: 
                   checked={form.is_perishable ?? false}
                   onCheckedChange={(v) => setForm({ ...form, is_perishable: v })}
                 />
+              </div>
+
+              <div className="border rounded-lg p-2 space-y-2 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="auto" className="text-sm">Tự động gợi ý đặt hàng</Label>
+                    <p className="text-[10px] text-muted-foreground">
+                      Dự đoán theo tiêu thụ TB × ngày chờ × hệ số an toàn
+                    </p>
+                  </div>
+                  <Switch
+                    id="auto"
+                    checked={form.auto_reorder_enabled ?? false}
+                    onCheckedChange={(v) => setForm({ ...form, auto_reorder_enabled: v })}
+                  />
+                </div>
+                {form.auto_reorder_enabled && (
+                  <div className="space-y-1">
+                    <Label htmlFor="sf" className="text-xs">Hệ số an toàn</Label>
+                    <Input
+                      id="sf"
+                      type="number"
+                      step="0.1"
+                      min={1}
+                      max={3}
+                      value={form.safety_factor ?? 1.3}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          safety_factor: parseFloat(e.target.value || '1.3'),
+                        })
+                      }
+                      className="h-8"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Mặc định 1.3 (dư 30% phòng đột biến)
+                    </p>
+                  </div>
+                )}
               </div>
             </>
           )}

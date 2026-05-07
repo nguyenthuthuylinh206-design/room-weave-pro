@@ -19,6 +19,8 @@ export interface NotificationPreferences {
   email_po_approved: boolean;
   email_daily_report: boolean;
   email_weekly_report: boolean;
+  email_dead_stock_digest: boolean;
+  email_critical_stock: boolean;
   
   // In-app notifications
   inapp_realtime: boolean;
@@ -53,6 +55,8 @@ const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id' | 'tena
   email_po_approved: true,
   email_daily_report: false,
   email_weekly_report: true,
+  email_dead_stock_digest: true,
+  email_critical_stock: true,
   inapp_realtime: true,
   inapp_low_stock: true,
   inapp_laundry_completed: true,

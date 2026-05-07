@@ -293,6 +293,34 @@ export function NotificationSettingsPage() {
                 onCheckedChange={(v) => handleChange('email_weekly_report', v)}
               />
             </div>
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Cảnh báo sắp hết hàng (&lt; 7 ngày)</Label>
+                <p className="text-sm text-muted-foreground">
+                  Email khi có mặt hàng dự kiến hết trong vòng 7 ngày tới
+                </p>
+              </div>
+              <Switch
+                checked={(localPrefs as any).email_critical_stock ?? true}
+                onCheckedChange={(v) => handleChange('email_critical_stock' as any, v)}
+              />
+            </div>
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Báo cáo tồn ứ đọng hàng tuần</Label>
+                <p className="text-sm text-muted-foreground">
+                  Sáng thứ 2 hàng tuần — danh sách hàng không xuất kho ≥ 90 ngày
+                </p>
+              </div>
+              <Switch
+                checked={(localPrefs as any).email_dead_stock_digest ?? true}
+                onCheckedChange={(v) => handleChange('email_dead_stock_digest' as any, v)}
+              />
+            </div>
           </CardContent>
         </Card>
 
