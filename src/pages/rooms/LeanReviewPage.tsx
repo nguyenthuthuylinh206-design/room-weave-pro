@@ -148,8 +148,11 @@ export default function LeanReviewPage() {
 
     const buildBaseEntry = (i: SanitizedLeanIssue): Entry => {
       const base: Entry = {
+        // id phía client — DB sẽ lưu vào client_issue_id, dùng để derived ref về
+        id: i.id,
         item_id: i.item_id,
         item_name: i.item_name,
+        item_type: i.item_type,
         quantity: i.quantity,
         photos: i.photos,
         notes: i.notes,
@@ -160,7 +163,7 @@ export default function LeanReviewPage() {
       if (i.assetGroup) base.asset_group = i.assetGroup
       if (i.uiActionKey) base.ui_action = i.uiActionKey
       if (i.subReasonKey) base.sub_reason = i.subReasonKey
-      if (i.extra) Object.assign(base, i.extra)
+      if (i.extra) base.extra = i.extra
       return base
     }
 
@@ -178,22 +181,23 @@ export default function LeanReviewPage() {
         'items_damaged'
       buckets[target].push(buildBaseEntry(i))
 
-      // Đợt B+: derived_action dạng `<group>.<action>` → đẩy thêm 1 entry tách bạch
+      // derived_action — link tới primary qua source_issue_client_id
       if (i.derivedActionKey) {
-        // Lazy import để tránh circular: resolve ở client cho derived
-        // (không gọi network) — dùng module helper.
         try {
           // eslint-disable-next-line @typescript-eslint/no-var-requires
           const { resolveBucket } = require('@/lib/issueBucketMapping')
           const r = resolveBucket(i.derivedActionKey)
           if (r?.bucket && buckets[r.bucket]) {
             buckets[r.bucket].push({
+              id: `${i.id}__derived`,
               item_id: i.item_id,
               item_name: i.item_name,
+              item_type: i.item_type,
               quantity: i.quantity,
               photos: [],
               issue_role: 'derived_action',
-              source_issue_action: i.uiActionKey,
+              source_issue_client_id: i.id,
+              source: 'derived',
               ui_action: i.derivedActionKey,
               ...(r.extra ?? {}),
             })
