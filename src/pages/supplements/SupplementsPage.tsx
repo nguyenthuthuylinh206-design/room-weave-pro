@@ -202,7 +202,18 @@ export function SupplementsPage() {
             <SelectItem value="rejected">Từ chối</SelectItem>
           </SelectContent>
         </Select>
-        {(filters.status || filters.search) && (
+        <Select
+          value={filters.source || 'all'}
+          onValueChange={(value) => handleFilterChange('source', value === 'all' ? '' : value)}
+        >
+          <SelectTrigger className="w-40"><SelectValue placeholder="Nguồn" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Mọi nguồn</SelectItem>
+            <SelectItem value="room_check">Từ kiểm tra phòng</SelectItem>
+            <SelectItem value="manual">Tạo thủ công</SelectItem>
+          </SelectContent>
+        </Select>
+        {(filters.status || filters.search || filters.source) && (
           <Button 
             variant="ghost" 
             size="sm"
