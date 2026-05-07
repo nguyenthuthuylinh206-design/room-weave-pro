@@ -267,8 +267,59 @@ export default function PendingChargesPage() {
                 <div className="col-span-2 md:col-span-1 text-right text-xs">{statusText}</div>
                 <div className="col-span-2 hidden md:block text-right text-xs text-muted-foreground">
                   {format(new Date(r.recorded_at), 'dd/MM HH:mm')}
+                  {isManager && r.approval_status !== 'pending' && !r.is_billed && (
+                    <div className="mt-1">
+                      <button
+                        type="button"
+                        className="text-[10px] text-blue-600 hover:underline"
+                        onClick={() => {
+                          setOverrideRow(r)
+                          setOverrideDecision(r.approval_status === 'rejected' ? 'approved' : 'rejected')
+                          setOverrideReason('')
+                        }}
+                      >Ghi đè</button>
+                    </div>
+                  )}
                 </div>
               </div>
+            )
+          })
+        )}
+      </div>
+
+      <Dialog open={!!overrideRow} onOpenChange={(o) => { if (!o) setOverrideRow(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ghi đè quyết định lễ tân</DialogTitle>
+            <DialogDescription>
+              {overrideRow && (
+                <>
+                  {overrideRow.item_name} · {formatCurrency(overrideRow.total_amount || overrideRow.quantity * overrideRow.unit_price)}
+                  <br />
+                  Hiện tại: <b>{overrideRow.approval_status === 'approved' ? 'Đã duyệt' : 'Đã từ chối'}</b>
+                  {' → '}
+                  Ghi đè thành: <b>{overrideDecision === 'approved' ? 'Duyệt' : 'Từ chối'}</b>
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            placeholder="Lý do ghi đè (bắt buộc, tối thiểu 5 ký tự)"
+            value={overrideReason}
+            onChange={(e) => setOverrideReason(e.target.value)}
+            rows={3}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOverrideRow(null)}>Hủy</Button>
+            <Button
+              disabled={overrideMut.isPending || overrideReason.trim().length < 5}
+              onClick={() => overrideRow && overrideMut.mutate({
+                id: overrideRow.id, dec: overrideDecision, rs: overrideReason.trim(),
+              })}
+            >Xác nhận ghi đè</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
             )
           })
         )}
