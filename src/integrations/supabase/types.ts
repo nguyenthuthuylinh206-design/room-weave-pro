@@ -711,12 +711,16 @@ export type Database = {
           billed_at: string | null
           booking_id: string
           created_at: string | null
+          final_status: string | null
           id: string
           is_billed: boolean | null
           item_code: string | null
           item_id: string
           item_name: string
           notes: string | null
+          overridden_at: string | null
+          overridden_by: string | null
+          override_reason: string | null
           quantity: number
           recorded_at: string | null
           recorded_by: string | null
@@ -724,6 +728,7 @@ export type Database = {
           reviewed_at: string | null
           reviewed_by: string | null
           room_id: string
+          source_issue_id: string | null
           tenant_id: string
           total_amount: number | null
           unit_price: number
@@ -734,12 +739,16 @@ export type Database = {
           billed_at?: string | null
           booking_id: string
           created_at?: string | null
+          final_status?: string | null
           id?: string
           is_billed?: boolean | null
           item_code?: string | null
           item_id: string
           item_name: string
           notes?: string | null
+          overridden_at?: string | null
+          overridden_by?: string | null
+          override_reason?: string | null
           quantity?: number
           recorded_at?: string | null
           recorded_by?: string | null
@@ -747,6 +756,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           room_id: string
+          source_issue_id?: string | null
           tenant_id: string
           total_amount?: number | null
           unit_price?: number
@@ -757,12 +767,16 @@ export type Database = {
           billed_at?: string | null
           booking_id?: string
           created_at?: string | null
+          final_status?: string | null
           id?: string
           is_billed?: boolean | null
           item_code?: string | null
           item_id?: string
           item_name?: string
           notes?: string | null
+          overridden_at?: string | null
+          overridden_by?: string | null
+          override_reason?: string | null
           quantity?: number
           recorded_at?: string | null
           recorded_by?: string | null
@@ -770,6 +784,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           room_id?: string
+          source_issue_id?: string | null
           tenant_id?: string
           total_amount?: number | null
           unit_price?: number
@@ -6768,6 +6783,50 @@ export type Database = {
           },
         ]
       }
+      room_check_issue_reviews: {
+        Row: {
+          charge_id: string | null
+          created_at: string
+          decision: string
+          hotel_id: string
+          id: string
+          issue_id: string
+          reason: string | null
+          reviewer_id: string
+          tenant_id: string
+        }
+        Insert: {
+          charge_id?: string | null
+          created_at?: string
+          decision: string
+          hotel_id: string
+          id?: string
+          issue_id: string
+          reason?: string | null
+          reviewer_id: string
+          tenant_id: string
+        }
+        Update: {
+          charge_id?: string | null
+          created_at?: string
+          decision?: string
+          hotel_id?: string
+          id?: string
+          issue_id?: string
+          reason?: string | null
+          reviewer_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_check_issue_reviews_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "room_check_issues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_check_issues: {
         Row: {
           asset_group: string | null
@@ -6790,7 +6849,10 @@ export type Database = {
           quality_issue: boolean
           quantity: number
           retire_reason: string | null
+          review_decision: string | null
           review_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           room_check_id: string
           room_id: string
           source: string | null
@@ -6821,7 +6883,10 @@ export type Database = {
           quality_issue?: boolean
           quantity: number
           retire_reason?: string | null
+          review_decision?: string | null
           review_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           room_check_id: string
           room_id: string
           source?: string | null
@@ -6852,7 +6917,10 @@ export type Database = {
           quality_issue?: boolean
           quantity?: number
           retire_reason?: string | null
+          review_decision?: string | null
           review_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           room_check_id?: string
           room_id?: string
           source?: string | null
@@ -11768,6 +11836,7 @@ export type Database = {
         Returns: boolean
       }
       is_manager: { Args: never; Returns: boolean }
+      is_manager_or_above: { Args: { _user: string }; Returns: boolean }
       is_owner_user: { Args: never; Returns: boolean }
       is_qc_manager: { Args: { _user_id: string }; Returns: boolean }
       is_route_assignee: {
@@ -11808,6 +11877,14 @@ export type Database = {
           p_to_state: string
         }
         Returns: number
+      }
+      manager_override_charge: {
+        Args: {
+          p_charge_id: string
+          p_decision: string
+          p_override_reason: string
+        }
+        Returns: Json
       }
       mark_batch_partially_received: {
         Args: { _batch_id: string; _items: Json }
@@ -12006,6 +12083,10 @@ export type Database = {
         Returns: {
           updated_count: number
         }[]
+      }
+      review_room_check_issue: {
+        Args: { p_decision: string; p_issue_id: string; p_reason?: string }
+        Returns: Json
       }
       run_auto_reorder_daily: { Args: never; Returns: Json }
       runtests:
