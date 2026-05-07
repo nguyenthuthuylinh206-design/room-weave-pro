@@ -62,12 +62,18 @@ export function SupplementsPage() {
   const [filters, setFilters] = useState({
     status: searchParams.get('status') || '',
     search: searchParams.get('search') || '',
+    source: searchParams.get('source') || '',
   })
   
-  const { data: requests, isLoading } = useSupplementRequests({
+  const { data: rawRequests, isLoading } = useSupplementRequests({
     status: filters.status && filters.status !== 'all' ? filters.status : undefined,
     search: filters.search || undefined,
   })
+  const requests = filters.source === 'room_check'
+    ? (rawRequests ?? []).filter(r => !!r.room_check_id)
+    : filters.source === 'manual'
+      ? (rawRequests ?? []).filter(r => !r.room_check_id)
+      : rawRequests
   
   const { data: pendingCount } = usePendingSupplementCount()
   
