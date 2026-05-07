@@ -3860,6 +3860,53 @@ export type Database = {
           },
         ]
       }
+      laundry_batch_audit: {
+        Row: {
+          batch_id: string
+          created_at: string
+          details: Json | null
+          from_status: string | null
+          hotel_id: string
+          id: string
+          performed_by: string | null
+          reason: string | null
+          tenant_id: string
+          to_status: string
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string
+          details?: Json | null
+          from_status?: string | null
+          hotel_id: string
+          id?: string
+          performed_by?: string | null
+          reason?: string | null
+          tenant_id: string
+          to_status: string
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string
+          details?: Json | null
+          from_status?: string | null
+          hotel_id?: string
+          id?: string
+          performed_by?: string | null
+          reason?: string | null
+          tenant_id?: string
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "laundry_batch_audit_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "laundry_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       laundry_batch_items: {
         Row: {
           batch_id: string
@@ -11981,7 +12028,16 @@ export type Database = {
         Args: { p_reason: string; p_tenant_id: string }
         Returns: undefined
       }
-      settle_batch_compensation: { Args: { _batch_id: string }; Returns: Json }
+      settle_batch_compensation:
+        | { Args: { _batch_id: string }; Returns: Json }
+        | {
+            Args: {
+              _batch_id: string
+              _compensation_amount: number
+              _notes?: string
+            }
+            Returns: Json
+          }
       setup_new_tenant:
         | {
             Args: {
@@ -12160,6 +12216,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      transition_laundry_batch_status: {
+        Args: { _batch_id: string; _reason?: string; _to: string }
+        Returns: Json
       }
       transition_room_status: {
         Args: {
