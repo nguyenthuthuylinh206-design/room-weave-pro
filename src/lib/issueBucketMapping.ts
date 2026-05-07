@@ -1,11 +1,12 @@
 /**
- * Issue UI → Bucket mapping (Decision v1.2 §6.3)
+ * Issue UI → Bucket mapping (Decision v1.2 §6.3 + §7)
  *
- * Trả về:
- *  - bucket: chỗ ghi vào jsonb room_checks
- *  - issue_role: 'primary_issue' (housekeeper báo trực tiếp) | 'derived_action' (hệ thống suy ra)
- *  - needs_review: có cần manager xem không
- *  - extra: field bổ sung snapshot vào entry
+ * Phase B1 — Chuẩn hoá:
+ *  - L1: tối đa 4 primary options/group, KHÔNG còn UNKNOWN nối thêm
+ *    (mỗi group đã có 1 option "Chưa rõ" trong 4 lựa chọn).
+ *  - Sub-reasons: ENUM list (radio), không free-text.
+ *  - resolveBucket: nhận `actionKey` (L1) HOẶC `actionKey + subReasonKey` →
+ *    BucketResolution có thể merge từ sub-reason override.
  */
 import type { AssetGroup, IssueBucket } from '@/types/assetGroup.types'
 
@@ -15,260 +16,566 @@ export interface BucketResolution {
   bucket: IssueBucket
   issue_role: IssueRole
   needs_review: boolean
+  /** photo_required override (nếu unset → dùng per-hotel policy theo bucket) */
+  photo_required?: boolean
   extra?: Record<string, any>
 }
 
-/**
- * Key format: `<assetGroup>.<actionId>`
- * Ví dụ: 'linen.send_laundry', 'minibar.consumed_by_guest'
- */
-export const BUCKET_MAP: Record<string, BucketResolution> = {
-  // ─── LINEN ───
-  'linen.send_laundry': {
-    bucket: 'items_sent_to_laundry',
-    issue_role: 'primary_issue',
-    needs_review: false,
-  },
-  'linen.dirty_unrecoverable': {
-    bucket: 'items_sent_to_laundry',
-    issue_role: 'primary_issue',
-    needs_review: true,
-    extra: { quality_issue: true },
-  },
-  'linen.lifecycle_end': {
-    bucket: 'items_damaged',
-    issue_role: 'primary_issue',
-    needs_review: true,
-    extra: { retire_reason: 'lifecycle' },
-  },
-  'linen.lost': {
-    bucket: 'items_lost',
-    issue_role: 'primary_issue',
-    needs_review: true,
-  },
-  'linen.need_more': {
-    bucket: 'items_replaced',
-    issue_role: 'primary_issue',
-    needs_review: false,
-  },
-
-  // ─── CONSUMABLE_FREE ───
-  'consumable_free.used_up': {
-    bucket: 'items_consumed',
-    issue_role: 'primary_issue',
-    needs_review: false,
-  },
-  'consumable_free.refill': {
-    bucket: 'items_replaced',
-    issue_role: 'derived_action',
-    needs_review: false,
-  },
-  'consumable_free.missing': {
-    bucket: 'items_missing',
-    issue_role: 'primary_issue',
-    needs_review: true,
-  },
-
-  // ─── MINIBAR ───
-  'minibar.consumed_by_guest': {
-    bucket: 'items_consumed',
-    issue_role: 'primary_issue',
-    needs_review: false,
-    extra: { charge_to_guest: true },
-  },
-  'minibar.missing_no_charge': {
-    bucket: 'items_missing',
-    issue_role: 'primary_issue',
-    needs_review: true,
-    extra: { charge_to_guest: false },
-  },
-  'minibar.expired': {
-    bucket: 'items_damaged',
-    issue_role: 'primary_issue',
-    needs_review: true,
-    extra: { reason: 'expired' },
-  },
-
-  // ─── STATIONERY ───
-  'stationery.used_up': {
-    bucket: 'items_consumed',
-    issue_role: 'primary_issue',
-    needs_review: false,
-  },
-  'stationery.missing': {
-    bucket: 'items_missing',
-    issue_role: 'primary_issue',
-    needs_review: false,
-  },
-  'stationery.refill': {
-    bucket: 'items_replaced',
-    issue_role: 'derived_action',
-    needs_review: false,
-  },
-
-  // ─── EQUIPMENT_LARGE ───
-  'equipment_large.broken': {
-    bucket: 'items_damaged',
-    issue_role: 'primary_issue',
-    needs_review: true,
-    extra: { create_maintenance: true },
-  },
-  'equipment_large.missing': {
-    bucket: 'items_lost',
-    issue_role: 'primary_issue',
-    needs_review: true,
-  },
-  'equipment_large.unknown_cause': {
-    bucket: 'items_damaged',
-    issue_role: 'primary_issue',
-    needs_review: true,
-    extra: { unknown_cause: true },
-  },
-
-  // ─── ELECTRONIC_ACCESSORY ───
-  'electronic_accessory.missing': {
-    bucket: 'items_lost',
-    issue_role: 'primary_issue',
-    needs_review: true,
-  },
-  'electronic_accessory.broken': {
-    bucket: 'items_damaged',
-    issue_role: 'primary_issue',
-    needs_review: true,
-  },
-
-  // ─── FURNITURE ───
-  'furniture.damaged': {
-    bucket: 'items_damaged',
-    issue_role: 'primary_issue',
-    needs_review: true,
-    extra: { create_maintenance: true },
-  },
-  'furniture.stained': {
-    bucket: 'items_damaged',
-    issue_role: 'primary_issue',
-    needs_review: true,
-    extra: { reason: 'stained' },
-  },
-
-  // ─── GLASSWARE ───
-  'glassware.broken': {
-    bucket: 'items_damaged',
-    issue_role: 'primary_issue',
-    needs_review: false,
-  },
-  'glassware.missing': {
-    bucket: 'items_lost',
-    issue_role: 'primary_issue',
-    needs_review: true,
-  },
-  'glassware.replace': {
-    bucket: 'items_replaced',
-    issue_role: 'derived_action',
-    needs_review: false,
-  },
-
-  // ─── BATHROOM_HARDWARE ───
-  'bathroom_hardware.broken': {
-    bucket: 'items_damaged',
-    issue_role: 'primary_issue',
-    needs_review: true,
-    extra: { create_maintenance: true },
-  },
-  'bathroom_hardware.leaking': {
-    bucket: 'items_damaged',
-    issue_role: 'primary_issue',
-    needs_review: true,
-    extra: { reason: 'leaking', create_maintenance: true },
-  },
-  'bathroom_hardware.missing': {
-    bucket: 'items_lost',
-    issue_role: 'primary_issue',
-    needs_review: true,
-  },
+export interface SubReason {
+  key: string
+  label: string
+  /** Override một phần BucketResolution */
+  override?: Partial<BucketResolution>
+  /** Derived action sinh kèm khi chọn sub-reason này (vd: vỡ ly → supplement) */
+  derivedActionKey?: string
 }
 
-/**
- * L1 options theo asset_group — tối đa 4 lựa chọn cho mobile
- */
 export interface L1Option {
   key: string
   title: string
   example: string
+  /** Bucket mặc định khi chỉ chọn L1 */
+  defaultResolution: BucketResolution
+  /** Nếu có → buộc chọn 1 sub-reason trước khi submit */
+  subReasons?: SubReason[]
+  /** Toggle "Tính phí khách" mặc định */
   defaultCharge?: boolean
-  /** Có yêu cầu sub_reason text không */
-  subReasonRequired?: boolean
+  /** Derived action mặc định (sinh issue_role='derived_action' khi submit) */
+  derivedActionKey?: string
 }
 
-const UNKNOWN_OPTION = (group: AssetGroup): L1Option => ({
-  key: `${group}.unknown_cause`,
-  title: 'Chưa rõ nguyên nhân',
-  example: 'Khi không chắc nguyên nhân — quản lý sẽ xem lại',
-  subReasonRequired: false,
-})
+// ============================================================================
+// Matrix §6.3 — 4 primary options/group (đã include lựa chọn "Chưa rõ")
+// ============================================================================
 
 export const L1_BY_GROUP: Record<AssetGroup, L1Option[]> = {
+  // ─── LINEN ───
   linen: [
-    { key: 'linen.send_laundry', title: 'Gửi giặt', example: 'Khăn / ga đã dùng cần giặt' },
-    { key: 'linen.dirty_unrecoverable', title: 'Bẩn không cứu được', example: 'Vết máu, hoá chất, ố nặng', subReasonRequired: true },
-    { key: 'linen.lifecycle_end', title: 'Hết vòng đời', example: 'Sờn, mỏng, thủng — cần thay mới' },
-    { key: 'linen.lost', title: 'Mất', example: 'Khách lấy hoặc thất lạc' },
+    {
+      key: 'linen.send_laundry',
+      title: 'Gửi giặt',
+      example: 'Khăn / ga đã dùng cần giặt',
+      defaultResolution: {
+        bucket: 'items_sent_to_laundry',
+        issue_role: 'primary_issue',
+        needs_review: false,
+      },
+    },
+    {
+      key: 'linen.need_more',
+      title: 'Cần bổ sung',
+      example: 'Khách yêu cầu thêm khăn / ga / gối',
+      defaultResolution: {
+        bucket: 'items_replaced',
+        issue_role: 'primary_issue',
+        needs_review: false,
+      },
+    },
+    {
+      key: 'linen.damaged_dirty',
+      title: 'Hỏng / bẩn nặng',
+      example: 'Vết bẩn không xử lý được, rách, hết tuổi thọ',
+      defaultResolution: {
+        bucket: 'items_damaged',
+        issue_role: 'primary_issue',
+        needs_review: true,
+      },
+      subReasons: [
+        {
+          key: 'dirty_unprocessable',
+          label: 'Bẩn không xử lý được',
+          override: {
+            bucket: 'items_sent_to_laundry',
+            extra: { quality_issue: true },
+            photo_required: true,
+          },
+        },
+        {
+          key: 'torn',
+          label: 'Rách / hỏng',
+          override: { extra: { reason: 'torn' }, photo_required: true },
+        },
+        {
+          key: 'lifecycle_end',
+          label: 'Hết tuổi thọ',
+          override: { extra: { retire_reason: 'lifecycle' } },
+        },
+        {
+          key: 'unknown',
+          label: 'Chưa rõ — gửi quản lý xem xét',
+          override: { needs_review: true, extra: { unknown_cause: true } },
+        },
+      ],
+    },
+    {
+      key: 'linen.lost_unknown',
+      title: 'Mất / chưa rõ',
+      example: 'Không thấy trong phòng, thiếu so với setup',
+      defaultResolution: {
+        bucket: 'items_lost',
+        issue_role: 'primary_issue',
+        needs_review: true,
+      },
+      subReasons: [
+        { key: 'not_in_room', label: 'Không thấy trong phòng' },
+        {
+          key: 'missing_setup',
+          label: 'Thiếu so với setup',
+          override: { bucket: 'items_missing' },
+        },
+        {
+          key: 'unknown',
+          label: 'Chưa rõ — gửi quản lý xem xét',
+          override: { needs_review: true, extra: { unknown_cause: true } },
+        },
+      ],
+    },
   ],
+
+  // ─── CONSUMABLE_FREE ───
   consumable_free: [
-    { key: 'consumable_free.used_up', title: 'Khách đã dùng hết', example: 'Nước suối, dầu gội, kem đánh răng' },
-    { key: 'consumable_free.missing', title: 'Thiếu / mất', example: 'Không có trong phòng' },
-    { key: 'consumable_free.refill', title: 'Bổ sung mới', example: 'Đặt thêm cho khách' },
+    {
+      key: 'consumable_free.refill',
+      title: 'Cần bổ sung',
+      example: 'Đặt thêm nước, dầu gội, kem đánh răng',
+      defaultResolution: {
+        bucket: 'items_replaced',
+        issue_role: 'primary_issue',
+        needs_review: false,
+      },
+    },
+    {
+      key: 'consumable_free.missing_setup',
+      title: 'Thiếu khi nhận phòng',
+      example: 'Thiếu so với setup chuẩn',
+      defaultResolution: {
+        bucket: 'items_missing',
+        issue_role: 'primary_issue',
+        needs_review: true,
+      },
+    },
+    {
+      key: 'consumable_free.suspicious_take',
+      title: 'Khách lấy bất thường',
+      example: 'Số lượng giảm bất thường so với mức dùng',
+      defaultResolution: {
+        bucket: 'items_lost',
+        issue_role: 'primary_issue',
+        needs_review: true,
+        extra: { suspicious: true },
+      },
+    },
+    {
+      key: 'consumable_free.unknown',
+      title: 'Chưa rõ',
+      example: 'Không xác định nguyên nhân — quản lý sẽ xem',
+      defaultResolution: {
+        bucket: 'items_missing',
+        issue_role: 'primary_issue',
+        needs_review: true,
+        extra: { unknown_cause: true },
+      },
+    },
   ],
+
+  // ─── MINIBAR ───
   minibar: [
-    { key: 'minibar.consumed_by_guest', title: 'Khách đã dùng (tính phí)', example: 'Bia, snack, mì gói', defaultCharge: true },
-    { key: 'minibar.missing_no_charge', title: 'Thiếu nhưng không tính phí', example: 'Đã có sẵn lúc khách nhận phòng' },
-    { key: 'minibar.expired', title: 'Hàng hết hạn', example: 'Cần huỷ và bổ sung lô mới' },
+    {
+      key: 'minibar.consumed_by_guest',
+      title: 'Khách đã dùng',
+      example: 'Bia, snack, mì gói — sẽ tính phí',
+      defaultCharge: true,
+      defaultResolution: {
+        bucket: 'items_consumed',
+        issue_role: 'primary_issue',
+        needs_review: false,
+        extra: { charge_to_guest: true, charge_status: 'pending_fo_confirm' },
+      },
+    },
+    {
+      key: 'minibar.refill',
+      title: 'Cần bổ sung',
+      example: 'Bổ sung lô mới cho khách kế tiếp',
+      defaultResolution: {
+        bucket: 'items_replaced',
+        issue_role: 'primary_issue',
+        needs_review: false,
+      },
+    },
+    {
+      key: 'minibar.expired',
+      title: 'Hết hạn',
+      example: 'Cần huỷ và bổ sung lô mới',
+      defaultResolution: {
+        bucket: 'items_lost',
+        issue_role: 'primary_issue',
+        needs_review: true,
+        extra: { reason: 'expired', charge_to_guest: false },
+      },
+    },
+    {
+      key: 'minibar.missing_setup',
+      title: 'Thiếu khi setup',
+      example: 'Chưa có sẵn lúc khách nhận phòng — không tính phí',
+      defaultResolution: {
+        bucket: 'items_missing',
+        issue_role: 'primary_issue',
+        needs_review: true,
+        extra: { charge_to_guest: false },
+      },
+    },
   ],
+
+  // ─── STATIONERY ───
   stationery: [
-    { key: 'stationery.used_up', title: 'Khách đã dùng', example: 'Bút, giấy note, phong bì' },
-    { key: 'stationery.missing', title: 'Thiếu / mất', example: 'Không còn trong phòng' },
-    { key: 'stationery.refill', title: 'Bổ sung mới', example: 'Đặt thêm cho khách' },
+    {
+      key: 'stationery.refill',
+      title: 'Cần bổ sung',
+      example: 'Bút, giấy note, phong bì',
+      defaultResolution: {
+        bucket: 'items_replaced',
+        issue_role: 'primary_issue',
+        needs_review: false,
+      },
+    },
+    {
+      key: 'stationery.missing_setup',
+      title: 'Thiếu khi nhận phòng',
+      example: 'Thiếu so với setup chuẩn',
+      defaultResolution: {
+        bucket: 'items_missing',
+        issue_role: 'primary_issue',
+        needs_review: false,
+      },
+    },
+    {
+      key: 'stationery.damaged',
+      title: 'Hỏng / bẩn',
+      example: 'Sổ rách, bút hết mực, giấy ố vàng',
+      defaultResolution: {
+        bucket: 'items_damaged',
+        issue_role: 'primary_issue',
+        needs_review: false,
+      },
+    },
+    {
+      key: 'stationery.unknown',
+      title: 'Chưa rõ',
+      example: 'Không xác định — quản lý sẽ xem',
+      defaultResolution: {
+        bucket: 'items_missing',
+        issue_role: 'primary_issue',
+        needs_review: true,
+        extra: { unknown_cause: true },
+      },
+    },
   ],
+
+  // ─── EQUIPMENT_LARGE ───
   equipment_large: [
-    { key: 'equipment_large.broken', title: 'Hỏng — cần sửa', example: 'TV, điều hoà, tủ lạnh không chạy', subReasonRequired: true },
-    { key: 'equipment_large.missing', title: 'Mất', example: 'Không còn trong phòng — báo manager' },
+    {
+      key: 'equipment_large.broken',
+      title: 'Hỏng cần bảo trì',
+      example: 'TV, điều hoà, tủ lạnh không chạy',
+      defaultResolution: {
+        bucket: 'items_damaged',
+        issue_role: 'primary_issue',
+        needs_review: true,
+        photo_required: true,
+        extra: { create_maintenance: true, priority: 'high' },
+      },
+    },
+    {
+      key: 'equipment_large.intermittent',
+      title: 'Hoạt động không ổn định',
+      example: 'Điều hoà yếu, TV chập chờn, tủ lạnh không lạnh đều',
+      defaultResolution: {
+        bucket: 'items_damaged',
+        issue_role: 'primary_issue',
+        needs_review: true,
+        extra: { create_maintenance: true, priority: 'medium', reason: 'intermittent' },
+      },
+    },
+    {
+      key: 'equipment_large.lost',
+      title: 'Mất',
+      example: 'Không còn trong phòng — báo manager',
+      defaultResolution: {
+        bucket: 'items_lost',
+        issue_role: 'primary_issue',
+        needs_review: true,
+      },
+    },
+    {
+      key: 'equipment_large.unknown',
+      title: 'Chưa rõ',
+      example: 'Không xác định nguyên nhân',
+      defaultResolution: {
+        bucket: 'items_damaged',
+        issue_role: 'primary_issue',
+        needs_review: true,
+        extra: { unknown_cause: true },
+      },
+    },
   ],
+
+  // ─── ELECTRONIC_ACCESSORY ───
   electronic_accessory: [
-    { key: 'electronic_accessory.missing', title: 'Mất', example: 'Remote, dây sạc, cốc sạc' },
-    { key: 'electronic_accessory.broken', title: 'Hỏng', example: 'Remote không bấm được, sạc không vào điện' },
+    {
+      key: 'electronic_accessory.lost',
+      title: 'Mất',
+      example: 'Remote, dây sạc, cốc sạc',
+      defaultResolution: {
+        bucket: 'items_lost',
+        issue_role: 'primary_issue',
+        needs_review: true,
+      },
+    },
+    {
+      key: 'electronic_accessory.broken',
+      title: 'Hỏng',
+      example: 'Remote không bấm được, sạc không vào điện',
+      defaultResolution: {
+        bucket: 'items_damaged',
+        issue_role: 'primary_issue',
+        needs_review: true,
+        photo_required: true,
+      },
+    },
+    {
+      key: 'electronic_accessory.battery_replacement',
+      title: 'Cần thay pin / phụ kiện',
+      example: 'Hết pin remote, dây cũ cần thay',
+      defaultResolution: {
+        bucket: 'items_replaced',
+        issue_role: 'primary_issue',
+        needs_review: false,
+        extra: { reason: 'battery' },
+      },
+    },
+    {
+      key: 'electronic_accessory.unknown',
+      title: 'Chưa rõ',
+      example: 'Không xác định — quản lý sẽ xem',
+      defaultResolution: {
+        bucket: 'items_damaged',
+        issue_role: 'primary_issue',
+        needs_review: true,
+        extra: { unknown_cause: true },
+      },
+    },
   ],
+
+  // ─── FURNITURE ───
   furniture: [
-    { key: 'furniture.damaged', title: 'Hư hỏng', example: 'Ghế gãy chân, bàn nứt mặt', subReasonRequired: true },
-    { key: 'furniture.stained', title: 'Vết bẩn lớn', example: 'Sofa dính rượu, ga đệm vết loang' },
+    {
+      key: 'furniture.broken',
+      title: 'Hỏng cần bảo trì',
+      example: 'Ghế gãy chân, bàn nứt, tủ kẹt',
+      defaultResolution: {
+        bucket: 'items_damaged',
+        issue_role: 'primary_issue',
+        needs_review: true,
+        photo_required: true,
+        extra: { create_maintenance: true },
+      },
+    },
+    {
+      key: 'furniture.stained',
+      title: 'Bẩn nặng',
+      example: 'Sofa dính rượu, ga đệm vết loang',
+      defaultResolution: {
+        bucket: 'items_damaged',
+        issue_role: 'primary_issue',
+        needs_review: true,
+        photo_required: true,
+        extra: { reason: 'stained' },
+      },
+    },
+    {
+      key: 'furniture.needs_replacement',
+      title: 'Cần thay thế',
+      example: 'Quá cũ, không sửa được nữa',
+      defaultResolution: {
+        bucket: 'items_damaged',
+        issue_role: 'primary_issue',
+        needs_review: true,
+        extra: { reason: 'replace', retire: true },
+      },
+    },
+    {
+      key: 'furniture.unknown',
+      title: 'Chưa rõ',
+      example: 'Không xác định — quản lý sẽ xem',
+      defaultResolution: {
+        bucket: 'items_damaged',
+        issue_role: 'primary_issue',
+        needs_review: true,
+        extra: { unknown_cause: true },
+      },
+    },
   ],
+
+  // ─── GLASSWARE ───
   glassware: [
-    { key: 'glassware.broken', title: 'Vỡ', example: 'Cốc, ly, bình hoa' },
-    { key: 'glassware.missing', title: 'Mất', example: 'Không còn trong phòng' },
-    { key: 'glassware.replace', title: 'Bổ sung mới', example: 'Thay thế cái đã vỡ / mất' },
+    {
+      key: 'glassware.broken',
+      title: 'Vỡ',
+      example: 'Cốc, ly, bình hoa',
+      // Vỡ → primary damaged + derived supplement
+      derivedActionKey: 'glassware.replace',
+      defaultResolution: {
+        bucket: 'items_damaged',
+        issue_role: 'primary_issue',
+        needs_review: false,
+        photo_required: true,
+        extra: { retire: true },
+      },
+    },
+    {
+      key: 'glassware.lost',
+      title: 'Mất',
+      example: 'Không còn trong phòng',
+      defaultResolution: {
+        bucket: 'items_lost',
+        issue_role: 'primary_issue',
+        needs_review: true,
+      },
+    },
+    {
+      key: 'glassware.refill',
+      title: 'Cần bổ sung',
+      example: 'Đặt thêm cho khách',
+      defaultResolution: {
+        bucket: 'items_replaced',
+        issue_role: 'primary_issue',
+        needs_review: false,
+      },
+    },
+    {
+      key: 'glassware.unknown',
+      title: 'Chưa rõ',
+      example: 'Không xác định — quản lý sẽ xem',
+      defaultResolution: {
+        bucket: 'items_damaged',
+        issue_role: 'primary_issue',
+        needs_review: true,
+        extra: { unknown_cause: true },
+      },
+    },
   ],
+
+  // ─── BATHROOM_HARDWARE ───
   bathroom_hardware: [
-    { key: 'bathroom_hardware.broken', title: 'Hỏng', example: 'Vòi sen, gương, chậu rửa', subReasonRequired: true },
-    { key: 'bathroom_hardware.leaking', title: 'Rò rỉ nước', example: 'Vòi, ống thoát chảy nước', subReasonRequired: true },
-    { key: 'bathroom_hardware.missing', title: 'Mất', example: 'Phụ kiện gắn tường bị tháo' },
+    {
+      key: 'bathroom_hardware.broken',
+      title: 'Hỏng cần bảo trì',
+      example: 'Vòi sen, gương, chậu rửa hỏng',
+      defaultResolution: {
+        bucket: 'items_damaged',
+        issue_role: 'primary_issue',
+        needs_review: true,
+        photo_required: true,
+        extra: { create_maintenance: true, priority: 'high' },
+      },
+    },
+    {
+      key: 'bathroom_hardware.intermittent',
+      title: 'Hoạt động không ổn định',
+      example: 'Vòi yếu, đèn nháy, cửa kẹt nhẹ',
+      defaultResolution: {
+        bucket: 'items_damaged',
+        issue_role: 'primary_issue',
+        needs_review: true,
+        extra: { create_maintenance: true, priority: 'medium', reason: 'intermittent' },
+      },
+    },
+    {
+      key: 'bathroom_hardware.stained',
+      title: 'Bẩn nặng',
+      example: 'Vết ố không tẩy được, gương mốc',
+      defaultResolution: {
+        bucket: 'items_damaged',
+        issue_role: 'primary_issue',
+        needs_review: true,
+        photo_required: true,
+        extra: { reason: 'stained' },
+      },
+    },
+    {
+      key: 'bathroom_hardware.unknown',
+      title: 'Chưa rõ',
+      example: 'Không xác định — quản lý sẽ xem',
+      defaultResolution: {
+        bucket: 'items_damaged',
+        issue_role: 'primary_issue',
+        needs_review: true,
+        extra: { unknown_cause: true },
+      },
+    },
   ],
+}
+
+/** Trả về L1 options cho 1 group (đã đảm bảo 4 lựa chọn) */
+export function getL1Options(group: AssetGroup): L1Option[] {
+  return L1_BY_GROUP[group] ?? []
+}
+
+/** Tìm L1Option theo actionKey */
+export function findL1Option(actionKey: string): L1Option | undefined {
+  for (const opts of Object.values(L1_BY_GROUP)) {
+    const f = opts.find((o) => o.key === actionKey)
+    if (f) return f
+  }
+  return undefined
 }
 
 /**
- * Trả về L1 options + UNKNOWN_OPTION cuối danh sách (mọi group đều có)
+ * Resolve final BucketResolution.
+ * - Nếu chỉ có actionKey: trả `defaultResolution`.
+ * - Nếu có thêm subReasonKey: merge override (extra cũng merge nông).
  */
-export function getL1Options(group: AssetGroup): L1Option[] {
-  const opts = L1_BY_GROUP[group] ?? []
-  return [...opts, UNKNOWN_OPTION(group)]
+export function resolveBucket(
+  actionKey: string,
+  subReasonKey?: string,
+): BucketResolution {
+  const l1 = findL1Option(actionKey)
+  if (!l1) {
+    // Legacy fallback (giữ tương thích keys cũ chưa migrate)
+    return {
+      bucket: 'items_damaged',
+      issue_role: 'primary_issue',
+      needs_review: true,
+      extra: { fallback_action: actionKey },
+    }
+  }
+  const base = l1.defaultResolution
+  if (!subReasonKey || !l1.subReasons) return base
+  const sr = l1.subReasons.find((s) => s.key === subReasonKey)
+  if (!sr || !sr.override) return base
+  return {
+    ...base,
+    ...sr.override,
+    extra: { ...(base.extra ?? {}), ...(sr.override.extra ?? {}) },
+  }
 }
 
-export function resolveBucket(actionKey: string): BucketResolution {
-  const found = BUCKET_MAP[actionKey]
-  if (found) return found
-  // Fallback: ghi tạm vào damaged + needs_review
-  return {
-    bucket: 'items_damaged',
-    issue_role: 'primary_issue',
-    needs_review: true,
-    extra: { fallback_action: actionKey },
+/** Có cần buộc chọn sub-reason cho L1 này không */
+export function requiresSubReason(actionKey: string): boolean {
+  const l1 = findL1Option(actionKey)
+  return !!l1?.subReasons && l1.subReasons.length > 0
+}
+
+/** Lấy derived action (nếu có) sau khi resolve. Trả về key hoặc null. */
+export function getDerivedActionKey(
+  actionKey: string,
+  subReasonKey?: string,
+): string | null {
+  const l1 = findL1Option(actionKey)
+  if (!l1) return null
+  if (subReasonKey && l1.subReasons) {
+    const sr = l1.subReasons.find((s) => s.key === subReasonKey)
+    if (sr?.derivedActionKey) return sr.derivedActionKey
   }
+  return l1.derivedActionKey ?? null
 }
