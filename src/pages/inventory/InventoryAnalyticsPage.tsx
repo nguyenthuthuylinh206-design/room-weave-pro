@@ -44,7 +44,12 @@ export default function InventoryAnalyticsPage() {
     })
     if (!search.trim()) return list
     const q = search.trim().toLowerCase()
-    return list.filter((s) => s.item_id.toLowerCase().includes(q))
+    return list.filter(
+      (s) =>
+        s.item?.name?.toLowerCase().includes(q) ||
+        s.item?.item_code?.toLowerCase().includes(q) ||
+        s.item_id.toLowerCase().includes(q),
+    )
   }, [latestByItem, search])
 
   const stats = useMemo(() => {
@@ -98,7 +103,7 @@ export default function InventoryAnalyticsPage() {
 
       <div className="flex items-center gap-2 border rounded-lg p-2">
         <Input
-          placeholder="Tìm theo item ID..."
+          placeholder="Tìm theo mã hoặc tên..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="h-8 w-[280px] text-xs"
@@ -147,8 +152,9 @@ export default function InventoryAnalyticsPage() {
                           : 'text-green-600'
                   return (
                     <tr key={s.id} className="hover:bg-muted/20">
-                      <td className="px-3 py-2 font-mono text-xs">
-                        {s.item_id.slice(0, 8)}…
+                      <td className="px-3 py-2">
+                        <div className="font-medium">{s.item?.name ?? '—'}</div>
+                        <div className="text-xs text-muted-foreground font-mono">{s.item?.item_code ?? s.item_id.slice(0, 8)}</div>
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums">
                         {Number(s.stock_on_date)}
@@ -175,7 +181,7 @@ export default function InventoryAnalyticsPage() {
                           size="sm"
                           className="h-7 text-xs"
                           onClick={() =>
-                            setTrendItem({ id: s.item_id, name: s.item_id.slice(0, 8) })
+                            setTrendItem({ id: s.item_id, name: s.item?.name ?? s.item_id.slice(0, 8) })
                           }
                         >
                           Xem trend
@@ -240,7 +246,7 @@ function TrendDialog({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-sm">
-            Xu hướng tiêu thụ 90 ngày
+            Xu hướng tiêu thụ 90 ngày — {item?.name}
           </DialogTitle>
         </DialogHeader>
         <Card>
