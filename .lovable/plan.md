@@ -1,305 +1,194 @@
-# Đợt C — Inventory Intelligence (FIFO + Reorder)
 
-Biến dữ liệu Đợt B (FIFO batch, asset_group, Lean tiêu hao) thành **quyết định mua hàng tự động** + **cảnh báo realtime**. Không phá flow cũ — chỉ cộng thêm lớp intelligence trên `items` / `inventory_transactions` / `purchase_orders` đã có.
+# Đợt B+C — Smart ReportIssueSheet + Multi-Issue + Side-Effect Engine
 
----
-
-## 1. Phân tích codebase hiện trạng
-
-### Reuse được (không cần đụng vào)
-
-- `items.reorder_point` (đã có cột `integer`) — dùng làm `min_qty` mặc định.
-- `items.quantity_in_stock` — nguồn stock hiện tại.
-- `inventory_transactions` — đã ghi đủ `transaction_type` (in/out/adjustment), `transaction_date`, `quantity` → đủ để tính consumption rolling.
-- `purchase_orders` + `purchase_order_items` — đã có `status`, `vendor_id`, `expected_delivery_date` → tính `quantity_on_order` từ PO `status IN ('approved','partial')`.
-- `vendors` — gom suggestion theo vendor.
-- `useInventoryDashboard`, `useWarehouseStock`, `useInventoryTransactions` — query patterns chuẩn, reuse.
-- `log_state_transition` (Đợt A) — audit khi approve/ignore suggestion.
-- `useTenantChannel` — realtime broadcast cảnh báo.
-- Sidebar group "Kho" — chỉ thêm 3 entry con.
-
-### Cần refactor nhẹ
-
-- `items.reorder_point` đang là `integer` → giữ nguyên, chỉ bổ sung `reorder_max_qty`, `lead_time_days`, `is_perishable`, `last_outbound_at`, `preferred_vendor_id` (tất cả nullable, không breaking).
-- `useDashboardStats` — thêm field `low_stock_count`, `dead_stock_value` (compute từ snapshot mới).
-- Notification settings (`NotificationSettingsPage`) — thêm toggle "Cảnh báo sắp hết hàng".
-
-### Thêm mới (toàn bộ)
-
-- 2 bảng: `reorder_suggestions`, `consumption_snapshots`.
-- 4 RPC atomic.
-- 2 cron job (daily snapshot, daily reorder scan).
-- 3 page UI: `/inventory/reorder`, `/inventory/dead-stock`, `/inventory/analytics`.
-- 1 mobile bottom sheet: `RestockAlertSheet`.
-- Sidebar badge + Dashboard widget.
-
-### Rủi ro migration
-
-- **Backfill `last_outbound_at**` (1 lần) trên hàng triệu rows `inventory_transactions` của tenant lớn → chia batch theo `tenant_id`, chạy off-peak.
-- **Cron snapshot nặng** nếu nhiều hotel × nhiều item → giới hạn item `is_active=true` + index `(tenant_id, hotel_id, item_id)`.
-- **Không** thay đổi RLS hiện có — bảng mới copy pattern `tenant_id + hotel_id` chuẩn.
-- Feature flag mặc định OFF → an toàn rollout từng tenant.
+Triển khai §6–§11 spec trên codebase hiện tại. Chia 4 phase để rollout an toàn, **mỗi phase tự chạy độc lập**, không breaking trước khi phase sau hoàn tất.
 
 ---
 
-## 2. Phase C1 — Xương sống (build 1)
+## Phase B1 — Chuẩn hoá L1 + Sub-reason ENUM (UI-only, không đụng schema)
 
-Mục tiêu: chạy được reorder suggestion end-to-end. Sau C1 manager đã có thể duyệt suggestion → tạo PO.
+### Reuse
+- `LeanReportIssueSheet` (đã đọc `assetGroup`, đã có 2 tầng).
+- `BUCKET_MAP` + `resolveBucket` (mapping action → bucket).
+- `getL1Options`.
 
-### A. Logic nghiệp vụ
+### Refactor
+- **`src/lib/issueBucketMapping.ts`** — viết lại `L1_BY_GROUP` theo đúng matrix §6.3 (4 options/group), thêm `subReasons?: SubReason[]` (enum list) thay `subReasonRequired: boolean`.
+- Mỗi `SubReason = { key, label, derivedActionKey?, extra? }`.
+- `BUCKET_MAP` mở rộng để cover các sub-reason mới: `linen.damaged_dirty + dirty_unprocessable`, `linen.damaged_dirty + torn`, `linen.lost_unknown + missing`, `consumable_free.suspicious_take`, `equipment_large.intermittent`, `electronic_accessory.battery_replacement`, `furniture.needs_replacement`, `bathroom_hardware.intermittent`, v.v.
 
-- **Reorder trigger** (daily 06:00):
-  - Với mỗi item active × hotel:
-    - `effective_stock = quantity_in_stock + quantity_on_order`
-    - Nếu `effective_stock < reorder_point` AND chưa có suggestion `status='pending'` → tạo mới.
-    - `suggested_qty = max(reorder_max_qty - effective_stock, reorder_point * 2 - effective_stock)`.
-- **Approve flow**: chọn N suggestions → gom theo `preferred_vendor_id` → mỗi vendor 1 PO draft.
-- **Ignore**: ghi `ignored_by`, `ignored_reason`, không trigger lại trong 7 ngày cùng item × hotel.
+### Add
+- **`SubReasonPicker`** component mới — list radio lớn 56px, nằm sau khi chọn L1, trước stepper.
+- `LeanIssueResult.subReasonKey: string` (replace `subReason: string` free-text).
+- Photo policy mở rộng: nếu sub-reason có `extra.photo_required = true` thì bắt buộc.
 
-### B. Schema / Migration
+### Risk
+- Backward compat: `LeanIssue.subReason` (free-text) đang lưu trong localStorage draft 24h. → Migration nhẹ ở `useLeanDraft.ts`: nếu thấy `subReason` cũ mà không có `subReasonKey` → bỏ qua, log warn.
 
-```sql
-ALTER TABLE items
-  ADD COLUMN reorder_max_qty integer,
-  ADD COLUMN lead_time_days integer DEFAULT 7,
-  ADD COLUMN is_perishable boolean DEFAULT false,
-  ADD COLUMN last_outbound_at timestamptz,
-  ADD COLUMN preferred_vendor_id uuid REFERENCES vendors(id);
+### Files
+- `src/lib/issueBucketMapping.ts` (rewrite L1 matrix)
+- `src/components/rooms/lean/SubReasonPicker.tsx` (new)
+- `src/components/rooms/lean/LeanReportIssueSheet.tsx` (thay Textarea bằng Picker)
+- `src/pages/rooms/LeanInspectionPage.tsx` (truyền/lưu `subReasonKey`)
+- `src/hooks/useLeanDraft.ts` (drop legacy field on hydrate)
 
-CREATE TABLE reorder_suggestions (
-  id uuid PK DEFAULT gen_random_uuid(),
-  tenant_id uuid NOT NULL,
-  hotel_id uuid NOT NULL,
-  item_id uuid NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-  current_stock numeric NOT NULL,
-  on_order_qty numeric NOT NULL DEFAULT 0,
-  suggested_qty numeric NOT NULL,
-  reason text NOT NULL,            -- 'below_min' | 'expiring' | 'manual'
-  status text NOT NULL DEFAULT 'pending',  -- pending|approved|ignored|converted
-  ignored_reason text,
-  ignored_until date,
-  converted_po_id uuid REFERENCES purchase_orders(id),
-  created_by uuid, approved_by uuid, ignored_by uuid,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
-CREATE INDEX idx_reorder_pending ON reorder_suggestions(tenant_id, hotel_id, status) WHERE status='pending';
-CREATE UNIQUE INDEX uniq_pending_per_item ON reorder_suggestions(tenant_id, hotel_id, item_id) WHERE status='pending';
-
--- RLS chuẩn 3-lớp (tenant_id + hotel_id + role)
-```
-
-### C. RPC / Server actions
-
-- `compute_reorder_suggestions(_tenant_id, _hotel_id default null)` — SECURITY DEFINER, idempotent (UPSERT), trả `{created, skipped}`.
-- `approve_reorder_suggestions(_ids uuid[])` — atomic: gom theo vendor → tạo `purchase_orders` draft + items → update suggestion `status='converted'`, `converted_po_id`. Audit qua `log_state_transition`. Trả `{po_ids[]}`.
-- `ignore_reorder_suggestion(_id, _reason, _ignore_days default 7)`.
-- Trigger `tr_update_last_outbound_at` trên `inventory_transactions` AFTER INSERT khi `transaction_type='out'`.
-
-### D. UI screens
-
-- `**/inventory/reorder**` (desktop + mobile responsive):
-  - Bảng: item | hotel | tồn hiện tại | đang đặt | đề xuất | vendor | reason | actions.
-  - Filter: hotel, vendor, reason.
-  - Bulk select → button "Duyệt & tạo PO" → modal preview gom theo vendor → confirm.
-  - Per-row: "Bỏ qua" → input lý do + số ngày.
-  - Empty state: "Không có đề xuất nào — kho đang đủ."
-- **Item detail page** — thêm tab "Reorder settings": `reorder_point`, `reorder_max_qty`, `lead_time_days`, `preferred_vendor_id`.
-- **Sidebar badge**: số suggestion `pending` (realtime channel).
-
-### E. Permission rules
-
-- `view_reorder_suggestions`: HK lead, Manager, Owner, Super Admin.
-- `approve_reorder_suggestions`: Manager, Owner.
-- `manage_reorder_settings`: Owner.
-- Staff: không thấy menu.
-- All Hotels mode: chặn `approve` (chỉ cho phép khi có hotel context cụ thể) — copy pattern `all-hotels-mode-guards-v1`.
-
-### F. Test cases (`supabase/tests/reorder_suggestions.sql`)
-
-1. Trigger sinh khi `qty < reorder_point` và không có pending.
-2. Idempotent: chạy 2 lần không duplicate.
-3. Tôn trọng `ignored_until`.
-4. Approve gom đúng theo vendor (3 suggestions, 2 vendor → 2 PO).
-5. RLS: hotel A không thấy của hotel B.
-6. `last_outbound_at` cập nhật sau outbound.
-7. Conversion audit log có record.
-
-### G. Cron
-
-```sql
--- pg_cron, dùng supabase--insert
-SELECT cron.schedule(
-  'reorder-suggestions-daily',
-  '0 23 * * *',  -- 06:00 VN
-  $$ SELECT public.compute_reorder_suggestions(tenant_id) FROM tenants WHERE subscription_status='active'; $$
-);
-```
-
-### H. Rollout C1
-
-- Migration → backfill `last_outbound_at` (script chia batch tenant).
-- Feature flag `settings.inventory.intelligence_enabled` (tenant-level, default OFF).
-- Bật cho 1 tenant pilot → quan sát 7 ngày → bật mass.
+### Tests
+- Unit: `getL1Options(group).length === 4` cho mọi group.
+- Unit: `resolveBucket('linen.damaged_dirty.dirty_unprocessable')` → `sent_to_laundry + quality_issue`.
+- Snapshot UI: mỗi group render đúng 4 option.
 
 ---
 
-## 3. Phase C2 — Analytics + UX (build 2)
+## Phase B2 — Multi-issue per item + primary/derived + constraint §8.3
 
-Mục tiêu: từ "biết phải mua gì" → "hiểu vì sao & tránh lãng phí".
+### Refactor (UI state)
+- `LeanInspectionPage.issues: Record<itemId, LeanIssue[]>` (mảng thay vì 1 record).
+- Sheet cho phép "Thêm sự cố khác" sau khi save 1 issue → mở lại L1 cho cùng item.
+- Hiển thị mỗi issue trong UI riêng biệt (badge + qty + sub-reason + nút sửa/xoá).
 
-### A. Logic nghiệp vụ
+### Add: client-side validator
+- `validateIssuesPerItem(itemId, issues, expectedQty)`:
+  - `sumPrimary = sum(qty WHERE issueRole==='primary_issue')`
+  - Nếu `sumPrimary > expectedQty` → block submit, toast: "Tổng số lượng sự cố chính vượt số đồ chuẩn (N). Vui lòng kiểm tra lại."
+- Derived action không tính vào constraint.
 
-- **Consumption snapshot** (cron 1h): rolling 7d / 30d / 90d per item × hotel, tính `avg_daily_consumption`, `stock_days_remaining`.
-- **Dead stock**: `last_outbound_at IS NULL OR < now() - 90d` AND `quantity_in_stock > 0` → tổng giá trị bằng `quantity * unit_cost`.
-- **Batch expiry** (cho item `is_perishable=true`): join `laundry_batches`/`item_batches` → cảnh báo `expiry_date - now() < 30d`.
-- **Auto-recompute reorder** dùng `avg_daily_consumption × lead_time_days × safety_factor (1.3)` thay vì `reorder_point` cố định (opt-in per item).
+### Submit payload
+- `submit_room_check_lean` hiện nhận buckets dạng `[{item_id, quantity, ...}]`.
+- Vẫn dùng cùng RPC, **gom theo bucket nhưng giữ `issue_role` trong từng entry** (jsonb).
+- RPC sẽ chỉ validate `sum(primary by item) ≤ standard` — bổ sung trong Phase B3.
 
-### B. Schema
+### Files
+- `src/pages/rooms/LeanInspectionPage.tsx` (state + render multi)
+- `src/components/rooms/lean/IssueListForItem.tsx` (new — list các issue đã ghi)
+- `src/lib/leanIssueValidator.ts` (new)
+- `src/hooks/useLeanDraft.ts` (shape mới: `issues: Record<itemId, LeanIssue[]>`, migrate từ object → array)
 
+### Tests
+- Validator: 4 khăn → 2 send_laundry + 1 lost + 1 damaged = OK; thêm 1 lost nữa = fail.
+- Derived action không bị tính vào constraint.
+
+---
+
+## Phase C1 — Schema mới: `room_check_issues` + `outbox_events`
+
+### Migration
 ```sql
-CREATE TABLE consumption_snapshots (
+CREATE TABLE room_check_issues (
   id uuid PK,
-  tenant_id, hotel_id, item_id,
-  snapshot_date date NOT NULL,
-  qty_consumed_7d numeric,
-  qty_consumed_30d numeric,
-  qty_consumed_90d numeric,
-  avg_daily numeric,
-  stock_days_remaining numeric,  -- NULL nếu avg_daily=0
-  created_at timestamptz,
-  UNIQUE(tenant_id, hotel_id, item_id, snapshot_date)
+  room_check_id uuid FK room_checks,
+  tenant_id uuid, hotel_id uuid, room_id uuid, item_id uuid,
+  asset_group asset_group,
+  ui_action_key text,         -- e.g. 'linen.damaged_dirty'
+  sub_reason_key text,        -- e.g. 'dirty_unprocessable'
+  bucket text,                -- items_damaged | items_lost | …
+  issue_role text CHECK IN ('primary_issue','derived_action'),
+  quantity int CHECK > 0,
+  photos text[],
+  notes text,
+  needs_review bool DEFAULT false,
+  charge_status charge_status DEFAULT 'not_applicable',
+  extra jsonb DEFAULT '{}'::jsonb,
+  created_by uuid, created_at timestamptz DEFAULT now()
 );
-CREATE INDEX idx_snap_date ON consumption_snapshots(tenant_id, snapshot_date DESC);
+
+CREATE TABLE outbox_events (
+  id uuid PK,
+  tenant_id uuid, hotel_id uuid,
+  source_table text, source_id uuid,
+  event_type text,            -- create_laundry_request | create_supplement_request | …
+  payload jsonb,
+  status text DEFAULT 'pending',  -- pending|processing|done|failed|dead
+  attempts int DEFAULT 0,
+  last_error text,
+  scheduled_at timestamptz DEFAULT now(),
+  processed_at timestamptz,
+  created_at timestamptz DEFAULT now()
+);
+CREATE INDEX ON outbox_events (status, scheduled_at) WHERE status IN ('pending','failed');
 ```
++ RLS tenant isolation, indexes, audit triggers.
 
-### C. RPC
+### RPC update
+- `submit_room_check_lean` v2:
+  - Insert `room_checks` (giữ jsonb summary cho dashboard cũ — compatibility).
+  - **Insert N rows vào `room_check_issues`** (1/issue).
+  - Validate constraint §8.3 server-side (raise `primary_quantity_exceeds_standard:item_id`).
+  - **Enqueue `outbox_events`** theo bucket: `sent_to_laundry → create_laundry_request`, `replaced → create_supplement_request`, `damaged + create_maintenance → create_maintenance_request`, `consumed + charge_to_guest → create_pending_minibar_charge`.
+  - Atomic — fail thì rollback cả checks + issues + outbox.
 
-- `refresh_consumption_snapshots(_tenant_id)` — UPSERT theo `snapshot_date=current_date`.
-- `get_dead_stock_report(_tenant_id, _hotel_id, _days default 90)`.
-- `get_consumption_trend(_item_id, _days default 90)` — trả series cho chart.
+### Compat layer
+- `room_checks.items_*` jsonb vẫn populate (đọc cũ vẫn chạy).
+- View `room_check_issues_legacy` để Step 3 review/Step success render từ bảng mới.
 
-### D. UI screens
+### Files
+- `supabase/migrations/<ts>_room_check_issues_outbox.sql`
+- `src/types/roomCheck.types.ts` (+ types mới)
+- `src/hooks/useRoomCheckLean.ts` (đọc lỗi mới)
 
-- `**/inventory/dead-stock**`:
-  - Bảng: item | hotel | tồn | giá trị | ngày cuối xuất | tuổi (days).
-  - Filter: asset_group, age (>30/>60/>90/>180).
-  - Bulk action: "Đề xuất chuyển kho", "Đề xuất giảm giá", "Đánh dấu thanh lý" (tạo `inventory_transaction` adjustment).
-  - Tổng giá trị dead stock ở header.
-- `**/inventory/analytics**`:
-  - Cards: Total stock value | Dead stock value | Items below min | Items expiring 30d.
-  - Chart 1: Consumption trend 90d theo asset_group (stacked area).
-  - Chart 2: Top 10 items tiêu hao tuần qua.
-  - Chart 3: Stock days remaining distribution (histogram).
-  - Export CSV.
-- **Dashboard widget** (Owner home):
-  - "5 items sắp hết" — link `/inventory/reorder`.
-  - "Dead stock: 12.500.000 ₫" — link `/inventory/dead-stock`.
-- **Mobile `RestockAlertSheet**` (bottom sheet):
-  - Trigger: Staff vào `/my-tasks` thấy badge đỏ nếu phòng họ đang dọn có item hết.
-  - Nội dung: list item thiếu + nút "Yêu cầu cấp phát" → tạo `room_supplement_request`.
-- **Item detail "Analytics" tab**:
-  - Mini chart consumption 90d.
-  - Auto-suggested `reorder_point` mới (tính từ avg_daily).
-  - Toggle "Áp dụng auto-reorder".
-
-### E. Notification
-
-- Trong `NotificationSettingsPage` thêm 3 toggle:
-  - "Cảnh báo sắp hết hàng" (suggestion mới).
-  - "Cảnh báo dead stock hàng tuần" (digest).
-  - "Cảnh báo lô sắp hết hạn".
-- Channel: in-app (luôn), email/telegram (opt-in) — dùng pipeline notification có sẵn.
-
-### F. Test cases (`supabase/tests/inventory_intelligence_c2.sql`)
-
-1. Snapshot tính đúng rolling 30d, ignore `transaction_type='adjustment'`.
-2. Dead stock loại trừ item `is_active=false`.
-3. `stock_days_remaining = NULL` khi `avg_daily=0`.
-4. Auto-reorder dùng `avg × lead_time × 1.3` làm `min_qty`.
-5. Expiry alert chỉ trigger với `is_perishable=true`.
-6. Snapshot idempotent same-day.
-
-### G. Cron
-
-```sql
-SELECT cron.schedule('consumption-snapshots-hourly', '0 * * * *',
-  $$ SELECT public.refresh_consumption_snapshots(tenant_id) FROM tenants WHERE subscription_status='active'; $$);
-
-SELECT cron.schedule('dead-stock-weekly-digest', '0 1 * * 1',  -- T2 08:00 VN
-  $$ SELECT net.http_post(url:='.../functions/v1/dead-stock-digest', ...); $$);
-```
-
-### H. Rollout C2
-
-- Migration + cron → chạy ngầm 3 ngày tích snapshot trước khi mở UI.
-- Bật analytics page cho tenant đã bật C1 (kế thừa flag).
-- Dead stock digest gửi cho Owner only.
+### Tests
+- `supabase/tests/room_check_issues.sql`: insert đúng N rows, constraint primary, outbox enqueue.
 
 ---
 
-## 4. Files dự kiến
+## Phase C2 — Side-effect Workers (edge functions, cron 1 phút)
 
-```text
-supabase/migrations/
-  ├─ 20260506_c1_reorder_schema.sql
-  ├─ 20260506_c1_reorder_rpc.sql
-  ├─ 20260506_c1_backfill_last_outbound.sql
-  ├─ 20260507_c2_consumption_schema.sql
-  └─ 20260507_c2_analytics_rpc.sql
+### Add
+- **`supabase/functions/process-room-check-outbox/index.ts`** — pull `pending` events, dispatch theo `event_type`:
+  - `create_laundry_request` → insert `laundry_requests` (chưa trừ stock).
+  - `create_supplement_request` → insert `supplement_requests`.
+  - `create_maintenance_request` → insert `maintenance_requests` với priority theo asset_group/extra.
+  - `create_pending_minibar_charge` → insert pending charge với `charge_status='pending_fo_confirm'`.
+- Idempotency: dùng `outbox_events.id` làm `idempotency_key`.
+- Retry: max 5 attempts với backoff, sau đó `dead`.
+- Cron config trong `supabase/config.toml`.
 
-supabase/functions/
-  ├─ dead-stock-digest/index.ts        (C2)
-  └─ (cron schedule via SQL insert)
+### UI cho FO confirm
+- Trang `/reception/pending-charges` (existing? check) — nếu chưa, tạo bảng list `room_check_issues WHERE charge_status='pending_fo_confirm'` với 2 nút Confirm/Reject → update `charge_status` + log audit.
 
-supabase/tests/
-  ├─ reorder_suggestions.sql           (C1)
-  └─ inventory_intelligence_c2.sql     (C2)
-
-src/hooks/
-  ├─ useReorderSuggestions.ts          (C1)
-  ├─ useApproveReorder.ts              (C1)
-  ├─ useDeadStockReport.ts             (C2)
-  ├─ useConsumptionAnalytics.ts        (C2)
-  └─ useInventoryAlerts.ts             (C2, realtime)
-
-src/pages/inventory/
-  ├─ ReorderSuggestionsPage.tsx        (C1)
-  ├─ DeadStockPage.tsx                 (C2)
-  └─ InventoryAnalyticsPage.tsx        (C2)
-
-src/components/inventory/
-  ├─ ReorderTable.tsx                  (C1)
-  ├─ ApproveReorderDialog.tsx          (C1, gom theo vendor)
-  ├─ IgnoreSuggestionDialog.tsx        (C1)
-  ├─ ReorderSettingsTab.tsx            (C1, item detail)
-  ├─ DeadStockTable.tsx                (C2)
-  ├─ ConsumptionTrendChart.tsx         (C2)
-  └─ RestockAlertSheet.tsx             (C2, mobile)
-
-src/components/dashboard/
-  └─ InventoryAlertsWidget.tsx         (C2)
-
-src/components/layout/Sidebar.tsx      (cập nhật badge + entries)
-src/i18n/locales/{vi,en}/inventory.json
-```
+### Tests
+- Edge function unit: mỗi event_type sinh đúng 1 record bảng tương ứng.
+- Idempotency: chạy 2 lần cùng event → chỉ 1 record.
 
 ---
 
-## 5. KPI đo lường sau Đợt C
+## Phase C3 — Staff không thấy giá + charge_status hoàn thiện
 
-- Số lần "hết hàng đột xuất" (out-of-stock events) giảm ≥ 60% sau 30 ngày.
-- Giá trị dead stock giảm ≥ 20% sau 60 ngày.
-- Số PO khẩn cấp (`expected_delivery_date - order_date < lead_time`) giảm ≥ 40%.
-- 80%+ suggestion được duyệt trong 24h (không bị bỏ quên).
+### Refactor
+- `LeanInspectionPage` query: dùng **`room_check_staff_items_view`** thay vì select trực tiếp `items.unit_price`.
+- Bỏ field `unit_price` khỏi `EnrichedItem` cho role staff.
+- Owner/manager view (Step 3 review) vẫn xem giá qua query khác.
+
+### Files
+- `src/pages/rooms/LeanInspectionPage.tsx`
+- `src/hooks/useRoomItems.ts` (thêm variant `forStaff: boolean`)
 
 ---
 
-## 6. Câu hỏi cần xác nhận trước khi build C1
+## Permission / Role rules
+- Staff: tạo `room_check_issues`, không update `charge_status`, không xem giá.
+- Manager/Owner: review issues `needs_review=true`, set `charge_status`, reopen room check.
+- FO: confirm/reject minibar pending charges.
 
-1. **Trigger cron**:  realtime ngay khi outbound
-2. **Auto-create PO draft** : PO draft, status `draft`, vẫn cần approve PO 
-3. **Default `lead_time_days**` = 7 ngày 
-4. **Feature flag**: bật mass cho tất cả tenant
+## Rollout
+1. **B1** (1-2 ngày) — UI thuần, có thể release ngay.
+2. **B2** (1-2 ngày) — multi-issue, vẫn ghi vào jsonb cũ.
+3. **C1** (2-3 ngày) — schema + RPC v2, chạy song song jsonb cho compat. Feature flag `settings.room_check.use_issue_table = false` (default) → bật từng hotel.
+4. **C2** (2-3 ngày) — outbox + workers, bật khi C1 ổn định.
+5. **C3** (1 ngày) — siết quyền xem giá.
 
-Sau khi duyệt plan + trả lời 4 câu trên → tôi vào build C1 ngay.
+## Rollback
+- Mỗi phase có migration `DOWN`.
+- Feature flag tắt → quay về flow cũ (jsonb only) trong < 1 phút.
+
+## Phần còn thiếu sau plan này (out of scope)
+- Manager review queue UI cho `needs_review=true` (sẽ làm sau C2).
+- Linen lifecycle (`batch_inventory` retire khi `lifecycle_end`) — phụ thuộc Linen Pool Bridge.
+- Chain HQ aggregate report — đợi multi-hotel rollout.
+
+---
+
+## Câu hỏi cần xác nhận trước khi bắt đầu
+
+1. **Phase ưu tiên**: bắt đầu **B1+B2 ngay** (UI + multi-issue, dùng schema cũ) hay làm thẳng **C1+C2** (schema mới full)?
+2. **Sub-reason**: dùng **ENUM list (radio)** đúng spec §6.2, hay giữ free-text + ENUM tuỳ chọn (hybrid)?
+3. **Charge confirm UI**: tạo trang `/reception/pending-charges` mới, hay nhúng vào trang Reception/Booking detail hiện có?
