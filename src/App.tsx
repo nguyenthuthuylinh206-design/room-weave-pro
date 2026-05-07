@@ -177,6 +177,7 @@ const ScanDocumentPage = lazy(() => import("./pages/scan/ScanDocumentPage"));
 const HousekeepingStaffDashboard = lazy(() => import("./pages/HousekeepingStaffDashboard"));
 const TasksPendingReviewPage = lazy(() => import("./pages/housekeeping/TasksPendingReviewPage"));
 const QcDashboardPage = lazy(() => import("./pages/housekeeping/QcDashboardPage"));
+const IssuesReviewPage = lazy(() => import("./pages/housekeeping/IssuesReviewPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
