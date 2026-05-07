@@ -34,8 +34,10 @@ interface EnrichedItem extends RoomItemWithDetails {
   asset_group?: AssetGroup | null
 }
 
-/** Issue đã ghi nhận trong session — key theo item_id */
+/** Issue đã ghi nhận trong session — multi-issue per item */
 interface LeanIssue {
+  /** Local id để key/edit từng issue */
+  id: string
   item_id: string
   item_name: string
   item_type: ItemType
@@ -45,8 +47,6 @@ interface LeanIssue {
   photos: string[]
   chargeToGuest?: boolean
   notes?: string
-  /** Riêng minibar: dùng để hiển thị stepper inline */
-  minibarConsumedQty?: number
   /** Đợt B */
   uiActionKey?: string
   bucket?: string
@@ -59,9 +59,17 @@ interface LeanIssue {
 
 interface DraftShape {
   startedAt: string
-  issues: Record<string, LeanIssue>
+  /** issues[itemId] = list */
+  issues: Record<string, LeanIssue[]>
   /** Minibar inline: itemId -> qty đã dùng (chưa cần ảnh) */
   minibar: Record<string, number>
+}
+
+function genIssueId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return (crypto as any).randomUUID()
+  }
+  return `iss_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 }
 
 /** Nhóm Lean — theo spec */
