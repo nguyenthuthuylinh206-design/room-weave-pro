@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from '@/hooks/useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
+
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -34,7 +35,7 @@ type Row = {
 }
 
 export default function PendingChargesPage() {
-  const { tenantId } = useUser()
+  const { tenantId, role } = useUser()
   const { selectedHotel } = useHotelContext()
   const qc = useQueryClient()
   const [statusFilter, setStatusFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending')
@@ -42,6 +43,10 @@ export default function PendingChargesPage() {
   const [selected, setSelected] = useState<Record<string, boolean>>({})
   const [rejectOpen, setRejectOpen] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
+  const [overrideRow, setOverrideRow] = useState<Row | null>(null)
+  const [overrideDecision, setOverrideDecision] = useState<'approved' | 'rejected'>('approved')
+  const [overrideReason, setOverrideReason] = useState('')
+  const isManager = ['super_admin','owner','hotel_manager','department_manager'].includes(role ?? '')
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ['pending-charges', tenantId, selectedHotel?.id, statusFilter],
@@ -122,6 +127,22 @@ export default function PendingChargesPage() {
       setSelected({})
       setRejectOpen(false)
       setRejectReason('')
+      qc.invalidateQueries({ queryKey: ['pending-charges'] })
+    },
+    onError: (e: any) => toast.error('Lỗi: ' + e.message),
+  })
+
+  const overrideMut = useMutation({
+    mutationFn: async ({ id, dec, rs }: { id: string; dec: 'approved' | 'rejected'; rs: string }) => {
+      const { data, error } = await supabase.rpc('manager_override_charge', {
+        p_charge_id: id, p_decision: dec, p_override_reason: rs,
+      })
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      toast.success('Đã ghi đè quyết định')
+      setOverrideRow(null); setOverrideReason('')
       qc.invalidateQueries({ queryKey: ['pending-charges'] })
     },
     onError: (e: any) => toast.error('Lỗi: ' + e.message),
@@ -246,12 +267,59 @@ export default function PendingChargesPage() {
                 <div className="col-span-2 md:col-span-1 text-right text-xs">{statusText}</div>
                 <div className="col-span-2 hidden md:block text-right text-xs text-muted-foreground">
                   {format(new Date(r.recorded_at), 'dd/MM HH:mm')}
+                  {isManager && r.approval_status !== 'pending' && (
+                    <div className="mt-1">
+                      <button
+                        type="button"
+                        className="text-[10px] text-blue-600 hover:underline"
+                        onClick={() => {
+                          setOverrideRow(r)
+                          setOverrideDecision(r.approval_status === 'rejected' ? 'approved' : 'rejected')
+                          setOverrideReason('')
+                        }}
+                      >Ghi đè</button>
+                    </div>
+                  )}
                 </div>
               </div>
             )
           })
         )}
       </div>
+
+      <Dialog open={!!overrideRow} onOpenChange={(o) => { if (!o) setOverrideRow(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ghi đè quyết định lễ tân</DialogTitle>
+            <DialogDescription>
+              {overrideRow && (
+                <>
+                  {overrideRow.item_name} · {formatCurrency(overrideRow.total_amount || overrideRow.quantity * overrideRow.unit_price)}
+                  <br />
+                  Hiện tại: <b>{overrideRow.approval_status === 'approved' ? 'Đã duyệt' : 'Đã từ chối'}</b>
+                  {' → '}
+                  Ghi đè thành: <b>{overrideDecision === 'approved' ? 'Duyệt' : 'Từ chối'}</b>
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            placeholder="Lý do ghi đè (bắt buộc, tối thiểu 5 ký tự)"
+            value={overrideReason}
+            onChange={(e) => setOverrideReason(e.target.value)}
+            rows={3}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOverrideRow(null)}>Hủy</Button>
+            <Button
+              disabled={overrideMut.isPending || overrideReason.trim().length < 5}
+              onClick={() => overrideRow && overrideMut.mutate({
+                id: overrideRow.id, dec: overrideDecision, rs: overrideReason.trim(),
+              })}
+            >Xác nhận ghi đè</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
         <DialogContent>
