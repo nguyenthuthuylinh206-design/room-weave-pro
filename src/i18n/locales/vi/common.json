@@ -155,7 +155,7 @@
   },
   "about": {
     "title": "Giới thiệu",
-    "appName": "Room Weave Pro",
+    "appName": "RoomQc",
     "tagline": "Hệ thống Quản lý Khách sạn Chuyên nghiệp",
     "version": "Phiên bản",
     "features": "Tính năng",
@@ -170,7 +170,7 @@
     "privacyPolicy": "Chính sách bảo mật",
     "licenses": "Giấy phép",
     "builtWith": "Xây dựng với ❤️ cho ngành khách sạn",
-    "copyright": "© 2024 Room Weave Pro. Đã đăng ký bản quyền."
+    "copyright": "© 2024 RoomQc. Đã đăng ký bản quyền."
   },
   "shift": {
     "title": "Ca làm việc",

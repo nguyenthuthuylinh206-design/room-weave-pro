@@ -269,7 +269,7 @@ export default function TelegramSettingsPage() {
           user_ids: user?.id ? [user.id] : [],
           send_to_all_groups: true,
           title: '🔔 Test Notification',
-          message: 'Đây là tin nhắn thử nghiệm từ RoomQC.\nNếu bạn nhận được tin này, kết nối đang hoạt động!',
+          message: 'Đây là tin nhắn thử nghiệm từ RoomQc.\nNếu bạn nhận được tin này, kết nối đang hoạt động!',
           notification_type: 'system'
         }
       })

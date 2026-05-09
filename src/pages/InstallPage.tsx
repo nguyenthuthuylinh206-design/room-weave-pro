@@ -54,7 +54,7 @@ export const InstallPage = () => {
           </div>
           <h1 className="text-2xl font-bold mb-2">Đã cài đặt!</h1>
           <p className="text-muted-foreground mb-6">
-            RoomWeave đã được cài đặt trên thiết bị của bạn
+            RoomQc đã được cài đặt trên thiết bị của bạn
           </p>
           <Button onClick={() => navigate('/')} className="w-full">
             Về Trang chủ
@@ -72,7 +72,7 @@ export const InstallPage = () => {
           <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
             <Download className="w-10 h-10 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold mb-4">Cài đặt RoomWeave</h1>
+          <h1 className="text-3xl font-bold mb-4">Cài đặt RoomQc</h1>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             Trải nghiệm quản lý khách sạn tốt nhất với ứng dụng có thể cài đặt
           </p>

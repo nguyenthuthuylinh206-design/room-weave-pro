@@ -257,7 +257,7 @@ export default function MorePage() {
       {/* Version Info */}
       <div className="max-w-screen-xl mx-auto px-4 py-4 text-center">
         <p className="text-xs text-muted-foreground">
-          Room Weave Pro v{APP_VERSION}
+          RoomQc v{APP_VERSION}
         </p>
       </div>
     </div>

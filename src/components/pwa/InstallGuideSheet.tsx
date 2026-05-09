@@ -156,7 +156,7 @@ const AndroidConfirmIllustration = () => (
     <text x="32" y="35" textAnchor="middle" fill="hsl(var(--primary))" fontSize="10">📱</text>
     
     {/* App name */}
-    <text x="52" y="28" fill="hsl(var(--foreground))" fontSize="6" fontWeight="600">Room Weave Pro</text>
+    <text x="52" y="28" fill="hsl(var(--foreground))" fontSize="6" fontWeight="600">RoomQc</text>
     <text x="52" y="38" fill="hsl(var(--muted-foreground))" fontSize="5">roomweave.app</text>
     
     {/* Buttons */}
