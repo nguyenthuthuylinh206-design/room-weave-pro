@@ -1,76 +1,84 @@
 ## Mục tiêu
-Verify trên DB production rằng 4 flow Room Check (Lean submit, Quick, Reopen, Undo) chạy thông suốt, không còn lỗi `audit_log_action_check` và `log_state_transition` truyền đúng tham số.
 
-## Cách làm — script SQL test idempotent
+Trang `/rooms/:id` hiện chia 2/3 + 1/3, nhưng cột trái (Room Info, Items) chiếm chiều cao lớn hơn cột phải nhiều, tạo khoảng trống dài bên dưới cột phải. Đồng thời thông tin số liệu (Sức chứa, Giường, View, Giá, Tiện nghi, Tổng/Đủ/Thiếu, Health Score) bị nén nhỏ ở góc, khó quét nhanh.
 
-Dùng `supabase--read_query` + `supabase--insert` (không cần migration) để chạy kịch bản test trên 1 phòng test thật, sau đó cleanup.
+Hướng giải quyết: chuyển sang **bố cục dashboard dọc 1 cột rộng**, các block KPI/thông tin được kéo ra giữa với kích cỡ lớn, dễ nhìn. Cột phụ chỉ còn 1 panel hẹp dạng "side rail" cho khách đang ở + thao tác nhanh, hoặc thậm chí bỏ hẳn cột phụ ở các section dưới.
 
-### Bước 0 — Chuẩn bị (read-only)
-- Pick 1 tenant + hotel + room đang `available` ít hoạt động (qua `supabase--read_query`).
-- Snapshot `count(*)` của `audit_log` và `room_checks` cho room đó.
+## Wireframe phác thảo
 
-### Bước 1 — Quick submit
-```sql
-SELECT public.perform_quick_room_check(
-  _room_id := '<room_id>', _check_type := 'daily',
-  _notes := 'E2E quick test', _photos := '{}'::text[]
-);
+```text
+┌──────────────────────────────────────────────────────────────────────────┐
+│ ← P101  [Đang ở]   Deluxe • Tầng 1 • 28m²            [Sửa] [Kiểm tra]   │
+├──────────────────────────────────────────────────────────────────────────┤
+│ ⚠ Banner cleaning / pending delivery (full-width, chỉ khi có)            │
+└──────────────────────────────────────────────────────────────────────────┘
+
+╔═══════════════════════ HERO STRIP — KPI lớn, 4 ô ════════════════════════╗
+║  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────────────┐ ║
+║  │  92      │  │  24 / 26 │  │  2       │  │  Khách: Nguyễn Văn A     │ ║
+║  │ Health   │  │  Đồ đủ   │  │ Đồ thiếu │  │  CI 09/05 → CO 11/05     │ ║
+║  │ ▓▓▓▓▓░   │  │  (xanh)  │  │  (đỏ)    │  │  [Xem booking]           │ ║
+║  └──────────┘  └──────────┘  └──────────┘  └──────────────────────────┘ ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+┌──────────────────── THÔNG TIN PHÒNG (full-width, grid 6 cột) ────────────┐
+│  Số phòng │ Loại  │ Tầng │ Sức chứa │ Giường   │ View                    │
+│   101     │ Deluxe│  1   │ 2 khách  │ Queen    │ Sea                     │
+│  Diện tích│ Giá/đêm                                                      │
+│   28 m²   │ 1.200.000 ₫                                                  │
+│ ─────────────────────────────────────────────────────────────────────── │
+│  Tiện nghi:  [Wi-Fi] [Máy lạnh] [Tủ lạnh] [Két sắt] …                   │
+│  Ghi chú:    Phòng góc, view biển trực diện…                            │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────── ĐỒ DÙNG TRONG PHÒNG (full-width) ────────────────────┐
+│  ✔ 24 đủ    ✘ 2 thiếu              [Áp dụng tiêu chuẩn] [In danh sách]  │
+│  [Tabs: Tiêu chuẩn (24)  •  Khác (3)  •  Thiếu (2)]                      │
+│  RoomItemsList…                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────── 2 CỘT BẰNG NHAU (chỉ ở khu lịch sử) ─────────────────────┐
+│ Lịch sử kiểm tra              │ Lịch sử giao đồ                           │
+│ EnhancedCheckHistory          │ RoomDistributionHistory                   │
+│ + ảnh kiểm tra gần nhất       │ (badge số đơn pending)                    │
+└───────────────────────────────┴───────────────────────────────────────────┘
+
+┌──────────────── THAO TÁC NHANH (sticky thanh dưới hoặc inline) ──────────┐
+│ [Kiểm tra] [Đồng bộ tiêu chuẩn] [Yêu cầu công việc] [Reset] [In]         │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
-- Verify: `room_checks` có row mới `check_mode='quick'`, `audit_log` có action `quick_submit` (hoặc `insert` từ trigger), không lỗi.
 
-### Bước 2 — Undo quick (trong cửa sổ 10 phút)
-```sql
-SELECT public.undo_quick_room_check(_check_id := '<id từ B1>', _reason := 'E2E undo test');
-```
-- Verify: row đó `status='undone'`, `audit_log` có action `undo_quick` với `tenant_id` đúng (không null).
+## Thay đổi chính so với hiện tại
 
-### Bước 3 — Lean standard submit
-```sql
-SELECT public.submit_room_check_lean(
-  _room_id := '<room_id>', _check_type := 'daily',
-  _started_at := now() - interval '1 minute',
-  _notes := 'E2E lean test',
-  _photos := '{}'::text[],
-  _items_missing := '[]'::jsonb, _items_damaged := '[]'::jsonb,
-  _items_lost := '[]'::jsonb, _items_consumed := '[]'::jsonb,
-  _items_replaced := '[]'::jsonb,
-  _task_id := NULL
-);
-```
-- Verify: row `check_mode='standard'`, `status='submitted'`, `audit_log` có `lean_submit`.
+1. **Bỏ grid `lg:grid-cols-3`** ở cấp ngoài. Toàn trang là 1 cột rộng (`max-w-6xl mx-auto`), tận dụng full chiều ngang ~1234px.
+2. **Hero KPI strip** ở đầu: 4 ô ngang bằng nhau, font số lớn (`text-3xl font-bold`), thay cho `RoomHealthScore` + ô "Tổng/Đủ/Thiếu" cũ vốn nhỏ xíu bên phải.
+   - Ô 1: Health score + thanh progress mảnh.
+   - Ô 2: "Đồ đủ" — số xanh.
+   - Ô 3: "Đồ thiếu" — số đỏ.
+   - Ô 4: `GuestInfoCard` rút gọn (tên khách + CI/CO) hoặc trạng thái "Phòng trống" khi không có khách.
+3. **Thông tin phòng** dãn full-width thành grid 4–6 cột thay vì nén 2×4. Tiện nghi và ghi chú nằm dưới cùng block.
+4. **Ảnh kiểm tra gần nhất**: gộp vào trong block "Lịch sử kiểm tra" (tab hoặc accordion) để không tạo card lẻ.
+5. **Lịch sử kiểm tra + Lịch sử giao đồ** đặt cạnh nhau (`grid-cols-2`) — đây là chỗ duy nhất còn 2 cột vì cả hai đều là list timeline.
+6. **Quick Actions** chuyển thành **thanh nút ngang** ở cuối trang (hoặc sticky footer trên màn lớn) thay vì stack dọc trong sidebar.
+7. **Mobile** giữ nguyên `MobileRoomDetailPage` — không đụng.
 
-### Bước 4 — Reopen
-```sql
-SELECT public.reopen_room_check(_check_id := '<id từ B3>', _reason := 'E2E reopen test');
-```
-- Verify: row đó `status='reopened'`, notes có chứa lý do, `audit_log` có `reopen`.
+## File sẽ sửa
 
-### Bước 5 — Negative: action rác
-```sql
-INSERT INTO audit_log(tenant_id, action, entity_type, entity_id) 
-VALUES ('<tid>', 'INVALID ACTION!', 'test', gen_random_uuid());
-```
-- Expect: bị reject bởi regex (`audit_log_action_check`).
+- `src/pages/rooms/RoomDetailPage.tsx` — viết lại layout (chỉ phần JSX desktop, hooks giữ nguyên).
+- `src/components/rooms/RoomHealthScore.tsx` — thêm variant `compact` chỉ render số + bar mảnh, không có card bao ngoài (để fit vào hero strip).
+- `src/components/rooms/GuestInfoCard.tsx` — thêm variant `inline` (1 dòng tên + ngày CI/CO) cho ô KPI thứ 4. Variant đầy đủ vẫn giữ cho mobile.
 
-### Bước 6 — Cleanup
-- DELETE 2 row room_checks vừa tạo (qua `supabase--insert`).
-- Báo cáo diff `audit_log` count + danh sách action mới.
+Không đụng RPC, schema, permissions, hay business logic — đây là refactor UI thuần.
 
-## Lưu ý
-- Cần user cấp quyền `auth.uid()` thực — RPC dùng `auth.uid()` để check role. Vì psql/SQL editor chạy với `service_role`, các check `forbidden_role`/`forbidden_tenant` có thể bypass hoặc fail tuỳ implementation. Nếu RPC fail vì auth context, sẽ test qua **edge function tạm** hoặc đề nghị user thao tác trực tiếp trên UI từng flow và ta đọc log đối chiếu.
-- Nếu user chọn test qua UI: ta sẽ chỉ chạy bước 0 (chọn room) + bước 6 (đọc audit_log sau mỗi thao tác user) thay vì gọi RPC trực tiếp.
+## Kiểm thử
 
-## Output cuối
-Bảng tổng kết:
+- Desktop 1234px (viewport hiện tại của user): hero strip 4 ô đều, không tràn.
+- Desktop 1536px: vẫn cân, max-width giới hạn tránh quá rộng.
+- Tablet 1024px: hero strip wrap thành 2×2.
+- Mobile: bypass — render `MobileRoomDetailPage`.
+- Trạng thái phòng trống (không có khách): ô KPI thứ 4 hiển thị "Phòng trống — sẵn sàng nhận khách".
+- Phòng chưa có items: block "Đồ dùng" hiển thị empty state + nút Áp dụng tiêu chuẩn.
 
-| Flow | RPC OK | audit_log action | tenant_id đúng | Ghi chú |
-|------|--------|------------------|----------------|---------|
-| Quick | ✅/❌ | quick_submit | ✅ | |
-| Undo | ✅/❌ | undo_quick | ✅ | |
-| Lean | ✅/❌ | lean_submit | ✅ | |
-| Reopen | ✅/❌ | reopen | ✅ | |
-| Negative | reject | — | — | regex chặn |
+## Rollout
 
-## Phần CHƯA làm
-- Không sửa code/migration (chỉ test).
-- Không test booking_transition / cron grace (ngoài scope user yêu cầu).
+Thay 1 file page + 2 component variant → low risk. Không cần migration, không feature flag.
