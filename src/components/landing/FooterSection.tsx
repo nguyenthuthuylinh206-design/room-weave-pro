@@ -34,7 +34,7 @@ export const FooterSection = () => {
             <div>
               <Link to="/" className="flex items-center gap-2 mb-4">
                 <Hotel className="h-6 w-6 text-[hsl(214,84%,56%)]" />
-                <span className="text-base font-bold text-white">HotelOps</span>
+                <span className="text-base font-bold text-white">RoomQc</span>
               </Link>
               <p className="text-xs leading-relaxed">{t('footer.description')}</p>
             </div>

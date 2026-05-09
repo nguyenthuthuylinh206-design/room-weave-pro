@@ -74,7 +74,7 @@ export const PricingSection = () => {
 
                 {plan === 'enterprise' ? (
                   <Button variant="outline" className="w-full" asChild>
-                    <a href="mailto:contact@hotelops.vn">{t('pricing.ctaEnterprise')}</a>
+                    <a href="mailto:roomqc@gmail.com">{t('pricing.ctaEnterprise')}</a>
                   </Button>
                 ) : (
                   <Button
