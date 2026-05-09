@@ -3,7 +3,7 @@
   "releaseDate": "2026-05-09",
   "title": "Làm mới cache thương hiệu RoomQc",
   "changes": [
-    { "type": "improved", "text": "Ép làm mới cache để loại bỏ giao diện HotelOps cũ còn lưu trên trình duyệt/PWA" },
+    { "type": "improved", "text": "Ép làm mới cache để loại bỏ giao diện thương hiệu cũ còn lưu trên trình duyệt/PWA" },
     { "type": "improved", "text": "Đồng bộ lại tên RoomQc ở header, footer, metadata và icon ứng dụng" }
   ]
 }
