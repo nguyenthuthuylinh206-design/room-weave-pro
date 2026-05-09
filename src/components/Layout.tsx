@@ -38,7 +38,7 @@ const Layout = ({ children }: LayoutProps) => {
           <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6">
             <Building2 className="h-8 w-8 text-sidebar-primary" />
             <div>
-              <h1 className="text-lg font-bold text-sidebar-foreground">HotelOps</h1>
+              <h1 className="text-lg font-bold text-sidebar-foreground">RoomQc</h1>
               <p className="text-xs text-sidebar-foreground/60">Management System</p>
             </div>
           </div>
@@ -73,7 +73,7 @@ const Layout = ({ children }: LayoutProps) => {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-sidebar-foreground">Admin User</p>
-                <p className="text-xs text-sidebar-foreground/60">admin@hotelops.com</p>
+                <p className="text-xs text-sidebar-foreground/60">roomqc@gmail.com</p>
               </div>
             </div>
           </div>

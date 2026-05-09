@@ -29,7 +29,7 @@ export const LandingNavbar = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
             <Hotel className="h-7 w-7 text-[hsl(214,84%,56%)]" />
-            <span className="text-lg font-bold text-white">HotelOps</span>
+            <span className="text-lg font-bold text-white">RoomQc</span>
           </Link>
 
           {/* Desktop nav */}
