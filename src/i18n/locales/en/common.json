@@ -1,7 +1,7 @@
 {
   "types": "types",
   "products": "products",
-  "appTitle": "Hotel Asset Management",
+  "appTitle": "RoomQc",
   "buttons": {
     "save": "Save",
     "cancel": "Cancel",

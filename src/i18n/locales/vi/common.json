@@ -1,7 +1,7 @@
 {
   "types": "loại",
   "products": "sản phẩm",
-  "appTitle": "Quản lý Tài sản Khách sạn",
+  "appTitle": "RoomQc",
   "buttons": {
     "save": "Lưu",
     "cancel": "Hủy",

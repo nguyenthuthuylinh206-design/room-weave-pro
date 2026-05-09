@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Menu, Search, Building2 } from 'lucide-react'
+import { Menu, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { useHotelContext } from '@/contexts/HotelContext'
@@ -7,6 +7,7 @@ import { MobileSidebar } from './MobileSidebar'
 import { HotelSwitcher } from './HotelSwitcher'
 import { NotificationBell } from '@/components/notifications'
 import { cn } from '@/lib/utils'
+import logoRoomQc from '@/assets/logo-roomqc.png'
 
 interface MobileHeaderProps {
   showHotelSelector?: boolean
@@ -31,7 +32,7 @@ export const MobileHeader = ({
         {/* Left: Logo + Hotel Name */}
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <div className="flex items-center gap-2 min-w-0">
-            <Building2 className="h-6 w-6 text-primary flex-shrink-0" />
+            <img src={logoRoomQc} alt="RoomQc" className="h-7 w-7 rounded-md object-cover flex-shrink-0" />
             {selectedHotel ? (
             <div className="min-w-0">
               <p className="font-semibold text-sm truncate">
@@ -42,7 +43,7 @@ export const MobileHeader = ({
               </p>
             </div>
             ) : (
-              <span className="font-semibold text-sm">Hotel Manager</span>
+              <span className="font-semibold text-sm">RoomQc</span>
             )}
           </div>
         </div>

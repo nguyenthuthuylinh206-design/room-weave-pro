@@ -19,6 +19,7 @@ import { HotelSwitcher } from './HotelSwitcher'
 import { NotificationBell } from '@/components/notifications'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { useTranslation } from 'react-i18next'
+import logoRoomQc from '@/assets/logo-roomqc.png'
 
 interface HeaderProps {
   onMenuClick?: () => void
@@ -57,7 +58,10 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
 
       {/* Desktop Title & Hotel Switcher */}
       <div className="hidden lg:flex lg:items-center lg:gap-4">
-        <h1 className="text-xl font-semibold">{t('common:appTitle', 'Hotel Asset Management')}</h1>
+        <div className="flex items-center gap-2">
+          <img src={logoRoomQc} alt="RoomQc" className="h-8 w-8 rounded-md object-cover" />
+          <h1 className="text-xl font-semibold">{t('common:appTitle', 'RoomQc')}</h1>
+        </div>
         <HotelSwitcher />
       </div>
 
