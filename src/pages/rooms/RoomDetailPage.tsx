@@ -21,7 +21,7 @@ import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
 import { RoomItemsList } from '@/components/rooms/RoomItemsList'
 import { EnhancedCheckHistory } from '@/components/rooms/EnhancedCheckHistory'
 import { RoomDistributionHistory } from '@/components/rooms/RoomDistributionHistory'
-import { RoomHealthScore } from '@/components/rooms/RoomHealthScore'
+
 import { GuestInfoCard } from '@/components/rooms/GuestInfoCard'
 import { MobileRoomDetailPage } from '@/components/rooms/MobileRoomDetailPage'
 import { CreateTaskDialog } from '@/components/housekeeping/CreateTaskDialog'
