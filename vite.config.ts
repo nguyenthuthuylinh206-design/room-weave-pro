@@ -24,8 +24,8 @@ export default defineConfig(({ mode }) => ({
       registerType: 'prompt',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Room Weave Pro - Quản lý khách sạn',
-        short_name: 'RoomWeave',
+        name: 'RoomQc - Quản lý khách sạn',
+        short_name: 'RoomQc',
         description: 'Hệ thống quản lý khách sạn toàn diện',
         theme_color: '#1a202c',
         background_color: '#ffffff',

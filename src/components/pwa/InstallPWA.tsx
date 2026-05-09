@@ -50,7 +50,7 @@ export const InstallPWA = () => {
           </div>
           
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm mb-1">Cài đặt RoomWeave</h3>
+            <h3 className="font-semibold text-sm mb-1">Cài đặt RoomQc</h3>
             <p className="text-xs text-muted-foreground mb-3">
               Thêm vào màn hình chính để truy cập nhanh và sử dụng offline
             </p>

@@ -155,7 +155,7 @@
   },
   "about": {
     "title": "About",
-    "appName": "Room Weave Pro",
+    "appName": "RoomQc",
     "tagline": "Professional Hotel Management System",
     "version": "Version",
     "features": "Features",
@@ -170,7 +170,7 @@
     "privacyPolicy": "Privacy Policy",
     "licenses": "Licenses",
     "builtWith": "Built with ❤️ for hotel professionals",
-    "copyright": "© 2024 Room Weave Pro. All rights reserved."
+    "copyright": "© 2024 RoomQc. All rights reserved."
   },
   "shift": {
     "title": "Work Shift",

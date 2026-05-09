@@ -1,10 +1,9 @@
 {
-  "version": "1.0.3",
-  "releaseDate": "2026-04-17",
-  "title": "Sửa lưu mật khẩu trên iPhone",
+  "version": "1.0.4",
+  "releaseDate": "2026-05-09",
+  "title": "Đổi thương hiệu thành RoomQc",
   "changes": [
-    { "type": "fixed", "text": "Sửa lỗi PWA trên iPhone không lưu/gợi ý email & mật khẩu đã đăng nhập" },
-    { "type": "improved", "text": "Tối ưu form đăng nhập theo chuẩn iOS Keychain — autofill nhanh và chính xác hơn" },
-    { "type": "improved", "text": "Bàn phím tự động chuyển sang chế độ email khi nhập tài khoản" }
+    { "type": "improved", "text": "Đổi tên ứng dụng thành RoomQc với bộ nhận diện thương hiệu mới" },
+    { "type": "improved", "text": "Thay logo và icon mới đồng bộ trên web, PWA và màn hình cài đặt" }
   ]
 }

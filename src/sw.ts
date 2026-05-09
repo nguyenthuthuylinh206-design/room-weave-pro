@@ -140,7 +140,7 @@ self.addEventListener('push', (event: PushEvent) => {
   }
 
   let notificationData: PushPayload = {
-    title: 'Room Weave Pro',
+    title: 'RoomQc',
     body: 'Bạn có thông báo mới',
     icon: '/icon-192x192.png',
     badge: '/icon-72x72.png',

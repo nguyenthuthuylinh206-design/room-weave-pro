@@ -188,7 +188,7 @@ Deno.serve(async (req) => {
           console.error('User not found:', startParam)
           await sendTelegramMessage(botToken, chatId,
             '❌ Không tìm thấy tài khoản.\n\n' +
-            'Vui lòng sử dụng đường link kết nối từ ứng dụng RoomQC.'
+            'Vui lòng sử dụng đường link kết nối từ ứng dụng RoomQc.'
           )
           return new Response('OK', { status: 200 })
         }
@@ -236,7 +236,7 @@ Deno.serve(async (req) => {
           const result = await sendTelegramMessage(botToken, chatId,
             `✅ <b>Kết nối thành công!</b>\n\n` +
             `Xin chào <b>${user.full_name || fromUser.first_name}</b>!\n\n` +
-            `Bạn sẽ nhận thông báo từ RoomQC tại đây.\n\n` +
+            `Bạn sẽ nhận thông báo từ RoomQc tại đây.\n\n` +
             `📱 Các loại thông báo:\n` +
             `• 🏨 Đặt phòng mới\n` +
             `• 🔧 Yêu cầu bảo trì\n` +
@@ -256,8 +256,8 @@ Deno.serve(async (req) => {
         // No valid param, show instructions
         await sendTelegramMessage(botToken, chatId,
           `👋 Xin chào!\n\n` +
-          `Để kết nối với RoomQC, vui lòng:\n\n` +
-          `1. Đăng nhập vào ứng dụng RoomQC\n` +
+          `Để kết nối với RoomQc, vui lòng:\n\n` +
+          `1. Đăng nhập vào ứng dụng RoomQc\n` +
           `2. Vào <b>Cài đặt > Telegram</b>\n` +
           `3. Nhấn nút <b>"Kết nối Telegram"</b>\n\n` +
           `Hoặc sử dụng đường link được cung cấp trong ứng dụng.`
@@ -279,7 +279,7 @@ Deno.serve(async (req) => {
       if (!error) {
         await sendTelegramMessage(botToken, chatId,
           '🔕 Đã tắt thông báo Telegram.\n\n' +
-          'Để bật lại, vui lòng kết nối lại từ ứng dụng RoomQC.'
+          'Để bật lại, vui lòng kết nối lại từ ứng dụng RoomQc.'
         )
       }
       
@@ -302,12 +302,12 @@ Deno.serve(async (req) => {
           `✅ <b>Trạng thái kết nối</b>\n\n` +
           `Tài khoản: <b>${(connection.users as any)?.full_name || 'N/A'}</b>\n` +
           `Trạng thái: Đang hoạt động ✓\n\n` +
-          `Bạn đang nhận thông báo từ RoomQC.`
+          `Bạn đang nhận thông báo từ RoomQc.`
         )
       } else {
         await sendTelegramMessage(botToken, chatId,
-          `❌ Chưa kết nối với RoomQC.\n\n` +
-          `Vui lòng kết nối từ ứng dụng RoomQC.`
+          `❌ Chưa kết nối với RoomQc.\n\n` +
+          `Vui lòng kết nối từ ứng dụng RoomQc.`
         )
       }
       
@@ -333,13 +333,13 @@ Deno.serve(async (req) => {
           `Khách sạn: <b>${(group.tenants as any)?.name || 'N/A'}</b>\n` +
           `Loại nhóm: <b>${group.group_type}</b>\n` +
           `Trạng thái: Đang hoạt động ✓\n\n` +
-          `Nhóm này đang nhận thông báo từ RoomQC.`
+          `Nhóm này đang nhận thông báo từ RoomQc.`
         )
       } else {
         await sendTelegramMessage(botToken, chatId,
-          `❌ <b>Nhóm chưa được kết nối với RoomQC</b>\n\n` +
+          `❌ <b>Nhóm chưa được kết nối với RoomQc</b>\n\n` +
           `Mã nhóm: <code>${chatId}</code>\n\n` +
-          `Để kết nối, vào ứng dụng RoomQC > Cài đặt > Telegram > Thêm nhóm.`
+          `Để kết nối, vào ứng dụng RoomQc > Cài đặt > Telegram > Thêm nhóm.`
         )
       }
       
@@ -426,15 +426,15 @@ Deno.serve(async (req) => {
             `✅ <b>Nhóm đã được liên kết tự động!</b>\n\n` +
             `Nhóm "<b>${chatTitle}</b>" đã được kết nối thành công.\n` +
             `Bộ phận: <b>${deptLabel}</b>\n\n` +
-            `Nhóm này sẽ nhận thông báo từ RoomQC.`
+            `Nhóm này sẽ nhận thông báo từ RoomQc.`
           )
         } else {
           // No pending link - show manual instructions
           await sendTelegramMessage(botToken, chatId,
-            `🏨 <b>RoomQC Notification Bot</b>\n\n` +
+            `🏨 <b>RoomQc Notification Bot</b>\n\n` +
             `Bot đã được thêm vào nhóm "<b>${chatTitle}</b>".\n\n` +
             `📋 <b>Để kết nối với hệ thống:</b>\n\n` +
-            `1. Đăng nhập vào ứng dụng RoomQC (quyền Owner/Manager)\n` +
+            `1. Đăng nhập vào ứng dụng RoomQc (quyền Owner/Manager)\n` +
             `2. Vào <b>Cài đặt > Telegram</b>\n` +
             `3. Nhấn <b>"Thêm nhóm"</b>\n` +
             `4. Nhập mã nhóm:\n\n` +
@@ -505,7 +505,7 @@ Deno.serve(async (req) => {
           await sendTelegramMessage(botToken, chatId,
             `✅ <b>Kết nối thành công!</b>\n\n` +
             `Nhóm "<b>${chatTitle}</b>" đã được liên kết với <b>${tenant.name}</b>.\n\n` +
-            `Nhóm này sẽ nhận thông báo từ RoomQC.`
+            `Nhóm này sẽ nhận thông báo từ RoomQc.`
           )
         } else {
           await sendTelegramMessage(botToken, chatId,
@@ -516,7 +516,7 @@ Deno.serve(async (req) => {
         await sendTelegramMessage(botToken, chatId,
           `📋 <b>Mã nhóm của bạn:</b>\n\n` +
           `<code>${chatId}</code>\n\n` +
-          `Sử dụng mã này trong ứng dụng RoomQC để thêm nhóm.`
+          `Sử dụng mã này trong ứng dụng RoomQc để thêm nhóm.`
         )
       }
       

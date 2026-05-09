@@ -206,7 +206,7 @@ export function AutoLinkGroupDialog({
           tenant_id: tenantId,
           group_ids: [linkedGroup.chatId],
           title: '🧪 Tin nhắn thử nghiệm',
-          message: `Xin chào! Đây là tin nhắn thử từ RoomQC.\n\nNhóm "${linkedGroup.title}" đã được kết nối thành công.`,
+          message: `Xin chào! Đây là tin nhắn thử từ RoomQc.\n\nNhóm "${linkedGroup.title}" đã được kết nối thành công.`,
           notification_type: 'system'
         }
       })
