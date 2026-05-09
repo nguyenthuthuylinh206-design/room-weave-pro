@@ -1,76 +1,76 @@
 ## Mục tiêu
+Verify trên DB production rằng 4 flow Room Check (Lean submit, Quick, Reopen, Undo) chạy thông suốt, không còn lỗi `audit_log_action_check` và `log_state_transition` truyền đúng tham số.
 
-Sửa triệt để lỗi `audit_log_action_check` trên mọi flow (Lean submit, Quick check, Reopen, Undo, Booking/Task transition, Tenant read-only, Cron grace) bằng **một migration duy nhất**.
+## Cách làm — script SQL test idempotent
 
-## Phân tích
+Dùng `supabase--read_query` + `supabase--insert` (không cần migration) để chạy kịch bản test trên 1 phòng test thật, sau đó cleanup.
 
-`public.audit_log` có CHECK chỉ cho phép 5 action: `insert | update | delete | state_change | qc_action`. Hiện toàn bộ hệ thống state machine v2 + room check Lean đều truyền action mô tả nghiệp vụ (`lean_submit`, `quick_submit`, `reopen`, `booking_transition`, `cron`, `rpc`, …). Mọi RPC này đều rollback ngay tại bước audit.
+### Bước 0 — Chuẩn bị (read-only)
+- Pick 1 tenant + hotel + room đang `available` ít hoạt động (qua `supabase--read_query`).
+- Snapshot `count(*)` của `audit_log` và `room_checks` cho room đó.
 
-### Inventory action đang dùng (đã grep từ pg_proc)
-
-- `lean_submit`, `quick_submit`, `reopen`, `undo_quick`
-- `booking_transition`, `task_transition` / `task_qc_*`
-- `room_status_transition` (state machine v2)
-- `rpc`, `cron`, `forced`, `auto`
-
-### Lỗi phụ phát hiện kèm
-
-`undo_quick_room_check` đang gọi `log_state_transition` **sai thứ tự tham số** (thiếu `tenant_id`, `hotel_id`, đẩy `'room_check'` vào vị trí `tenant_id`). Sẽ sửa luôn để khi constraint mở rộng vẫn không bị lỗi UUID cast.
-
-## Giải pháp
-
-### Bước 1 — Mở rộng CHECK constraint (chiến lược chính)
-
-Thay vì sửa 10+ RPC, chuẩn hoá CHECK theo **whitelist mở rộng + namespace bằng dấu `.` cho tương lai**:
-
+### Bước 1 — Quick submit
 ```sql
-ALTER TABLE public.audit_log DROP CONSTRAINT audit_log_action_check;
-
-ALTER TABLE public.audit_log ADD CONSTRAINT audit_log_action_check
-CHECK (
-  action ~ '^[a-z][a-z0-9_.]{1,63}$'
+SELECT public.perform_quick_room_check(
+  _room_id := '<room_id>', _check_type := 'daily',
+  _notes := 'E2E quick test', _photos := '{}'::text[]
 );
 ```
+- Verify: `room_checks` có row mới `check_mode='quick'`, `audit_log` có action `quick_submit` (hoặc `insert` từ trigger), không lỗi.
 
-Lý do: dùng pattern (regex) thay vì enum cứng → mọi action snake_case hợp lệ đều OK, không cần sửa RPC mỗi lần thêm flow mới. Vẫn chặn được giá trị rác / SQL injection / chuỗi rỗng. Đây là pattern Supabase dùng cho audit log generic.
-
-### Bước 2 — Sửa `undo_quick_room_check` truyền đúng arg
-
+### Bước 2 — Undo quick (trong cửa sổ 10 phút)
+```sql
+SELECT public.undo_quick_room_check(_check_id := '<id từ B1>', _reason := 'E2E undo test');
 ```
-log_state_transition(
-  v_tenant_id, v_hotel_id, 'room_checks', _check_id,
-  'undo_quick', v_check.status, 'undone', _reason,
-  jsonb_build_object('room_id', v_check.room_id, 'check_mode', v_check.check_mode)
-)
+- Verify: row đó `status='undone'`, `audit_log` có action `undo_quick` với `tenant_id` đúng (không null).
+
+### Bước 3 — Lean standard submit
+```sql
+SELECT public.submit_room_check_lean(
+  _room_id := '<room_id>', _check_type := 'daily',
+  _started_at := now() - interval '1 minute',
+  _notes := 'E2E lean test',
+  _photos := '{}'::text[],
+  _items_missing := '[]'::jsonb, _items_damaged := '[]'::jsonb,
+  _items_lost := '[]'::jsonb, _items_consumed := '[]'::jsonb,
+  _items_replaced := '[]'::jsonb,
+  _task_id := NULL
+);
 ```
+- Verify: row `check_mode='standard'`, `status='submitted'`, `audit_log` có `lean_submit`.
 
-(cần SELECT thêm `tenant_id, hotel_id` từ `room_checks` vào biến cục bộ).
+### Bước 4 — Reopen
+```sql
+SELECT public.reopen_room_check(_check_id := '<id từ B3>', _reason := 'E2E reopen test');
+```
+- Verify: row đó `status='reopened'`, notes có chứa lý do, `audit_log` có `reopen`.
 
-### Bước 3 — Backfill / không cần
+### Bước 5 — Negative: action rác
+```sql
+INSERT INTO audit_log(tenant_id, action, entity_type, entity_id) 
+VALUES ('<tid>', 'INVALID ACTION!', 'test', gen_random_uuid());
+```
+- Expect: bị reject bởi regex (`audit_log_action_check`).
 
-Audit log không có row "lỗi" tồn đọng (transaction đã rollback). Không cần backfill.
+### Bước 6 — Cleanup
+- DELETE 2 row room_checks vừa tạo (qua `supabase--insert`).
+- Báo cáo diff `audit_log` count + danh sách action mới.
 
-### F. Test cases
+## Lưu ý
+- Cần user cấp quyền `auth.uid()` thực — RPC dùng `auth.uid()` để check role. Vì psql/SQL editor chạy với `service_role`, các check `forbidden_role`/`forbidden_tenant` có thể bypass hoặc fail tuỳ implementation. Nếu RPC fail vì auth context, sẽ test qua **edge function tạm** hoặc đề nghị user thao tác trực tiếp trên UI từng flow và ta đọc log đối chiếu.
+- Nếu user chọn test qua UI: ta sẽ chỉ chạy bước 0 (chọn room) + bước 6 (đọc audit_log sau mỗi thao tác user) thay vì gọi RPC trực tiếp.
 
-1. Submit Lean (1 issue damaged) → `audit_log` có row action=`lean_submit`.
-2. Quick Path → row action=`quick_submit`.
-3. Reopen room check → action=`reopen`.
-4. Undo quick check → action=`undo_quick`, `tenant_id` đúng (không null).
-5. Transition booking confirmed→checked_in → action=`booking_transition`.
-6. Cron grace period → action=`cron`.
-7. Insert action rác `'INVALID ACTION!'` → bị reject bởi regex.
+## Output cuối
+Bảng tổng kết:
 
-### G. Rollout & rollback
+| Flow | RPC OK | audit_log action | tenant_id đúng | Ghi chú |
+|------|--------|------------------|----------------|---------|
+| Quick | ✅/❌ | quick_submit | ✅ | |
+| Undo | ✅/❌ | undo_quick | ✅ | |
+| Lean | ✅/❌ | lean_submit | ✅ | |
+| Reopen | ✅/❌ | reopen | ✅ | |
+| Negative | reject | — | — | regex chặn |
 
-- **Forward-only**, chỉ thay 1 CHECK + 1 function. Không khoá bảng lâu (CHECK validate constant time vì action ngắn).
-- Rollback: `ALTER TABLE … DROP CONSTRAINT … ADD CONSTRAINT … CHECK (action IN (5 giá trị cũ))` — nhưng sẽ vỡ Lean flow, chỉ làm khi rollback toàn bộ Sprint State Machine v2.
-
-## File sẽ thay đổi
-
-- `supabase/migrations/<ts>_relax_audit_log_action_and_fix_undo.sql` (mới)
-- Không thay đổi UI / TS code.
-
-## Phần CHƯA làm trong plan này
-
-- Không refactor 10+ RPC để chuẩn hoá tên action (tốn thời gian, ít lợi ích — pattern regex đã đủ an toàn).
-- Không thêm enum DB type cho action (rigid, mỗi sprint phải migration).
+## Phần CHƯA làm
+- Không sửa code/migration (chỉ test).
+- Không test booking_transition / cron grace (ngoài scope user yêu cầu).
