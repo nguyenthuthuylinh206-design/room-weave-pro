@@ -53,6 +53,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { AppRole } from '@/types/database.types'
+import logoRoomQc from '@/assets/logo-roomqc.png'
 
 type PendingCountKey = keyof PendingCounts
 
@@ -372,17 +373,11 @@ export const Sidebar = () => {
     <div className="flex w-64 flex-col border-r bg-card">
       {/* Logo & Tenant Info */}
       <div className="flex items-center gap-3 border-b px-6 py-3">
-        {tenant?.logo_url ? (
-          <img
-            src={tenant.logo_url}
-            alt={tenant.name || 'Tenant'}
-            className="h-10 w-10 rounded-lg object-cover flex-shrink-0"
-          />
-        ) : (
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground flex-shrink-0">
-            <Building2 className="h-6 w-6" />
-          </div>
-        )}
+        <img
+          src={tenant?.logo_url || logoRoomQc}
+          alt={tenant?.name || 'RoomQc'}
+          className="h-10 w-10 rounded-lg object-cover flex-shrink-0"
+        />
         <div className="flex-1 overflow-hidden">
           <p className="truncate font-semibold text-sm" title={tenant?.name || 'Hotel Management'}>
             {tenant?.name || 'Hotel Management'}
