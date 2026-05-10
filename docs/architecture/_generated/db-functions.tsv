@@ -1253,7 +1253,6 @@ stock_adjustment_items_apply		trigger	plpgsql	f
 stock_adjustments_generate_code		trigger	plpgsql	f
 submit_room_check_for_qc	_task_id uuid, _room_check_id uuid	jsonb	plpgsql	t
 submit_room_check_lean	_room_id uuid, _check_type text, _started_at timestamp with time zone, _notes text DEFAULT NULL::text, _photos text[] DEFAULT '{}'::text[], _items_missing jsonb DEFAULT '[]'::jsonb, _items_damaged jsonb DEFAULT '[]'::jsonb, _items_lost jsonb DEFAULT '[]'::jsonb, _items_consumed jsonb DEFAULT '[]'::jsonb, _items_replaced jsonb DEFAULT '[]'::jsonb, _items_sent_to_laundry jsonb DEFAULT '[]'::jsonb, _task_id uuid DEFAULT NULL::uuid	jsonb	plpgsql	t
-submit_room_check_lean	_room_id uuid, _check_type text, _started_at timestamp with time zone, _notes text DEFAULT NULL::text, _photos text[] DEFAULT '{}'::text[], _items_missing jsonb DEFAULT '[]'::jsonb, _items_damaged jsonb DEFAULT '[]'::jsonb, _items_lost jsonb DEFAULT '[]'::jsonb, _items_consumed jsonb DEFAULT '[]'::jsonb, _items_replaced jsonb DEFAULT '[]'::jsonb, _task_id uuid DEFAULT NULL::uuid	jsonb	plpgsql	t
 sync_categories_for_hotel	p_tenant_id uuid, p_hotel_id uuid	jsonb	plpgsql	t
 table_owner_is	name, name, name	text	sql	f
 table_owner_is	name, name, name, text	text	plpgsql	f

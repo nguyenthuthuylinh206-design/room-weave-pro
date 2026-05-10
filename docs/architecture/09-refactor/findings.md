@@ -10,10 +10,10 @@
 
 | ID | Sev | Mô tả | Evidence | Đề xuất |
 |---|---|---|---|---|
-| F-DUP-01 | 🟢 | `src/components/Layout.tsx` (legacy) không được import. App dùng `MainLayout.tsx`. | `rg "from .*components/Layout" src` → 0 | Xóa file legacy + đảm bảo asset reference đã chuyển hết |
-| F-DUP-02 | 🟡 | Trùng `/admin/*` (trong MainLayout, RoleGuard) và `/super-admin/*` (SuperAdminLayout). | `src/App.tsx:243-260` vs `:284-340` | Chốt 1 entry, redirect cái còn lại |
+| F-DUP-01 | ✅ | ~~`src/components/Layout.tsx` legacy~~ — **Đã xóa 2026-05-10**. App chỉ còn `MainLayout.tsx`. | – | Đóng. |
+| F-DUP-02 | ✅ | ~~Trùng `/admin/*` và `/super-admin/*`~~ — **Sai**. App.tsx chỉ có `/super-admin/*`, folder `pages/admin/` chỉ là vị trí lưu mã. Đã verify `rg "path.*\"/admin" src/App.tsx` → 0 kết quả. | – | Đóng. |
 | F-DUP-03 | 🟡 | `MorePage.tsx` ở `src/pages/` và `src/pages/mobile/` | `src/pages/MorePage.tsx`, `src/pages/mobile/MorePage.tsx` | Hợp nhất hoặc rename rõ desktop/mobile |
-| F-DUP-04 | 🟢 | RPC không có caller frontend (~XX, xem `04-contracts/rpc-catalog.md` mục cuối) | `_generated/rpc-calls.json` | Audit từng cái: dùng từ trigger / edge / dead? |
+| F-DUP-04 | 🟢 | **145 RPC không có caller frontend** (284 tổng - 139 gọi từ FE). Một số dùng từ trigger / edge / cron, còn lại có thể dead. | `_generated/summary.json` | Audit phân loại: trigger / edge / cron / dead → xóa dead |
 
 ## B. Lệch convention
 
@@ -28,16 +28,16 @@
 
 | ID | Sev | Mô tả | Evidence | Đề xuất |
 |---|---|---|---|---|
-| F-FSM-01 | 🟠 | Có nơi update `rooms.status` trực tiếp thay vì `transition_room_status` → mất audit | grep `from('rooms').update` cần kiểm | Migration: revoke UPDATE column `status` ở RLS, chỉ qua RPC |
-| F-FSM-02 | 🟠 | Tương tự cho `room_bookings.status` và `housekeeping_tasks.status` | – | Như trên |
+| F-FSM-01 | 🟠 | **Confirmed**: ~10 chỗ update `rooms.status` trực tiếp: `useBulkRoomActions.ts:156`, `useBookingActions.ts:271`, `useCheckoutInspection.ts:360`, `useTaskQc.ts:83`, `useRoomChecks.ts` (296/386/453/530/753), `BookingsPage.tsx:435`. **Đã hardened một phần (B6, 2026-05-10)**: `useUpdateRoom` strip field `status` + warn. Còn lại các hook khác cần migrate sang `useRoomTransition`. | grep | Sprint R1 — chuyển hết sang RPC, sau đó revoke UPDATE column `status` ở RLS |
+| F-FSM-02 | 🟠 | Tương tự cho `room_bookings.status` và `housekeeping_tasks.status` — cần audit grep tương tự. | – | Như trên |
 | F-FSM-03 | 🟡 | Quick path room check chỉ daily/periodic — chặn ở UI; cần defense in depth ở RPC | `perform_quick_room_check` source | Thêm assert ở RPC |
 
 ## D. RLS / Security
 
 | ID | Sev | Mô tả | Evidence | Đề xuất |
 |---|---|---|---|---|
-| F-SEC-01 | 🔴 | Nếu có bảng nào RLS OFF → expose dữ liệu | `02-data/rls-policies.md` mục đầu | Bật RLS + viết policy ngay |
-| F-SEC-02 | 🟠 | `sepay-webhook` public, không auth → cần rate limit + IP allowlist | `supabase/functions/sepay-webhook/index.ts` | Thêm shared secret header + IP allowlist của SePay |
+| F-SEC-01 | ✅ | ~~Bảng RLS OFF~~ — **Đã verify 111/111 bảng đều RLS ON** (`_generated/db-rls-enabled.tsv`). Không còn rủi ro RLS-disabled. Cần riêng audit chất lượng nội dung policy (xem F-SEC-04). | `db-rls-enabled.tsv` | Đóng. |
+| F-SEC-02 | 🟡 | ~~SePay webhook public không auth~~ → **Đã có shared secret bắt buộc (B3 fail-close, 2026-05-10)**. Còn lại: thêm IP allowlist của SePay + rate limit. | `supabase/functions/sepay-webhook/index.ts:96-128` | Thêm IP allowlist + rate limit theo `_shared/rateLimit.ts` |
 | F-SEC-03 | 🟠 | Match payment chỉ dựa ref_code text → false-match khả dĩ | `payment.md` | Secondary match theo amount + thời gian + tolerance |
 | F-SEC-04 | 🟡 | Một số policy dùng `using (true)` cho SELECT (nếu có) | xem `rls-policies.md` | Thắt theo tenant + role |
 | F-SEC-05 | 🟡 | `guest-documents` bucket public — preview đẹp nhưng URL có thể leak | memory `Storage` core | Signed URL hoặc proxy edge function cho preview |
@@ -64,7 +64,7 @@
 
 | ID | Sev | Mô tả | Evidence | Đề xuất |
 |---|---|---|---|---|
-| F-RPC-OVERLOAD-01 | 🟠 | `submit_room_check_lean` tồn tại **2 overload** trong DB: một bản có `_items_sent_to_laundry`, một bản không. PostgREST có thể chọn nhầm overload theo client payload → giảm/lệch số liệu giặt là. | `_generated/db-functions.tsv` có 2 dòng `submit_room_check_lean` | DROP overload cũ trong 1 migration; cập nhật memory `room-check-lean-business-logic-v1` ghi rõ chữ ký canonical |
+| F-RPC-OVERLOAD-01 | ✅ | ~~`submit_room_check_lean` 2 overload~~ — **Đã DROP overload cũ (không có `_items_sent_to_laundry`) ngày 2026-05-10**. DB còn đúng 1 bản canonical. Snapshot + `db-functions.tsv` đã đồng bộ. | migration 2026-05-10, `db-functions.tsv` | Đóng. |
 | F-RPC-DOC-01 | ✅ | Trước đây docs ghi sai chữ ký `transition_room_status` / `transition_booking_status` / `perform_checkin` / `perform_checkout`. Đã sửa theo `db-functions.tsv` snapshot 2026-05-10. **Đã hardened**: test `src/test/rpc-signature-drift.test.ts` chạy trong CI, so snapshot `scripts/audit/rpc-signatures.snapshot.json` với `_generated/db-functions.tsv` cho 13 RPC critical. | `bookings.md`, `rooms.md`, `05-state-machines/room-status.md`, test ✓ | Giữ snapshot, mở rộng list khi thêm RPC nghiệp vụ mới |
 
 ---

@@ -93,37 +93,39 @@ Deno.serve(async (req) => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
-    // API key verification - MANDATORY when SEPAY_API_KEY is configured
-    // This provides authentication for the webhook endpoint
+    // B3 (fail-close): SEPAY_API_KEY là BẮT BUỘC. Không cấu hình = từ chối thẳng.
+    // Trước đây cho phép fail-open khi thiếu secret → rủi ro giả lập chuyển khoản.
     const SEPAY_API_KEY = Deno.env.get('SEPAY_API_KEY');
     const authHeader = req.headers.get('Authorization');
-    
-    if (SEPAY_API_KEY) {
-      // If SEPAY_API_KEY is configured, require valid authentication
-      if (!authHeader) {
-        console.log('REJECTED: No Authorization header but SEPAY_API_KEY is configured');
-        await logWebhookAttempt(supabase, null, 'rejected', 'Missing Authorization header');
-        return new Response(
-          JSON.stringify({ success: false, error: 'Authentication required' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
-      const providedKey = authHeader.replace('Bearer ', '').replace('Apikey ', '');
-      if (providedKey !== SEPAY_API_KEY) {
-        console.log('REJECTED: API key mismatch');
-        await logWebhookAttempt(supabase, null, 'rejected', 'Invalid API key');
-        return new Response(
-          JSON.stringify({ success: false, error: 'Invalid API key' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      console.log('API key verified successfully');
-    } else {
-      // SEPAY_API_KEY not configured - log warning but allow (for initial setup)
-      console.log('WARNING: SEPAY_API_KEY not configured - webhook is not protected');
-      console.log('Configure SEPAY_API_KEY secret and enable authentication in SePay dashboard');
+
+    if (!SEPAY_API_KEY) {
+      console.error('REJECTED: SEPAY_API_KEY chưa cấu hình. Webhook bị khóa cứng để chặn giả lập.');
+      await logWebhookAttempt(supabase, null, 'rejected', 'SEPAY_API_KEY not configured (fail-close)');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Webhook not configured' }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+
+    if (!authHeader) {
+      console.log('REJECTED: Thiếu Authorization header');
+      await logWebhookAttempt(supabase, null, 'rejected', 'Missing Authorization header');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const providedKey = authHeader.replace('Bearer ', '').replace('Apikey ', '').trim();
+    if (providedKey !== SEPAY_API_KEY) {
+      console.log('REJECTED: API key không khớp');
+      await logWebhookAttempt(supabase, null, 'rejected', 'Invalid API key');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid API key' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    console.log('API key verified');
 
     // Parse request body
     let payload: SepayWebhookPayload;
