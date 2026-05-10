@@ -268,9 +268,16 @@ export function useUpdateRoom() {
       data: any
       previousStatus?: string 
     }) => {
+      // B6: Loại bỏ `status` khỏi data — phải đi qua `useRoomTransition` (RPC transition_room_status)
+      // để có audit log + kiểm transition hợp lệ. Ai truyền status vào đây sẽ bị strip + log.
+      const { status: _strippedStatus, ...safeData } = data ?? {}
+      if (_strippedStatus !== undefined) {
+        console.warn('[useUpdateRoom] Bỏ qua trường `status` — vui lòng dùng useRoomTransition()')
+      }
+
       const { data: room, error } = await supabase
         .from('rooms')
-        .update(data)
+        .update(safeData)
         .eq('id', id)
         .select('*, room_number, hotel_id')
         .single()
