@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
 import { UnifiedRoomList } from './UnifiedRoomList'
-import { DeliveryStepWizard } from './DeliveryStepWizard'
+import { NextActionCard } from './NextActionCard'
 import { ShiftBadge } from './ShiftBadge'
 import { AdjustQuantityDialog, type InsufficientItem, type ItemAdjustment } from './AdjustQuantityDialog'
 import { useRouteDetail, useCloseRoute, useConfirmReceiveOrder, useHandoverBatch } from '@/hooks/useRouteBatch'
@@ -24,14 +24,15 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+
 
 interface RouteDetailViewProps {
   orderId: string
   embedded?: boolean
+  onAssign?: () => void
 }
 
-export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewProps) {
+export function RouteDetailView({ orderId, embedded = false, onAssign }: RouteDetailViewProps) {
   const { t } = useTranslation('distribution')
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -181,8 +182,8 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
         </div>
       )}
 
-      {/* Step Wizard */}
-      <DeliveryStepWizard
+      {/* Next action card (replaces 4-step wizard) */}
+      <NextActionCard
         status={route.status as RouteStatus}
         assignedToName={route.assigned_to_name}
         totalStops={totalStops}
@@ -192,6 +193,11 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
         isAssignee={isAssignee}
         hasAssignee={!!route.assigned_to}
         isCreatorSameAsAssignee={isCreatorSameAsAssignee}
+        onAssign={
+          route.status === 'pending' && !route.assigned_to && (isStorekeeper || isLeader)
+            ? onAssign
+            : undefined
+        }
         onHandoverBatch={
           route.status === 'pending' && isStorekeeper && firstPendingBatch && route.assigned_to
             ? handleHandoverFirstBatch
@@ -210,38 +216,33 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
         isClosing={closeRoute.isPending}
       />
 
-      {/* Compact Info Bar - merged shift + info + progress */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2 p-2.5 border rounded-lg text-sm">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 flex-1">
-          {route.shift_code && <ShiftBadge shift={route.shift_code as ShiftCode} />}
-          {route.floor !== null && (
-            <span className="flex items-center gap-1">
-              <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-              <span>Tầng {route.floor}</span>
-            </span>
-          )}
-          {route.shift_date && (
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-              <span>{format(new Date(route.shift_date), 'dd/MM', { locale: vi })}</span>
-            </span>
-          )}
-          {route.assigned_to_name && (
-            <span className="flex items-center gap-1">
-              <User className="h-3.5 w-3.5 text-muted-foreground" />
-              <span>{route.assigned_to_name}</span>
-            </span>
-          )}
-        </div>
-      {/* Inline progress - only show when wizard doesn't show it */}
-        {route.status !== 'in_progress' && (
-          <div className="flex items-center gap-2 min-w-[120px]">
-            <Progress value={progressPercent} className="h-1.5 flex-1" />
-            <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
-              {completedStops}/{totalStops}
-            </span>
-          </div>
+      {/* Compact one-line info + progress */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 border rounded-lg text-sm">
+        {route.shift_code && <ShiftBadge shift={route.shift_code as ShiftCode} />}
+        {route.floor !== null && (
+          <span className="flex items-center gap-1 text-muted-foreground">
+            <MapPin className="h-3.5 w-3.5" />
+            <span>Tầng {route.floor}</span>
+          </span>
         )}
+        {route.shift_date && (
+          <span className="flex items-center gap-1 text-muted-foreground">
+            <Calendar className="h-3.5 w-3.5" />
+            <span>{format(new Date(route.shift_date), 'dd/MM', { locale: vi })}</span>
+          </span>
+        )}
+        {route.assigned_to_name && (
+          <span className="flex items-center gap-1 text-muted-foreground">
+            <User className="h-3.5 w-3.5" />
+            <span>{route.assigned_to_name}</span>
+          </span>
+        )}
+        <div className="ml-auto flex items-center gap-2 min-w-[140px]">
+          <Progress value={progressPercent} className="h-1.5 flex-1" />
+          <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
+            {completedStops}/{totalStops}
+          </span>
+        </div>
       </div>
 
       {/* Room List */}

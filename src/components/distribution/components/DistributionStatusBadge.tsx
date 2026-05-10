@@ -1,69 +1,59 @@
-import { Clock, Truck, CheckCircle, XCircle, PackageCheck } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import type { DistributionOrderStatus, DistributionRoomStatus } from '@/types/distribution.types'
+import type { RouteStatus } from '@/types/route-batch.types'
+import { getDisplayStatus, type AnyOrderStatus } from '../utils/orderPresentation'
 
-const ORDER_STATUS_CONFIG: Record<DistributionOrderStatus, { 
-  label: string
-  variant: 'default' | 'secondary' | 'destructive' | 'outline'
-  icon: typeof Clock 
-  textClass: string
-}> = {
-  pending: { label: 'Chờ giao', variant: 'outline', icon: Clock, textClass: 'text-muted-foreground' },
-  released: { label: 'Đã giao NV', variant: 'secondary', icon: PackageCheck, textClass: 'text-blue-600 dark:text-blue-400' },
-  in_progress: { label: 'Đang giao', variant: 'default', icon: Truck, textClass: 'text-amber-600 dark:text-amber-400' },
-  completed: { label: 'Hoàn thành', variant: 'secondary', icon: CheckCircle, textClass: 'text-green-600 dark:text-green-400' },
-  cancelled: { label: 'Đã hủy', variant: 'destructive', icon: XCircle, textClass: 'text-red-600 dark:text-red-400' },
-}
-
-const ROOM_STATUS_CONFIG: Record<DistributionRoomStatus, { 
-  label: string
-  className: string
-}> = {
-  pending: { label: 'Chờ xác nhận', className: 'bg-muted text-muted-foreground' },
-  delivered: { label: 'Đang giao', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-  confirmed: { label: 'Đã giao', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-  rejected: { label: 'Từ chối', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
-}
+// Re-export for legacy callers (kept for backwards compat – do not remove without sweep)
+export const ORDER_STATUS_CONFIG = undefined as never
+export const ROOM_STATUS_CONFIG = undefined as never
 
 interface OrderStatusBadgeProps {
-  status: DistributionOrderStatus
-  showIcon?: boolean
+  status: AnyOrderStatus
+  showSubLabel?: boolean
+  completed?: number
+  total?: number
+  assignedToName?: string | null
 }
 
-export function OrderStatusBadge({ status, showIcon = true }: OrderStatusBadgeProps) {
-  const config = ORDER_STATUS_CONFIG[status]
-  if (!config) return null
-  
-  const Icon = config.icon
-  
+export function OrderStatusBadge({ status, showSubLabel, completed, total, assignedToName }: OrderStatusBadgeProps) {
+  const info = getDisplayStatus(status, { completed, total, assignedToName })
   return (
-    <Badge variant={config.variant}>
-      {showIcon && <Icon className="h-3 w-3 mr-1" />}
-      {config.label}
-    </Badge>
-  )
-}
-
-// Text-only status display (minimalist design)
-interface OrderStatusTextProps {
-  status: DistributionOrderStatus
-  showIcon?: boolean
-  className?: string
-}
-
-export function OrderStatusText({ status, showIcon = true, className }: OrderStatusTextProps) {
-  const config = ORDER_STATUS_CONFIG[status]
-  if (!config) return null
-  
-  const Icon = config.icon
-  
-  return (
-    <span className={cn('inline-flex items-center gap-1 text-xs font-medium', config.textClass, className)}>
-      {showIcon && <Icon className="h-3 w-3" />}
-      {config.label}
+    <span className="inline-flex flex-col items-start gap-0.5">
+      <Badge variant="outline" className={cn('gap-1.5 font-medium', info.textClass)}>
+        <span className={cn('h-1.5 w-1.5 rounded-full', info.dotClass)} />
+        {info.label}
+      </Badge>
+      {showSubLabel && info.subLabel && (
+        <span className="text-[10px] text-muted-foreground">{info.subLabel}</span>
+      )}
     </span>
   )
+}
+
+interface OrderStatusTextProps {
+  status: AnyOrderStatus
+  className?: string
+  completed?: number
+  total?: number
+  assignedToName?: string | null
+}
+
+export function OrderStatusText({ status, className, completed, total, assignedToName }: OrderStatusTextProps) {
+  const info = getDisplayStatus(status, { completed, total, assignedToName })
+  return (
+    <span className={cn('inline-flex items-center gap-1.5 text-xs font-medium', info.textClass, className)}>
+      <span className={cn('h-1.5 w-1.5 rounded-full', info.dotClass)} />
+      {info.label}
+    </span>
+  )
+}
+
+const ROOM_STATUS_TEXT: Record<DistributionRoomStatus, { label: string; className: string }> = {
+  pending: { label: 'Chờ giao', className: 'text-amber-600 dark:text-amber-400' },
+  delivered: { label: 'Đang giao', className: 'text-blue-600 dark:text-blue-400' },
+  confirmed: { label: 'Đã giao', className: 'text-green-600 dark:text-green-400' },
+  rejected: { label: 'Không vào được', className: 'text-red-600 dark:text-red-400' },
 }
 
 interface RoomStatusBadgeProps {
@@ -71,15 +61,14 @@ interface RoomStatusBadgeProps {
 }
 
 export function RoomStatusBadge({ status }: RoomStatusBadgeProps) {
-  const config = ROOM_STATUS_CONFIG[status]
+  const config = ROOM_STATUS_TEXT[status]
   if (!config) return null
-  
   return (
-    <Badge className={config.className}>
+    <span className={cn('inline-flex items-center gap-1 text-xs font-medium', config.className)}>
       {config.label}
-    </Badge>
+    </span>
   )
 }
 
-// Export configs for use elsewhere
-export { ORDER_STATUS_CONFIG, ROOM_STATUS_CONFIG }
+// Suppress unused-import warnings for forwarded types
+export type { DistributionOrderStatus, RouteStatus }
