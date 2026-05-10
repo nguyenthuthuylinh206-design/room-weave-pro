@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { Hotel, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
+import logoRoomQc from '@/assets/logo-roomqc.png'
 
 export const FooterSection = () => {
   const { t } = useTranslation('landing')
@@ -33,7 +34,7 @@ export const FooterSection = () => {
             {/* Brand */}
             <div>
               <Link to="/" className="flex items-center gap-2 mb-4">
-                <Hotel className="h-6 w-6 text-[hsl(214,84%,56%)]" />
+                <img src={logoRoomQc} alt="RoomQc" className="h-6 w-6 rounded-md object-cover" />
                 <span className="text-base font-bold text-white">RoomQc</span>
               </Link>
               <p className="text-xs leading-relaxed">{t('footer.description')}</p>
