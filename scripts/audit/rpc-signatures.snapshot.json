@@ -44,7 +44,6 @@
     ]
   },
   "_knownIssues": {
-    "submit_room_check_lean": "F-RPC-OVERLOAD-01 — 2 overload tồn tại, planned: DROP overload không có _items_sent_to_laundry. Khi DROP, xóa entry thứ 2 ở snapshot này.",
     "apply_room_standards": "2 overload (1 vs 2 args). Cần audit caller, có thể DROP bản 1 arg.",
     "has_role": "Có 3 entry trong DB nhưng 2 là từ extension (sql lang, secdef=f). App-defined chỉ là (_user_id uuid, _role app_role)."
   }
