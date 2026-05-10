@@ -1,0 +1,442 @@
+{
+  "routes": [],
+  "guards": [
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"dashboard\" fallback={<Navigate to=\"/auth/callback\" replace /"
+    },
+    {
+      "guard": "RoleGuard",
+      "attrs": "allowedRoles={['super_admin']}"
+    },
+    {
+      "guard": "RoleGuard",
+      "attrs": "allowedRoles={['super_admin']}"
+    },
+    {
+      "guard": "RoleGuard",
+      "attrs": "allowedRoles={['super_admin']}"
+    },
+    {
+      "guard": "RoleGuard",
+      "attrs": "allowedRoles={['super_admin']}"
+    },
+    {
+      "guard": "RoleGuard",
+      "attrs": "allowedRoles={['super_admin']}"
+    },
+    {
+      "guard": "RoleGuard",
+      "attrs": "allowedRoles={['super_admin']}"
+    },
+    {
+      "guard": "RoleGuard",
+      "attrs": "allowedRoles={['super_admin']}"
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"inventory\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"inventory\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"inventory\" action=\"create\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"inventory\" action=\"create\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"inventory\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"inventory\" action=\"create\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"inventory\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"inventory\" action=\"update\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"inventory\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"inventory\" action=\"create\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"inventory\" action=\"create\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"inventory\" action=\"create\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"inventory\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"inventory\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"inventory\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"inventory\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"items\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"items\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"items\" action=\"create\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"items\" action=\"update\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"items\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"rooms\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"rooms\" action=\"create\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"rooms\" action=\"update\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"rooms\" action=\"update\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"rooms\" action=\"update\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"rooms\" action=\"update\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"rooms\" action=\"update\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"rooms\" action=\"update\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"rooms\" action=\"update\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"rooms\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"inventory\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"bookings\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"bookings\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"bookings\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"bookings\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"rooms\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"bookings\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"bookings\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"laundry\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"laundry\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"laundry\" action=\"create\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"laundry\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"laundry\" action=\"update\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"laundry\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"laundry\" action=\"create\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"laundry\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"laundry\" action=\"update\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"laundry\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"laundry\" action=\"create\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"settings\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"hotels\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"settings\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"users\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"users\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"rooms\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"rooms\""
+    },
+    {
+      "guard": "RoleGuard",
+      "attrs": "allowedRoles={['super_admin', 'owner', 'hotel_manager', 'department_manager']}"
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"inventory\""
+    },
+    {
+      "guard": "RoleGuard",
+      "attrs": "allowedRoles={['super_admin', 'owner']}"
+    },
+    {
+      "guard": "RoleGuard",
+      "attrs": "allowedRoles={['super_admin', 'owner']}"
+    },
+    {
+      "guard": "RoleGuard",
+      "attrs": "allowedRoles={['super_admin', 'owner']}"
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"settings\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"settings\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"settings\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"settings\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"settings\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"settings\" action=\"manage\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"settings\""
+    },
+    {
+      "guard": "RoleGuard",
+      "attrs": "allowedRoles={['super_admin', 'owner']}"
+    },
+    {
+      "guard": "RoleGuard",
+      "attrs": "allowedRoles={['super_admin', 'owner', 'hotel_manager', 'department_manager']}"
+    },
+    {
+      "guard": "RoleGuard",
+      "attrs": "allowedRoles={['super_admin', 'owner', 'hotel_manager']}"
+    },
+    {
+      "guard": "RoleGuard",
+      "attrs": "allowedRoles={['super_admin', 'owner', 'hotel_manager']}"
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"reports\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"reports\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"reports\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"reports\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"reports\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"reports\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"reports\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"reports\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"reports\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"reports\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"reports\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"vendors\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"vendors\" action=\"create\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"vendors\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"vendors\" action=\"update\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"vendors\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"maintenance\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"maintenance\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"maintenance\" action=\"create\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"maintenance\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"maintenance\" action=\"update\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"maintenance\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"purchase_orders\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"purchase_orders\" action=\"create\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"purchase_orders\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"hotels\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"hotels\""
+    },
+    {
+      "guard": "PermissionRoute",
+      "attrs": "module=\"users\""
+    }
+  ],
+  "source": "src/App.tsx"
+}

@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-05-10T02:06:17.499Z",
+  "counts": {
+    "routes": 0,
+    "rpcs": 139,
+    "tables": 92,
+    "edgeFunctions": 28,
+    "hooks": 173,
+    "pages": 134,
+    "migrations": 357
+  }
+}
