@@ -470,10 +470,12 @@ export const Sidebar = () => {
                   )} />
                 </button>
 
-                <div className={cn(
-                  "grid transition-[grid-template-rows] duration-300 ease-in-out",
-                  isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-                )}>
+                <div
+                  className={cn(
+                    "grid transition-[grid-template-rows] duration-300 ease-in-out [will-change:grid-template-rows]",
+                    isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                  )}
+                >
                   <div className="overflow-hidden">
                     <div className="ml-4 space-y-1 border-l border-border pl-4 py-1">
                       {(() => {
