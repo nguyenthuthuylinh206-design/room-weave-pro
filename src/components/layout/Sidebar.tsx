@@ -283,10 +283,12 @@ export const Sidebar = () => {
   // Check if user has access to a module
   const hasModuleAccess = (navigationTitleKey: string): boolean => {
     if (role === 'super_admin' || role === 'owner') return true
-    
+    // While permissions are loading, optimistically show items to avoid nav flicker
+    if (permissionsLoading) return true
+
     const moduleCode = NAVIGATION_MODULE_MAP[navigationTitleKey]
     if (!moduleCode) return true
-    
+
     const modules = moduleCode.split(',')
     return modules.some(module => {
       const permission = modulePermissions?.find(p => p.module === module)
@@ -298,6 +300,7 @@ export const Sidebar = () => {
   // Check if user has access to a child item
   const hasChildAccess = (parentTitleKey: string, childTitleKey: string): boolean => {
     if (role === 'super_admin' || role === 'owner') return true
+    if (permissionsLoading) return true
     
     const moduleCode = NAVIGATION_MODULE_MAP[parentTitleKey]
     if (!moduleCode) return true
