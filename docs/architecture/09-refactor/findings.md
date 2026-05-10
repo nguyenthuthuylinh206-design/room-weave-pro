@@ -28,8 +28,8 @@
 
 | ID | Sev | Mô tả | Evidence | Đề xuất |
 |---|---|---|---|---|
-| F-FSM-01 | 🟠 | Có nơi update `rooms.status` trực tiếp thay vì `transition_room_status` → mất audit | grep `from('rooms').update` cần kiểm | Migration: revoke UPDATE column `status` ở RLS, chỉ qua RPC |
-| F-FSM-02 | 🟠 | Tương tự cho `room_bookings.status` và `housekeeping_tasks.status` | – | Như trên |
+| F-FSM-01 | 🟠 | **Confirmed**: ~10 chỗ update `rooms.status` trực tiếp: `useBulkRoomActions.ts:156`, `useBookingActions.ts:271`, `useCheckoutInspection.ts:360`, `useTaskQc.ts:83`, `useRoomChecks.ts` (296/386/453/530/753), `BookingsPage.tsx:435`. **Đã hardened một phần (B6, 2026-05-10)**: `useUpdateRoom` strip field `status` + warn. Còn lại các hook khác cần migrate sang `useRoomTransition`. | grep | Sprint R1 — chuyển hết sang RPC, sau đó revoke UPDATE column `status` ở RLS |
+| F-FSM-02 | 🟠 | Tương tự cho `room_bookings.status` và `housekeeping_tasks.status` — cần audit grep tương tự. | – | Như trên |
 | F-FSM-03 | 🟡 | Quick path room check chỉ daily/periodic — chặn ở UI; cần defense in depth ở RPC | `perform_quick_room_check` source | Thêm assert ở RPC |
 
 ## D. RLS / Security
