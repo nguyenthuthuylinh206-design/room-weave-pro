@@ -29,9 +29,10 @@ import { vi } from 'date-fns/locale'
 interface RouteDetailViewProps {
   orderId: string
   embedded?: boolean
+  onAssign?: () => void
 }
 
-export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewProps) {
+export function RouteDetailView({ orderId, embedded = false, onAssign }: RouteDetailViewProps) {
   const { t } = useTranslation('distribution')
   const { user } = useAuth()
   const navigate = useNavigate()
