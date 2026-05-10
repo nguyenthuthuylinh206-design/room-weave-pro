@@ -279,16 +279,10 @@ const router = createBrowserRouter([
     ],
   },
 
-  // Protected routes
+  // Protected routes (RootRoute hiển thị Landing cho khách vãng lai tại "/")
   {
     path: "/",
-    element: (
-      <AuthGuard>
-        <OnboardingGuard>
-          <MainLayout />
-        </OnboardingGuard>
-      </AuthGuard>
-    ),
+    element: <RootRoute />,
     children: [
       { 
         index: true, 
