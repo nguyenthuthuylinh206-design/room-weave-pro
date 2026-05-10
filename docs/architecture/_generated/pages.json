@@ -1,0 +1,806 @@
+[
+  {
+    "file": "src/pages/AboutPage.tsx",
+    "module": "_root",
+    "name": "AboutPage",
+    "lines": 114
+  },
+  {
+    "file": "src/pages/admin/AnalyticsPage.tsx",
+    "module": "admin",
+    "name": "AnalyticsPage",
+    "lines": 6
+  },
+  {
+    "file": "src/pages/admin/MarketingCampaignsPage.tsx",
+    "module": "admin",
+    "name": "MarketingCampaignsPage",
+    "lines": 6
+  },
+  {
+    "file": "src/pages/admin/PaymentSettingsPage.tsx",
+    "module": "admin",
+    "name": "PaymentSettingsPage",
+    "lines": 480
+  },
+  {
+    "file": "src/pages/admin/PricingPlansPage.tsx",
+    "module": "admin",
+    "name": "PricingPlansPage",
+    "lines": 23
+  },
+  {
+    "file": "src/pages/admin/PromoCodesPage.tsx",
+    "module": "admin",
+    "name": "PromoCodesPage",
+    "lines": 6
+  },
+  {
+    "file": "src/pages/admin/RenewalRemindersPage.tsx",
+    "module": "admin",
+    "name": "RenewalRemindersPage",
+    "lines": 6
+  },
+  {
+    "file": "src/pages/admin/SuperAdminDashboard.tsx",
+    "module": "admin",
+    "name": "SuperAdminDashboard",
+    "lines": 6
+  },
+  {
+    "file": "src/pages/admin/SuperAdminSettingsPage.tsx",
+    "module": "admin",
+    "name": "SuperAdminSettingsPage",
+    "lines": 6
+  },
+  {
+    "file": "src/pages/admin/TenantApprovalPage.tsx",
+    "module": "admin",
+    "name": "TenantApprovalPage",
+    "lines": 194
+  },
+  {
+    "file": "src/pages/admin/TenantsPage.tsx",
+    "module": "admin",
+    "name": "TenantsPage",
+    "lines": 6
+  },
+  {
+    "file": "src/pages/auth/AuthCallback.tsx",
+    "module": "auth",
+    "name": "AuthCallback",
+    "lines": 60
+  },
+  {
+    "file": "src/pages/auth/ChangePasswordPage.tsx",
+    "module": "auth",
+    "name": "ChangePasswordPage",
+    "lines": 219
+  },
+  {
+    "file": "src/pages/auth/ForgotPassword.tsx",
+    "module": "auth",
+    "name": "ForgotPassword",
+    "lines": 17
+  },
+  {
+    "file": "src/pages/auth/Login.tsx",
+    "module": "auth",
+    "name": "Login",
+    "lines": 94
+  },
+  {
+    "file": "src/pages/auth/Onboarding.tsx",
+    "module": "auth",
+    "name": "Onboarding",
+    "lines": 325
+  },
+  {
+    "file": "src/pages/auth/Register.tsx",
+    "module": "auth",
+    "name": "Register",
+    "lines": 32
+  },
+  {
+    "file": "src/pages/bookings/BookingDetailPage.tsx",
+    "module": "bookings",
+    "name": "BookingDetailPage",
+    "lines": 599
+  },
+  {
+    "file": "src/pages/bookings/BookingsPage.tsx",
+    "module": "bookings",
+    "name": "BookingsPage",
+    "lines": 1978
+  },
+  {
+    "file": "src/pages/bookings/MobileBookingsPage.tsx",
+    "module": "bookings",
+    "name": "MobileBookingsPage",
+    "lines": 343
+  },
+  {
+    "file": "src/pages/Dashboard.tsx",
+    "module": "_root",
+    "name": "Dashboard",
+    "lines": 143
+  },
+  {
+    "file": "src/pages/guests/GuestDetailPage.tsx",
+    "module": "guests",
+    "name": "GuestDetailPage",
+    "lines": 179
+  },
+  {
+    "file": "src/pages/guests/GuestsPage.tsx",
+    "module": "guests",
+    "name": "GuestsPage",
+    "lines": 127
+  },
+  {
+    "file": "src/pages/HelpPage.tsx",
+    "module": "_root",
+    "name": "HelpPage",
+    "lines": 139
+  },
+  {
+    "file": "src/pages/hotels/HotelPerformancePage.tsx",
+    "module": "hotels",
+    "name": "HotelPerformancePage",
+    "lines": 486
+  },
+  {
+    "file": "src/pages/hotels/HotelsPage.tsx",
+    "module": "hotels",
+    "name": "HotelsPage",
+    "lines": 214
+  },
+  {
+    "file": "src/pages/housekeeping/IssuesReviewPage.tsx",
+    "module": "housekeeping",
+    "name": "IssuesReviewPage",
+    "lines": 232
+  },
+  {
+    "file": "src/pages/housekeeping/QcDashboardPage.tsx",
+    "module": "housekeeping",
+    "name": "QcDashboardPage",
+    "lines": 430
+  },
+  {
+    "file": "src/pages/housekeeping/TasksPendingReviewPage.tsx",
+    "module": "housekeeping",
+    "name": "TasksPendingReviewPage",
+    "lines": 203
+  },
+  {
+    "file": "src/pages/HousekeepingStaffDashboard.tsx",
+    "module": "_root",
+    "name": "HousekeepingStaffDashboard",
+    "lines": 206
+  },
+  {
+    "file": "src/pages/Index.tsx",
+    "module": "_root",
+    "name": "Index",
+    "lines": 8
+  },
+  {
+    "file": "src/pages/InstallPage.tsx",
+    "module": "_root",
+    "name": "InstallPage",
+    "lines": 159
+  },
+  {
+    "file": "src/pages/inventory/AdjustmentDetailPage.tsx",
+    "module": "inventory",
+    "name": "AdjustmentDetailPage",
+    "lines": 647
+  },
+  {
+    "file": "src/pages/inventory/AdjustmentListPage.tsx",
+    "module": "inventory",
+    "name": "AdjustmentListPage",
+    "lines": 317
+  },
+  {
+    "file": "src/pages/inventory/CheckAdjustmentPage.tsx",
+    "module": "inventory",
+    "name": "CheckAdjustmentPage",
+    "lines": 627
+  },
+  {
+    "file": "src/pages/inventory/CreateAdjustmentPage.tsx",
+    "module": "inventory",
+    "name": "CreateAdjustmentPage",
+    "lines": 499
+  },
+  {
+    "file": "src/pages/inventory/CreateDistributionPage.tsx",
+    "module": "inventory",
+    "name": "CreateDistributionPage",
+    "lines": 168
+  },
+  {
+    "file": "src/pages/inventory/CreateFromSupplementsPage.tsx",
+    "module": "inventory",
+    "name": "CreateFromSupplementsPage",
+    "lines": 357
+  },
+  {
+    "file": "src/pages/inventory/DeadStockPage.tsx",
+    "module": "inventory",
+    "name": "DeadStockPage",
+    "lines": 187
+  },
+  {
+    "file": "src/pages/inventory/DistributionOrderDetailPage.tsx",
+    "module": "inventory",
+    "name": "DistributionOrderDetailPage",
+    "lines": 261
+  },
+  {
+    "file": "src/pages/inventory/DistributionOrdersPage.tsx",
+    "module": "inventory",
+    "name": "DistributionOrdersPage",
+    "lines": 279
+  },
+  {
+    "file": "src/pages/inventory/InboundPage.tsx",
+    "module": "inventory",
+    "name": "InboundPage",
+    "lines": 372
+  },
+  {
+    "file": "src/pages/inventory/InventoryAnalyticsPage.tsx",
+    "module": "inventory",
+    "name": "InventoryAnalyticsPage",
+    "lines": 307
+  },
+  {
+    "file": "src/pages/inventory/InventoryDashboardPage.tsx",
+    "module": "inventory",
+    "name": "InventoryDashboardPage",
+    "lines": 154
+  },
+  {
+    "file": "src/pages/inventory/OutboundPage.tsx",
+    "module": "inventory",
+    "name": "OutboundPage",
+    "lines": 573
+  },
+  {
+    "file": "src/pages/inventory/ReorderSuggestionsPage.tsx",
+    "module": "inventory",
+    "name": "ReorderSuggestionsPage",
+    "lines": 280
+  },
+  {
+    "file": "src/pages/inventory/TransactionListPage.tsx",
+    "module": "inventory",
+    "name": "TransactionListPage",
+    "lines": 451
+  },
+  {
+    "file": "src/pages/inventory/TransferPage.tsx",
+    "module": "inventory",
+    "name": "TransferPage",
+    "lines": 330
+  },
+  {
+    "file": "src/pages/invoices/GuestInvoicesPage.tsx",
+    "module": "invoices",
+    "name": "GuestInvoicesPage",
+    "lines": 234
+  },
+  {
+    "file": "src/pages/items/CategoriesPage.tsx",
+    "module": "items",
+    "name": "CategoriesPage",
+    "lines": 452
+  },
+  {
+    "file": "src/pages/items/ItemDetailPage.tsx",
+    "module": "items",
+    "name": "ItemDetailPage",
+    "lines": 445
+  },
+  {
+    "file": "src/pages/items/ItemFormPage.tsx",
+    "module": "items",
+    "name": "ItemFormPage",
+    "lines": 663
+  },
+  {
+    "file": "src/pages/items/ItemsPage.tsx",
+    "module": "items",
+    "name": "ItemsPage",
+    "lines": 138
+  },
+  {
+    "file": "src/pages/LandingPage.tsx",
+    "module": "_root",
+    "name": "LandingPage",
+    "lines": 32
+  },
+  {
+    "file": "src/pages/laundry/BatchDetailPage.tsx",
+    "module": "laundry",
+    "name": "BatchDetailPage",
+    "lines": 738
+  },
+  {
+    "file": "src/pages/laundry/CreateBatchPage.tsx",
+    "module": "laundry",
+    "name": "CreateBatchPage",
+    "lines": 159
+  },
+  {
+    "file": "src/pages/laundry/LaundryBatchesPage.tsx",
+    "module": "laundry",
+    "name": "LaundryBatchesPage",
+    "lines": 291
+  },
+  {
+    "file": "src/pages/laundry/LaundryCompensationPage.tsx",
+    "module": "laundry",
+    "name": "LaundryCompensationPage",
+    "lines": 197
+  },
+  {
+    "file": "src/pages/laundry/LaundryDashboardPage.tsx",
+    "module": "laundry",
+    "name": "LaundryDashboardPage",
+    "lines": 149
+  },
+  {
+    "file": "src/pages/laundry/NewLinenBatchPage.tsx",
+    "module": "laundry",
+    "name": "NewLinenBatchPage",
+    "lines": 146
+  },
+  {
+    "file": "src/pages/laundry/ReceiveBatchPage.tsx",
+    "module": "laundry",
+    "name": "ReceiveBatchPage",
+    "lines": 504
+  },
+  {
+    "file": "src/pages/laundry/VendorDetailPage.tsx",
+    "module": "laundry",
+    "name": "VendorDetailPage",
+    "lines": 351
+  },
+  {
+    "file": "src/pages/laundry/VendorFormPage.tsx",
+    "module": "laundry",
+    "name": "VendorFormPage",
+    "lines": 253
+  },
+  {
+    "file": "src/pages/laundry/VendorListPage.tsx",
+    "module": "laundry",
+    "name": "VendorListPage",
+    "lines": 157
+  },
+  {
+    "file": "src/pages/lost-found/LostFoundPage.tsx",
+    "module": "lost-found",
+    "name": "LostFoundPage",
+    "lines": 325
+  },
+  {
+    "file": "src/pages/maintenance/MaintenanceDashboard.tsx",
+    "module": "maintenance",
+    "name": "MaintenanceDashboard",
+    "lines": 183
+  },
+  {
+    "file": "src/pages/maintenance/MaintenanceDashboardPage.tsx",
+    "module": "maintenance",
+    "name": "MaintenanceDashboardPage",
+    "lines": 27
+  },
+  {
+    "file": "src/pages/maintenance/MaintenanceRequestDetail.tsx",
+    "module": "maintenance",
+    "name": "MaintenanceRequestDetail",
+    "lines": 534
+  },
+  {
+    "file": "src/pages/maintenance/MaintenanceRequestForm.tsx",
+    "module": "maintenance",
+    "name": "MaintenanceRequestForm",
+    "lines": 382
+  },
+  {
+    "file": "src/pages/maintenance/MaintenanceRequestList.tsx",
+    "module": "maintenance",
+    "name": "MaintenanceRequestList",
+    "lines": 135
+  },
+  {
+    "file": "src/pages/maintenance/RecurringIssuesPage.tsx",
+    "module": "maintenance",
+    "name": "RecurringIssuesPage",
+    "lines": 118
+  },
+  {
+    "file": "src/pages/mobile/MobileNotificationSettingsPage.tsx",
+    "module": "mobile",
+    "name": "MobileNotificationSettingsPage",
+    "lines": 400
+  },
+  {
+    "file": "src/pages/mobile/MorePage.tsx",
+    "module": "mobile",
+    "name": "MorePage",
+    "lines": 179
+  },
+  {
+    "file": "src/pages/MorePage.tsx",
+    "module": "_root",
+    "name": "MorePage",
+    "lines": 266
+  },
+  {
+    "file": "src/pages/MyTasksPage.tsx",
+    "module": "_root",
+    "name": "MyTasksPage",
+    "lines": 85
+  },
+  {
+    "file": "src/pages/NotFound.tsx",
+    "module": "_root",
+    "name": "NotFound",
+    "lines": 25
+  },
+  {
+    "file": "src/pages/NotificationHistoryPage.tsx",
+    "module": "_root",
+    "name": "NotificationHistoryPage",
+    "lines": 295
+  },
+  {
+    "file": "src/pages/OfflinePage.tsx",
+    "module": "_root",
+    "name": "OfflinePage",
+    "lines": 53
+  },
+  {
+    "file": "src/pages/payment/PaymentQRPage.tsx",
+    "module": "payment",
+    "name": "PaymentQRPage",
+    "lines": 424
+  },
+  {
+    "file": "src/pages/profile/ProfilePage.tsx",
+    "module": "profile",
+    "name": "ProfilePage",
+    "lines": 91
+  },
+  {
+    "file": "src/pages/purchase-orders/PODetailPage.tsx",
+    "module": "purchase-orders",
+    "name": "PODetailPage",
+    "lines": 182
+  },
+  {
+    "file": "src/pages/purchase-orders/POFormPage.tsx",
+    "module": "purchase-orders",
+    "name": "POFormPage",
+    "lines": 17
+  },
+  {
+    "file": "src/pages/purchase-orders/POListPage.tsx",
+    "module": "purchase-orders",
+    "name": "POListPage",
+    "lines": 153
+  },
+  {
+    "file": "src/pages/reception/PendingChargesPage.tsx",
+    "module": "reception",
+    "name": "PendingChargesPage",
+    "lines": 349
+  },
+  {
+    "file": "src/pages/reports/DamagesReportPage.tsx",
+    "module": "reports",
+    "name": "DamagesReportPage",
+    "lines": 393
+  },
+  {
+    "file": "src/pages/reports/FinancialReportPage.tsx",
+    "module": "reports",
+    "name": "FinancialReportPage",
+    "lines": 536
+  },
+  {
+    "file": "src/pages/reports/InventoryReportPage.tsx",
+    "module": "reports",
+    "name": "InventoryReportPage",
+    "lines": 185
+  },
+  {
+    "file": "src/pages/reports/LaundryReportPage.tsx",
+    "module": "reports",
+    "name": "LaundryReportPage",
+    "lines": 341
+  },
+  {
+    "file": "src/pages/reports/MaintenanceReportPage.tsx",
+    "module": "reports",
+    "name": "MaintenanceReportPage",
+    "lines": 447
+  },
+  {
+    "file": "src/pages/reports/OperationsReportPage.tsx",
+    "module": "reports",
+    "name": "OperationsReportPage",
+    "lines": 397
+  },
+  {
+    "file": "src/pages/reports/OutboundReportPage.tsx",
+    "module": "reports",
+    "name": "OutboundReportPage",
+    "lines": 505
+  },
+  {
+    "file": "src/pages/reports/ReportsDashboardPage.tsx",
+    "module": "reports",
+    "name": "ReportsDashboardPage",
+    "lines": 177
+  },
+  {
+    "file": "src/pages/reports/RevenueReportPage.tsx",
+    "module": "reports",
+    "name": "RevenueReportPage",
+    "lines": 280
+  },
+  {
+    "file": "src/pages/reports/RoomsReportPage.tsx",
+    "module": "reports",
+    "name": "RoomsReportPage",
+    "lines": 1151
+  },
+  {
+    "file": "src/pages/reports/StockAuditReportPage.tsx",
+    "module": "reports",
+    "name": "StockAuditReportPage",
+    "lines": 537
+  },
+  {
+    "file": "src/pages/Rooms.tsx",
+    "module": "_root",
+    "name": "Rooms",
+    "lines": 212
+  },
+  {
+    "file": "src/pages/rooms/LeanInspectionPage.tsx",
+    "module": "rooms",
+    "name": "LeanInspectionPage",
+    "lines": 775
+  },
+  {
+    "file": "src/pages/rooms/LeanReviewPage.tsx",
+    "module": "rooms",
+    "name": "LeanReviewPage",
+    "lines": 513
+  },
+  {
+    "file": "src/pages/rooms/LeanSuccessPage.tsx",
+    "module": "rooms",
+    "name": "LeanSuccessPage",
+    "lines": 177
+  },
+  {
+    "file": "src/pages/rooms/RoomCheckOverviewPage.tsx",
+    "module": "rooms",
+    "name": "RoomCheckOverviewPage",
+    "lines": 362
+  },
+  {
+    "file": "src/pages/rooms/RoomCheckPage.tsx",
+    "module": "rooms",
+    "name": "RoomCheckPage",
+    "lines": 1606
+  },
+  {
+    "file": "src/pages/rooms/RoomCheckRouter.tsx",
+    "module": "rooms",
+    "name": "RoomCheckRouter",
+    "lines": 74
+  },
+  {
+    "file": "src/pages/rooms/RoomDetailPage.tsx",
+    "module": "rooms",
+    "name": "RoomDetailPage",
+    "lines": 242
+  },
+  {
+    "file": "src/pages/rooms/RoomFormPage.tsx",
+    "module": "rooms",
+    "name": "RoomFormPage",
+    "lines": 446
+  },
+  {
+    "file": "src/pages/rooms/RoomsPage.tsx",
+    "module": "rooms",
+    "name": "RoomsPage",
+    "lines": 153
+  },
+  {
+    "file": "src/pages/rooms/RoomStandardsPage.tsx",
+    "module": "rooms",
+    "name": "RoomStandardsPage",
+    "lines": 259
+  },
+  {
+    "file": "src/pages/scan/ScanDocumentPage.tsx",
+    "module": "scan",
+    "name": "ScanDocumentPage",
+    "lines": 176
+  },
+  {
+    "file": "src/pages/settings/AISettingsPage.tsx",
+    "module": "settings",
+    "name": "AISettingsPage",
+    "lines": 286
+  },
+  {
+    "file": "src/pages/settings/AssetGroupMigrationPage.tsx",
+    "module": "settings",
+    "name": "AssetGroupMigrationPage",
+    "lines": 242
+  },
+  {
+    "file": "src/pages/settings/AuditLogPage.tsx",
+    "module": "settings",
+    "name": "AuditLogPage",
+    "lines": 245
+  },
+  {
+    "file": "src/pages/settings/BusinessConfigurationPage.tsx",
+    "module": "settings",
+    "name": "BusinessConfigurationPage",
+    "lines": 547
+  },
+  {
+    "file": "src/pages/settings/CategoryManagementPage.tsx",
+    "module": "settings",
+    "name": "CategoryManagementPage",
+    "lines": 79
+  },
+  {
+    "file": "src/pages/settings/ChangePasswordPage.tsx",
+    "module": "settings",
+    "name": "ChangePasswordPage",
+    "lines": 241
+  },
+  {
+    "file": "src/pages/settings/GeneralSettingsPage.tsx",
+    "module": "settings",
+    "name": "GeneralSettingsPage",
+    "lines": 352
+  },
+  {
+    "file": "src/pages/settings/HotelPolicyPage.tsx",
+    "module": "settings",
+    "name": "HotelPolicyPage",
+    "lines": 164
+  },
+  {
+    "file": "src/pages/settings/HotelsManagementPage.tsx",
+    "module": "settings",
+    "name": "HotelsManagementPage",
+    "lines": 211
+  },
+  {
+    "file": "src/pages/settings/NotificationSettingsPage.tsx",
+    "module": "settings",
+    "name": "NotificationSettingsPage",
+    "lines": 546
+  },
+  {
+    "file": "src/pages/settings/PricingRulesPage.tsx",
+    "module": "settings",
+    "name": "PricingRulesPage",
+    "lines": 45
+  },
+  {
+    "file": "src/pages/settings/PushDevicesPage.tsx",
+    "module": "settings",
+    "name": "PushDevicesPage",
+    "lines": 348
+  },
+  {
+    "file": "src/pages/settings/RoomCheckSettingsPage.tsx",
+    "module": "settings",
+    "name": "RoomCheckSettingsPage",
+    "lines": 204
+  },
+  {
+    "file": "src/pages/settings/SubscriptionPage.tsx",
+    "module": "settings",
+    "name": "SubscriptionPage",
+    "lines": 84
+  },
+  {
+    "file": "src/pages/settings/SubscriptionPaymentPage.tsx",
+    "module": "settings",
+    "name": "SubscriptionPaymentPage",
+    "lines": 277
+  },
+  {
+    "file": "src/pages/settings/TelegramSettingsPage.tsx",
+    "module": "settings",
+    "name": "TelegramSettingsPage",
+    "lines": 576
+  },
+  {
+    "file": "src/pages/settings/UsageDashboardPage.tsx",
+    "module": "settings",
+    "name": "UsageDashboardPage",
+    "lines": 31
+  },
+  {
+    "file": "src/pages/settings/WarehouseListPage.tsx",
+    "module": "settings",
+    "name": "WarehouseListPage",
+    "lines": 227
+  },
+  {
+    "file": "src/pages/settings/WorkflowsPage.tsx",
+    "module": "settings",
+    "name": "WorkflowsPage",
+    "lines": 143
+  },
+  {
+    "file": "src/pages/staff/StaffManagementPage.tsx",
+    "module": "staff",
+    "name": "StaffManagementPage",
+    "lines": 139
+  },
+  {
+    "file": "src/pages/supplements/SupplementsPage.tsx",
+    "module": "supplements",
+    "name": "SupplementsPage",
+    "lines": 314
+  },
+  {
+    "file": "src/pages/Unauthorized.tsx",
+    "module": "_root",
+    "name": "Unauthorized",
+    "lines": 67
+  },
+  {
+    "file": "src/pages/users/UsersPage.tsx",
+    "module": "users",
+    "name": "UsersPage",
+    "lines": 83
+  },
+  {
+    "file": "src/pages/vendors/VendorComparisonPage.tsx",
+    "module": "vendors",
+    "name": "VendorComparisonPage",
+    "lines": 9
+  },
+  {
+    "file": "src/pages/vendors/VendorDetailPage.tsx",
+    "module": "vendors",
+    "name": "VendorDetailPage",
+    "lines": 319
+  },
+  {
+    "file": "src/pages/vendors/VendorFormPage.tsx",
+    "module": "vendors",
+    "name": "VendorFormPage",
+    "lines": 308
+  },
+  {
+    "file": "src/pages/vendors/VendorListPage.tsx",
+    "module": "vendors",
+    "name": "VendorListPage",
+    "lines": 149
+  }
+]
