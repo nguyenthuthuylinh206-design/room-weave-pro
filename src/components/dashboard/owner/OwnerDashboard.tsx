@@ -59,6 +59,9 @@ export function OwnerDashboard() {
         </Select>
       </PageHeader>
 
+      {/* Setup Checklist - hiển thị khi tenant chưa cấu hình đủ */}
+      <SetupChecklist />
+
       {/* Smart Alerts - Show first for immediate attention */}
       <OwnerSmartAlerts />
 
