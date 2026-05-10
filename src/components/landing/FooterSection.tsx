@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { Hotel, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
+import logoRoomQc from '@/assets/logo-roomqc.png'
 
 export const FooterSection = () => {
   const { t } = useTranslation('landing')
