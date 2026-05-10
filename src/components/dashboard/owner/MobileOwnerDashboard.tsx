@@ -130,6 +130,9 @@ export function MobileOwnerDashboard({ dateRange, datePreset, onDatePresetChange
         </Select>
       </div>
 
+      {/* Setup Checklist */}
+      <SetupChecklist />
+
       {/* Critical Alerts */}
       {visibleAlerts.length > 0 && (
         <div className="space-y-2">
