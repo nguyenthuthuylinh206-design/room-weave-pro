@@ -478,19 +478,19 @@ export function useCancelTask() {
 
   return useMutation({
     mutationFn: async (taskId: string) => {
-      const { data, error } = await supabase
-        .from('housekeeping_tasks')
-        .update({
-          status: 'cancelled',
-          cancelled_at: new Date().toISOString()
-        })
-        .eq('id', taskId)
-        .in('status', ['pending', 'in_progress', 'assigned'])
-        .select()
-
-      if (error) throw error
-      if (!data || data.length === 0) {
-        throw new Error('Không thể hủy công việc đã hoàn thành hoặc đã hủy')
+      // F-FSM-02: dùng RPC `transition_task_status` để có audit log + validate
+      // transition. RPC tự set `cancelled_at`. Nếu task đã hoàn thành / đã hủy,
+      // RPC trả INVALID_TRANSITION → map thành thông điệp tiếng Việt.
+      const { error } = await supabase.rpc('transition_task_status', {
+        _task_id: taskId,
+        _to_status: 'cancelled',
+        _note: 'Hủy thủ công từ danh sách công việc',
+      })
+      if (error) {
+        if (/INVALID_TRANSITION/i.test(error.message)) {
+          throw new Error('Không thể hủy công việc đã hoàn thành hoặc đã hủy')
+        }
+        throw error
       }
     },
     onSuccess: () => {
