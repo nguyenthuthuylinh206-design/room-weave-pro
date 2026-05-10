@@ -78,5 +78,7 @@
   "telegram": "Telegram",
   "notifications": "Notifications",
   "assetGroupMigration": "Asset Classification",
-  "hotelPolicy": "Hotel Policy"
+  "hotelPolicy": "Hotel Policy",
+  "staffList": "Staff List",
+  "shiftHandoverReport": "Shift Handover Report"
 }
