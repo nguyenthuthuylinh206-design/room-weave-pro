@@ -88,6 +88,35 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // B7: rate limit + IP allowlist (in-memory, per edge instance).
+  // - Mặc định cho phép tất cả; nếu env SEPAY_ALLOWED_IPS được set (CSV) thì enforce.
+  // - Rate: tối đa 60 req/IP/phút. Vượt → 429.
+  const clientIp =
+    req.headers.get('cf-connecting-ip') ||
+    req.headers.get('x-real-ip') ||
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    'unknown';
+
+  const SEPAY_ALLOWED_IPS = Deno.env.get('SEPAY_ALLOWED_IPS');
+  if (SEPAY_ALLOWED_IPS) {
+    const allowList = SEPAY_ALLOWED_IPS.split(',').map((s) => s.trim()).filter(Boolean);
+    if (allowList.length > 0 && !allowList.includes(clientIp)) {
+      console.log(`REJECTED: IP ${clientIp} không nằm trong SEPAY_ALLOWED_IPS`);
+      return new Response(
+        JSON.stringify({ success: false, error: 'IP not allowed' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+  }
+
+  if (!checkRateLimit(clientIp)) {
+    console.log(`REJECTED: rate limit exceeded for IP ${clientIp}`);
+    return new Response(
+      JSON.stringify({ success: false, error: 'Too many requests' }),
+      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } }
+    );
+  }
+
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
