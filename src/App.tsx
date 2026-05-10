@@ -74,6 +74,7 @@ const GuestDetailPage = lazy(() => import("./pages/guests/GuestDetailPage"));
 const LostFoundPage = lazy(() => import("./pages/lost-found/LostFoundPage"));
 const GuestInvoicesPage = lazy(() => import("./pages/invoices/GuestInvoicesPage"));
 const PendingChargesPage = lazy(() => import("./pages/reception/PendingChargesPage"));
+const ReconciliationPage = lazy(() => import("./pages/finance/ReconciliationPage"));
 
 // Laundry
 const LaundryDashboardPage = lazyNamed(() => import("./pages/laundry/LaundryDashboardPage"), "LaundryDashboardPage");
@@ -411,6 +412,9 @@ const router = createBrowserRouter([
 
       // Guest Invoices
       { path: "guest-invoices", element: <PermissionRoute module="bookings"><GuestInvoicesPage /></PermissionRoute> },
+
+      // Finance — đối soát thanh toán
+      { path: "finance/reconciliation", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><ReconciliationPage /></RoleGuard> },
 
       // Reception
       { path: "reception/pending-charges", element: <PermissionRoute module="bookings"><PendingChargesPage /></PermissionRoute> },

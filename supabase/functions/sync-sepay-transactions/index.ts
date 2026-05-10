@@ -344,18 +344,82 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`\nSync completed: ${matchedCount} payments matched`);
+    // ====== ANOMALY DETECTION (Sprint 3.1) ======
+    // Find SePay transactions that didn't match any payment, or matched but with amount diff > tolerance.
+    // Skip transactions older than 30 days to avoid backlog spam.
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - 30)
+
+    const matchedSepayTxIds = new Set<string>()
+    // Re-scan to know which sepay tx were matched (matchedPayments only stores invoice numbers)
+    for (const payment of pendingPayments as PendingPayment[]) {
+      const invoiceNumber = payment.invoice?.invoice_number || ''
+      if (matchedPayments.includes(invoiceNumber)) {
+        const normalizedInv = normalizeString(invoiceNumber)
+        for (const tx of incomingTransactions) {
+          const normalizedContent = normalizeString(tx.transaction_content || '')
+          if (normalizedInv && normalizedContent.includes(normalizedInv)) {
+            matchedSepayTxIds.add(String(tx.id))
+            break
+          }
+        }
+      }
+    }
+
+    let anomalyCount = 0
+    for (const tx of incomingTransactions) {
+      if (matchedSepayTxIds.has(String(tx.id))) continue
+      const txDate = tx.transaction_date ? new Date(tx.transaction_date) : null
+      if (txDate && txDate < cutoff) continue
+
+      // Try to find a partial match (invoice number in content, but amount differs >1k)
+      const normalizedContent = normalizeString(tx.transaction_content || '')
+      let partialMatch: PendingPayment | null = null
+      for (const p of pendingPayments as PendingPayment[]) {
+        const inv = normalizeString(p.invoice?.invoice_number || '')
+        if (inv && normalizedContent.includes(inv)) {
+          partialMatch = p
+          break
+        }
+      }
+
+      const anomalyType = partialMatch ? 'amount_mismatch' : 'unmatched'
+      const tenantId = partialMatch?.tenant_id || null
+
+      const { error: anomalyErr } = await supabase
+        .from('payment_anomalies')
+        .upsert(
+          {
+            tenant_id: tenantId,
+            anomaly_type: anomalyType,
+            sepay_tx_id: String(tx.id),
+            sepay_reference: tx.reference_number,
+            sepay_content: tx.transaction_content,
+            sepay_amount: tx.amount_in,
+            sepay_date: tx.transaction_date,
+            sepay_account: tx.account_number,
+            expected_payment_id: partialMatch?.id || null,
+            expected_invoice_number: partialMatch?.invoice?.invoice_number || null,
+            expected_amount: partialMatch?.amount || null,
+            amount_diff: partialMatch ? tx.amount_in - partialMatch.amount : null,
+          },
+          { onConflict: 'sepay_tx_id,anomaly_type', ignoreDuplicates: false },
+        )
+      if (!anomalyErr) anomalyCount++
+    }
+    console.log(`Logged ${anomalyCount} anomalies`)
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: `Synced ${matchedCount} payment(s)`,
+      JSON.stringify({
+        success: true,
+        message: `Synced ${matchedCount} payment(s), ${anomalyCount} anomalies`,
         matched: matchedCount,
         matchedInvoices: matchedPayments,
         pending: pendingPayments.length - matchedCount,
-        totalTransactions: incomingTransactions.length
+        anomalies: anomalyCount,
+        totalTransactions: incomingTransactions.length,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
 
   } catch (error) {
