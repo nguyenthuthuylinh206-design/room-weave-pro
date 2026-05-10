@@ -86,7 +86,9 @@ export default defineConfig(({ mode }) => ({
         maximumFileSizeToCacheInBytes: 2 * 1024 * 1024, // 2MB — pair with code-splitting
       },
       devOptions: {
-        enabled: true,
+        // Tắt SW ở dev/preview — tránh cache app shell trong iframe Lovable.
+        // Trên production build vẫn tự đăng ký bình thường.
+        enabled: false,
         type: 'module',
       }
     })
