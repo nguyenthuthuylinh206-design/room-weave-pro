@@ -13,6 +13,30 @@ import type {
   CreateOutboundData
 } from '@/types/inventory.types'
 
+// Translate UI-friendly category keys to canonical DB values (Sprint 1)
+const INBOUND_CATEGORY_MAP: Record<string, string> = {
+  purchase: 'purchase',
+  return: 'return',
+  return_to_stock: 'return_to_stock',
+  laundry: 'laundry_return',
+  laundry_return: 'laundry_return',
+  other: 'other_in',
+  other_in: 'other_in',
+}
+
+const OUTBOUND_CATEGORY_MAP: Record<string, string> = {
+  staff_assign: 'staff_assign',
+  laundry: 'laundry_send',
+  laundry_send: 'laundry_send',
+  maintenance: 'maintenance',
+  disposal: 'disposal',
+  warehouse_release: 'warehouse_release',
+  adjustment: 'adjustment_out',
+  adjustment_out: 'adjustment_out',
+  other: 'other_out',
+  other_out: 'other_out',
+}
+
 export function useInventoryTransactions(
   filters: InventoryFilters = {},
   page = 1,
@@ -98,10 +122,12 @@ export function useCreateInboundTransaction() {
         throw new Error('Missing required data')
       }
       
+      const canonicalCategory = INBOUND_CATEGORY_MAP[data.transaction_category] || data.transaction_category
+
       const { data: result, error } = await supabase.rpc('create_inbound_transaction', {
         p_tenant_id: tenant.id,
         p_hotel_id: selectedHotel.id,
-        p_transaction_category: data.transaction_category,
+        p_transaction_category: canonicalCategory,
         p_from_location: data.from_location,
         p_to_location: data.to_location,
         p_created_by: user.id,
@@ -165,10 +191,12 @@ export function useCreateOutboundTransaction() {
         throw new Error('Missing required data')
       }
       
+      const canonicalCategory = OUTBOUND_CATEGORY_MAP[data.transaction_category] || data.transaction_category
+
       const { data: result, error } = await supabase.rpc('create_outbound_transaction', {
         p_tenant_id: tenant.id,
         p_hotel_id: selectedHotel.id,
-        p_transaction_category: data.transaction_category,
+        p_transaction_category: canonicalCategory,
         p_from_location: data.from_location,
         p_to_location: data.to_location,
         p_created_by: user.id,
