@@ -47,9 +47,33 @@ function loadDbFunctions(): Map<string, string[]> {
   return map;
 }
 
+/**
+ * Chỉ lấy các RPC do app định nghĩa: SECURITY DEFINER (cột 5 = 't').
+ * Lọc ra pgTAP / extension (secdef=f) để tránh false positive khi quét overload.
+ */
+function loadAppRpcs(): Map<string, string[]> {
+  if (!fs.existsSync(TSV)) return new Map();
+  const map = new Map<string, string[]>();
+  const lines = fs.readFileSync(TSV, 'utf8').trim().split('\n').filter(Boolean);
+  for (const line of lines) {
+    const cols = line.split('\t');
+    const name = cols[0];
+    const args = cols[1] ?? '';
+    const secdef = cols[4]; // 't' = SECURITY DEFINER (app RPC), 'f' = extension/pgTAP
+    if (!name) continue;
+    if (secdef !== 't') continue;
+    if (name.startsWith('_')) continue; // helper riêng
+    if (!map.has(name)) map.set(name, []);
+    map.get(name)!.push(args);
+  }
+  for (const arr of map.values()) arr.sort();
+  return map;
+}
+
 describe('RPC signature drift (vs _generated/db-functions.tsv)', () => {
   const snapshot = loadSnapshot();
   const db = loadDbFunctions();
+  const appRpcs = loadAppRpcs();
 
   for (const [rpc, expectedSigs] of Object.entries(snapshot.expected)) {
     it(`\`${rpc}\` khớp snapshot`, () => {
@@ -80,6 +104,54 @@ describe('RPC signature drift (vs _generated/db-functions.tsv)', () => {
       }
     }
     expect(issues, issues.join('\n')).toEqual([]);
+  });
+
+  it('không có overload trùng tên trong RPC app-defined (full scan, ngoài snapshot 13)', () => {
+    // C1: scan TOÀN BỘ RPC do app định nghĩa (SECURITY DEFINER), không chỉ snapshot.
+    // PostgREST chọn overload theo payload → 2 overload cùng tên = nguy cơ chọn nhầm.
+    // Nếu hợp lệ → thêm vào ALLOWED_OVERLOADS với lý do rõ ràng.
+    //
+    // 18 entry dưới đây là legacy overload đã tồn tại tại 2026-05-10.
+    // Đã ghi nhận tại findings.md F-RPC-OVERLOAD-02 — cần audit + DROP dần.
+    // Khi DROP xong từng cái, xoá khỏi danh sách này. Test sẽ chặn THÊM MỚI.
+    const ALLOWED_OVERLOADS = new Set<string>([
+      'apply_room_standards',
+      'complete_room_delivery',
+      'confirm_receive_order',
+      'create_distribution_order',
+      'create_inbound_transaction',
+      'create_laundry_loss_transaction',
+      'create_laundry_return_transaction',
+      'create_outbound_transaction',
+      'get_categories_with_stats',
+      'get_distribution_orders_filtered',
+      'get_items_filtered',
+      'get_laundry_batches_filtered',
+      'get_monthly_expenses',
+      'get_recent_activities',
+      'handover_batch',
+      'settle_batch_compensation',
+      'setup_new_tenant',
+      'setup_room_initial',
+      'undo_room_delivery_confirmation',
+    ]);
+    const offenders: string[] = [];
+    for (const [name, sigs] of appRpcs.entries()) {
+      if (sigs.length <= 1) continue;
+      if (ALLOWED_OVERLOADS.has(name)) continue;
+      offenders.push(
+        `\`${name}\` có ${sigs.length} overload — DROP bớt hoặc thêm vào ALLOWED_OVERLOADS.\n` +
+          sigs.map((s, i) => `    [${i}] ${s || '(no args)'}`).join('\n')
+      );
+    }
+    expect(offenders, offenders.join('\n\n')).toEqual([]);
+  });
+
+  it('tổng số RPC trong DB không tụt bất thường (drift guard)', () => {
+    // C1: số tổng nên ≥ baseline. Nếu tụt → có thể bị DROP nhầm.
+    const BASELINE_MIN = 250; // 2026-05-10: actual = 283 sau khi drop submit_room_check_lean overload
+    const total = Array.from(db.values()).reduce((a, arr) => a + arr.length, 0);
+    expect(total, `RPC count = ${total} < baseline ${BASELINE_MIN}. Kiểm tra DROP nhầm?`).toBeGreaterThanOrEqual(BASELINE_MIN);
   });
 });
 

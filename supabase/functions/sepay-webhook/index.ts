@@ -11,6 +11,29 @@ function normalizeString(str: string): string {
   return str.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 }
 
+// B7: Rate limit in-memory per IP (60 req/phút). Đủ cho SePay (vài req/giây tối đa).
+// Lưu ý: in-memory = scoped per edge instance; nếu cần stricter dùng Redis/DB.
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 60;
+const ipHits = new Map<string, number[]>();
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const arr = (ipHits.get(ip) || []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+  if (arr.length >= RATE_LIMIT_MAX) {
+    ipHits.set(ip, arr);
+    return false;
+  }
+  arr.push(now);
+  ipHits.set(ip, arr);
+  // Cleanup occasional: nếu Map > 1000 IP → xoá entries cũ
+  if (ipHits.size > 1000) {
+    for (const [k, v] of ipHits.entries()) {
+      if (v.every((t) => now - t > RATE_LIMIT_WINDOW_MS)) ipHits.delete(k);
+    }
+  }
+  return true;
+}
+
 // Phase 1 — Lượt 2: đọc payment_tolerance_vnd theo tenant.
 // Cache trong process để tránh query lặp khi xử lý nhiều payment cùng webhook.
 const TOLERANCE_FALLBACK_VND = 1000;
@@ -86,6 +109,35 @@ Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // B7: rate limit + IP allowlist (in-memory, per edge instance).
+  // - Mặc định cho phép tất cả; nếu env SEPAY_ALLOWED_IPS được set (CSV) thì enforce.
+  // - Rate: tối đa 60 req/IP/phút. Vượt → 429.
+  const clientIp =
+    req.headers.get('cf-connecting-ip') ||
+    req.headers.get('x-real-ip') ||
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    'unknown';
+
+  const SEPAY_ALLOWED_IPS = Deno.env.get('SEPAY_ALLOWED_IPS');
+  if (SEPAY_ALLOWED_IPS) {
+    const allowList = SEPAY_ALLOWED_IPS.split(',').map((s) => s.trim()).filter(Boolean);
+    if (allowList.length > 0 && !allowList.includes(clientIp)) {
+      console.log(`REJECTED: IP ${clientIp} không nằm trong SEPAY_ALLOWED_IPS`);
+      return new Response(
+        JSON.stringify({ success: false, error: 'IP not allowed' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+  }
+
+  if (!checkRateLimit(clientIp)) {
+    console.log(`REJECTED: rate limit exceeded for IP ${clientIp}`);
+    return new Response(
+      JSON.stringify({ success: false, error: 'Too many requests' }),
+      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } }
+    );
   }
 
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
