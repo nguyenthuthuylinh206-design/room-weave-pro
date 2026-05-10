@@ -175,10 +175,13 @@ const navigation: NavItem[] = [
   },
   {
     titleKey: 'staffManagement',
-    href: '/staff',
     icon: Users,
-    roles: ['owner', 'hotel_manager', 'department_manager'],
+    roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
     minMode: 'standard',
+    children: [
+      { titleKey: 'staffList', href: '/staff', icon: Users, roles: ['owner', 'hotel_manager', 'department_manager'] },
+      { titleKey: 'shiftHandoverReport', href: '/staff/shift-handover', icon: FileText },
+    ],
   },
   {
     titleKey: 'reports',
