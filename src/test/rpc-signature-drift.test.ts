@@ -106,21 +106,23 @@ describe('RPC signature drift (vs _generated/db-functions.tsv)', () => {
     expect(issues, issues.join('\n')).toEqual([]);
   });
 
-  it('không có overload trùng tên ngoài ý muốn (full DB scan)', () => {
-    // C1: cảnh báo MỌI RPC có >1 overload (không chỉ snapshot 13).
+  it('không có overload trùng tên trong RPC app-defined (full scan, ngoài snapshot 13)', () => {
+    // C1: scan TOÀN BỘ RPC do app định nghĩa (SECURITY DEFINER), không chỉ snapshot.
     // PostgREST chọn overload theo payload → 2 overload cùng tên = nguy cơ chọn nhầm.
-    // Nếu hợp lệ (e.g. extension, sql lang) → thêm vào ALLOWED_OVERLOADS.
+    // Nếu hợp lệ → thêm vào ALLOWED_OVERLOADS với lý do rõ ràng.
     const ALLOWED_OVERLOADS = new Set<string>([
-      'has_role',                      // 3 entry: 1 app-defined + 2 extension
-      'apply_room_standards',          // F-RPC-OVERLOAD-02 — chưa cleanup, còn 2 overload
+      'apply_room_standards', // F-RPC-OVERLOAD-02 — chưa cleanup, còn 2 overload
     ]);
     const offenders: string[] = [];
-    for (const [name, sigs] of db.entries()) {
+    for (const [name, sigs] of appRpcs.entries()) {
       if (sigs.length <= 1) continue;
       if (ALLOWED_OVERLOADS.has(name)) continue;
-      offenders.push(`\`${name}\` có ${sigs.length} overload — DROP bớt hoặc thêm vào ALLOWED_OVERLOADS với lý do.`);
+      offenders.push(
+        `\`${name}\` có ${sigs.length} overload — DROP bớt hoặc thêm vào ALLOWED_OVERLOADS.\n` +
+          sigs.map((s, i) => `    [${i}] ${s || '(no args)'}`).join('\n')
+      );
     }
-    expect(offenders, offenders.join('\n')).toEqual([]);
+    expect(offenders, offenders.join('\n\n')).toEqual([]);
   });
 
   it('tổng số RPC trong DB không tụt bất thường (drift guard)', () => {
