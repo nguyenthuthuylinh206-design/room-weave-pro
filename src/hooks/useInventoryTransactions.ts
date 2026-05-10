@@ -122,10 +122,12 @@ export function useCreateInboundTransaction() {
         throw new Error('Missing required data')
       }
       
+      const canonicalCategory = INBOUND_CATEGORY_MAP[data.transaction_category] || data.transaction_category
+
       const { data: result, error } = await supabase.rpc('create_inbound_transaction', {
         p_tenant_id: tenant.id,
         p_hotel_id: selectedHotel.id,
-        p_transaction_category: data.transaction_category,
+        p_transaction_category: canonicalCategory,
         p_from_location: data.from_location,
         p_to_location: data.to_location,
         p_created_by: user.id,
