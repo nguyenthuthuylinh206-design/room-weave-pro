@@ -10,7 +10,27 @@ import {
   sendTelegramNotification
 } from '@/hooks/useNotificationTriggers'
 import { getNotificationRecipients } from '@/utils/notificationRecipients'
-import type { RoomCheckFormData, LaundryItem, LostItem, ConsumedItem, DamagedItem } from '@/types/rooms.types'
+import type { RoomCheckFormData, LaundryItem, LostItem, ConsumedItem, DamagedItem, RoomStatusV2 } from '@/types/rooms.types'
+
+/**
+ * Helper nội bộ: chuyển trạng thái phòng qua RPC `transition_room_status` để
+ * đảm bảo audit log + state machine v2. Nuốt lỗi INVALID_TRANSITION khi phòng
+ * đã ở đúng trạng thái mong muốn (tương đương filter `.in('status', [...])` cũ).
+ */
+async function safeTransitionRoomStatus(
+  roomId: string,
+  toStatus: RoomStatusV2,
+  reason: string,
+): Promise<void> {
+  const { error } = await supabase.rpc('transition_room_status', {
+    _room_id: roomId,
+    _to_status: toStatus,
+    _reason: reason,
+  })
+  if (error && !/INVALID_TRANSITION|ALREADY_IN_STATUS/i.test(error.message)) {
+    console.error('[useRoomChecks] transition_room_status failed:', error.message)
+  }
+}
 
 export function useRoomChecks(roomId: string | undefined) {
   return useQuery({
