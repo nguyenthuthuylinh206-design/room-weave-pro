@@ -265,7 +265,20 @@ export const Sidebar = () => {
     return expanded
   })
 
-  const isLoading = userLoading || tenantLoading || permissionsLoading
+  // Sync expanded group with current route — auto-collapse other groups,
+  // auto-open the group containing the active child when user switches tab.
+  useEffect(() => {
+    const matched = navigation.find(
+      (item) =>
+        item.children?.some(
+          (child) => child.href && location.pathname.startsWith(child.href)
+        )
+    )
+    setExpandedItems(matched ? [matched.titleKey] : [])
+  }, [location.pathname])
+
+  // Only block on user auth; tenant + permissions load in background to avoid full-skeleton flash.
+  const isLoading = userLoading
 
   // Check if user has access to a module
   const hasModuleAccess = (navigationTitleKey: string): boolean => {
