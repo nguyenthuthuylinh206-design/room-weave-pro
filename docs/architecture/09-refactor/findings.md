@@ -12,7 +12,7 @@
 |---|---|---|---|---|
 | F-DUP-01 | ✅ | ~~`src/components/Layout.tsx` legacy~~ — **Đã xóa 2026-05-10**. App chỉ còn `MainLayout.tsx`. | – | Đóng. |
 | F-DUP-02 | ✅ | ~~Trùng `/admin/*` và `/super-admin/*`~~ — **Sai**. App.tsx chỉ có `/super-admin/*`, folder `pages/admin/` chỉ là vị trí lưu mã. Đã verify `rg "path.*\"/admin" src/App.tsx` → 0 kết quả. | – | Đóng. |
-| F-DUP-03 | 🟡 | `MorePage.tsx` ở `src/pages/` và `src/pages/mobile/` | `src/pages/MorePage.tsx`, `src/pages/mobile/MorePage.tsx` | Hợp nhất hoặc rename rõ desktop/mobile |
+| F-DUP-03 | ✅ | ~~`MorePage.tsx` ở `src/pages/` và `src/pages/mobile/`~~ — **Đã xóa file legacy `src/pages/MorePage.tsx` ngày 2026-05-10** (không có import, chỉ bản `pages/mobile/MorePage.tsx` còn được sử dụng). | git history | Đóng. |
 | F-DUP-04 | 🟢 | **145 RPC không có caller frontend** (284 tổng - 139 gọi từ FE). Một số dùng từ trigger / edge / cron, còn lại có thể dead. | `_generated/summary.json` | Audit phân loại: trigger / edge / cron / dead → xóa dead |
 
 ## B. Lệch convention
