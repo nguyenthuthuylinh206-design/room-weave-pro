@@ -1,51 +1,53 @@
 import { useEffect } from 'react';
 import { APP_VERSION } from '@/lib/app-version';
+import { isPreviewOrIframe, cleanupServiceWorkers } from '@/lib/pwa-environment';
 
 /**
- * CacheBuster — force-clear stale caches & service workers for users stuck
- * on an old build (common on iOS PWAs that aggressively keep old assets).
+ * CacheBuster — force-clear stale caches & service workers.
  *
- * Version is sourced from src/lib/app-version.ts — bump APP_VERSION there
- * on every release to trigger a one-time wipe + reload for old clients.
+ * - Trên preview / iframe / localhost: LUÔN cleanup mỗi lần load (không phụ
+ *   thuộc version), vì editor không bao giờ bump version giữa các sửa nhỏ.
+ * - Trên production: chỉ cleanup khi version thay đổi (so với localStorage),
+ *   sau đó hard reload để load build mới.
  */
 const CURRENT_VERSION = APP_VERSION;
 const STORAGE_KEY = 'app_version';
+const PREVIEW_RELOAD_FLAG = '__cachebuster_preview_reloaded__';
 
 export function CacheBuster() {
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === CURRENT_VERSION) return;
-
     let cancelled = false;
 
     (async () => {
       try {
+        if (isPreviewOrIframe()) {
+          // Preview/iframe: cleanup mọi lần load, reload tối đa 1 lần/session
+          const didCleanup = await cleanupServiceWorkers();
+          if (cancelled) return;
+          if (didCleanup && !sessionStorage.getItem(PREVIEW_RELOAD_FLAG)) {
+            sessionStorage.setItem(PREVIEW_RELOAD_FLAG, '1');
+            window.location.reload();
+          }
+          return;
+        }
+
+        // Production: chỉ chạy khi version mismatch
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored === CURRENT_VERSION) return;
+
         console.log('[CacheBuster] Version mismatch:', { stored, current: CURRENT_VERSION });
-
-        // 1) Clear all Cache Storage entries (Workbox runtime + precache)
-        if ('caches' in window) {
-          const names = await caches.keys();
-          await Promise.all(names.map((n) => caches.delete(n)));
-          console.log('[CacheBuster] Cleared caches:', names);
-        }
-
-        // 2) Unregister every service worker so the next load fetches a fresh one
-        if ('serviceWorker' in navigator) {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(regs.map((r) => r.unregister()));
-          console.log('[CacheBuster] Unregistered SWs:', regs.length);
-        }
-
+        await cleanupServiceWorkers();
         if (cancelled) return;
 
         localStorage.setItem(STORAGE_KEY, CURRENT_VERSION);
-
-        // 3) Hard reload to load the new build with a clean SW
         window.location.reload();
       } catch (err) {
-        console.error('[CacheBuster] Failed to clear caches:', err);
-        // Still mark version so we don't retry endlessly
-        localStorage.setItem(STORAGE_KEY, CURRENT_VERSION);
+        console.error('[CacheBuster] Failed:', err);
+        try {
+          localStorage.setItem(STORAGE_KEY, CURRENT_VERSION);
+        } catch {
+          /* ignore */
+        }
       }
     })();
 
