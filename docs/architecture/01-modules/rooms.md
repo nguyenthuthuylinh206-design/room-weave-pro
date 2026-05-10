@@ -26,7 +26,7 @@ available → reserved → occupied → checked_out_pending → cleaning
             ←──────── reserved_no_show ────────
 ```
 
-Mọi transition qua **`transition_room_status(p_room_id, p_new_status, p_reason)`** với audit log + permission check (memory: `state-machine-v2-rollout`).
+Mọi transition qua **`transition_room_status(_room_id, _to_status, _reason, _dnd_until?, _oos_until?, _force?)`** với audit log + permission check (memory: `state-machine-v2-rollout`).
 
 DND/OOS có `expires_at` → cron `lift-expired-dnd-oos` tự lift.
 

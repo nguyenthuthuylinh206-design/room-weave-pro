@@ -31,18 +31,18 @@ draft → pending → confirmed → checked_in → checked_out → completed
                                    cancelled
 ```
 
-Mọi transition qua **`transition_booking_status(p_booking_id, p_new_status, p_reason)`** + audit log.
+Mọi transition qua **`transition_booking_status(_booking_id, _to_status, _reason, _force?)`** + audit log.
 
 ## Flows chính
 
 | Flow | RPC | File flow |
 |---|---|---|
 | Walk-in tạo nhanh + thu cọc | `create_booking` (insert) | [03-flows/booking-lifecycle.md](../03-flows/booking-lifecycle.md) |
-| Check-in | **`perform_checkin`** | atomic: validate room status, set checked_in, log audit |
-| Check-out 1 phòng | **`perform_checkout`** | atomic: tính tiền, room → cleaning, log |
+| Check-in | **`perform_checkin(p_booking_id, p_room_id, p_early_checkin_charge)`** | atomic: validate room status, set checked_in, log audit |
+| Check-out 1 phòng | **`perform_checkout(p_booking_id, p_room_id, p_late_checkout_charge, p_service_charges, p_subtotal, p_vat_amount, p_service_fee_amount, p_total_amount, p_damage_charges, p_damage_notes, p_damage_items, p_new_amount_paid, p_check_out_date)`** | atomic: tính tiền, room → cleaning, log |
 | Check-out nhóm | **manual** post-payment (Group Checkout spec) | inspection prerequisite |
 | Hủy | **`cancel_booking`** | refund handling tùy state |
-| OTA ingest | `process-room-check-outbox`? Không. OTA flow riêng: import → booking + commission | [03-flows/payment-vietqr-sepay.md](../03-flows/payment-vietqr-sepay.md) |
+| OTA ingest | flow riêng: import → booking + commission | [03-flows/payment-vietqr-sepay.md](../03-flows/payment-vietqr-sepay.md) |
 
 ## Tài chính booking
 
