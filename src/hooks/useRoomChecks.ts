@@ -310,13 +310,10 @@ async function processCheckinCheck(params: {
   await applyRoomItemChanges(roomId, quantityChanges, userId)
   
   // Auto-change room status: vacant_* → occupied_clean (phòng đã có khách)
-  // State Machine v2: chấp nhận cả status legacy lẫn v2 trong giai đoạn rollout.
+  // State Machine v2: gọi qua RPC để có audit log; RPC trả INVALID_TRANSITION
+  // sẽ bị swallow nếu phòng đã ở trạng thái khác hợp lệ.
   if (validation.isReady) {
-    await supabase
-      .from('rooms')
-      .update({ status: 'occupied_clean' })
-      .eq('id', roomId)
-      .in('status', ['vacant_clean', 'vacant_inspected', 'vacant_dirty'])
+    await safeTransitionRoomStatus(roomId, 'occupied_clean', 'Khách check-in (room check)')
   }
   
   return { quantityChanges, validation }
