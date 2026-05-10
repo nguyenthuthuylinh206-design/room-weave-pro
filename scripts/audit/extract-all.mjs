@@ -236,14 +236,22 @@ function readDbTablesCount() {
   return new Set(lines.map(l => l.split('\t')[0])).size;
 }
 function readDbRpcsCount() {
+  // Đếm RPC do app định nghĩa = giao của db-functions.tsv ∩ functions created in migrations.
   const f = path.join(OUT, 'db-functions.tsv');
   if (!fs.existsSync(f)) return null;
-  const lines = fs.readFileSync(f, 'utf8').trim().split('\n').filter(Boolean);
-  // Loại extension functions (tên bắt đầu bằng _) + dedupe overload theo tên
-  const names = lines
-    .map(l => l.split('\t')[0])
-    .filter(n => n && !n.startsWith('_'));
-  return new Set(names).size;
+  const dbNames = new Set(
+    fs.readFileSync(f, 'utf8').trim().split('\n').filter(Boolean)
+      .map(l => l.split('\t')[0])
+      .filter(n => n && !n.startsWith('_'))
+  );
+  // Lấy danh sách hàm được tạo trong migrations
+  const appFns = new Set();
+  for (const m of (data.migrations || [])) {
+    for (const fn of (m.functionsCreated || [])) appFns.add(fn);
+  }
+  // Giao tập: hàm vừa có trong DB hiện tại vừa có trong migration của app
+  const intersect = [...appFns].filter(n => dbNames.has(n));
+  return intersect.length || dbNames.size;
 }
 function readDbRlsPolicyCount() {
   const f = path.join(OUT, 'db-policies.tsv');
