@@ -11,6 +11,29 @@ function normalizeString(str: string): string {
   return str.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 }
 
+// B7: Rate limit in-memory per IP (60 req/phút). Đủ cho SePay (vài req/giây tối đa).
+// Lưu ý: in-memory = scoped per edge instance; nếu cần stricter dùng Redis/DB.
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 60;
+const ipHits = new Map<string, number[]>();
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const arr = (ipHits.get(ip) || []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+  if (arr.length >= RATE_LIMIT_MAX) {
+    ipHits.set(ip, arr);
+    return false;
+  }
+  arr.push(now);
+  ipHits.set(ip, arr);
+  // Cleanup occasional: nếu Map > 1000 IP → xoá entries cũ
+  if (ipHits.size > 1000) {
+    for (const [k, v] of ipHits.entries()) {
+      if (v.every((t) => now - t > RATE_LIMIT_WINDOW_MS)) ipHits.delete(k);
+    }
+  }
+  return true;
+}
+
 // Phase 1 — Lượt 2: đọc payment_tolerance_vnd theo tenant.
 // Cache trong process để tránh query lặp khi xử lý nhiều payment cùng webhook.
 const TOLERANCE_FALLBACK_VND = 1000;
