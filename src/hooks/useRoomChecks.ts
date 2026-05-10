@@ -536,12 +536,8 @@ async function processMaintenanceCheck(params: {
   
   await applyRoomItemChanges(roomId, quantityChanges, userId)
   
-  // Auto-change room status: out_of_order/out_of_service → vacant_clean (phòng đã sửa xong)
-  await supabase
-    .from('rooms')
-    .update({ status: 'vacant_clean' })
-    .eq('id', roomId)
-    .in('status', ['out_of_order', 'out_of_service'])
+  // Auto-change room status: out_of_order/out_of_service → vacant_clean (đã sửa xong)
+  await safeTransitionRoomStatus(roomId, 'vacant_clean', 'Hoàn tất bảo trì (room check)')
   
   return { quantityChanges }
 }
