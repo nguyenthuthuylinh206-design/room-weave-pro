@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Package, ChevronLeft, ChevronRight, RefreshCw, Loader2, ChevronDown, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,21 +18,28 @@ import { PendingSupplementsBanner } from '@/components/distribution/components/P
 import { useRoutesWithFilters, useAvailableFloors } from '@/hooks/useRouteFilters'
 import { usePendingSupplementCount } from '@/hooks/useSupplementRequests'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useUser } from '@/hooks/useUser'
 import { useQueryClient } from '@tanstack/react-query'
+import { getPendingTask } from '@/components/distribution/utils/orderPresentation'
 import type { RouteFilters } from '@/types/route-batch.types'
 import { cn } from '@/lib/utils'
 
 const PAGE_SIZE = 25
+const STOREKEEPER_LEVELS = ['tenant_owner', 'manager', 'warehouse_manager', 'storekeeper', 'hotel_manager', 'supervisor']
+
+type TabValue = 'todo' | 'delivering' | 'done' | 'all'
 
 export default function DistributionOrdersPage() {
   const navigate = useNavigate()
   const isMobile = useIsMobile()
   const queryClient = useQueryClient()
-  
+  const { user } = useUser()
+
   const [filters, setFilters] = useState<RouteFilters>({})
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(1)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [tab, setTab] = useState<TabValue>('todo')
 
   const { data, isLoading } = useRoutesWithFilters(filters, page, PAGE_SIZE)
   const { data: availableFloors = [] } = useAvailableFloors()
@@ -41,10 +49,52 @@ export default function DistributionOrdersPage() {
   const totalCount = data?.totalCount || 0
   const totalPages = Math.ceil(totalCount / PAGE_SIZE)
 
-  // Filter by search query (client-side)
-  const filteredOrders = searchQuery 
-    ? orders.filter(o => o.order_code.toLowerCase().includes(searchQuery.toLowerCase()))
-    : orders
+  const userLevel = (user as any)?.position?.user_level_code || (user as any)?.user_level_code || ''
+  const isCurrentUserStorekeeper = STOREKEEPER_LEVELS.includes(userLevel)
+  const currentUserId = user?.id ?? null
+
+  // Compute task per order, then split into tabs
+  const enriched = useMemo(() => {
+    return orders.map(o => {
+      const task = getPendingTask({
+        status: o.status,
+        hasAssignee: !!o.assigned_to,
+        assignedToName: o.assigned_to_name,
+        isCurrentUserAssignee: !!currentUserId && o.assigned_to === currentUserId,
+        isCurrentUserStorekeeper,
+        isCurrentUserCreator: !!currentUserId && o.created_by === currentUserId,
+        totalRooms: o.total_rooms,
+        completedRooms: o.rooms_completed,
+      })
+      return { order: o, task }
+    })
+  }, [orders, currentUserId, isCurrentUserStorekeeper])
+
+  const counts = useMemo(() => {
+    let todo = 0
+    let delivering = 0
+    let done = 0
+    enriched.forEach(({ order, task }) => {
+      if (task.priority >= 3) todo++
+      if (order.status === 'in_progress') delivering++
+      if (order.status === 'completed' || (order.status as string) === 'closed') done++
+    })
+    return { todo, delivering, done }
+  }, [enriched])
+
+  const filteredByTab = useMemo(() => {
+    let list = enriched
+    if (tab === 'todo') list = enriched.filter(e => e.task.priority >= 3).sort((a, b) => b.task.priority - a.task.priority)
+    else if (tab === 'delivering') list = enriched.filter(e => e.order.status === 'in_progress')
+    else if (tab === 'done') list = enriched.filter(e => e.order.status === 'completed' || (e.order.status as string) === 'closed')
+    return list
+  }, [enriched, tab])
+
+  const filteredOrders = (
+    searchQuery
+      ? filteredByTab.filter(e => e.order.order_code.toLowerCase().includes(searchQuery.toLowerCase()))
+      : filteredByTab
+  ).map(e => e.order)
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
@@ -64,7 +114,9 @@ export default function DistributionOrdersPage() {
   const EmptyState = () => (
     <div className="flex flex-col items-center justify-center py-12 text-center">
       <Package className="h-10 w-10 text-muted-foreground/50 mb-2" />
-      <p className="text-sm text-muted-foreground">Không có phiếu giao hàng nào</p>
+      <p className="text-sm text-muted-foreground">
+        {tab === 'todo' ? 'Không có việc nào cần xử lý ngay' : 'Không có phiếu giao hàng nào'}
+      </p>
       <Button size="sm" className="mt-3" onClick={() => navigate('/inventory/distributions/new')}>
         <Plus className="h-4 w-4 mr-1" />
         Tạo phiếu mới
@@ -74,57 +126,59 @@ export default function DistributionOrdersPage() {
 
   const Pagination = () => {
     if (totalPages <= 1) return null
-    
     return (
       <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-7 w-7"
-          onClick={() => setPage(p => Math.max(1, p - 1))}
-          disabled={page === 1}
-        >
+        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <span className="text-xs text-muted-foreground">{page}/{totalPages}</span>
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-7 w-7"
-          onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-          disabled={page === totalPages}
-        >
+        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
     )
   }
 
+  const TabsBar = (
+    <Tabs value={tab} onValueChange={(v) => { setTab(v as TabValue); setPage(1) }}>
+      <TabsList className="h-9">
+        <TabsTrigger value="todo" className="gap-1.5 text-xs">
+          Cần làm ngay
+          {counts.todo > 0 && (
+            <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">{counts.todo}</Badge>
+          )}
+        </TabsTrigger>
+        <TabsTrigger value="delivering" className="gap-1.5 text-xs">
+          Đang giao
+          {counts.delivering > 0 && (
+            <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">{counts.delivering}</Badge>
+          )}
+        </TabsTrigger>
+        <TabsTrigger value="done" className="text-xs">Hoàn thành</TabsTrigger>
+        <TabsTrigger value="all" className="text-xs">Tất cả</TabsTrigger>
+      </TabsList>
+    </Tabs>
+  )
+
   // Mobile view
   if (isMobile) {
     return (
       <div className="flex flex-col h-full">
-        {/* Header */}
         <div className="sticky top-0 z-10 bg-background border-b px-3 py-2 space-y-2">
           <div className="flex items-center justify-between">
             <h1 className="text-base font-semibold">Phiếu giao hàng</h1>
             <div className="flex items-center gap-1">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                className="h-8 w-8"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-              >
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleRefresh} disabled={isRefreshing}>
                 <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
               </Button>
-              <CreateDropdown 
-                pendingCount={pendingSupplementCount} 
+              <CreateDropdown
+                pendingCount={pendingSupplementCount}
                 onCreateManual={() => navigate('/inventory/distributions/new')}
                 onCreateFromSupplements={() => navigate('/inventory/distributions/from-supplements')}
               />
             </div>
           </div>
+          {TabsBar}
           <RouteFiltersCard
             filters={filters}
             onFiltersChange={handleFiltersChange}
@@ -137,14 +191,12 @@ export default function DistributionOrdersPage() {
           />
         </div>
 
-        {/* Pending Supplements Banner */}
         {pendingSupplementCount > 0 && (
           <div className="px-3 pt-2">
             <PendingSupplementsBanner />
           </div>
         )}
 
-        {/* List */}
         <div className="flex-1 overflow-auto px-3 py-2 space-y-2">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
@@ -159,6 +211,8 @@ export default function DistributionOrdersPage() {
                   key={order.id}
                   order={order as any}
                   onClick={() => handleOrderClick(order.id)}
+                  currentUserId={currentUserId}
+                  isCurrentUserStorekeeper={isCurrentUserStorekeeper}
                 />
               ))}
               {totalPages > 1 && (
@@ -173,36 +227,30 @@ export default function DistributionOrdersPage() {
     )
   }
 
-  // Desktop view
+  // Desktop
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold">Phiếu giao hàng</h1>
           <p className="text-sm text-muted-foreground">Quản lý các phiếu giao đồ đến phòng</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="icon"
-            className="h-8 w-8"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-          >
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleRefresh} disabled={isRefreshing}>
             <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
           </Button>
-          <CreateDropdown 
-            pendingCount={pendingSupplementCount} 
+          <CreateDropdown
+            pendingCount={pendingSupplementCount}
             onCreateManual={() => navigate('/inventory/distributions/new')}
             onCreateFromSupplements={() => navigate('/inventory/distributions/from-supplements')}
           />
         </div>
       </div>
 
-      {/* Pending Supplements Banner */}
       <PendingSupplementsBanner />
 
-      {/* Filters */}
+      {TabsBar}
+
       <RouteFiltersCard
         filters={filters}
         onFiltersChange={handleFiltersChange}
@@ -211,16 +259,16 @@ export default function DistributionOrdersPage() {
         floors={availableFloors}
       />
 
-      {/* Table */}
       <div className="border rounded-lg">
         <DistributionOrderTable
           orders={filteredOrders as any}
           onRowClick={(order) => handleOrderClick(order.id)}
           isLoading={isLoading}
           emptyMessage={<EmptyState />}
+          currentUserId={currentUserId}
+          isCurrentUserStorekeeper={isCurrentUserStorekeeper}
         />
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-2 border-t">
             <span className="text-xs text-muted-foreground">
@@ -234,7 +282,6 @@ export default function DistributionOrdersPage() {
   )
 }
 
-// Quick Create Dropdown Component
 interface CreateDropdownProps {
   pendingCount: number
   onCreateManual: () => void
@@ -247,7 +294,7 @@ function CreateDropdown({ pendingCount, onCreateManual, onCreateFromSupplements 
       <DropdownMenuTrigger asChild>
         <Button size="sm" className="gap-2">
           <Plus className="h-4 w-4" />
-          Tạo phiếu
+          Tạo phiếu mới
           {pendingCount > 0 && (
             <Badge variant="secondary" className="ml-1 bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300">
               {pendingCount}
@@ -256,15 +303,13 @@ function CreateDropdown({ pendingCount, onCreateManual, onCreateFromSupplements 
           <ChevronDown className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuItem onClick={onCreateFromSupplements} className="gap-2">
           <FileText className="h-4 w-4" />
           <div className="flex-1">
-            <span>Từ yêu cầu bổ sung</span>
+            <span>Từ phiếu bổ sung của lễ tân</span>
             {pendingCount > 0 && (
-              <Badge variant="destructive" className="ml-2 text-xs">
-                {pendingCount}
-              </Badge>
+              <Badge variant="destructive" className="ml-2 text-xs">{pendingCount}</Badge>
             )}
           </div>
         </DropdownMenuItem>
