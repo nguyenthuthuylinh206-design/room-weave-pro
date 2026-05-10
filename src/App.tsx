@@ -74,6 +74,7 @@ const GuestDetailPage = lazy(() => import("./pages/guests/GuestDetailPage"));
 const LostFoundPage = lazy(() => import("./pages/lost-found/LostFoundPage"));
 const GuestInvoicesPage = lazy(() => import("./pages/invoices/GuestInvoicesPage"));
 const PendingChargesPage = lazy(() => import("./pages/reception/PendingChargesPage"));
+const ReconciliationPage = lazy(() => import("./pages/finance/ReconciliationPage"));
 
 // Laundry
 const LaundryDashboardPage = lazyNamed(() => import("./pages/laundry/LaundryDashboardPage"), "LaundryDashboardPage");
