@@ -228,16 +228,43 @@ write('edge-functions.json', data.edgeFunctions);
 write('hooks.json', data.hooks);
 write('pages.json', data.pages);
 write('migrations.json', data.migrations);
+// Đọc counts thực tế từ DB dump (nếu có) thay vì chỉ từ FE usage
+function readDbTablesCount() {
+  const f = path.join(OUT, 'db-rls-enabled.tsv');
+  if (!fs.existsSync(f)) return null;
+  const lines = fs.readFileSync(f, 'utf8').trim().split('\n').filter(Boolean);
+  return new Set(lines.map(l => l.split('\t')[0])).size;
+}
+function readDbRpcsCount() {
+  const f = path.join(OUT, 'db-functions.tsv');
+  if (!fs.existsSync(f)) return null;
+  const lines = fs.readFileSync(f, 'utf8').trim().split('\n').filter(Boolean);
+  // Dedupe overload theo tên hàm
+  return new Set(lines.map(l => l.split('\t')[0])).size;
+}
+function readDbRlsPolicyCount() {
+  const f = path.join(OUT, 'db-policies.tsv');
+  if (!fs.existsSync(f)) return null;
+  return fs.readFileSync(f, 'utf8').trim().split('\n').filter(Boolean).length;
+}
+
+const dbTables = readDbTablesCount();
+const dbRpcs = readDbRpcsCount();
+const rlsPolicies = readDbRlsPolicyCount();
+
 write('summary.json', {
   generatedAt: new Date().toISOString(),
   counts: {
     routes: data.routes?.routes?.length ?? 0,
-    rpcs: data.rpcs.length,
-    tables: data.tables.length,
+    rpcs: dbRpcs ?? data.rpcs.length,
+    rpcsCalledFromFE: data.rpcs.length,
+    tables: dbTables ?? data.tables.length,
+    tablesUsedFromFE: data.tables.length,
     edgeFunctions: data.edgeFunctions.length,
     hooks: data.hooks.length,
     pages: data.pages.length,
     migrations: data.migrations.length,
+    rlsPolicies: rlsPolicies ?? null,
   },
 });
 console.log('OK →', OUT);
