@@ -73,11 +73,10 @@ export async function fetchShiftHandoverData(shiftId: string): Promise<ShiftHand
     .from('booking_payments')
     .select(`
       paid_at, payment_method, amount, payment_status, transaction_reference,
-      booking:bookings!booking_payments_booking_id_fkey(
+      booking:room_bookings!booking_payments_booking_id_fkey(
         id,
-        invoice_number,
-        guest:guests!bookings_guest_id_fkey(full_name),
-        room:rooms!bookings_room_id_fkey(room_number)
+        guest_name,
+        room:rooms!room_bookings_room_id_fkey(room_number)
       )
     `)
     .eq('tenant_id', shift.tenant_id)
