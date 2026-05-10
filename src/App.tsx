@@ -25,6 +25,9 @@ const lazyNamed = <T extends Record<string, any>>(
 // === Lazy routes — code-split per page ===
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
+const DocsLayout = lazy(() => import("./pages/docs/DocsLayout"));
+const DocsIndex = lazy(() => import("./pages/docs/DocsIndex"));
+const DocsViewer = lazy(() => import("./pages/docs/DocsViewer"));
 
 // Inventory
 const InventoryDashboardPage = lazyNamed(() => import("./pages/inventory/InventoryDashboardPage"), "InventoryDashboardPage");
@@ -237,6 +240,20 @@ const router = createBrowserRouter([
         <Onboarding />
       </AuthGuard>
     ),
+  },
+
+  // Docs Viewer (Super Admin only) — đọc docs/architecture/*.md trực tiếp
+  {
+    path: "/docs",
+    element: (
+      <RoleGuard allowedRoles={['super_admin']}>
+        <DocsLayout />
+      </RoleGuard>
+    ),
+    children: [
+      { index: true, element: <DocsIndex /> },
+      { path: "*", element: <DocsViewer /> },
+    ],
   },
 
   // Super Admin Routes
