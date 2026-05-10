@@ -45,11 +45,13 @@ stateDiagram-v2
 ## RPC: `transition_room_status`
 ```sql
 transition_room_status(
-  room_id uuid,
-  new_status text,
-  reason text default null,
-  metadata jsonb default '{}'
-) returns void
+  _room_id uuid,
+  _to_status text,
+  _reason text default null,
+  _dnd_until timestamptz default null,
+  _oos_until timestamptz default null,
+  _force boolean default false
+) returns jsonb
 ```
 Validate:
 - `from_status → new_status` có trong allowed transitions table
