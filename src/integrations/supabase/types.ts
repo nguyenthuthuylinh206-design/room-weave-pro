@@ -9800,6 +9800,32 @@ export type Database = {
           },
         ]
       }
+      item_avg_cost: {
+        Row: {
+          avg_cost: number | null
+          item_id: string | null
+          last_inbound_at: string | null
+          tenant_id: string | null
+          total_qty_in: number | null
+          total_value_in: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_transactions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       monthly_expenses: {
         Row: {
           laundry_amount: number | null
