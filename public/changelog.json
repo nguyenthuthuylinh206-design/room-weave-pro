@@ -1,9 +1,10 @@
 {
-  "version": "1.0.5",
-  "releaseDate": "2026-05-09",
-  "title": "Làm mới cache thương hiệu RoomQc",
+  "version": "1.0.6",
+  "releaseDate": "2026-05-10",
+  "title": "Sửa lỗi cache PWA giữ bản cũ",
   "changes": [
-    { "type": "improved", "text": "Ép làm mới cache để loại bỏ giao diện thương hiệu cũ còn lưu trên trình duyệt/PWA" },
-    { "type": "improved", "text": "Đồng bộ lại tên RoomQc ở header, footer, metadata và icon ứng dụng" }
+    { "type": "fixed", "text": "Tắt Service Worker trong môi trường preview/iframe để luôn hiển thị bản code mới nhất khi sửa" },
+    { "type": "fixed", "text": "Tự động dọn cache + Service Worker cũ còn sót lại trên thiết bị người dùng" },
+    { "type": "improved", "text": "PWA install + offline vẫn hoạt động đầy đủ trên domain production" }
   ]
 }
