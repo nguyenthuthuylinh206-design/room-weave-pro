@@ -92,63 +92,75 @@ export default function DistributionOrderDetailPage() {
     })
   }
 
+  const ActionsMenu = ({ size = 'sm' }: { size?: 'sm' | 'default' }) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size={size === 'sm' ? 'sm' : 'default'} className="gap-1">
+          <MoreHorizontal className="h-4 w-4" />
+          <span className="hidden sm:inline">Khác</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        {order.status === 'pending' && !order.assigned_to && isWarehouseManager && (
+          <>
+            <DropdownMenuItem onClick={() => setShowEditDialog(true)} className="gap-2">
+              <UserPlus className="h-4 w-4" />
+              Phân công nhân viên
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
+        <DropdownMenuItem onClick={() => setShowEditDialog(true)} disabled={!canEdit} className="gap-2">
+          <Pencil className="h-4 w-4" />
+          Chỉnh sửa phiếu
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => printDistributionOrder(order)} className="gap-2">
+          <Printer className="h-4 w-4" />
+          In phiếu
+        </DropdownMenuItem>
+        {canCancel && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => setShowCancelDialog(true)}
+              disabled={isCancelling}
+              className="gap-2 text-destructive focus:text-destructive"
+            >
+              <Ban className="h-4 w-4" />
+              Huỷ phiếu
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+
   // Mobile view
   if (isMobile) {
     return (
       <>
         <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="sticky top-0 z-10 bg-background border-b p-4">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => navigate('/inventory/distributions')}>
+          {/* Slim header */}
+          <div className="sticky top-0 z-10 bg-background border-b px-3 py-2.5">
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/inventory/distributions')}>
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              <div className="flex-1">
-                <div className="font-mono font-semibold">{order.order_code}</div>
-                <OrderStatusBadge status={order.status} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-semibold text-sm truncate">{order.order_code}</span>
+                  <OrderStatusBadge status={order.status} />
+                </div>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {order.created_by_name} • {format(new Date(order.created_at), 'dd/MM HH:mm', { locale: vi })}
+                </p>
               </div>
-              {canEdit && (
-                <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
-              )}
-              {canCancel && (
-                <Button 
-                  variant="destructive" 
-                  size="sm"
-                  onClick={() => setShowCancelDialog(true)}
-                  disabled={isCancelling}
-                >
-                  <Ban className="h-4 w-4" />
-                </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={() => printDistributionOrder(order)}>
-                <Printer className="h-4 w-4" />
-              </Button>
+              <ActionsMenu />
             </div>
           </div>
 
-          {/* Warning when no assignee - keep as action prompt */}
-          {order.status === 'pending' && !order.assigned_to && isWarehouseManager && (
-            <div className="p-3 border-b">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 flex-1">
-                  <UserX className="h-4 w-4 text-amber-600 shrink-0" />
-                  <p className="text-sm text-amber-600">
-                    <strong>Chưa phân công</strong> nhân viên giao hàng
-                  </p>
-                </div>
-                <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
-                  <UserPlus className="h-4 w-4 mr-1" />
-                  Phân công
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* RouteDetailView handles all guidance via DeliveryStepWizard */}
-          <div className="flex-1 overflow-auto">
-            {id && <RouteDetailView orderId={id} embedded />}
+          <div className="flex-1 overflow-auto p-3">
+            {id && <RouteDetailView orderId={id} embedded onAssign={() => setShowEditDialog(true)} />}
           </div>
         </div>
 
@@ -160,7 +172,7 @@ export default function DistributionOrderDetailPage() {
           onConfirm={handleCancelOrder}
           isPending={isCancelling}
         />
-        
+
         <UndoDeliveryDialog
           open={showUndoDialog}
           onOpenChange={setShowUndoDialog}
@@ -168,7 +180,7 @@ export default function DistributionOrderDetailPage() {
           onConfirm={handleUndoRoom}
           isPending={isUndoing}
         />
-        
+
         <EditDistributionDialog
           open={showEditDialog}
           onOpenChange={setShowEditDialog}
