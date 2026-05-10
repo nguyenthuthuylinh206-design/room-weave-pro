@@ -411,30 +411,37 @@ export function useMarkRoomReady() {
         throw new Error(`Phòng không ở trạng thái "Đang dọn" (hiện tại: ${room.status})`)
       }
       
-      // Update status to vacant_clean (đã dọn xong, sẵn sàng bán)
-      const { data: updated, error } = await supabase
+      // F-FSM-01: gọi qua RPC để có audit log + validate transition (state machine v2).
+      const { error: transErr } = await supabase.rpc('transition_room_status', {
+        _room_id: roomId,
+        _to_status: 'vacant_clean',
+        _reason: 'Housekeeping hoàn tất dọn phòng',
+      })
+      if (transErr) throw new Error(transErr.message)
+
+      // Lấy lại thông tin phòng sau khi chuyển trạng thái (cho workflow trigger).
+      const { data: updated, error: fetchErr } = await supabase
         .from('rooms')
-        .update({ status: 'vacant_clean' })
-        .eq('id', roomId)
-        .in('status', ['vacant_dirty', 'cleaning']) // Optimistic lock
         .select('*, room_number, hotel_id')
+        .eq('id', roomId)
         .single()
-      
-      if (error) throw error
-      
-      // Auto-complete any pending/in_progress cleaning tasks for this room
-      const { error: taskError } = await supabase
+      if (fetchErr) throw fetchErr
+
+      // Auto-complete cleaning tasks: lấy danh sách rồi gọi transition_task_status từng cái.
+      const { data: openTasks } = await supabase
         .from('housekeeping_tasks')
-        .update({ 
-          status: 'completed',
-          completed_at: new Date().toISOString()
-        })
+        .select('id')
         .eq('room_id', roomId)
         .eq('task_type', 'cleaning')
         .in('status', ['pending', 'in_progress'])
-      
-      if (taskError) {
-        console.error('Failed to auto-complete cleaning tasks:', taskError)
+
+      for (const t of openTasks ?? []) {
+        const { error: tErr } = await supabase.rpc('transition_task_status', {
+          _task_id: t.id,
+          _to_status: 'completed',
+          _note: 'Tự động hoàn tất khi phòng chuyển sang sạch',
+        })
+        if (tErr) console.error('[useMarkRoomReady] transition_task_status failed:', tErr.message)
       }
       
       // Trigger workflow for room status change
