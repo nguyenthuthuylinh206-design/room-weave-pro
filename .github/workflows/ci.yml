@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Lint + Test (RPC drift + ESLint FSM rule)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install deps
+        run: bun install --frozen-lockfile
+
+      - name: ESLint (gồm rule FSM `no-direct-room-status-update`)
+        run: bunx eslint . --max-warnings 50
+
+      - name: Vitest — RPC signature drift + suite
+        run: bunx vitest run
+
+      - name: Cảnh báo nếu db-functions.tsv chưa được regen
+        run: |
+          if [ ! -f docs/architecture/_generated/db-functions.tsv ]; then
+            echo "::error::Thiếu db-functions.tsv. Chạy: bash scripts/audit/dump-db-schema.sh"
+            exit 1
+          fi
