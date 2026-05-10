@@ -47,6 +47,29 @@ function loadDbFunctions(): Map<string, string[]> {
   return map;
 }
 
+/**
+ * Chỉ lấy các RPC do app định nghĩa: SECURITY DEFINER (cột 5 = 't').
+ * Lọc ra pgTAP / extension (secdef=f) để tránh false positive khi quét overload.
+ */
+function loadAppRpcs(): Map<string, string[]> {
+  if (!fs.existsSync(TSV)) return new Map();
+  const map = new Map<string, string[]>();
+  const lines = fs.readFileSync(TSV, 'utf8').trim().split('\n').filter(Boolean);
+  for (const line of lines) {
+    const cols = line.split('\t');
+    const name = cols[0];
+    const args = cols[1] ?? '';
+    const secdef = cols[4]; // 't' = SECURITY DEFINER (app RPC), 'f' = extension/pgTAP
+    if (!name) continue;
+    if (secdef !== 't') continue;
+    if (name.startsWith('_')) continue; // helper riêng
+    if (!map.has(name)) map.set(name, []);
+    map.get(name)!.push(args);
+  }
+  for (const arr of map.values()) arr.sort();
+  return map;
+}
+
 describe('RPC signature drift (vs _generated/db-functions.tsv)', () => {
   const snapshot = loadSnapshot();
   const db = loadDbFunctions();
