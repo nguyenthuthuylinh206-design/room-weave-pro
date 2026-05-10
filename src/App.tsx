@@ -416,6 +416,7 @@ const router = createBrowserRouter([
 
       // Finance — đối soát thanh toán
       { path: "finance/reconciliation", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><ReconciliationPage /></RoleGuard> },
+      { path: "staff/shift-handover", element: <ShiftHandoverPage /> },
 
       // Reception
       { path: "reception/pending-charges", element: <PermissionRoute module="bookings"><PendingChargesPage /></PermissionRoute> },
