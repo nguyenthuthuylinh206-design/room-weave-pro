@@ -36,8 +36,8 @@
 
 | ID | Sev | Mô tả | Evidence | Đề xuất |
 |---|---|---|---|---|
-| F-SEC-01 | 🔴 | Nếu có bảng nào RLS OFF → expose dữ liệu | `02-data/rls-policies.md` mục đầu | Bật RLS + viết policy ngay |
-| F-SEC-02 | 🟠 | `sepay-webhook` public, không auth → cần rate limit + IP allowlist | `supabase/functions/sepay-webhook/index.ts` | Thêm shared secret header + IP allowlist của SePay |
+| F-SEC-01 | ✅ | ~~Bảng RLS OFF~~ — **Đã verify 111/111 bảng đều RLS ON** (`_generated/db-rls-enabled.tsv`). Không còn rủi ro RLS-disabled. Cần riêng audit chất lượng nội dung policy (xem F-SEC-04). | `db-rls-enabled.tsv` | Đóng. |
+| F-SEC-02 | 🟡 | ~~SePay webhook public không auth~~ → **Đã có shared secret bắt buộc (B3 fail-close, 2026-05-10)**. Còn lại: thêm IP allowlist của SePay + rate limit. | `supabase/functions/sepay-webhook/index.ts:96-128` | Thêm IP allowlist + rate limit theo `_shared/rateLimit.ts` |
 | F-SEC-03 | 🟠 | Match payment chỉ dựa ref_code text → false-match khả dĩ | `payment.md` | Secondary match theo amount + thời gian + tolerance |
 | F-SEC-04 | 🟡 | Một số policy dùng `using (true)` cho SELECT (nếu có) | xem `rls-policies.md` | Thắt theo tenant + role |
 | F-SEC-05 | 🟡 | `guest-documents` bucket public — preview đẹp nhưng URL có thể leak | memory `Storage` core | Signed URL hoặc proxy edge function cho preview |
