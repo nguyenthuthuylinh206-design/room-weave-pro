@@ -81,6 +81,30 @@ describe('RPC signature drift (vs _generated/db-functions.tsv)', () => {
     }
     expect(issues, issues.join('\n')).toEqual([]);
   });
+
+  it('không có overload trùng tên ngoài ý muốn (full DB scan)', () => {
+    // C1: cảnh báo MỌI RPC có >1 overload (không chỉ snapshot 13).
+    // PostgREST chọn overload theo payload → 2 overload cùng tên = nguy cơ chọn nhầm.
+    // Nếu hợp lệ (e.g. extension, sql lang) → thêm vào ALLOWED_OVERLOADS.
+    const ALLOWED_OVERLOADS = new Set<string>([
+      'has_role',                      // 3 entry: 1 app-defined + 2 extension
+      'apply_room_standards',          // F-RPC-OVERLOAD-02 — chưa cleanup, còn 2 overload
+    ]);
+    const offenders: string[] = [];
+    for (const [name, sigs] of db.entries()) {
+      if (sigs.length <= 1) continue;
+      if (ALLOWED_OVERLOADS.has(name)) continue;
+      offenders.push(`\`${name}\` có ${sigs.length} overload — DROP bớt hoặc thêm vào ALLOWED_OVERLOADS với lý do.`);
+    }
+    expect(offenders, offenders.join('\n')).toEqual([]);
+  });
+
+  it('tổng số RPC trong DB không tụt bất thường (drift guard)', () => {
+    // C1: số tổng nên ≥ baseline. Nếu tụt → có thể bị DROP nhầm.
+    const BASELINE_MIN = 250; // 2026-05-10: actual = 283 sau khi drop submit_room_check_lean overload
+    const total = Array.from(db.values()).reduce((a, arr) => a + arr.length, 0);
+    expect(total, `RPC count = ${total} < baseline ${BASELINE_MIN}. Kiểm tra DROP nhầm?`).toBeGreaterThanOrEqual(BASELINE_MIN);
+  });
 });
 
 function formatDiff(rpc: string, expected: string[], actual: string[]): string {
