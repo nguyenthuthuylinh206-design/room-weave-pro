@@ -462,11 +462,8 @@ async function processCheckoutCheck(params: {
       }
     }
   } else {
-    // Phòng đã sạch sẵn → vacant_clean (sẵn sàng bán)
-    await supabase
-      .from('rooms')
-      .update({ status: 'vacant_clean' })
-      .eq('id', roomId)
+    // Phòng đã sạch sẵn → vacant_clean (sẵn sàng bán) — qua RPC
+    await safeTransitionRoomStatus(roomId, 'vacant_clean', 'Khách checkout, phòng sạch (room check)')
   }
   
   // 7. Create automated requests for supplements, laundry, and maintenance
