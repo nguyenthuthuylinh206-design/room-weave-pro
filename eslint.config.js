@@ -27,16 +27,4 @@ export default tseslint.config(
       "lovable-internal/no-direct-room-status-update": "error",
     },
   },
-  {
-    // Loại trừ các file legacy đã có sẵn vi phạm — sẽ refactor dần ở Sprint sau
-    // (xem F-FSM-01 trong findings.md). Khi refactor xong từng file, xoá khỏi danh sách này.
-    files: [
-      "src/hooks/useRooms.ts",
-      "src/hooks/useBulkRoomActions.ts",
-      "src/hooks/useRoomChecks.ts",
-    ],
-    rules: {
-      "lovable-internal/no-direct-room-status-update": "warn",
-    },
-  },
 );

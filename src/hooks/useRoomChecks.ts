@@ -10,7 +10,27 @@ import {
   sendTelegramNotification
 } from '@/hooks/useNotificationTriggers'
 import { getNotificationRecipients } from '@/utils/notificationRecipients'
-import type { RoomCheckFormData, LaundryItem, LostItem, ConsumedItem, DamagedItem } from '@/types/rooms.types'
+import type { RoomCheckFormData, LaundryItem, LostItem, ConsumedItem, DamagedItem, RoomStatusV2 } from '@/types/rooms.types'
+
+/**
+ * Helper nội bộ: chuyển trạng thái phòng qua RPC `transition_room_status` để
+ * đảm bảo audit log + state machine v2. Nuốt lỗi INVALID_TRANSITION khi phòng
+ * đã ở đúng trạng thái mong muốn (tương đương filter `.in('status', [...])` cũ).
+ */
+async function safeTransitionRoomStatus(
+  roomId: string,
+  toStatus: RoomStatusV2,
+  reason: string,
+): Promise<void> {
+  const { error } = await supabase.rpc('transition_room_status', {
+    _room_id: roomId,
+    _to_status: toStatus,
+    _reason: reason,
+  })
+  if (error && !/INVALID_TRANSITION|ALREADY_IN_STATUS/i.test(error.message)) {
+    console.error('[useRoomChecks] transition_room_status failed:', error.message)
+  }
+}
 
 export function useRoomChecks(roomId: string | undefined) {
   return useQuery({
@@ -290,13 +310,10 @@ async function processCheckinCheck(params: {
   await applyRoomItemChanges(roomId, quantityChanges, userId)
   
   // Auto-change room status: vacant_* → occupied_clean (phòng đã có khách)
-  // State Machine v2: chấp nhận cả status legacy lẫn v2 trong giai đoạn rollout.
+  // State Machine v2: gọi qua RPC để có audit log; RPC trả INVALID_TRANSITION
+  // sẽ bị swallow nếu phòng đã ở trạng thái khác hợp lệ.
   if (validation.isReady) {
-    await supabase
-      .from('rooms')
-      .update({ status: 'occupied_clean' })
-      .eq('id', roomId)
-      .in('status', ['vacant_clean', 'vacant_inspected', 'vacant_dirty'])
+    await safeTransitionRoomStatus(roomId, 'occupied_clean', 'Khách check-in (room check)')
   }
   
   return { quantityChanges, validation }
@@ -381,11 +398,8 @@ async function processCheckoutCheck(params: {
   const roomCondition = data.room_condition ?? 'clean'
   
   if (needsCleaning || roomCondition !== 'clean') {
-    // Phòng cần dọn → vacant_dirty (chờ HK)
-    await supabase
-      .from('rooms')
-      .update({ status: 'vacant_dirty' })
-      .eq('id', roomId)
+    // Phòng cần dọn → vacant_dirty (chờ HK) — qua RPC để có audit log
+    await safeTransitionRoomStatus(roomId, 'vacant_dirty', 'Khách checkout, cần dọn (room check)')
     
     // Gửi thông báo cho Manager
     if (tenantId && userId) {
@@ -448,11 +462,8 @@ async function processCheckoutCheck(params: {
       }
     }
   } else {
-    // Phòng đã sạch sẵn → vacant_clean (sẵn sàng bán)
-    await supabase
-      .from('rooms')
-      .update({ status: 'vacant_clean' })
-      .eq('id', roomId)
+    // Phòng đã sạch sẵn → vacant_clean (sẵn sàng bán) — qua RPC
+    await safeTransitionRoomStatus(roomId, 'vacant_clean', 'Khách checkout, phòng sạch (room check)')
   }
   
   // 7. Create automated requests for supplements, laundry, and maintenance
@@ -525,12 +536,8 @@ async function processMaintenanceCheck(params: {
   
   await applyRoomItemChanges(roomId, quantityChanges, userId)
   
-  // Auto-change room status: out_of_order/out_of_service → vacant_clean (phòng đã sửa xong)
-  await supabase
-    .from('rooms')
-    .update({ status: 'vacant_clean' })
-    .eq('id', roomId)
-    .in('status', ['out_of_order', 'out_of_service'])
+  // Auto-change room status: out_of_order/out_of_service → vacant_clean (đã sửa xong)
+  await safeTransitionRoomStatus(roomId, 'vacant_clean', 'Hoàn tất bảo trì (room check)')
   
   return { quantityChanges }
 }

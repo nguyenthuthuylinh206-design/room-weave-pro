@@ -152,12 +152,23 @@ export function useBulkUpdateRoomStatus() {
         roomsData = data || []
       }
 
-      const { error } = await supabase
-        .from('rooms')
-        .update({ status, updated_at: new Date().toISOString() })
-        .in('id', roomIds)
-
-      if (error) throw error
+      // State Machine v2: gọi RPC từng phòng để có audit log + kiểm transition.
+      // Lỗi INVALID_TRANSITION/PERMISSION_DENIED được gom lại thay vì throw cả batch.
+      const failures: Array<{ roomId: string; reason: string }> = []
+      for (const id of roomIds) {
+        const { error } = await supabase.rpc('transition_room_status', {
+          _room_id: id,
+          _to_status: status as RoomStatus,
+          _reason: 'Cập nhật hàng loạt (bulk action)',
+        })
+        if (error) failures.push({ roomId: id, reason: error.message })
+      }
+      if (failures.length === roomIds.length) {
+        throw new Error(failures[0]?.reason || 'Không cập nhật được trạng thái')
+      }
+      if (failures.length > 0) {
+        console.warn('[useBulkRoomActions] Một số phòng không chuyển được:', failures)
+      }
       return { count: roomIds.length, status, roomsData, isCheckoutLike }
     },
     onSuccess: ({ count, status, roomsData, isCheckoutLike }) => {
