@@ -192,65 +192,26 @@ export default function DistributionOrderDetailPage() {
 
   // Desktop view
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
+    <div className="container mx-auto py-6 space-y-4 max-w-5xl">
+      {/* Slim header */}
+      <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate('/inventory/distributions')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold font-mono">{order.order_code}</h1>
-            <OrderStatusBadge status={order.status} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-xl font-semibold font-mono">{order.order_code}</h1>
+            <OrderStatusBadge status={order.status} showSubLabel />
           </div>
-          <p className="text-muted-foreground">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Tạo bởi {order.created_by_name} • {format(new Date(order.created_at), 'dd/MM/yyyy HH:mm', { locale: vi })}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => setShowEditDialog(true)}
-            disabled={!canEdit}
-          >
-            <Pencil className="h-4 w-4 mr-2" />
-            Chỉnh sửa
-          </Button>
-          {canCancel && (
-            <Button 
-              variant="destructive" 
-              onClick={() => setShowCancelDialog(true)}
-              disabled={isCancelling}
-            >
-              <Ban className="h-4 w-4 mr-2" />
-              Hủy phiếu
-            </Button>
-          )}
-          <Button variant="outline" onClick={() => printDistributionOrder(order)}>
-            <Printer className="h-4 w-4 mr-2" />
-            In phiếu
-          </Button>
-        </div>
+        <ActionsMenu size="default" />
       </div>
 
-      {/* Warning when no assignee - keep as action prompt */}
-      {order.status === 'pending' && !order.assigned_to && isWarehouseManager && (
-        <div className="border rounded-lg p-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <UserX className="h-5 w-5 text-amber-600" />
-            <p className="text-sm text-amber-600">
-              Phiếu chưa có nhân viên được phân công. Vui lòng phân công trước khi giao hàng.
-            </p>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
-            <UserPlus className="h-4 w-4 mr-2" />
-            Phân công ngay
-          </Button>
-        </div>
-      )}
-
-      {/* Route View - DeliveryStepWizard handles all guidance */}
-      {id && <RouteDetailView orderId={id} embedded />}
+      {/* Route View */}
+      {id && <RouteDetailView orderId={id} embedded onAssign={() => setShowEditDialog(true)} />}
 
       {/* Dialogs */}
       <CancelOrderDialog
