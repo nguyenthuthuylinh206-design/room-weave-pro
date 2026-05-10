@@ -915,14 +915,20 @@ export function RoomCheckPage() {
               
               if (relatedTask) {
                 console.log('[BG] Auto-completing task:', relatedTask.id)
-                await supabase
-                  .from('housekeeping_tasks')
-                  .update({ 
-                    status: 'completed',
-                    completed_at: new Date().toISOString(),
-                    room_check_id: createdCheck?.id,
-                  })
-                  .eq('id', relatedTask.id)
+                // F-FSM-02: ghi `room_check_id` (field non-status) trước, rồi
+                // chuyển status qua RPC `transition_task_status` để có audit log.
+                if (createdCheck?.id) {
+                  await supabase
+                    .from('housekeeping_tasks')
+                    .update({ room_check_id: createdCheck.id })
+                    .eq('id', relatedTask.id)
+                }
+                const { error: tErr } = await supabase.rpc('transition_task_status', {
+                  _task_id: relatedTask.id,
+                  _to_status: 'completed',
+                  _note: 'Tự động hoàn tất khi nộp room check',
+                })
+                if (tErr) console.error('[BG] transition_task_status failed:', tErr.message)
               }
               
               queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
