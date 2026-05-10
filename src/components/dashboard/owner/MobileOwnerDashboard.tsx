@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useBookingStats } from '@/hooks/useBookingStats'
+import { SetupChecklist } from './SetupChecklist'
 
 type DateRangePreset = '1m' | '3m' | '6m' | '12m'
 
