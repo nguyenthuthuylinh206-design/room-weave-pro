@@ -9,12 +9,13 @@ import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 
 export default function ShiftHandoverPage() {
-  const { userData, isOwner, isManager } = useUser()
-  const canSeeAll = isOwner || isManager
+  const { user } = useUser()
+  const level = (user as any)?.position?.user_level_code
+  const canSeeAll = level === 'super_admin' || level === 'tenant_owner' || level === 'manager'
 
   // Staff: chỉ xem ca của mình. Manager/Owner: xem toàn bộ.
   const { data: shifts, isLoading } = useShiftHistory({
-    userId: canSeeAll ? null : userData?.id,
+    userId: canSeeAll ? null : user?.id,
   })
 
   const [exportingId, setExportingId] = useState<string | null>(null)
