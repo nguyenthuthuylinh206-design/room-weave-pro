@@ -15,6 +15,7 @@ import {
   X,
   Shield,
   ClipboardCheck,
+  BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -39,6 +40,7 @@ export function SuperAdminLayout() {
     { name: t('navigation.pricing'), href: '/super-admin/pricing', icon: DollarSign },
     { name: t('navigation.analytics'), href: '/super-admin/analytics', icon: BarChart3 },
     { name: t('navigation.settings'), href: '/super-admin/settings', icon: Settings },
+    { name: 'Tài liệu kỹ thuật', href: '/docs', icon: BookOpen },
   ];
 
   const navigationTitles: Record<string, string> = {
