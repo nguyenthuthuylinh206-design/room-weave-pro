@@ -10,6 +10,7 @@ import { OwnerSmartAlerts } from './OwnerSmartAlerts'
 import { OwnerProfitOverview } from './OwnerProfitOverview'
 import { ExpenseChart } from '../ExpenseChart'
 import { OwnerQuickLinks } from './OwnerQuickLinks'
+import { SetupChecklist } from './SetupChecklist'
 import { OwnerRoomOverview } from './OwnerRoomOverview'
 import { OwnerRevenueOverview } from './OwnerRevenueOverview'
 import { MobileOwnerDashboard } from './MobileOwnerDashboard'
@@ -57,6 +58,9 @@ export function OwnerDashboard() {
           </SelectContent>
         </Select>
       </PageHeader>
+
+      {/* Setup Checklist - hiển thị khi tenant chưa cấu hình đủ */}
+      <SetupChecklist />
 
       {/* Smart Alerts - Show first for immediate attention */}
       <OwnerSmartAlerts />
