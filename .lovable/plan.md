@@ -1,90 +1,72 @@
-## Nguyên nhân (đã xác định bằng network log + DB)
+## Mục tiêu
 
-Bạn đăng nhập với user `nguyenducphuoc@company.com`:
-- `users.user_level_code = 'tenant_owner'`, `is_primary_owner = true`
-- `user_roles.role = 'owner'`
-- Nhưng bảng `user_permissions` **trống** (0 dòng)
+Khắc phục triệt để hiện tượng "preview hiển thị bản cũ, chỉ đúng khi bật Visual Edits". Nguyên nhân là Service Worker (PWA) cache app shell + Supabase REST trong iframe preview của Lovable.
 
-Khi load app, client gọi `rpc/get_user_permissions_summary`. Hàm này hiện chỉ đọc `user_permissions` thuần — **không có nhánh bypass cho `super_admin` / `tenant_owner`** như `has_user_permission` đã có. Vì vậy mọi module trả về `can_view=false`, dẫn tới:
+## Phạm vi thay đổi
 
-- UI inventory/dashboard không gọi `get_inventory_dashboard_stats` → hiển thị 0.
-- Các trang khác cũng bị "ẩn data" mặc dù RLS và data thật vẫn còn nguyên (đã verify: `get_dashboard_stats` trả về `total_value: 12.27 tỷ`, `total_items: 75431`).
+Chỉ frontend + 1 SW kill-switch. Không đụng business logic, không đụng database.
 
-Đây **không phải** do migration revoke UPDATE status hôm qua — RLS SELECT vẫn hoạt động bình thường. Đây là bug cũ trong RPC summary, lộ ra khi UI bắt đầu dựa nhiều hơn vào kết quả của nó.
+---
 
-## Phạm vi sửa
+### A. Kiến trúc / logic
 
-Chỉ sửa 1 RPC trong DB. Không đụng code frontend, không đụng RLS, không đụng FSM.
+1. **Guard đăng ký SW**: Không register Service Worker khi:
+   - Đang chạy trong iframe (`window.self !== window.top`)
+   - Hostname chứa `id-preview--`, `lovableproject.com`, hoặc `localhost`
+2. **Auto-cleanup**: Trong các môi trường trên, nếu phát hiện SW cũ đã đăng ký từ trước → tự động `unregister()` + `caches.delete()` toàn bộ → reload 1 lần.
+3. **Production (`room-weave-pro.lovable.app` + custom domain)**: SW vẫn hoạt động bình thường, PWA install + offline vẫn đầy đủ.
+4. **Bump version một lần** để CacheBuster wipe cache cho user/PWA đang stuck.
 
-### Migration
-Thay `get_user_permissions_summary(p_user_id)`:
+---
 
-```sql
-CREATE OR REPLACE FUNCTION public.get_user_permissions_summary(p_user_id uuid)
-RETURNS TABLE(module text, can_view boolean, can_create boolean, can_update boolean,
-              can_delete boolean, can_export boolean, can_approve boolean,
-              can_assign boolean, can_manage boolean)
-LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
-AS $$
-DECLARE v_user_level text;
-BEGIN
-  SELECT user_level_code INTO v_user_level FROM users WHERE id = p_user_id;
+### B. Schema / migration
 
-  -- Bypass: super_admin & tenant_owner luôn có toàn quyền
-  IF v_user_level IN ('super_admin', 'tenant_owner') THEN
-    RETURN QUERY
-      SELECT DISTINCT p.module,
-             true, true, true, true, true, true, true, true
-      FROM permissions p
-      ORDER BY 1;
-    RETURN;
-  END IF;
+Không có.
 
-  -- Mặc định: gộp user_permissions + role_permissions (đầy đủ nguồn,
-  -- không chỉ user_permissions như hàm cũ).
-  RETURN QUERY
-  WITH all_perms AS (
-    SELECT up.module, up.action
-      FROM user_permissions up
-      WHERE up.user_id = p_user_id AND up.enabled = true
-    UNION
-    SELECT p.module, p.action
-      FROM user_roles ur
-      JOIN roles r ON r.code = ur.role::text
-      JOIN role_permissions rp ON rp.role_id = r.id
-      JOIN permissions p ON p.id = rp.permission_id
-      WHERE ur.user_id = p_user_id
-        AND (r.tenant_id = (SELECT tenant_id FROM users WHERE id = p_user_id)
-             OR r.tenant_id = '00000000-0000-0000-0000-000000000000'::uuid)
-  )
-  SELECT m.module,
-    EXISTS(SELECT 1 FROM all_perms a WHERE a.module=m.module AND a.action='view'),
-    EXISTS(SELECT 1 FROM all_perms a WHERE a.module=m.module AND a.action='create'),
-    EXISTS(SELECT 1 FROM all_perms a WHERE a.module=m.module AND a.action IN ('update','edit')),
-    EXISTS(SELECT 1 FROM all_perms a WHERE a.module=m.module AND a.action='delete'),
-    EXISTS(SELECT 1 FROM all_perms a WHERE a.module=m.module AND a.action='export'),
-    EXISTS(SELECT 1 FROM all_perms a WHERE a.module=m.module AND a.action='approve'),
-    EXISTS(SELECT 1 FROM all_perms a WHERE a.module=m.module AND a.action='assign'),
-    EXISTS(SELECT 1 FROM all_perms a WHERE a.module=m.module AND a.action='manage')
-  FROM (SELECT DISTINCT module FROM permissions) m
-  ORDER BY m.module;
-END $$;
-```
+---
 
-Hai cải tiến so với hàm cũ:
-1. **Bypass** cho `super_admin` / `tenant_owner` (đồng bộ với `has_user_permission`).
-2. Manager/Staff cũng được tính cả `role_permissions` (trước đây hàm cũ bỏ sót — chỉ đọc `user_permissions`).
+### C. API / RPC
 
-### Verify sau migration
-- `SELECT * FROM get_user_permissions_summary('4e5885ed-…')` → tất cả module `can_view=true`.
-- Reload app → Inventory dashboard hiện `12.27B ₫`, items `75431`, rooms `52` thay vì 0.
-- Test với 1 staff thật để chắc role_permissions vẫn được trả đúng.
+Không có.
 
-## Rollout
-- Migration không phá vỡ schema, có thể rollback bằng cách restore phiên bản cũ của hàm.
-- Không cần code change client.
-- Không cần invalidate cache thủ công — react-query sẽ tự refetch khi user reload.
+---
 
-## Phần KHÔNG làm trong lượt này
-- Không đụng tới migration revoke UPDATE status (không liên quan).
-- Không refactor permission_matrix docs.
+### D. UI / Files thay đổi
+
+| File | Thay đổi |
+|---|---|
+| `src/hooks/usePWAUpdate.ts` | Bọc toàn bộ `useRegisterSW` + interval update bằng guard `shouldEnablePWA()`. Khi không enable: chỉ chạy nhánh cleanup (unregister + clear caches), không đăng ký SW mới. |
+| `src/components/pwa/CacheBuster.tsx` | Thêm cùng guard: trong preview/iframe luôn wipe cache + unregister SW mỗi lần load (không phụ thuộc version). |
+| `src/lib/pwa-environment.ts` *(mới)* | Helper duy nhất `shouldEnablePWA()` + `isPreviewOrIframe()` để dùng chung, tránh lặp logic. |
+| `src/lib/app-version.ts` | Bump `1.0.5` → `1.0.6`, cập nhật `APP_VERSION_DATE`. |
+| `public/changelog.json` | Thêm entry 1.0.6: "Sửa lỗi cache PWA giữ bản cũ trong môi trường preview". |
+| `vite.config.ts` *(kiểm tra)* | Đảm bảo `VitePWA` đã có `devOptions.enabled: false`. Nếu chưa → tắt. |
+
+---
+
+### E. Permission / role
+
+Không ảnh hưởng.
+
+---
+
+### F. Test cases
+
+1. **Preview iframe (editor Lovable)**: Mở DevTools → Application → Service Workers → phải là **trống** hoặc đang unregister. Cache Storage trống. Sửa 1 file → reload preview → thấy thay đổi ngay, không cần bật Visual Edits.
+2. **Production (`room-weave-pro.lovable.app`)**: SW vẫn register. `navigator.serviceWorker.getRegistrations()` trả về 1 entry. PWA install vẫn được. Sau khi deploy bản mới + bump version → CacheBuster trigger reload đúng 1 lần.
+3. **PWA đã cài trên iPhone**: Mở app sau update → CacheBuster phát hiện version mismatch → wipe + reload → hiển thị bản 1.0.6.
+4. **Localhost dev**: SW không register, HMR Vite hoạt động bình thường.
+
+---
+
+### G. Rollout notes
+
+- Không breaking change. User cuối chỉ thấy 1 lần reload tự động sau khi mở app lần đầu sau deploy.
+- Nếu muốn rollback: revert 3 file (`usePWAUpdate.ts`, `CacheBuster.tsx`, `pwa-environment.ts`) — SW sẽ register lại như cũ.
+- Sau merge: nhắc user **F5 cứng (Ctrl+Shift+R)** trên trình duyệt thường lệ một lần để cleanup chạy.
+
+---
+
+### Tại sao cách này chuẩn hơn các fix trước
+
+Memory `pwa/cache-busting-v1` hiện tại chỉ dựa vào việc bump version mỗi release — nhưng **trong editor preview thì không bao giờ bump version giữa các lần chỉnh sửa nhỏ**, nên SW cũ vẫn serve bản stale. Guard ở tầng register là cách duy nhất triệt để cho môi trường iframe.
