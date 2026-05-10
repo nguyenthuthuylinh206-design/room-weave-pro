@@ -5118,6 +5118,80 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_anomalies: {
+        Row: {
+          amount_diff: number | null
+          anomaly_type: Database["public"]["Enums"]["payment_anomaly_type"]
+          created_at: string
+          expected_amount: number | null
+          expected_invoice_number: string | null
+          expected_payment_id: string | null
+          id: string
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          sepay_account: string | null
+          sepay_amount: number
+          sepay_content: string | null
+          sepay_date: string | null
+          sepay_reference: string | null
+          sepay_tx_id: string
+          status: Database["public"]["Enums"]["payment_anomaly_status"]
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_diff?: number | null
+          anomaly_type: Database["public"]["Enums"]["payment_anomaly_type"]
+          created_at?: string
+          expected_amount?: number | null
+          expected_invoice_number?: string | null
+          expected_payment_id?: string | null
+          id?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          sepay_account?: string | null
+          sepay_amount: number
+          sepay_content?: string | null
+          sepay_date?: string | null
+          sepay_reference?: string | null
+          sepay_tx_id: string
+          status?: Database["public"]["Enums"]["payment_anomaly_status"]
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_diff?: number | null
+          anomaly_type?: Database["public"]["Enums"]["payment_anomaly_type"]
+          created_at?: string
+          expected_amount?: number | null
+          expected_invoice_number?: string | null
+          expected_payment_id?: string | null
+          id?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          sepay_account?: string | null
+          sepay_amount?: number
+          sepay_content?: string | null
+          sepay_date?: string | null
+          sepay_reference?: string | null
+          sepay_tx_id?: string
+          status?: Database["public"]["Enums"]["payment_anomaly_status"]
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_anomalies_expected_payment_id_fkey"
+            columns: ["expected_payment_id"]
+            isOneToOne: false
+            referencedRelation: "payment_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_methods: {
         Row: {
           billing_address: Json | null
@@ -12484,6 +12558,8 @@ export type Database = {
       hk_qc_mode: "self" | "peer" | "strict"
       issue_role: "primary_issue" | "derived_action"
       item_type: "linen" | "consumable" | "equipment" | "furniture"
+      payment_anomaly_status: "open" | "resolved" | "ignored"
+      payment_anomaly_type: "unmatched" | "amount_mismatch" | "duplicate"
       photo_evidence_mode: "none" | "on_issue" | "always"
       service_category:
         | "wellness"
@@ -12651,6 +12727,8 @@ export const Constants = {
       hk_qc_mode: ["self", "peer", "strict"],
       issue_role: ["primary_issue", "derived_action"],
       item_type: ["linen", "consumable", "equipment", "furniture"],
+      payment_anomaly_status: ["open", "resolved", "ignored"],
+      payment_anomaly_type: ["unmatched", "amount_mismatch", "duplicate"],
       photo_evidence_mode: ["none", "on_issue", "always"],
       service_category: [
         "wellness",
