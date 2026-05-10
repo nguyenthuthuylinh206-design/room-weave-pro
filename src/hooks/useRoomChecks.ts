@@ -398,11 +398,8 @@ async function processCheckoutCheck(params: {
   const roomCondition = data.room_condition ?? 'clean'
   
   if (needsCleaning || roomCondition !== 'clean') {
-    // Phòng cần dọn → vacant_dirty (chờ HK)
-    await supabase
-      .from('rooms')
-      .update({ status: 'vacant_dirty' })
-      .eq('id', roomId)
+    // Phòng cần dọn → vacant_dirty (chờ HK) — qua RPC để có audit log
+    await safeTransitionRoomStatus(roomId, 'vacant_dirty', 'Khách checkout, cần dọn (room check)')
     
     // Gửi thông báo cho Manager
     if (tenantId && userId) {
