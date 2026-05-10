@@ -90,8 +90,8 @@ export async function fetchShiftHandoverData(shiftId: string): Promise<ShiftHand
 
   const transactions = (payments || []).map((p: any) => ({
     paid_at: p.paid_at,
-    invoice_number: p.booking?.invoice_number ?? null,
-    guest_name: p.booking?.guest?.full_name ?? null,
+    invoice_number: p.transaction_reference || (p.booking?.id ? p.booking.id.slice(0, 8) : null),
+    guest_name: p.booking?.guest_name ?? null,
     room_number: p.booking?.room?.room_number ?? null,
     payment_method: p.payment_method,
     amount: Number(p.amount || 0),
