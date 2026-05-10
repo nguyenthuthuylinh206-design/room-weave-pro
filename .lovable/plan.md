@@ -1,72 +1,74 @@
-## Mục tiêu
+## Vấn đề
 
-Khắc phục triệt để hiện tượng "preview hiển thị bản cũ, chỉ đúng khi bật Visual Edits". Nguyên nhân là Service Worker (PWA) cache app shell + Supabase REST trong iframe preview của Lovable.
+Trang **Quản lý khách hàng** (và mọi nơi đọc bảng `tenants`) trả về rỗng vì:
 
-## Phạm vi thay đổi
+- `public.tenants` đã **bật RLS** (`relrowsecurity = true`)
+- Nhưng **KHÔNG có policy nào** cho `SELECT` (cũng không có cho INSERT/UPDATE/DELETE)
+- → Postgres mặc định **chặn 100% SELECT** từ client REST
 
-Chỉ frontend + 1 SW kill-switch. Không đụng business logic, không đụng database.
+Bằng chứng:
+- DB có **11 tenants** (10 không tính tenant hệ thống `00000000…`)
+- RPC `get_super_admin_dashboard_stats` (SECURITY DEFINER, bypass RLS) trả `total_tenants: 10` ✅
+- Network log: `GET /rest/v1/tenants?…` → trả `[]` hoặc `PGRST116 (0 rows)` ở mọi query trực tiếp
 
----
-
-### A. Kiến trúc / logic
-
-1. **Guard đăng ký SW**: Không register Service Worker khi:
-   - Đang chạy trong iframe (`window.self !== window.top`)
-   - Hostname chứa `id-preview--`, `lovableproject.com`, hoặc `localhost`
-2. **Auto-cleanup**: Trong các môi trường trên, nếu phát hiện SW cũ đã đăng ký từ trước → tự động `unregister()` + `caches.delete()` toàn bộ → reload 1 lần.
-3. **Production (`room-weave-pro.lovable.app` + custom domain)**: SW vẫn hoạt động bình thường, PWA install + offline vẫn đầy đủ.
-4. **Bump version một lần** để CacheBuster wipe cache cho user/PWA đang stuck.
+Đây cũng là nguyên nhân gốc của các báo cáo trước "tất cả dữ liệu đều bị mất" — bất cứ component nào (Subscription banner, ReadOnlyMode, useTenant, AdvancedTenantsManagement, ChangePlanDialog…) query trực tiếp `tenants` đều thấy rỗng.
 
 ---
 
-### B. Schema / migration
+## Phương án
 
-Không có.
+Tạo migration thêm 4 policy cho `public.tenants`:
 
----
+| Policy | Cmd | Logic |
+|---|---|---|
+| `tenants_select_own` | SELECT | `id = (SELECT tenant_id FROM public.users WHERE id = auth.uid())` — user xem tenant của chính mình |
+| `tenants_select_super_admin` | SELECT | `public.is_super_admin(auth.uid())` — Super Admin xem tất cả |
+| `tenants_update_super_admin` | UPDATE | `public.is_super_admin(auth.uid())` — Super Admin sửa tất cả |
+| `tenants_update_owner` | UPDATE | `id = (SELECT tenant_id FROM public.users WHERE id = auth.uid()) AND public.has_role(auth.uid(), 'owner')` — Owner sửa tenant mình |
 
-### C. API / RPC
+INSERT/DELETE: KHÔNG mở. Tạo tenant mới đi qua flow signup (server-side / SECURITY DEFINER RPC). Xoá tenant chỉ qua Super Admin tools (RPC riêng nếu cần).
 
-Không có.
-
----
-
-### D. UI / Files thay đổi
-
-| File | Thay đổi |
-|---|---|
-| `src/hooks/usePWAUpdate.ts` | Bọc toàn bộ `useRegisterSW` + interval update bằng guard `shouldEnablePWA()`. Khi không enable: chỉ chạy nhánh cleanup (unregister + clear caches), không đăng ký SW mới. |
-| `src/components/pwa/CacheBuster.tsx` | Thêm cùng guard: trong preview/iframe luôn wipe cache + unregister SW mỗi lần load (không phụ thuộc version). |
-| `src/lib/pwa-environment.ts` *(mới)* | Helper duy nhất `shouldEnablePWA()` + `isPreviewOrIframe()` để dùng chung, tránh lặp logic. |
-| `src/lib/app-version.ts` | Bump `1.0.5` → `1.0.6`, cập nhật `APP_VERSION_DATE`. |
-| `public/changelog.json` | Thêm entry 1.0.6: "Sửa lỗi cache PWA giữ bản cũ trong môi trường preview". |
-| `vite.config.ts` *(kiểm tra)* | Đảm bảo `VitePWA` đã có `devOptions.enabled: false`. Nếu chưa → tắt. |
+Dùng `is_super_admin(uuid)` (đã có) → tránh recursion vì hàm này SECURITY DEFINER đọc `user_roles`, không đọc `tenants`.
 
 ---
 
-### E. Permission / role
+### A. Logic
+Phân quyền 3 lớp như trên. Không động tới business logic, không thay đổi UI.
 
-Không ảnh hưởng.
+### B. Migration
+1 migration tạo 4 policy + ghi audit log via `log_state_transition` nếu có (chỉ ghi text, không bắt buộc).
+
+### C. RPC
+Không thêm RPC. Reuse `is_super_admin`, `has_role` đã có.
+
+### D. UI
+Không đổi. Sau migration, các trang sẽ tự fill data:
+- `/admin/tenants` → 10 khách hàng hiện ra
+- Subscription banner → đọc được tenant hiện tại
+- HotelContext / ReadOnlyMode → hết lỗi 406
+
+### E. Permission
+- Super Admin: full read/update tenants
+- Owner: read + update tenant của mình
+- Manager/Staff: chỉ read tenant của mình
+- Anonymous: không có quyền
+
+### F. Test
+1. Login `admin@company.com` (super_admin) → `/admin/tenants` thấy 10 khách hàng.
+2. `GET /rest/v1/tenants?id=eq.{tenant_id_của_user}` từ user thường → trả 1 row (không còn 406).
+3. User của tenant A KHÔNG đọc được tenant B (RLS tenant isolation OK).
+4. Owner update field `name` của tenant mình → 200.
+5. Staff update tenant → 0 row affected (chặn).
+6. Super Admin update field `subscription_status` của tenant bất kỳ → 200.
+
+### G. Rollout
+- Không breaking. Migration thuần ADD POLICY.
+- Rollback: `DROP POLICY tenants_select_own, tenants_select_super_admin, tenants_update_super_admin, tenants_update_owner ON public.tenants;`
+- Sau khi áp: F5 các trang để invalidate react-query cache.
 
 ---
 
-### F. Test cases
+## Phần còn thiếu / lưu ý
 
-1. **Preview iframe (editor Lovable)**: Mở DevTools → Application → Service Workers → phải là **trống** hoặc đang unregister. Cache Storage trống. Sửa 1 file → reload preview → thấy thay đổi ngay, không cần bật Visual Edits.
-2. **Production (`room-weave-pro.lovable.app`)**: SW vẫn register. `navigator.serviceWorker.getRegistrations()` trả về 1 entry. PWA install vẫn được. Sau khi deploy bản mới + bump version → CacheBuster trigger reload đúng 1 lần.
-3. **PWA đã cài trên iPhone**: Mở app sau update → CacheBuster phát hiện version mismatch → wipe + reload → hiển thị bản 1.0.6.
-4. **Localhost dev**: SW không register, HMR Vite hoạt động bình thường.
-
----
-
-### G. Rollout notes
-
-- Không breaking change. User cuối chỉ thấy 1 lần reload tự động sau khi mở app lần đầu sau deploy.
-- Nếu muốn rollback: revert 3 file (`usePWAUpdate.ts`, `CacheBuster.tsx`, `pwa-environment.ts`) — SW sẽ register lại như cũ.
-- Sau merge: nhắc user **F5 cứng (Ctrl+Shift+R)** trên trình duyệt thường lệ một lần để cleanup chạy.
-
----
-
-### Tại sao cách này chuẩn hơn các fix trước
-
-Memory `pwa/cache-busting-v1` hiện tại chỉ dựa vào việc bump version mỗi release — nhưng **trong editor preview thì không bao giờ bump version giữa các lần chỉnh sửa nhỏ**, nên SW cũ vẫn serve bản stale. Guard ở tầng register là cách duy nhất triệt để cho môi trường iframe.
+- Cần kiểm tra thêm các bảng khác có cùng tình trạng "RLS on, no policy" không (`hotels`, `subscription_plans`, `tenant_usage`…). Nếu có sẽ làm migration tiếp theo. Trong phạm vi yêu cầu hiện tại chỉ fix `tenants` để mở khoá trang đang xem.
+- Không thay đổi PWA/cache (đã fix turn trước).
