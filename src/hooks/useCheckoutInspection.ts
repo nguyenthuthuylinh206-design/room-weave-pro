@@ -202,14 +202,20 @@ export function useCheckoutInspection(bookingId: string | undefined) {
       
       if (error) throw error
       
-      // 2. HỦY housekeeping_tasks liên quan
-      await supabase
+      // 2. HỦY housekeeping_tasks liên quan — qua RPC để có audit log + validate transition.
+      const { data: relatedTasks } = await supabase
         .from('housekeeping_tasks')
-        .update({ 
-          status: 'cancelled',
-          cancelled_at: new Date().toISOString()
-        })
+        .select('id')
         .eq('checkout_inspection_id', inspectionId)
+
+      for (const t of relatedTasks ?? []) {
+        const { error: tErr } = await supabase.rpc('transition_task_status', {
+          _task_id: t.id,
+          _to_status: 'cancelled',
+          _note: 'Hủy do hủy yêu cầu kiểm tra checkout',
+        })
+        if (tErr) console.error('[cancelInspection] transition_task_status failed:', tErr.message)
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['checkout-inspection', bookingId] })
