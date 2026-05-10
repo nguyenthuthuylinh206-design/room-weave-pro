@@ -239,8 +239,11 @@ function readDbRpcsCount() {
   const f = path.join(OUT, 'db-functions.tsv');
   if (!fs.existsSync(f)) return null;
   const lines = fs.readFileSync(f, 'utf8').trim().split('\n').filter(Boolean);
-  // Dedupe overload theo tên hàm
-  return new Set(lines.map(l => l.split('\t')[0])).size;
+  // Loại extension functions (tên bắt đầu bằng _) + dedupe overload theo tên
+  const names = lines
+    .map(l => l.split('\t')[0])
+    .filter(n => n && !n.startsWith('_'));
+  return new Set(names).size;
 }
 function readDbRlsPolicyCount() {
   const f = path.join(OUT, 'db-policies.tsv');
