@@ -13,6 +13,30 @@ import type {
   CreateOutboundData
 } from '@/types/inventory.types'
 
+// Translate UI-friendly category keys to canonical DB values (Sprint 1)
+const INBOUND_CATEGORY_MAP: Record<string, string> = {
+  purchase: 'purchase',
+  return: 'return',
+  return_to_stock: 'return_to_stock',
+  laundry: 'laundry_return',
+  laundry_return: 'laundry_return',
+  other: 'other_in',
+  other_in: 'other_in',
+}
+
+const OUTBOUND_CATEGORY_MAP: Record<string, string> = {
+  staff_assign: 'staff_assign',
+  laundry: 'laundry_send',
+  laundry_send: 'laundry_send',
+  maintenance: 'maintenance',
+  disposal: 'disposal',
+  warehouse_release: 'warehouse_release',
+  adjustment: 'adjustment_out',
+  adjustment_out: 'adjustment_out',
+  other: 'other_out',
+  other_out: 'other_out',
+}
+
 export function useInventoryTransactions(
   filters: InventoryFilters = {},
   page = 1,
