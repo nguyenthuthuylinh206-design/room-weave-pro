@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-10T03:40:05.526Z",
+  "generatedAt": "2026-05-10T03:40:27.345Z",
   "counts": {
     "routes": 142,
-    "rpcs": 509,
+    "rpcs": 284,
     "rpcsCalledFromFE": 139,
     "tables": 111,
     "tablesUsedFromFE": 92,
