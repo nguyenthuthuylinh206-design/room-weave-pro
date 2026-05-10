@@ -239,6 +239,20 @@ const router = createBrowserRouter([
     ),
   },
 
+  // Docs Viewer (Super Admin only) — đọc docs/architecture/*.md trực tiếp
+  {
+    path: "/docs",
+    element: (
+      <RoleGuard allowedRoles={['super_admin']}>
+        <DocsLayout />
+      </RoleGuard>
+    ),
+    children: [
+      { index: true, element: <DocsIndex /> },
+      { path: "*", element: <DocsViewer /> },
+    ],
+  },
+
   // Super Admin Routes
   {
     path: "/super-admin",
