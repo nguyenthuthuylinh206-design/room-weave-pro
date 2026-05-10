@@ -61,17 +61,24 @@ const typeConfig = {
 }
 
 const categoryLabels: Record<string, string> = {
+  // Nhập
   purchase: 'Mua hàng',
-  transfer_in: 'Chuyển kho nhập',
-  return: 'Trả hàng',
-  initial: 'Tồn đầu kỳ',
-  sale: 'Bán hàng',
-  transfer_out: 'Chuyển kho xuất',
-  internal_use: 'Sử dụng nội bộ',
-  loss: 'Hao hụt',
-  damaged: 'Hư hỏng',
-  inventory_check: 'Kiểm kê',
-  expired: 'Hết hạn'
+  return: 'Trả về kho',
+  return_to_stock: 'Hoàn về kho (hủy phiếu)',
+  laundry_return: 'Nhận đồ giặt về',
+  other_in: 'Nhập khác',
+  // Xuất
+  room_deliver: 'Giao phòng',
+  room_assign: 'Cấp phòng (cũ)',
+  staff_assign: 'Cấp nhân viên',
+  laundry_send: 'Gửi đi giặt',
+  maintenance: 'Bảo trì',
+  disposal: 'Hủy bỏ',
+  warehouse_release: 'Xuất nội bộ',
+  adjustment_out: 'Lệch kiểm kê',
+  other_out: 'Xuất khác',
+  // Chuyển
+  internal_transfer: 'Chuyển kho',
 }
 
 export function MobileTransactionCard({
