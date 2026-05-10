@@ -110,8 +110,30 @@ describe('RPC signature drift (vs _generated/db-functions.tsv)', () => {
     // C1: scan TOÀN BỘ RPC do app định nghĩa (SECURITY DEFINER), không chỉ snapshot.
     // PostgREST chọn overload theo payload → 2 overload cùng tên = nguy cơ chọn nhầm.
     // Nếu hợp lệ → thêm vào ALLOWED_OVERLOADS với lý do rõ ràng.
+    //
+    // 18 entry dưới đây là legacy overload đã tồn tại tại 2026-05-10.
+    // Đã ghi nhận tại findings.md F-RPC-OVERLOAD-02 — cần audit + DROP dần.
+    // Khi DROP xong từng cái, xoá khỏi danh sách này. Test sẽ chặn THÊM MỚI.
     const ALLOWED_OVERLOADS = new Set<string>([
-      'apply_room_standards', // F-RPC-OVERLOAD-02 — chưa cleanup, còn 2 overload
+      'apply_room_standards',
+      'complete_room_delivery',
+      'confirm_receive_order',
+      'create_distribution_order',
+      'create_inbound_transaction',
+      'create_laundry_loss_transaction',
+      'create_laundry_return_transaction',
+      'create_outbound_transaction',
+      'get_categories_with_stats',
+      'get_distribution_orders_filtered',
+      'get_items_filtered',
+      'get_laundry_batches_filtered',
+      'get_monthly_expenses',
+      'get_recent_activities',
+      'handover_batch',
+      'settle_batch_compensation',
+      'setup_new_tenant',
+      'setup_room_initial',
+      'undo_room_delivery_confirmation',
     ]);
     const offenders: string[] = [];
     for (const [name, sigs] of appRpcs.entries()) {
