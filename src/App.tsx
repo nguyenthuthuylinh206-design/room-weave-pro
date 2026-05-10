@@ -25,6 +25,7 @@ const lazyNamed = <T extends Record<string, any>>(
 // === Lazy routes — code-split per page ===
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
+const RootRoute = lazy(() => import("./components/layout/RootRoute"));
 const DocsLayout = lazy(() => import("./pages/docs/DocsLayout"));
 const DocsIndex = lazy(() => import("./pages/docs/DocsIndex"));
 const DocsViewer = lazy(() => import("./pages/docs/DocsViewer"));
