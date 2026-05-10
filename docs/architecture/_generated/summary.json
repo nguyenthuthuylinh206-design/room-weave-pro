@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-10T02:56:00.790Z",
+  "generatedAt": "2026-05-10T02:57:54.674Z",
   "counts": {
-    "routes": 0,
+    "routes": 140,
     "rpcs": 139,
     "tables": 92,
     "edgeFunctions": 28,
