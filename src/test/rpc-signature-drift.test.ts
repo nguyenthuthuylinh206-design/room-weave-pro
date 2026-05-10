@@ -73,6 +73,7 @@ function loadAppRpcs(): Map<string, string[]> {
 describe('RPC signature drift (vs _generated/db-functions.tsv)', () => {
   const snapshot = loadSnapshot();
   const db = loadDbFunctions();
+  const appRpcs = loadAppRpcs();
 
   for (const [rpc, expectedSigs] of Object.entries(snapshot.expected)) {
     it(`\`${rpc}\` khớp snapshot`, () => {
