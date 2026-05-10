@@ -26,21 +26,43 @@ const tsx = (p) => /\.(tsx?|jsx?)$/.test(p);
 const write = (name, data) => fs.writeFileSync(path.join(OUT, name), JSON.stringify(data, null, 2));
 
 // ---------- 1. Routes ----------
+// App.tsx dùng createBrowserRouter object form: { path: "...", element: <X /> }
+// Một số route bọc <PermissionRoute module="..." action="..."> hoặc <RoleGuard>.
 function extractRoutes() {
   const appFile = path.join(ROOT, 'src/App.tsx');
-  if (!fs.existsSync(appFile)) return [];
+  if (!fs.existsSync(appFile)) return { routes: [], guards: [], source: 'src/App.tsx' };
   const text = fs.readFileSync(appFile, 'utf8');
   const routes = [];
-  const re = /<Route\s+([^>]+?)\/?>/g;
   let m;
-  while ((m = re.exec(text))) {
+
+  // 1a. Object form: path: "x", element: <...>
+  const objRe = /path:\s*["'`]([^"'`]+)["'`]\s*,\s*element:\s*([\s\S]*?)(?:,\s*(?:children|index|loader|errorElement)\s*:|}\s*[,)\]])/g;
+  while ((m = objRe.exec(text))) {
+    const path_ = m[1];
+    const elemBlock = m[2];
+    const guardMatch = elemBlock.match(/<(PermissionRoute|RoleGuard|ProtectedRoute|RequireAuth)\b([^>]*)>/);
+    const compMatches = [...elemBlock.matchAll(/<([A-Z][A-Za-z0-9_]*)\b/g)].map(x => x[1]);
+    const skip = new Set(['PermissionRoute', 'RoleGuard', 'ProtectedRoute', 'RequireAuth', 'Navigate', 'Suspense']);
+    const element = compMatches.find(n => !skip.has(n)) || compMatches[0] || null;
+    routes.push({
+      path: path_,
+      element,
+      guard: guardMatch ? guardMatch[1] : null,
+      guardAttrs: guardMatch ? guardMatch[2].replace(/\s+/g, ' ').trim() : '',
+    });
+  }
+
+  // 1b. JSX fallback: <Route path="x" element={<X/>} />
+  const jsxRe = /<Route\s+([^>]+?)\/?>/g;
+  while ((m = jsxRe.exec(text))) {
     const attrs = m[1];
     const path_ = (attrs.match(/path=["']([^"']+)["']/) || [])[1];
     const elem = (attrs.match(/element=\{<([A-Za-z0-9_]+)/) || [])[1];
-    if (path_ || elem) routes.push({ path: path_ || null, element: elem || null });
+    if (path_ || elem) routes.push({ path: path_ || null, element: elem || null, guard: null, guardAttrs: '' });
   }
-  // Detect guard wrappers around blocks
-  const guardRe = /<(PermissionRoute|RoleGuard|ProtectedRoute)\s+([^>]+)>/g;
+
+  // 1c. Guards summary
+  const guardRe = /<(PermissionRoute|RoleGuard|ProtectedRoute|RequireAuth)\s+([^>]+)>/g;
   const guards = [];
   while ((m = guardRe.exec(text))) {
     guards.push({ guard: m[1], attrs: m[2].replace(/\s+/g, ' ').trim() });
