@@ -413,6 +413,9 @@ const router = createBrowserRouter([
       // Guest Invoices
       { path: "guest-invoices", element: <PermissionRoute module="bookings"><GuestInvoicesPage /></PermissionRoute> },
 
+      // Finance — đối soát thanh toán
+      { path: "finance/reconciliation", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><ReconciliationPage /></RoleGuard> },
+
       // Reception
       { path: "reception/pending-charges", element: <PermissionRoute module="bookings"><PendingChargesPage /></PermissionRoute> },
 
