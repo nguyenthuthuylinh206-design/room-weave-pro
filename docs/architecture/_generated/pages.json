@@ -126,6 +126,66 @@
     "lines": 143
   },
   {
+    "file": "src/pages/docs/components/DocsSearch.tsx",
+    "module": "docs/components",
+    "name": "DocsSearch",
+    "lines": 91
+  },
+  {
+    "file": "src/pages/docs/components/DocsSidebar.tsx",
+    "module": "docs/components",
+    "name": "DocsSidebar",
+    "lines": 64
+  },
+  {
+    "file": "src/pages/docs/components/DocsTOC.tsx",
+    "module": "docs/components",
+    "name": "DocsTOC",
+    "lines": 31
+  },
+  {
+    "file": "src/pages/docs/components/MarkdownRenderer.tsx",
+    "module": "docs/components",
+    "name": "MarkdownRenderer",
+    "lines": 59
+  },
+  {
+    "file": "src/pages/docs/components/MermaidBlock.tsx",
+    "module": "docs/components",
+    "name": "MermaidBlock",
+    "lines": 67
+  },
+  {
+    "file": "src/pages/docs/DocsIndex.tsx",
+    "module": "docs",
+    "name": "DocsIndex",
+    "lines": 58
+  },
+  {
+    "file": "src/pages/docs/DocsLayout.tsx",
+    "module": "docs",
+    "name": "DocsLayout",
+    "lines": 105
+  },
+  {
+    "file": "src/pages/docs/DocsViewer.tsx",
+    "module": "docs",
+    "name": "DocsViewer",
+    "lines": 49
+  },
+  {
+    "file": "src/pages/docs/lib/docs-loader.ts",
+    "module": "docs/lib",
+    "name": "docs-loader",
+    "lines": 81
+  },
+  {
+    "file": "src/pages/docs/lib/docs-tree.ts",
+    "module": "docs/lib",
+    "name": "docs-tree",
+    "lines": 55
+  },
+  {
     "file": "src/pages/guests/GuestDetailPage.tsx",
     "module": "guests",
     "name": "GuestDetailPage",
