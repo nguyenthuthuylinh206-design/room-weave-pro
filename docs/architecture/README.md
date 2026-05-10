@@ -19,16 +19,16 @@
 
 | Thư mục | Nội dung |
 |---|---|
-| [00-context/](./00-context/) | System context, glossary |
-| [01-modules/](./01-modules/) | Module map + 16 module specs |
-| [02-data/](./02-data/) | ERD + RLS policies |
-| [03-flows/](./03-flows/) | Sequence diagrams nghiệp vụ |
-| [04-contracts/](./04-contracts/) | Catalog RPC, Edge fn, Realtime, Routes |
-| [05-state-machines/](./05-state-machines/) | Room / Booking / Task / Laundry / Payment FSM |
-| [06-permissions/](./06-permissions/) | Role hierarchy + permission matrix |
-| [07-frontend/](./07-frontend/) | Routing, components, hooks, design system, PWA |
-| [08-ops/](./08-ops/) | Cron, audit log, multi-tenant isolation |
-| [09-refactor/](./09-refactor/) | **Findings + roadmap refactor** |
+| [00-context/](./00-context/) | system-context, glossary |
+| [01-modules/](./01-modules/) | module-map + 16 module specs (bookings, rooms, housekeeping, laundry, inventory, maintenance, payment, subscription, users-permissions, guests-crm, reports, notifications, workflows, super-admin, lost-found) |
+| [02-data/](./02-data/) | ERD overview + per-domain ERDs (bookings, housekeeping, inventory, finance) + RLS policies |
+| [03-flows/](./03-flows/) | 8 sequence: auth, booking-lifecycle, room-check-lean, group-checkout, payment-vietqr-sepay, subscription-renewal, laundry-batch, inventory-distribution |
+| [04-contracts/](./04-contracts/) | rpc-catalog, edge-functions, realtime-channels, api-routes |
+| [05-state-machines/](./05-state-machines/) | 5 FSM: room-status, booking-status, task-qc, laundry-batch, payment-transaction |
+| [06-permissions/](./06-permissions/) | role-hierarchy, permission-matrix, hotel-access |
+| [07-frontend/](./07-frontend/) | routing, component-tree, hooks-catalog, design-system, pwa-offline |
+| [08-ops/](./08-ops/) | cron-jobs, audit-log, observability, multi-tenant-isolation |
+| [09-refactor/](./09-refactor/) | **findings + tech-debt-register + refactor-roadmap** |
 | `_generated/` | JSON/TSV tự sinh (không sửa tay) |
 
 ## Quy ước
