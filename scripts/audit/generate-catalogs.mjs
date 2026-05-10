@@ -79,7 +79,8 @@ const w = (p, c) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.wri
 
 // ===== 04-contracts/api-routes.md =====
 {
-  const routes = j('routes.json');
+  const routesData = j('routes.json');
+  const routes = Array.isArray(routesData) ? routesData : (routesData?.routes || []);
   let md = `# API Routes (frontend)\n\n${routes.length} routes trong \`src/App.tsx\`.\n\n`;
   md += `| Path | Element | Guard | Permission |\n|---|---|---|---|\n`;
   for (const r of routes) {
