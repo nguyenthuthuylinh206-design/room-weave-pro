@@ -4,7 +4,7 @@
 >
 > **Sinh tự động** từ codebase + database tại: `_generated/` (chạy `node scripts/audit/extract-all.mjs` + `bash scripts/audit/dump-db-schema.sh`).
 >
-> **Cập nhật**: 2026-05-10 — dựa trên 134 pages, 173 hooks, 139 RPC, 92 tables, 28 edge functions, 357 migrations.
+> **Cập nhật**: số liệu lấy trực tiếp từ `_generated/summary.json` (xem mục **Quick stats** bên dưới).
 
 ---
 
@@ -20,7 +20,7 @@
 | Thư mục | Nội dung |
 |---|---|
 | [00-context/](./00-context/) | system-context, glossary |
-| [01-modules/](./01-modules/) | module-map + 16 module specs (bookings, rooms, housekeeping, laundry, inventory, maintenance, payment, subscription, users-permissions, guests-crm, reports, notifications, workflows, super-admin, lost-found) |
+| [01-modules/](./01-modules/) | module-map + 15 module specs (bookings, rooms, housekeeping, laundry, inventory, maintenance, payment, subscription, users-permissions, guests-crm, reports, notifications, workflows, super-admin, lost-found) |
 | [02-data/](./02-data/) | ERD overview + per-domain ERDs (bookings, housekeeping, inventory, finance) + RLS policies |
 | [03-flows/](./03-flows/) | 8 sequence: auth, booking-lifecycle, room-check-lean, group-checkout, payment-vietqr-sepay, subscription-renewal, laundry-batch, inventory-distribution |
 | [04-contracts/](./04-contracts/) | rpc-catalog, edge-functions, realtime-channels, api-routes |
@@ -37,19 +37,33 @@
 - Mermaid cho mọi sơ đồ (render được trên GitHub/Notion/VSCode).
 - Mỗi finding ở `09-refactor/findings.md` có `id | severity | evidence(file:line)`.
 
-## Quick stats (tự sinh)
+## Quick stats (tự sinh — đồng bộ với `_generated/summary.json`)
 
 ```text
-RPCs:           139     (xem 04-contracts/rpc-catalog.md)
-Tables:         92      (xem 02-data/erd-overview.md)
-Edge functions: 28      (xem 04-contracts/edge-functions.md)
-Routes:         140     (xem 04-contracts/api-routes.md)
-Hooks:          173     (xem 07-frontend/hooks-catalog.md)
-Pages:          134
-Migrations:     357
-Triggers:       ~150
-RLS policies:   ~824
+Routes:                 142     (src/App.tsx)
+Pages:                  144     (src/pages/**/*.tsx)
+Hooks:                  173     (src/hooks/**)
+Edge functions:         28      (supabase/functions/* trừ _shared)
+Migrations:             357     (supabase/migrations/*.sql)
+
+RPCs (app-defined):     284     (giao db-functions ∩ migrations.functionsCreated)
+RPC gọi từ FE:          139     (supabase.rpc('...') trong src/)
+
+Tables (DB public):     111     (pg_class relkind=r)
+Tables FE truy vấn:     92      (.from('...') trong src/)
+
+RLS policies:           824     (pg_policies)
+Triggers:               ~150    (pg_trigger — dump TSV)
 ```
+
+> Số liệu trên đọc snapshot ngày generate. Khi schema thay đổi → chạy:
+>
+> ```bash
+> bash scripts/audit/dump-db-schema.sh   # cần PG env
+> node scripts/audit/extract-all.mjs
+> node scripts/audit/generate-catalogs.mjs
+> ```
+
 
 ## Nguyên tắc kiến trúc cốt lõi (lấy từ memory)
 

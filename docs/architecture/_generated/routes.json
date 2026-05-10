@@ -61,6 +61,18 @@
       "guardAttrs": ""
     },
     {
+      "path": "/docs",
+      "element": "DocsLayout",
+      "guard": "RoleGuard",
+      "guardAttrs": "allowedRoles={['super_admin']}"
+    },
+    {
+      "path": "*",
+      "element": "DocsViewer",
+      "guard": null,
+      "guardAttrs": ""
+    },
+    {
       "path": "/super-admin",
       "element": "SuperAdminErrorBoundary",
       "guard": null,
@@ -842,6 +854,10 @@
     }
   ],
   "guards": [
+    {
+      "guard": "RoleGuard",
+      "attrs": "allowedRoles={['super_admin']}"
+    },
     {
       "guard": "PermissionRoute",
       "attrs": "module=\"dashboard\" fallback={<Navigate to=\"/auth/callback\" replace /"

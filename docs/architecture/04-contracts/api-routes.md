@@ -1,6 +1,6 @@
 # API Routes (frontend)
 
-140 routes trong `src/App.tsx`.
+142 routes trong `src/App.tsx`.
 
 | Path | Element | Guard | Permission |
 |---|---|---|---|
@@ -14,6 +14,8 @@
 | `/payment-qr/:paymentId` | `<PaymentQRPage>` | – |  |
 | `/scan-document/:sessionId` | `<ScanDocumentPage>` | – |  |
 | `/onboarding` | `<AuthGuard>` | – |  |
+| `/docs` | `<DocsLayout>` | RoleGuard | allowedRoles={['super_admin']} |
+| `*` | `<DocsViewer>` | – |  |
 | `/super-admin` | `<SuperAdminErrorBoundary>` | – |  |
 | `tenants` | `<TenantsPage>` | – |  |
 | `approval` | `<TenantApprovalPage>` | – |  |
@@ -147,9 +149,9 @@
 
 ## Thống kê
 
-- Có guard: **108/140**
+- Có guard: **109/142**
 - PermissionRoute với module: **93**
-- Public (không guard): **32**
+- Public (không guard): **33**
 
 ## Routes public (không có guard)
 
@@ -163,6 +165,7 @@
 - `/payment-qr/:paymentId` → `PaymentQRPage`
 - `/scan-document/:sessionId` → `ScanDocumentPage`
 - `/onboarding` → `AuthGuard`
+- `*` → `DocsViewer`
 - `/super-admin` → `SuperAdminErrorBoundary`
 - `tenants` → `TenantsPage`
 - `approval` → `TenantApprovalPage`
