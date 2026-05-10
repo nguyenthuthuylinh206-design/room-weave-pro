@@ -1,4 +1,4 @@
-import { useState, Fragment } from 'react'
+import { useState, useEffect, useMemo, Fragment } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
@@ -265,15 +265,30 @@ export const Sidebar = () => {
     return expanded
   })
 
-  const isLoading = userLoading || tenantLoading || permissionsLoading
+  // Sync expanded group with current route — auto-collapse other groups,
+  // auto-open the group containing the active child when user switches tab.
+  useEffect(() => {
+    const matched = navigation.find(
+      (item) =>
+        item.children?.some(
+          (child) => child.href && location.pathname.startsWith(child.href)
+        )
+    )
+    setExpandedItems(matched ? [matched.titleKey] : [])
+  }, [location.pathname])
+
+  // Only block on user auth; tenant + permissions load in background to avoid full-skeleton flash.
+  const isLoading = userLoading
 
   // Check if user has access to a module
   const hasModuleAccess = (navigationTitleKey: string): boolean => {
     if (role === 'super_admin' || role === 'owner') return true
-    
+    // While permissions are loading, optimistically show items to avoid nav flicker
+    if (permissionsLoading) return true
+
     const moduleCode = NAVIGATION_MODULE_MAP[navigationTitleKey]
     if (!moduleCode) return true
-    
+
     const modules = moduleCode.split(',')
     return modules.some(module => {
       const permission = modulePermissions?.find(p => p.module === module)
@@ -285,6 +300,7 @@ export const Sidebar = () => {
   // Check if user has access to a child item
   const hasChildAccess = (parentTitleKey: string, childTitleKey: string): boolean => {
     if (role === 'super_admin' || role === 'owner') return true
+    if (permissionsLoading) return true
     
     const moduleCode = NAVIGATION_MODULE_MAP[parentTitleKey]
     if (!moduleCode) return true
@@ -454,10 +470,12 @@ export const Sidebar = () => {
                   )} />
                 </button>
 
-                <div className={cn(
-                  "grid transition-[grid-template-rows] duration-300 ease-in-out",
-                  isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-                )}>
+                <div
+                  className={cn(
+                    "grid transition-[grid-template-rows] duration-300 ease-in-out [will-change:grid-template-rows]",
+                    isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                  )}
+                >
                   <div className="overflow-hidden">
                     <div className="ml-4 space-y-1 border-l border-border pl-4 py-1">
                       {(() => {
