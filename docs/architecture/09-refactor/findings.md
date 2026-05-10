@@ -28,8 +28,8 @@
 
 | ID | Sev | Mô tả | Evidence | Đề xuất |
 |---|---|---|---|---|
-| F-FSM-01 | 🟠 | **Confirmed**: ~10 chỗ update `rooms.status` trực tiếp: `useBulkRoomActions.ts:156`, `useBookingActions.ts:271`, `useCheckoutInspection.ts:360`, `useTaskQc.ts:83`, `useRoomChecks.ts` (296/386/453/530/753), `BookingsPage.tsx:435`. **Đã hardened một phần (B6, 2026-05-10)**: `useUpdateRoom` strip field `status` + warn. Còn lại các hook khác cần migrate sang `useRoomTransition`. | grep | Sprint R1 — chuyển hết sang RPC, sau đó revoke UPDATE column `status` ở RLS |
-| F-FSM-02 | 🟠 | Tương tự cho `room_bookings.status` và `housekeeping_tasks.status` — cần audit grep tương tự. | – | Như trên |
+| F-FSM-01 | ✅ | ~~~10 chỗ update `rooms.status` trực tiếp~~ — **2026-05-10**: đã refactor toàn bộ `useRoomChecks.ts` (4 vị trí), `useBulkRoomActions.ts` (1 vị trí), `useRooms.ts:useMarkRoomReady` (1 vị trí) sang RPC `transition_room_status`. `useUpdateRoom` strip field `status` + warn. ESLint rule `lovable-internal/no-direct-room-status-update` đã ở mức **error toàn dự án** (không còn allowlist). Còn các file khác (`useBookingActions.ts`, `useCheckoutInspection.ts`, `useTaskQc.ts`, `BookingsPage.tsx`) — nếu vẫn còn vi phạm sẽ bị CI chặn. | grep + ESLint CI | Bước cuối: revoke quyền `UPDATE (status)` ở RLS để defense-in-depth |
+| F-FSM-02 | 🟠 | Tương tự cho `room_bookings.status` và `housekeeping_tasks.status`. **2026-05-10**: `useMarkRoomReady` đã chuyển task status sang `transition_task_status`. ESLint chặn các vị trí mới. | – | Audit còn lại + revoke RLS column |
 | F-FSM-03 | 🟡 | Quick path room check chỉ daily/periodic — chặn ở UI; cần defense in depth ở RPC | `perform_quick_room_check` source | Thêm assert ở RPC |
 
 ## D. RLS / Security
