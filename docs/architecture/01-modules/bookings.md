@@ -31,7 +31,7 @@ draft → pending → confirmed → checked_in → checked_out → completed
                                    cancelled
 ```
 
-Mọi transition qua **`transition_booking_status(_booking_id, _to_status, _reason, _force?)`** + audit log.
+Mọi transition qua **`transition_booking_status(_booking_id, _to_status, _reason?, _amount_owed?)`** + audit log.
 
 ## Flows chính
 

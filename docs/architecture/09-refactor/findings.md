@@ -65,7 +65,7 @@
 | ID | Sev | Mô tả | Evidence | Đề xuất |
 |---|---|---|---|---|
 | F-RPC-OVERLOAD-01 | 🟠 | `submit_room_check_lean` tồn tại **2 overload** trong DB: một bản có `_items_sent_to_laundry`, một bản không. PostgREST có thể chọn nhầm overload theo client payload → giảm/lệch số liệu giặt là. | `_generated/db-functions.tsv` có 2 dòng `submit_room_check_lean` | DROP overload cũ trong 1 migration; cập nhật memory `room-check-lean-business-logic-v1` ghi rõ chữ ký canonical |
-| F-RPC-DOC-01 | 🟢 | Trước đây docs ghi sai chữ ký `transition_room_status` / `transition_booking_status` / `perform_checkin` / `perform_checkout`. Đã sửa theo `db-functions.tsv` snapshot 2026-05-10. | `bookings.md`, `rooms.md`, `05-state-machines/room-status.md` | Giữ test snapshot chữ ký RPC trong CI để không drift lại |
+| F-RPC-DOC-01 | ✅ | Trước đây docs ghi sai chữ ký `transition_room_status` / `transition_booking_status` / `perform_checkin` / `perform_checkout`. Đã sửa theo `db-functions.tsv` snapshot 2026-05-10. **Đã hardened**: test `src/test/rpc-signature-drift.test.ts` chạy trong CI, so snapshot `scripts/audit/rpc-signatures.snapshot.json` với `_generated/db-functions.tsv` cho 13 RPC critical. | `bookings.md`, `rooms.md`, `05-state-machines/room-status.md`, test ✓ | Giữ snapshot, mở rộng list khi thêm RPC nghiệp vụ mới |
 
 ---
 
