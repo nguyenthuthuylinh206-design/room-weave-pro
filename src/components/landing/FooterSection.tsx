@@ -34,7 +34,7 @@ export const FooterSection = () => {
             {/* Brand */}
             <div>
               <Link to="/" className="flex items-center gap-2 mb-4">
-                <Hotel className="h-6 w-6 text-[hsl(214,84%,56%)]" />
+                <img src={logoRoomQc} alt="RoomQc" className="h-6 w-6 rounded-md object-cover" />
                 <span className="text-base font-bold text-white">RoomQc</span>
               </Link>
               <p className="text-xs leading-relaxed">{t('footer.description')}</p>
