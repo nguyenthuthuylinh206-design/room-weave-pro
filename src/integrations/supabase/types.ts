@@ -135,6 +135,101 @@ export type Database = {
           },
         ]
       }
+      announcement_dismissals: {
+        Row: {
+          announcement_id: string
+          dismissed_at: string
+          user_id: string
+        }
+        Insert: {
+          announcement_id: string
+          dismissed_at?: string
+          user_id: string
+        }
+        Update: {
+          announcement_id?: string
+          dismissed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcement_dismissals_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      announcements: {
+        Row: {
+          audience: string
+          body: string | null
+          created_at: string
+          created_by: string | null
+          cta_label: string | null
+          cta_url: string | null
+          ends_at: string | null
+          icon: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          is_dismissible: boolean
+          kind: Database["public"]["Enums"]["announcement_kind"]
+          placement: Database["public"]["Enums"]["announcement_placement"]
+          priority: number
+          starts_at: string | null
+          title: string
+          updated_at: string
+          variant: Database["public"]["Enums"]["announcement_variant"]
+          version: string | null
+        }
+        Insert: {
+          audience?: string
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          cta_url?: string | null
+          ends_at?: string | null
+          icon?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          is_dismissible?: boolean
+          kind: Database["public"]["Enums"]["announcement_kind"]
+          placement?: Database["public"]["Enums"]["announcement_placement"]
+          priority?: number
+          starts_at?: string | null
+          title: string
+          updated_at?: string
+          variant?: Database["public"]["Enums"]["announcement_variant"]
+          version?: string | null
+        }
+        Update: {
+          audience?: string
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          cta_url?: string | null
+          ends_at?: string | null
+          icon?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          is_dismissible?: boolean
+          kind?: Database["public"]["Enums"]["announcement_kind"]
+          placement?: Database["public"]["Enums"]["announcement_placement"]
+          priority?: number
+          starts_at?: string | null
+          title?: string
+          updated_at?: string
+          variant?: Database["public"]["Enums"]["announcement_variant"]
+          version?: string | null
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           action: string
@@ -12667,6 +12762,17 @@ export type Database = {
       }
     }
     Enums: {
+      announcement_kind:
+        | "promo_popup"
+        | "version_update"
+        | "ad_banner"
+        | "system_notice"
+      announcement_placement:
+        | "popup_center"
+        | "top_banner"
+        | "bottom_strip"
+        | "inline_card"
+      announcement_variant: "info" | "success" | "warning" | "promo"
       app_role:
         | "super_admin"
         | "owner"
@@ -12833,6 +12939,19 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      announcement_kind: [
+        "promo_popup",
+        "version_update",
+        "ad_banner",
+        "system_notice",
+      ],
+      announcement_placement: [
+        "popup_center",
+        "top_banner",
+        "bottom_strip",
+        "inline_card",
+      ],
+      announcement_variant: ["info", "success", "warning", "promo"],
       app_role: [
         "super_admin",
         "owner",
