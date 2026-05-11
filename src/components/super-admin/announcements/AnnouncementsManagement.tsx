@@ -72,7 +72,7 @@ export function AnnouncementsManagement() {
       <PageHeader
         title="Thông báo & Banner"
         description="Quản lý popup chương trình, thông báo phiên bản và banner quảng cáo hiển thị trong app."
-        action={
+        actions={
           <Button
             onClick={() => {
               setEditing(null);
