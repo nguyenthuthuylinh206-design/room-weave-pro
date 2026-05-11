@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Upload, X, Loader2 } from 'lucide-react';
+import { Upload, X, Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useForm } from 'react-hook-form';
@@ -23,14 +23,29 @@ import {
   ANNOUNCEMENT_PLACEMENT_LABEL,
   ANNOUNCEMENT_VARIANT_LABEL,
   ANNOUNCEMENT_AUDIENCE_LABEL,
+  HIGHLIGHT_ICON_OPTIONS,
+  HIGHLIGHT_COLOR_OPTIONS,
   type Announcement,
   type AnnouncementInput,
+  type AnnouncementContent,
 } from '@/types/announcement.types';
 import {
   useCreateAnnouncement,
   useUpdateAnnouncement,
 } from '@/hooks/announcements/useAnnouncementsAdmin';
 import { AnnouncementLivePreview } from './AnnouncementLivePreview';
+
+const highlightSchema = z.object({
+  icon: z.string().optional().or(z.literal('')),
+  color: z.enum(['green', 'primary', 'amber', 'red']).optional(),
+  title: z.string().min(1, 'Bắt buộc').max(120),
+  subtitle: z.string().max(200).optional().or(z.literal('')),
+});
+
+const contactSchema = z.object({
+  type: z.enum(['phone', 'email']),
+  value: z.string().min(1, 'Bắt buộc').max(120),
+});
 
 const schema = z.object({
   kind: z.enum(['promo_popup', 'version_update', 'ad_banner', 'system_notice']),
@@ -49,6 +64,9 @@ const schema = z.object({
   ends_at: z.string().optional().or(z.literal('')),
   version: z.string().max(20).optional().or(z.literal('')),
   priority: z.coerce.number().int().min(0).max(1000),
+  highlights: z.array(highlightSchema).max(8).default([]),
+  contacts: z.array(contactSchema).max(6).default([]),
+  contact_label: z.string().max(80).optional().or(z.literal('')),
 });
 
 type FormValues = z.infer<typeof schema>;
