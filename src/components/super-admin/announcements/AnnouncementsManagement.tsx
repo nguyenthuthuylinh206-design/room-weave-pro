@@ -118,6 +118,7 @@ export function AnnouncementsManagement() {
         )}
       </div>
 
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AnnouncementKind | 'all')}>
         <TabsList className="flex-wrap h-auto">
           {KIND_TABS.map((t) => (
             <TabsTrigger key={t.value} value={t.value} className="text-xs">
