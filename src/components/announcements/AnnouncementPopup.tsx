@@ -168,6 +168,15 @@ export function AnnouncementPopup({ announcement: a, open, onOpenChange }: Props
               {a.cta_label || 'Đã hiểu'}
             </Button>
           )}
+          {a.kind === 'version_update' && (
+            <a
+              href="/whats-new"
+              className="text-xs text-muted-foreground hover:text-primary text-center underline-offset-2 hover:underline"
+              onClick={() => handleClose()}
+            >
+              Xem tất cả thay đổi →
+            </a>
+          )}
         </div>
       </AlertDialogContent>
     </AlertDialog>

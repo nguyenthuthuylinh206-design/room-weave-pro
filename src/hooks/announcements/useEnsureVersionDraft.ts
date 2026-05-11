@@ -15,7 +15,12 @@ async function fetchChangelog(): Promise<ChangelogEntry | null> {
   try {
     const res = await fetch('/changelog.json', { cache: 'no-cache' });
     if (!res.ok) return null;
-    return (await res.json()) as ChangelogEntry;
+    const raw = await res.json();
+    if (raw && Array.isArray(raw.versions)) {
+      return (raw.versions.find((v: ChangelogEntry) => v.version === APP_VERSION) ?? null) as ChangelogEntry | null;
+    }
+    if (raw && raw.version === APP_VERSION) return raw as ChangelogEntry;
+    return null;
   } catch {
     return null;
   }

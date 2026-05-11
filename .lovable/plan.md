@@ -1,83 +1,101 @@
-# Nâng cấp Popup thông báo theo mẫu "Chương trình hỗ trợ chuyển đổi số"
 
-## A. Hiện trạng & lỗi
+# Trang lịch sử phiên bản & luồng thông báo cập nhật
 
-- `AnnouncementPopup` hiện chỉ render: icon tròn → tiêu đề → body (text thuần) → ảnh → CTA. Không có khối "highlights" gạch đầu dòng có icon (✓ Miễn phí 5 tháng…) và khối "Liên hệ hỗ trợ" như mẫu.
-- `FreeTrialPopup` (hardcode) đã có sẵn layout đẹp đúng như ảnh — ta sẽ port style đó vào `AnnouncementPopup` để mọi popup do Super Admin tạo đều dùng được.
-- Lỗi runtime `Failed to fetch dynamically imported module RootRoute.tsx`: file vẫn tồn tại, đây là lỗi Vite HMR tạm thời sau khi bump phiên bản — thường tự hết khi reload. Nếu còn, sẽ thêm reload-on-chunk-error guard. Sẽ kiểm tra lại sau khi build.
+## Mục tiêu
+- Có 1 trang **`/whats-new`** trong app cho user xem toàn bộ lịch sử thay đổi theo phiên bản.
+- Giữ nguyên luồng đã có: mỗi lần publish → AI bump version + thêm entry changelog → auto-tạo announcement `version_update` trạng thái **chờ bật** → admin chỉnh & bật → user thấy popup "Cập nhật phiên bản mới" với CTA reload + clear cache.
+- Popup có link phụ "Xem tất cả thay đổi" mở `/whats-new`.
 
-## B. Schema / migration
+## A. Kiến trúc
+```
+public/changelog.json (mảng versions)
+        │
+        ├─► useChangelogList() ──► /whats-new (timeline UI)
+        │
+        └─► useEnsureVersionDraft (lấy entry version hiện tại)
+                 │
+                 └─► tạo announcement version_update (is_active=false)
+                           │
+                           └─► Admin bật ──► AnnouncementPopup hiển thị
+                                                  │
+                                                  ├─ CTA "Cập nhật ngay" → clear cache + reload
+                                                  └─ link "Xem tất cả thay đổi" → /whats-new
+```
 
-Thêm cột `content jsonb` (nullable, default `null`) vào bảng `announcements`:
-
+## B. Schema / Data
+**Đổi `public/changelog.json` từ object đơn → object có `versions` array:**
 ```json
 {
-  "highlights": [
-    { "icon": "CheckCircle2", "color": "green", "title": "Miễn phí 5 tháng", "subtitle": "Toàn bộ tính năng" }
-  ],
-  "contacts": [
-    { "type": "phone", "value": "0828686866" },
-    { "type": "email", "value": "roomqc@gmail.com" }
-  ],
-  "contact_label": "Liên hệ hỗ trợ:"
+  "current": "1.0.7",
+  "versions": [
+    {
+      "version": "1.0.7",
+      "releaseDate": "2026-05-11",
+      "title": "Thông báo phiên bản giàu nội dung",
+      "changes": [
+        { "type": "new", "text": "..." },
+        { "type": "improved", "text": "..." },
+        { "type": "fixed", "text": "..." }
+      ]
+    },
+    { "version": "1.0.6", ... }
+  ]
 }
 ```
+- Không cần migration DB — vẫn dùng bảng `announcements` hiện có.
+- `useChangelog` (đang dùng cho PWA update toast) cập nhật để đọc `versions.find(v => v.version === current)` — giữ tương thích ngược.
+- `useEnsureVersionDraft` đọc entry theo `APP_VERSION` từ mảng.
 
-Không phá dữ liệu cũ — popup không có `content` vẫn render kiểu đơn giản như hiện tại.
+## C. Files mới / sửa
+**Mới:**
+- `src/types/changelog.ts` — bổ sung `ChangelogFile = { current: string; versions: ChangelogEntry[] }`
+- `src/hooks/useChangelogList.ts` — fetch toàn bộ `versions[]`, sort desc
+- `src/pages/WhatsNewPage.tsx` — Timeline: mỗi version 1 card (`border rounded-lg p-4`):
+  - Header: `v1.0.7` (font-mono) + badge "Mới nhất" (green) cho version đầu + date format `dd/MM/yyyy`
+  - Title bold
+  - List `changes`: icon nhỏ theo `type` (new=Sparkles green, improved=ArrowUpCircle primary, fixed=Wrench amber, removed=Trash red) + text
+  - Sticky filter chip lọc theo type ở đầu trang
+- Route trong `App.tsx`: `<Route path="/whats-new" element={<WhatsNewPage />} />` (auth required, không cần permission)
 
-## C. Frontend
+**Sửa:**
+- `public/changelog.json` — chuyển sang format mảng (giữ 1.0.6 + 1.0.7)
+- `src/hooks/useChangelog.ts` — adapt format mới, return entry của `current`
+- `src/hooks/announcements/useEnsureVersionDraft.ts` — đọc `data.versions.find(v => v.version === APP_VERSION)`
+- `src/components/announcements/AnnouncementPopup.tsx` — nếu `kind === 'version_update'`: thêm link nhỏ "Xem tất cả thay đổi →" dưới CTA, navigate `/whats-new`
+- `src/pages/profile/ProfilePage.tsx` (hoặc menu More mobile) — thêm mục "Lịch sử phiên bản" link `/whats-new` + hiển thị `v{APP_VERSION}` cạnh
+- `.lovable/memory/preferences/release-version-bump-convention.md` — cập nhật: format changelog.json mới (push entry vào đầu `versions[]` + cập nhật `current`)
+- `.lovable/memory/features/super-admin/version-update-auto-draft-v1.md` — bổ sung mục `/whats-new`
 
-1. **`AnnouncementPopup.tsx`** — render thêm:
-   - Khối highlights: `bg-muted/50 rounded-lg p-3 sm:p-4 space-y-3`, mỗi item là icon (lookup `lucide-react`) + title + subtitle. Màu icon theo `color` (`green`, `primary`, `amber`, `red`).
-   - Khối contacts: `border-t pt-3`, label nhỏ + danh sách phone/email với icon Phone/Mail.
-   - Giữ nguyên fallback cho popup không có `content`.
-
-2. **`AnnouncementFormDialog.tsx`** — thêm tab/section "Nội dung chi tiết (popup)":
-   - Repeater "Điểm nổi bật" (thêm/xoá dòng): chọn icon (preset 6 icon: CheckCircle2, Calendar, Gift, Sparkles, Star, Clock) + chọn màu (4 màu) + title + subtitle.
-   - Repeater "Liên hệ": loại (phone/email) + giá trị + 1 ô label chung.
-   - Chỉ hiển thị khi `placement = popup_center`.
-   - Lưu vào `content` JSONB.
-
-3. **`AnnouncementLivePreview.tsx`** — preview popup dùng đúng layout mới khi có `content`.
-
-4. **`useEnsureVersionDraft.ts`** — khi seed draft `version_update`, tự build `content.highlights` từ `changelog.json[version].changes` (mỗi change → 1 highlight `CheckCircle2 / green`), thêm liên hệ mặc định (phone + email từ platform_settings nếu có, fallback hardcode `0828686866` / `roomqc@gmail.com`).
-
-5. **Cleanup**: `FreeTrialPopup` giữ làm fallback (đã có guard `hasDbPromo`), không sửa.
-
-## D. Types
-
-`src/types/announcement.types.ts`: thêm
-
-```ts
-export interface AnnouncementContent {
-  highlights?: { icon?: string; color?: 'green'|'primary'|'amber'|'red'; title: string; subtitle?: string }[];
-  contacts?: { type: 'phone'|'email'; value: string }[];
-  contact_label?: string;
-}
+## D. UI /whats-new (desktop & mobile portrait)
 ```
-
-`Announcement` thêm `content: AnnouncementContent | null`.
+┌─ Lịch sử phiên bản ──────────────────────┐
+│ Phiên bản hiện tại: v1.0.7               │
+│ [Tất cả] [Mới] [Cải tiến] [Sửa lỗi]      │ ← filter chips
+├──────────────────────────────────────────┤
+│ ┌─ v1.0.7  Mới nhất    11/05/2026 ─────┐ │
+│ │ Thông báo phiên bản giàu nội dung    │ │
+│ │ ✨ Popup highlight + contacts        │ │
+│ │ 🔧 Sửa lỗi version cũ                │ │
+│ └──────────────────────────────────────┘ │
+│ ┌─ v1.0.6              10/05/2026 ─────┐ │
+│ │ ...                                  │ │
+└──────────────────────────────────────────┘
+```
 
 ## E. Permission
-
-Không đổi — vẫn `super_admin` only cho ghi, đọc theo audience.
+- `/whats-new`: bất kỳ user đã đăng nhập (không gắn module permission).
+- Admin bật/tắt announcement vẫn qua super-admin RLS hiện có.
 
 ## F. Test cases
+1. Mở `/whats-new` → list 2 version, v1.0.7 ở đầu có badge "Mới nhất"
+2. Filter chip "Sửa lỗi" → chỉ hiển thị changes type=fixed
+3. Popup version_update bật → click "Xem tất cả thay đổi" → vào `/whats-new` đúng
+4. CTA "Cập nhật ngay" trong popup vẫn clear cache + reload (giữ nguyên)
+5. `useEnsureVersionDraft` với format mới → tạo draft với highlights = changes của 1.0.7
+6. Profile có link "Lịch sử phiên bản v1.0.7"
 
-- Popup không `content` → render như cũ (snapshot existing behavior).
-- Popup có `content.highlights` → render đúng số dòng + icon + màu.
-- Popup có `contacts` → render phone/email với icon.
-- Form: thêm/xoá highlight & contact, submit, reload → dữ liệu giữ nguyên.
-- `useEnsureVersionDraft`: với `changelog.json` có 3 changes → draft sinh ra có 3 highlights.
-
-## G. Rollout
-
-- Migration thêm cột nullable, không cần backfill.
-- Sau migrate, mở popup hiện tại trong DB → vẫn chạy bình thường (content = null).
-- Super Admin vào "Chỉnh sửa & bật" cho version draft, kiểm tra preview, bật `is_active`.
-- QA trên iPhone SE (375px), kiểm tra scroll trong `max-h-[90dvh]`.
-
-## Phần còn thiếu sau plan này
-
-- Chưa làm i18n cho EN (UI Việt-first theo memory).
-- Chưa thêm template "Mời upgrade", "Bảo trì hệ thống" — có thể bổ sung sau dưới dạng preset trong form.
+## G. Rollout & Rủi ro
+- **Backward compat**: `useChangelog` hỗ trợ cả 2 format (legacy object đơn + mới có `versions`) để tránh vỡ nếu cache cũ load file cũ.
+- **Cache**: file changelog.json được fetch với `?t=Date.now()` — không bị PWA cache.
+- **Không có DB change** → không cần rollback migration.
+- Bump APP_VERSION → 1.0.8, thêm entry mới với change "Trang lịch sử phiên bản /whats-new".

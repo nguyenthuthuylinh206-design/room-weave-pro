@@ -1,10 +1,34 @@
 {
-  "version": "1.0.6",
-  "releaseDate": "2026-05-10",
-  "title": "Sửa lỗi cache PWA giữ bản cũ",
-  "changes": [
-    { "type": "fixed", "text": "Tắt Service Worker trong môi trường preview/iframe để luôn hiển thị bản code mới nhất khi sửa" },
-    { "type": "fixed", "text": "Tự động dọn cache + Service Worker cũ còn sót lại trên thiết bị người dùng" },
-    { "type": "improved", "text": "PWA install + offline vẫn hoạt động đầy đủ trên domain production" }
+  "current": "1.0.8",
+  "versions": [
+    {
+      "version": "1.0.8",
+      "releaseDate": "2026-05-11",
+      "title": "Trang lịch sử phiên bản /whats-new",
+      "changes": [
+        { "type": "new", "text": "Trang Lịch sử phiên bản hiển thị toàn bộ thay đổi theo từng version" },
+        { "type": "new", "text": "Liên kết 'Xem tất cả thay đổi' trong popup thông báo cập nhật" },
+        { "type": "improved", "text": "Truy cập nhanh từ trang More mobile (chạm vào số phiên bản)" }
+      ]
+    },
+    {
+      "version": "1.0.7",
+      "releaseDate": "2026-05-11",
+      "title": "Popup thông báo giàu nội dung",
+      "changes": [
+        { "type": "new", "text": "Popup thông báo cập nhật hỗ trợ highlight + thông tin liên hệ" },
+        { "type": "improved", "text": "Form quản lý thông báo cho phép thêm icon và màu sắc" }
+      ]
+    },
+    {
+      "version": "1.0.6",
+      "releaseDate": "2026-05-10",
+      "title": "Sửa lỗi cache PWA giữ bản cũ",
+      "changes": [
+        { "type": "fixed", "text": "Tắt Service Worker trong môi trường preview/iframe để luôn hiển thị bản code mới nhất khi sửa" },
+        { "type": "fixed", "text": "Tự động dọn cache + Service Worker cũ còn sót lại trên thiết bị người dùng" },
+        { "type": "improved", "text": "PWA install + offline vẫn hoạt động đầy đủ trên domain production" }
+      ]
+    }
   ]
 }
