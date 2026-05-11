@@ -304,6 +304,16 @@ export function AnnouncementFormDialog({ open, onOpenChange, editing }: Props) {
             </div>
           </div>
 
+          {form.watch('placement') === 'popup_center' && (
+            <PopupContentEditor
+              highlights={form.watch('highlights')}
+              contacts={form.watch('contacts')}
+              contactLabel={form.watch('contact_label') || ''}
+              onHighlightsChange={(v) => form.setValue('highlights', v)}
+              onContactsChange={(v) => form.setValue('contacts', v)}
+              onContactLabelChange={(v) => form.setValue('contact_label', v)}
+            />
+          )}
 
           {kind === 'version_update' && (
             <div>
