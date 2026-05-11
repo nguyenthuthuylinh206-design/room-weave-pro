@@ -1,14 +1,23 @@
 {
-  "current": "1.0.7",
+  "current": "1.0.8",
   "versions": [
+    {
+      "version": "1.0.8",
+      "releaseDate": "2026-05-11",
+      "title": "Trang lịch sử phiên bản /whats-new",
+      "changes": [
+        { "type": "new", "text": "Trang Lịch sử phiên bản hiển thị toàn bộ thay đổi theo từng version" },
+        { "type": "new", "text": "Liên kết 'Xem tất cả thay đổi' trong popup thông báo cập nhật" },
+        { "type": "improved", "text": "Truy cập nhanh từ trang More mobile (chạm vào số phiên bản)" }
+      ]
+    },
     {
       "version": "1.0.7",
       "releaseDate": "2026-05-11",
-      "title": "Trang lịch sử phiên bản & popup giàu nội dung",
+      "title": "Popup thông báo giàu nội dung",
       "changes": [
-        { "type": "new", "text": "Trang /whats-new để xem toàn bộ lịch sử thay đổi theo phiên bản" },
         { "type": "new", "text": "Popup thông báo cập nhật hỗ trợ highlight + thông tin liên hệ" },
-        { "type": "improved", "text": "Liên kết 'Xem tất cả thay đổi' trong popup phiên bản mới" }
+        { "type": "improved", "text": "Form quản lý thông báo cho phép thêm icon và màu sắc" }
       ]
     },
     {
