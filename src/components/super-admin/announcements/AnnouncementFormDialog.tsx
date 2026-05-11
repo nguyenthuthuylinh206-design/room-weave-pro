@@ -144,14 +144,16 @@ export function AnnouncementFormDialog({ open, onOpenChange, editing }: Props) {
   };
 
   const kind = form.watch('kind');
+  const watched = form.watch();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editing ? 'Chỉnh sửa thông báo' : 'Tạo thông báo mới'}</DialogTitle>
         </DialogHeader>
 
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
