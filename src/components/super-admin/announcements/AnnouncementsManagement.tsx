@@ -87,7 +87,37 @@ export function AnnouncementsManagement() {
         }
       />
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AnnouncementKind | 'all')}>
+      {/* Banner phiên bản hiện tại */}
+      <div className="border rounded-lg p-3 flex items-center justify-between gap-3 flex-wrap bg-muted/30">
+        <div className="space-y-0.5">
+          <div className="text-xs text-muted-foreground">Phiên bản hệ thống hiện tại</div>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-sm font-medium">v{appVersion}</span>
+            {versionDraft ? (
+              versionDraft.is_active ? (
+                <span className="text-xs font-medium text-green-600">Đang phát thông báo</span>
+              ) : (
+                <span className="text-xs font-medium text-amber-600">Đang chờ bật</span>
+              )
+            ) : (
+              <span className="text-xs text-muted-foreground">Đang chuẩn bị draft...</span>
+            )}
+          </div>
+        </div>
+        {versionDraft && (
+          <Button
+            size="sm"
+            variant={versionDraft.is_active ? 'outline' : 'default'}
+            onClick={() => {
+              setEditing(versionDraft);
+              setFormOpen(true);
+            }}
+          >
+            {versionDraft.is_active ? 'Chỉnh sửa' : 'Chỉnh sửa & bật'}
+          </Button>
+        )}
+      </div>
+
         <TabsList className="flex-wrap h-auto">
           {KIND_TABS.map((t) => (
             <TabsTrigger key={t.value} value={t.value} className="text-xs">
