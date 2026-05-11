@@ -147,10 +147,17 @@ export function MorePage() {
           </h2>
           <Card>
             <CardContent className="p-4 space-y-2">
-              <div className="flex justify-between text-sm">
+              <button
+                type="button"
+                onClick={() => navigate('/whats-new')}
+                className="flex justify-between items-center text-sm w-full hover:text-primary"
+              >
                 <span className="text-muted-foreground">Phiên bản</span>
-                <span className="font-medium">v{APP_VERSION}</span>
-              </div>
+                <span className="font-medium flex items-center gap-1">
+                  v{APP_VERSION}
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </span>
+              </button>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Người dùng</span>
                 <span className="font-medium">{user?.full_name}</span>
