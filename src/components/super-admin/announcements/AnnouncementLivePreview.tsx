@@ -1,7 +1,9 @@
 import * as Icons from 'lucide-react';
-import { X } from 'lucide-react';
+import { X, Phone, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type {
+  AnnouncementContent,
+  AnnouncementHighlightColor,
   AnnouncementPlacement,
   AnnouncementVariant,
 } from '@/types/announcement.types';
@@ -16,7 +18,15 @@ interface PreviewProps {
   variant: AnnouncementVariant;
   placement: AnnouncementPlacement;
   isDismissible: boolean;
+  content?: AnnouncementContent | null;
 }
+
+const colorClass: Record<AnnouncementHighlightColor, string> = {
+  green: 'text-green-600',
+  primary: 'text-primary',
+  amber: 'text-amber-600',
+  red: 'text-red-600',
+};
 
 const variantClass: Record<AnnouncementVariant, string> = {
   info: 'bg-blue-50 text-blue-900 border-blue-200 dark:bg-blue-950/40 dark:text-blue-100 dark:border-blue-900',
