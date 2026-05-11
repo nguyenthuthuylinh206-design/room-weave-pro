@@ -165,6 +165,7 @@ export type Database = {
         Row: {
           audience: string
           body: string | null
+          content: Json | null
           created_at: string
           created_by: string | null
           cta_label: string | null
@@ -187,6 +188,7 @@ export type Database = {
         Insert: {
           audience?: string
           body?: string | null
+          content?: Json | null
           created_at?: string
           created_by?: string | null
           cta_label?: string | null
@@ -209,6 +211,7 @@ export type Database = {
         Update: {
           audience?: string
           body?: string | null
+          content?: Json | null
           created_at?: string
           created_by?: string | null
           cta_label?: string | null
