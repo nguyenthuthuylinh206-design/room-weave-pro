@@ -34,6 +34,7 @@ import {
   useDeleteAnnouncement,
 } from '@/hooks/announcements/useAnnouncementsAdmin';
 import { AnnouncementFormDialog } from './AnnouncementFormDialog';
+import { useEnsureVersionDraft } from '@/hooks/announcements/useEnsureVersionDraft';
 
 const KIND_TABS: Array<{ value: AnnouncementKind | 'all'; label: string }> = [
   { value: 'all', label: 'Tất cả' },
