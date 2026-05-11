@@ -278,6 +278,7 @@ const router = createBrowserRouter([
       { path: "pricing", element: <PricingPlansPage /> },
       { path: "analytics", element: <AnalyticsPage /> },
       { path: "settings", element: <SuperAdminSettingsPage /> },
+      { path: "announcements", element: <AnnouncementsAdminPage /> },
     ],
   },
 
