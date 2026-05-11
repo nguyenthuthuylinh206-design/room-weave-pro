@@ -392,6 +392,24 @@ export function AnnouncementFormDialog({ open, onOpenChange, editing }: Props) {
               variant={watched.variant}
               placement={watched.placement}
               isDismissible={watched.is_dismissible}
+              content={
+                watched.placement === 'popup_center' &&
+                (watched.highlights.length > 0 || watched.contacts.length > 0)
+                  ? {
+                      highlights: watched.highlights.map((h) => ({
+                        icon: h.icon || 'CheckCircle2',
+                        color: h.color || 'green',
+                        title: h.title,
+                        subtitle: h.subtitle || undefined,
+                      })),
+                      contacts: watched.contacts.map((c) => ({
+                        type: c.type!,
+                        value: c.value!,
+                      })),
+                      contact_label: watched.contact_label || undefined,
+                    }
+                  : null
+              }
             />
             <p className="text-[11px] text-muted-foreground">
               Bản xem trước cập nhật theo nội dung bạn đang nhập. Các nút trong khung không hoạt động.
