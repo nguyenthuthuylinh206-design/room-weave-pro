@@ -307,6 +307,27 @@ export function AnnouncementFormDialog({ open, onOpenChange, editing }: Props) {
             </Button>
           </DialogFooter>
         </form>
+
+          <aside className="space-y-3 lg:sticky lg:top-0 lg:self-start">
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Xem trước
+            </div>
+            <AnnouncementLivePreview
+              title={watched.title}
+              body={watched.body || undefined}
+              ctaLabel={watched.cta_label || undefined}
+              ctaUrl={watched.cta_url || undefined}
+              imageUrl={watched.image_url || undefined}
+              icon={watched.icon || undefined}
+              variant={watched.variant}
+              placement={watched.placement}
+              isDismissible={watched.is_dismissible}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Bản xem trước cập nhật theo nội dung bạn đang nhập. Các nút trong khung không hoạt động.
+            </p>
+          </aside>
+        </div>
       </DialogContent>
     </Dialog>
   );
