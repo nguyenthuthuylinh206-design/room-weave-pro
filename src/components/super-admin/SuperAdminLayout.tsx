@@ -55,6 +55,7 @@ export function SuperAdminLayout() {
     '/super-admin/pricing': t('titles.pricing'),
     '/super-admin/analytics': t('titles.analytics'),
     '/super-admin/settings': t('titles.settings'),
+    '/super-admin/announcements': 'Thông báo & Banner',
   };
 
   if (isLoading) {
