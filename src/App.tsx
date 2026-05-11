@@ -177,6 +177,7 @@ const TenantApprovalPage = lazy(() => import("./pages/admin/TenantApprovalPage")
 // Other
 const NotificationHistoryPage = lazy(() => import("./pages/NotificationHistoryPage"));
 const HelpPage = lazy(() => import("./pages/HelpPage"));
+const WhatsNewPage = lazy(() => import("./pages/WhatsNewPage"));
 const StaffManagementPage = lazy(() => import("./pages/staff/StaffManagementPage"));
 const MyTasksPage = lazy(() => import("./pages/MyTasksPage"));
 const PaymentQRPage = lazy(() => import("./pages/payment/PaymentQRPage"));
@@ -469,6 +470,7 @@ const router = createBrowserRouter([
       
       // Help
       { path: "help", element: <HelpPage /> },
+      { path: "whats-new", element: <WhatsNewPage /> },
 
       // Reports
       { path: "reports", element: <PermissionRoute module="reports"><ReportsDashboardPage /></PermissionRoute> },
