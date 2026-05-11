@@ -27,6 +27,7 @@ import {
   useCreateAnnouncement,
   useUpdateAnnouncement,
 } from '@/hooks/announcements/useAnnouncementsAdmin';
+import { AnnouncementLivePreview } from './AnnouncementLivePreview';
 
 const schema = z.object({
   kind: z.enum(['promo_popup', 'version_update', 'ad_banner', 'system_notice']),
@@ -144,14 +145,16 @@ export function AnnouncementFormDialog({ open, onOpenChange, editing }: Props) {
   };
 
   const kind = form.watch('kind');
+  const watched = form.watch();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editing ? 'Chỉnh sửa thông báo' : 'Tạo thông báo mới'}</DialogTitle>
         </DialogHeader>
 
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -305,6 +308,27 @@ export function AnnouncementFormDialog({ open, onOpenChange, editing }: Props) {
             </Button>
           </DialogFooter>
         </form>
+
+          <aside className="space-y-3 lg:sticky lg:top-0 lg:self-start">
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Xem trước
+            </div>
+            <AnnouncementLivePreview
+              title={watched.title}
+              body={watched.body || undefined}
+              ctaLabel={watched.cta_label || undefined}
+              ctaUrl={watched.cta_url || undefined}
+              imageUrl={watched.image_url || undefined}
+              icon={watched.icon || undefined}
+              variant={watched.variant}
+              placement={watched.placement}
+              isDismissible={watched.is_dismissible}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Bản xem trước cập nhật theo nội dung bạn đang nhập. Các nút trong khung không hoạt động.
+            </p>
+          </aside>
+        </div>
       </DialogContent>
     </Dialog>
   );
