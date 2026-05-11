@@ -55,8 +55,8 @@ export interface Announcement {
 
 export type AnnouncementInput = Omit<
   Announcement,
-  'id' | 'created_at' | 'updated_at' | 'created_by'
->;
+  'id' | 'created_at' | 'updated_at' | 'created_by' | 'content'
+> & { content?: AnnouncementContent | null };
 
 export const HIGHLIGHT_ICON_OPTIONS = [
   'CheckCircle2',
