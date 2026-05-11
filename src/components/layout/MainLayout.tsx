@@ -15,6 +15,7 @@ import { GracePeriodBanner } from './GracePeriodBanner'
 import { SuspendedOverlay } from './SuspendedOverlay'
 import { ReadOnlyBanner } from './ReadOnlyBanner'
 import { FreeTrialPopup } from '@/components/promotions/FreeTrialPopup'
+import { AnnouncementHost } from '@/components/announcements/AnnouncementHost'
 import { useUser } from '@/hooks/useUser'
 import { useGracePeriod } from '@/hooks/useGracePeriod'
 import { usePostUpdateToast } from '@/hooks/usePostUpdateToast'
@@ -34,6 +35,7 @@ const MainLayoutContent = () => {
       <div className="min-h-dvh flex flex-col bg-background overflow-x-hidden safe-area-x">
         {showSubscriptionBanner && <GracePeriodBanner />}
         <ReadOnlyBanner />
+        <AnnouncementHost slot="top" />
         <MobileHeader />
         {isStaffUser && <ShiftStatusBanner />}
         <main className="flex-1 overflow-y-auto overflow-x-hidden pb-safe">
@@ -48,6 +50,7 @@ const MainLayoutContent = () => {
             </>
           )}
         </main>
+        <AnnouncementHost slot="bottom" />
         <MobileBottomNav />
       </div>
     )
@@ -59,6 +62,7 @@ const MainLayoutContent = () => {
       <div className="flex-1 flex flex-col">
         {showSubscriptionBanner && <GracePeriodBanner />}
         <ReadOnlyBanner />
+        <AnnouncementHost slot="top" />
         <Header onMenuClick={() => {}} />
         {isStaffUser && <ShiftStatusBanner />}
         <main className="flex-1 overflow-auto">
@@ -99,6 +103,7 @@ export const MainLayout = () => {
       <MainLayoutContent />
       <PushNotificationPrompt />
       <PWAUpdatePrompt />
+      <AnnouncementHost slot="popup" />
       <FreeTrialPopup />
     </HotelProvider>
   )

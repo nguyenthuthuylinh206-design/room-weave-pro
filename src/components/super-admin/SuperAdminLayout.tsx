@@ -16,6 +16,7 @@ import {
   Shield,
   ClipboardCheck,
   BookOpen,
+  Megaphone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -37,6 +38,7 @@ export function SuperAdminLayout() {
     { name: t('navigation.promoCodes'), href: '/super-admin/promo-codes', icon: Tag },
     { name: t('navigation.campaigns'), href: '/super-admin/campaigns', icon: Mail },
     { name: t('navigation.reminders'), href: '/super-admin/reminders', icon: Bell },
+    { name: 'Thông báo & Banner', href: '/super-admin/announcements', icon: Megaphone },
     { name: t('navigation.pricing'), href: '/super-admin/pricing', icon: DollarSign },
     { name: t('navigation.analytics'), href: '/super-admin/analytics', icon: BarChart3 },
     { name: t('navigation.settings'), href: '/super-admin/settings', icon: Settings },
@@ -53,6 +55,7 @@ export function SuperAdminLayout() {
     '/super-admin/pricing': t('titles.pricing'),
     '/super-admin/analytics': t('titles.analytics'),
     '/super-admin/settings': t('titles.settings'),
+    '/super-admin/announcements': 'Thông báo & Banner',
   };
 
   if (isLoading) {

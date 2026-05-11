@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useUser } from '@/hooks/useUser'
 import { useTenantSubscription } from '@/hooks/useSubscription'
+import { useActiveAnnouncements } from '@/hooks/announcements/useActiveAnnouncements'
 import { isTenantOwner } from '@/lib/userAccess'
 import { Gift, Phone, Mail, Calendar, CheckCircle2 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -20,9 +21,13 @@ export const FreeTrialPopup = () => {
   const [dontShowAgain, setDontShowAgain] = useState(false)
   const { user } = useUser()
   const { data: subscription } = useTenantSubscription()
+  // Nếu Super Admin đã cấu hình popup_center từ DB thì ẩn fallback hardcode này
+  const { data: activeAnnouncements } = useActiveAnnouncements('popup_center')
+  const hasDbPromo = (activeAnnouncements ?? []).some((a) => a.kind === 'promo_popup')
 
   useEffect(() => {
     if (!user || !subscription) return
+    if (hasDbPromo) return
 
     const isEligibleRole = isTenantOwner(user)
     const isTrial = subscription.subscription_status === 'trial'
@@ -32,7 +37,7 @@ export const FreeTrialPopup = () => {
       const timer = setTimeout(() => setOpen(true), 1000)
       return () => clearTimeout(timer)
     }
-  }, [user, subscription])
+  }, [user, subscription, hasDbPromo])
 
   const handleDismiss = () => {
     if (dontShowAgain) {

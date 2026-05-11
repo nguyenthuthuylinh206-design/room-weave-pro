@@ -171,6 +171,7 @@ const RenewalRemindersPage = lazyNamed(() => import("./pages/admin/RenewalRemind
 const PricingPlansPage = lazyNamed(() => import("./pages/admin/PricingPlansPage"), "PricingPlansPage");
 const PaymentSettingsPage = lazyNamed(() => import("./pages/admin/PaymentSettingsPage"), "PaymentSettingsPage");
 const SuperAdminSettingsPage = lazyNamed(() => import("./pages/admin/SuperAdminSettingsPage"), "SuperAdminSettingsPage");
+const AnnouncementsAdminPage = lazy(() => import("./pages/admin/AnnouncementsPage"));
 const TenantApprovalPage = lazy(() => import("./pages/admin/TenantApprovalPage"));
 
 // Other
@@ -277,6 +278,7 @@ const router = createBrowserRouter([
       { path: "pricing", element: <PricingPlansPage /> },
       { path: "analytics", element: <AnalyticsPage /> },
       { path: "settings", element: <SuperAdminSettingsPage /> },
+      { path: "announcements", element: <AnnouncementsAdminPage /> },
     ],
   },
 
