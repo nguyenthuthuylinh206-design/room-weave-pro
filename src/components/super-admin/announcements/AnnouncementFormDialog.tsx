@@ -130,6 +130,14 @@ export function AnnouncementFormDialog({ open, onOpenChange, editing }: Props) {
               ends_at: editing.ends_at ? editing.ends_at.slice(0, 16) : '',
               version: editing.version ?? '',
               priority: editing.priority,
+              highlights: (editing.content?.highlights ?? []).map((h) => ({
+                icon: h.icon ?? 'CheckCircle2',
+                color: h.color ?? 'green',
+                title: h.title,
+                subtitle: h.subtitle ?? '',
+              })),
+              contacts: editing.content?.contacts ?? [],
+              contact_label: editing.content?.contact_label ?? 'Liên hệ hỗ trợ:',
             }
           : defaults,
       );
@@ -139,6 +147,21 @@ export function AnnouncementFormDialog({ open, onOpenChange, editing }: Props) {
   const onSubmit = async (values: FormValues) => {
     setSubmitting(true);
     try {
+      const content: AnnouncementContent | null =
+        values.placement === 'popup_center' &&
+        (values.highlights.length > 0 || values.contacts.length > 0)
+          ? {
+              highlights: values.highlights.map((h) => ({
+                icon: h.icon || 'CheckCircle2',
+                color: h.color || 'green',
+                title: h.title,
+                subtitle: h.subtitle || undefined,
+              })),
+              contacts: values.contacts,
+              contact_label: values.contact_label || undefined,
+            }
+          : null;
+
       const payload: AnnouncementInput = {
         kind: values.kind,
         placement: values.placement,
@@ -156,6 +179,7 @@ export function AnnouncementFormDialog({ open, onOpenChange, editing }: Props) {
         ends_at: values.ends_at ? new Date(values.ends_at).toISOString() : null,
         version: values.version || null,
         priority: values.priority,
+        content,
       };
       if (editing) {
         await update.mutateAsync({ id: editing.id, ...payload });
