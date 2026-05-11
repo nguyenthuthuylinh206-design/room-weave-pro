@@ -35,6 +35,7 @@ const MainLayoutContent = () => {
       <div className="min-h-dvh flex flex-col bg-background overflow-x-hidden safe-area-x">
         {showSubscriptionBanner && <GracePeriodBanner />}
         <ReadOnlyBanner />
+        <AnnouncementHost slot="top" />
         <MobileHeader />
         {isStaffUser && <ShiftStatusBanner />}
         <main className="flex-1 overflow-y-auto overflow-x-hidden pb-safe">
@@ -49,6 +50,7 @@ const MainLayoutContent = () => {
             </>
           )}
         </main>
+        <AnnouncementHost slot="bottom" />
         <MobileBottomNav />
       </div>
     )
