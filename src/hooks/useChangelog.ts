@@ -30,9 +30,16 @@ export function useChangelog(enabled: boolean): UseChangelogResult {
     })
       .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = (await res.json()) as ChangelogEntry;
+        const raw = await res.json();
+        // Hỗ trợ cả format mới { current, versions[] } và legacy { version, ... }
+        let entry: ChangelogEntry | null = null;
+        if (raw && Array.isArray(raw.versions)) {
+          entry = raw.versions.find((v: ChangelogEntry) => v.version === raw.current) ?? raw.versions[0] ?? null;
+        } else if (raw && raw.version) {
+          entry = raw as ChangelogEntry;
+        }
         if (!cancelled) {
-          setChangelog(data);
+          setChangelog(entry);
           setLoading(false);
         }
       })
