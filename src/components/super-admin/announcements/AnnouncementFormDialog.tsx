@@ -247,14 +247,18 @@ export function AnnouncementFormDialog({ open, onOpenChange, editing }: Props) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <Label>URL ảnh banner</Label>
-              <Input {...form.register('image_url')} placeholder="https://..." />
+              <Label>Ảnh banner</Label>
+              <BannerImageUpload
+                value={form.watch('image_url') || ''}
+                onChange={(url) => form.setValue('image_url', url, { shouldValidate: true })}
+              />
             </div>
             <div>
               <Label>Icon (Lucide)</Label>
               <Input {...form.register('icon')} placeholder="VD: Gift, Megaphone, Bell" />
             </div>
           </div>
+
 
           {kind === 'version_update' && (
             <div>
