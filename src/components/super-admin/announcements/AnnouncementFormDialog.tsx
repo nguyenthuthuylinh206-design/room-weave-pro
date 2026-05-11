@@ -88,6 +88,9 @@ const defaults: FormValues = {
   ends_at: '',
   version: '',
   priority: 0,
+  highlights: [],
+  contacts: [],
+  contact_label: 'Liên hệ hỗ trợ:',
 };
 
 interface Props {
