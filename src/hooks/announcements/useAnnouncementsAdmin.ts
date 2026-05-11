@@ -25,11 +25,12 @@ export function useCreateAnnouncement() {
       const { data: u } = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from('announcements')
-        .insert({ ...input, created_by: u.user?.id ?? null })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .insert({ ...input, created_by: u.user?.id ?? null } as any)
         .select()
         .single();
       if (error) throw error;
-      return data as Announcement;
+      return data as unknown as Announcement;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['announcements'] });
