@@ -11,3 +11,15 @@ export interface ChangelogEntry {
   title?: string;
   changes: ChangelogChange[];
 }
+
+export interface ChangelogFile {
+  current: string;
+  versions: ChangelogEntry[];
+}
+
+export const CHANGE_TYPE_LABEL: Record<ChangeType, string> = {
+  new: 'Mới',
+  improved: 'Cải tiến',
+  fixed: 'Sửa lỗi',
+  removed: 'Đã gỡ',
+};
