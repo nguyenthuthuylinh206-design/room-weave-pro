@@ -9,6 +9,26 @@ export type AnnouncementAudience =
   | 'trial_only'
   | 'expired_only';
 
+export type AnnouncementHighlightColor = 'green' | 'primary' | 'amber' | 'red';
+
+export interface AnnouncementHighlight {
+  icon?: string;
+  color?: AnnouncementHighlightColor;
+  title: string;
+  subtitle?: string;
+}
+
+export interface AnnouncementContact {
+  type: 'phone' | 'email';
+  value: string;
+}
+
+export interface AnnouncementContent {
+  highlights?: AnnouncementHighlight[];
+  contacts?: AnnouncementContact[];
+  contact_label?: string;
+}
+
 export interface Announcement {
   id: string;
   kind: AnnouncementKind;
@@ -27,6 +47,7 @@ export interface Announcement {
   ends_at: string | null;
   version: string | null;
   priority: number;
+  content: AnnouncementContent | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -36,6 +57,24 @@ export type AnnouncementInput = Omit<
   Announcement,
   'id' | 'created_at' | 'updated_at' | 'created_by'
 >;
+
+export const HIGHLIGHT_ICON_OPTIONS = [
+  'CheckCircle2',
+  'Calendar',
+  'Gift',
+  'Sparkles',
+  'Star',
+  'Clock',
+  'Zap',
+  'Bell',
+] as const;
+
+export const HIGHLIGHT_COLOR_OPTIONS: AnnouncementHighlightColor[] = [
+  'green',
+  'primary',
+  'amber',
+  'red',
+];
 
 export const ANNOUNCEMENT_KIND_LABEL: Record<AnnouncementKind, string> = {
   promo_popup: 'Popup chương trình',
