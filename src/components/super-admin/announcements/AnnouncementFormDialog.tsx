@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Upload, X, Loader2 } from 'lucide-react';
+import { Upload, X, Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useForm } from 'react-hook-form';
@@ -23,14 +23,29 @@ import {
   ANNOUNCEMENT_PLACEMENT_LABEL,
   ANNOUNCEMENT_VARIANT_LABEL,
   ANNOUNCEMENT_AUDIENCE_LABEL,
+  HIGHLIGHT_ICON_OPTIONS,
+  HIGHLIGHT_COLOR_OPTIONS,
   type Announcement,
   type AnnouncementInput,
+  type AnnouncementContent,
 } from '@/types/announcement.types';
 import {
   useCreateAnnouncement,
   useUpdateAnnouncement,
 } from '@/hooks/announcements/useAnnouncementsAdmin';
 import { AnnouncementLivePreview } from './AnnouncementLivePreview';
+
+const highlightSchema = z.object({
+  icon: z.string().optional().or(z.literal('')),
+  color: z.enum(['green', 'primary', 'amber', 'red']).optional(),
+  title: z.string().min(1, 'Bắt buộc').max(120),
+  subtitle: z.string().max(200).optional().or(z.literal('')),
+});
+
+const contactSchema = z.object({
+  type: z.enum(['phone', 'email']),
+  value: z.string().min(1, 'Bắt buộc').max(120),
+});
 
 const schema = z.object({
   kind: z.enum(['promo_popup', 'version_update', 'ad_banner', 'system_notice']),
@@ -49,6 +64,9 @@ const schema = z.object({
   ends_at: z.string().optional().or(z.literal('')),
   version: z.string().max(20).optional().or(z.literal('')),
   priority: z.coerce.number().int().min(0).max(1000),
+  highlights: z.array(highlightSchema).max(8).default([]),
+  contacts: z.array(contactSchema).max(6).default([]),
+  contact_label: z.string().max(80).optional().or(z.literal('')),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -70,6 +88,9 @@ const defaults: FormValues = {
   ends_at: '',
   version: '',
   priority: 0,
+  highlights: [],
+  contacts: [],
+  contact_label: 'Liên hệ hỗ trợ:',
 };
 
 interface Props {
@@ -109,6 +130,14 @@ export function AnnouncementFormDialog({ open, onOpenChange, editing }: Props) {
               ends_at: editing.ends_at ? editing.ends_at.slice(0, 16) : '',
               version: editing.version ?? '',
               priority: editing.priority,
+              highlights: (editing.content?.highlights ?? []).map((h) => ({
+                icon: h.icon ?? 'CheckCircle2',
+                color: h.color ?? 'green',
+                title: h.title,
+                subtitle: h.subtitle ?? '',
+              })),
+              contacts: editing.content?.contacts ?? [],
+              contact_label: editing.content?.contact_label ?? 'Liên hệ hỗ trợ:',
             }
           : defaults,
       );
@@ -118,6 +147,21 @@ export function AnnouncementFormDialog({ open, onOpenChange, editing }: Props) {
   const onSubmit = async (values: FormValues) => {
     setSubmitting(true);
     try {
+      const content: AnnouncementContent | null =
+        values.placement === 'popup_center' &&
+        (values.highlights.length > 0 || values.contacts.length > 0)
+          ? {
+              highlights: values.highlights.map((h) => ({
+                icon: h.icon || 'CheckCircle2',
+                color: h.color || 'green',
+                title: h.title,
+                subtitle: h.subtitle || undefined,
+              })),
+              contacts: values.contacts.map((c) => ({ type: c.type!, value: c.value! })),
+              contact_label: values.contact_label || undefined,
+            }
+          : null;
+
       const payload: AnnouncementInput = {
         kind: values.kind,
         placement: values.placement,
@@ -135,6 +179,7 @@ export function AnnouncementFormDialog({ open, onOpenChange, editing }: Props) {
         ends_at: values.ends_at ? new Date(values.ends_at).toISOString() : null,
         version: values.version || null,
         priority: values.priority,
+        content,
       };
       if (editing) {
         await update.mutateAsync({ id: editing.id, ...payload });
@@ -259,6 +304,16 @@ export function AnnouncementFormDialog({ open, onOpenChange, editing }: Props) {
             </div>
           </div>
 
+          {form.watch('placement') === 'popup_center' && (
+            <PopupContentEditor
+              highlights={form.watch('highlights')}
+              contacts={form.watch('contacts')}
+              contactLabel={form.watch('contact_label') || ''}
+              onHighlightsChange={(v) => form.setValue('highlights', v)}
+              onContactsChange={(v) => form.setValue('contacts', v)}
+              onContactLabelChange={(v) => form.setValue('contact_label', v)}
+            />
+          )}
 
           {kind === 'version_update' && (
             <div>
@@ -337,6 +392,24 @@ export function AnnouncementFormDialog({ open, onOpenChange, editing }: Props) {
               variant={watched.variant}
               placement={watched.placement}
               isDismissible={watched.is_dismissible}
+              content={
+                watched.placement === 'popup_center' &&
+                (watched.highlights.length > 0 || watched.contacts.length > 0)
+                  ? {
+                      highlights: watched.highlights.map((h) => ({
+                        icon: h.icon || 'CheckCircle2',
+                        color: h.color || 'green',
+                        title: h.title,
+                        subtitle: h.subtitle || undefined,
+                      })),
+                      contacts: watched.contacts.map((c) => ({
+                        type: c.type!,
+                        value: c.value!,
+                      })),
+                      contact_label: watched.contact_label || undefined,
+                    }
+                  : null
+              }
             />
             <p className="text-[11px] text-muted-foreground">
               Bản xem trước cập nhật theo nội dung bạn đang nhập. Các nút trong khung không hoạt động.
@@ -428,5 +501,212 @@ function BannerImageUpload({ value, onChange }: BannerImageUploadProps) {
         </>
       )}
     </label>
+  );
+}
+
+interface PopupContentEditorProps {
+  highlights: FormValues['highlights'];
+  contacts: FormValues['contacts'];
+  contactLabel: string;
+  onHighlightsChange: (v: FormValues['highlights']) => void;
+  onContactsChange: (v: FormValues['contacts']) => void;
+  onContactLabelChange: (v: string) => void;
+}
+
+function PopupContentEditor({
+  highlights,
+  contacts,
+  contactLabel,
+  onHighlightsChange,
+  onContactsChange,
+  onContactLabelChange,
+}: PopupContentEditorProps) {
+  return (
+    <div className="border rounded-lg p-3 space-y-4 bg-muted/20">
+      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        Nội dung popup (tuỳ chọn)
+      </div>
+
+      {/* Highlights */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs">Điểm nổi bật</Label>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={() =>
+              onHighlightsChange([
+                ...highlights,
+                { icon: 'CheckCircle2', color: 'green', title: '', subtitle: '' },
+              ])
+            }
+            disabled={highlights.length >= 8}
+          >
+            <Plus className="h-3.5 w-3.5 mr-1" /> Thêm dòng
+          </Button>
+        </div>
+        {highlights.length === 0 && (
+          <p className="text-xs text-muted-foreground italic">
+            Chưa có. Thêm để hiển thị danh sách ưu đãi/tính năng dạng dấu tích.
+          </p>
+        )}
+        {highlights.map((h, idx) => (
+          <div
+            key={idx}
+            className="grid grid-cols-12 gap-2 items-start border rounded-md p-2 bg-background"
+          >
+            <div className="col-span-3">
+              <Select
+                value={h.icon || 'CheckCircle2'}
+                onValueChange={(v) => {
+                  const next = [...highlights];
+                  next[idx] = { ...next[idx], icon: v };
+                  onHighlightsChange(next);
+                }}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {HIGHLIGHT_ICON_OPTIONS.map((i) => (
+                    <SelectItem key={i} value={i} className="text-xs">
+                      {i}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2">
+              <Select
+                value={h.color || 'green'}
+                onValueChange={(v) => {
+                  const next = [...highlights];
+                  next[idx] = { ...next[idx], color: v as 'green' | 'primary' | 'amber' | 'red' };
+                  onHighlightsChange(next);
+                }}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {HIGHLIGHT_COLOR_OPTIONS.map((c) => (
+                    <SelectItem key={c} value={c} className="text-xs">
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-6 space-y-1">
+              <Input
+                className="h-8 text-xs"
+                placeholder="Tiêu đề (vd: Miễn phí 5 tháng)"
+                value={h.title}
+                onChange={(e) => {
+                  const next = [...highlights];
+                  next[idx] = { ...next[idx], title: e.target.value };
+                  onHighlightsChange(next);
+                }}
+              />
+              <Input
+                className="h-8 text-xs"
+                placeholder="Mô tả phụ (tuỳ chọn)"
+                value={h.subtitle || ''}
+                onChange={(e) => {
+                  const next = [...highlights];
+                  next[idx] = { ...next[idx], subtitle: e.target.value };
+                  onHighlightsChange(next);
+                }}
+              />
+            </div>
+            <div className="col-span-1 flex justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-red-600"
+                onClick={() => onHighlightsChange(highlights.filter((_, i) => i !== idx))}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Contacts */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs">Liên hệ hỗ trợ</Label>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={() =>
+              onContactsChange([...contacts, { type: 'phone', value: '' }])
+            }
+            disabled={contacts.length >= 6}
+          >
+            <Plus className="h-3.5 w-3.5 mr-1" /> Thêm liên hệ
+          </Button>
+        </div>
+        {contacts.length > 0 && (
+          <Input
+            className="h-8 text-xs"
+            placeholder="Nhãn (vd: Liên hệ hỗ trợ:)"
+            value={contactLabel}
+            onChange={(e) => onContactLabelChange(e.target.value)}
+          />
+        )}
+        {contacts.map((c, idx) => (
+          <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+            <div className="col-span-3">
+              <Select
+                value={c.type || 'phone'}
+                onValueChange={(v) => {
+                  const next = [...contacts];
+                  next[idx] = { ...next[idx], type: v as 'phone' | 'email' };
+                  onContactsChange(next);
+                }}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="phone" className="text-xs">Điện thoại</SelectItem>
+                  <SelectItem value="email" className="text-xs">Email</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-8">
+              <Input
+                className="h-8 text-xs"
+                placeholder={c.type === 'email' ? 'support@example.com' : '0828686866'}
+                value={c.value || ''}
+                onChange={(e) => {
+                  const next = [...contacts];
+                  next[idx] = { ...next[idx], value: e.target.value };
+                  onContactsChange(next);
+                }}
+              />
+            </div>
+            <div className="col-span-1 flex justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-red-600"
+                onClick={() => onContactsChange(contacts.filter((_, i) => i !== idx))}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

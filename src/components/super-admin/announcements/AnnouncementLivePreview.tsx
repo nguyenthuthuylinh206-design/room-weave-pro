@@ -1,7 +1,9 @@
 import * as Icons from 'lucide-react';
-import { X } from 'lucide-react';
+import { X, Phone, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type {
+  AnnouncementContent,
+  AnnouncementHighlightColor,
   AnnouncementPlacement,
   AnnouncementVariant,
 } from '@/types/announcement.types';
@@ -16,7 +18,15 @@ interface PreviewProps {
   variant: AnnouncementVariant;
   placement: AnnouncementPlacement;
   isDismissible: boolean;
+  content?: AnnouncementContent | null;
 }
+
+const colorClass: Record<AnnouncementHighlightColor, string> = {
+  green: 'text-green-600',
+  primary: 'text-primary',
+  amber: 'text-amber-600',
+  red: 'text-red-600',
+};
 
 const variantClass: Record<AnnouncementVariant, string> = {
   info: 'bg-blue-50 text-blue-900 border-blue-200 dark:bg-blue-950/40 dark:text-blue-100 dark:border-blue-900',
@@ -35,10 +45,13 @@ function PopupPreview({
   imageUrl,
   icon,
   isDismissible,
+  content,
 }: PreviewProps) {
   const Icon =
     (icon && (Icons as unknown as Record<string, Icons.LucideIcon>)[icon]) ||
     Icons.Megaphone;
+  const highlights = content?.highlights ?? [];
+  const contacts = content?.contacts ?? [];
   return (
     <div className="relative bg-background border rounded-lg shadow-lg p-5 max-w-sm mx-auto">
       <div className="flex items-center justify-center mb-3">
@@ -60,6 +73,39 @@ function PopupPreview({
           alt=""
           className="w-full rounded-md border max-h-32 object-cover mb-3"
         />
+      )}
+      {highlights.length > 0 && (
+        <div className="bg-muted/50 rounded-lg p-3 space-y-2 mb-3">
+          {highlights.map((h, idx) => {
+            const HIcon =
+              (h.icon && (Icons as unknown as Record<string, Icons.LucideIcon>)[h.icon]) ||
+              Icons.CheckCircle2;
+            return (
+              <div key={idx} className="flex items-start gap-2">
+                <HIcon className={cn('h-4 w-4 mt-0.5 shrink-0', colorClass[h.color || 'green'])} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium leading-snug">{h.title || 'Điểm nổi bật'}</p>
+                  {h.subtitle && (
+                    <p className="text-[11px] text-muted-foreground leading-snug">{h.subtitle}</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {contacts.length > 0 && (
+        <div className="border-t pt-2 space-y-1 mb-3">
+          {content?.contact_label && (
+            <p className="text-[11px] text-muted-foreground font-medium">{content.contact_label}</p>
+          )}
+          {contacts.map((c, idx) => (
+            <div key={idx} className="flex items-center gap-2 text-[11px] text-muted-foreground">
+              {c.type === 'phone' ? <Phone className="h-3 w-3" /> : <Mail className="h-3 w-3" />}
+              <span className="break-all">{c.value}</span>
+            </div>
+          ))}
+        </div>
       )}
       <div className="space-y-2 mt-3">
         {isDismissible && (

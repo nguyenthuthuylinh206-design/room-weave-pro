@@ -25,11 +25,12 @@ export function useCreateAnnouncement() {
       const { data: u } = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from('announcements')
-        .insert({ ...input, created_by: u.user?.id ?? null })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .insert({ ...input, created_by: u.user?.id ?? null } as any)
         .select()
         .single();
       if (error) throw error;
-      return data as Announcement;
+      return data as unknown as Announcement;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['announcements'] });
@@ -45,12 +46,13 @@ export function useUpdateAnnouncement() {
     mutationFn: async ({ id, ...patch }: { id: string } & Partial<AnnouncementInput>) => {
       const { data, error } = await supabase
         .from('announcements')
-        .update(patch)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .update(patch as any)
         .eq('id', id)
         .select()
         .single();
       if (error) throw error;
-      return data as Announcement;
+      return data as unknown as Announcement;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['announcements'] });
