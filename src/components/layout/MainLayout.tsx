@@ -62,6 +62,7 @@ const MainLayoutContent = () => {
       <div className="flex-1 flex flex-col">
         {showSubscriptionBanner && <GracePeriodBanner />}
         <ReadOnlyBanner />
+        <AnnouncementHost slot="top" />
         <Header onMenuClick={() => {}} />
         {isStaffUser && <ShiftStatusBanner />}
         <main className="flex-1 overflow-auto">
