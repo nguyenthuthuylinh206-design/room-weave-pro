@@ -157,7 +157,7 @@ export function AnnouncementFormDialog({ open, onOpenChange, editing }: Props) {
                 title: h.title,
                 subtitle: h.subtitle || undefined,
               })),
-              contacts: values.contacts,
+              contacts: values.contacts.map((c) => ({ type: c.type!, value: c.value! })),
               contact_label: values.contact_label || undefined,
             }
           : null;
