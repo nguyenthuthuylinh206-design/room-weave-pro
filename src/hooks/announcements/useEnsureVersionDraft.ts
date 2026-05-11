@@ -65,11 +65,33 @@ export function useEnsureVersionDraft() {
         const startsAt = APP_VERSION_DATE
           ? new Date(`${APP_VERSION_DATE}T00:00:00`).toISOString()
           : new Date().toISOString();
+
+        const highlights =
+          cl && cl.version === APP_VERSION && cl.changes?.length
+            ? cl.changes.slice(0, 8).map((c) => ({
+                icon: 'CheckCircle2',
+                color: 'green' as const,
+                title: c.text,
+              }))
+            : [];
+
+        const content =
+          highlights.length > 0
+            ? {
+                highlights,
+                contacts: [
+                  { type: 'phone' as const, value: '0828686866' },
+                  { type: 'email' as const, value: 'roomqc@gmail.com' },
+                ],
+                contact_label: 'Liên hệ hỗ trợ:',
+              }
+            : null;
+
         const { error } = await supabase.from('announcements').insert({
           kind: 'version_update',
           placement: 'popup_center',
           variant: 'info',
-          title: `Phiên bản mới ${APP_VERSION}`,
+          title: cl?.title ? `${cl.title} (v${APP_VERSION})` : `Phiên bản mới ${APP_VERSION}`,
           body: buildDefaultBody(cl),
           cta_label: 'Đã hiểu',
           cta_url: null,
@@ -82,8 +104,10 @@ export function useEnsureVersionDraft() {
           ends_at: null,
           version: APP_VERSION,
           priority: 100,
+          content,
           created_by: u.user?.id ?? null,
-        });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any);
         if (error && !`${error.message}`.toLowerCase().includes('duplicate')) {
           throw error;
         }
