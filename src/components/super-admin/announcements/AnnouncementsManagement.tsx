@@ -58,6 +58,7 @@ function statusBadge(a: Announcement) {
 export function AnnouncementsManagement() {
   const { data = [], isLoading } = useAnnouncementsAdmin();
   const del = useDeleteAnnouncement();
+  const { draft: versionDraft, appVersion } = useEnsureVersionDraft();
   const [activeTab, setActiveTab] = useState<AnnouncementKind | 'all'>('all');
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Announcement | null>(null);
