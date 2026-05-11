@@ -263,9 +263,16 @@ export function AnnouncementFormDialog({ open, onOpenChange, editing }: Props) {
           {kind === 'version_update' && (
             <div>
               <Label>Phiên bản (vd: 1.0.7)</Label>
-              <Input {...form.register('version')} placeholder="1.0.7" />
+              <Input
+                {...form.register('version')}
+                placeholder="1.0.7"
+                readOnly={!!editing}
+                className={editing ? 'bg-muted cursor-not-allowed' : ''}
+              />
               <p className="text-xs text-muted-foreground mt-1">
-                Mỗi user chỉ thấy popup phiên bản này 1 lần.
+                {editing
+                  ? 'Phiên bản gắn với bản build, không thể chỉnh sửa.'
+                  : 'Mỗi user chỉ thấy popup phiên bản này 1 lần.'}
               </p>
             </div>
           )}
