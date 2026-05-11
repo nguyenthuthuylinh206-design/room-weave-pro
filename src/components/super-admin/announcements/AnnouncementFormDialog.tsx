@@ -340,3 +340,86 @@ export function AnnouncementFormDialog({ open, onOpenChange, editing }: Props) {
     </Dialog>
   );
 }
+
+interface BannerImageUploadProps {
+  value: string;
+  onChange: (url: string) => void;
+}
+
+function BannerImageUpload({ value, onChange }: BannerImageUploadProps) {
+  const [uploading, setUploading] = useState(false);
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Vui lòng chọn file ảnh');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Ảnh tối đa 5MB');
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop() || 'png';
+      const path = `banners/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error } = await supabase.storage
+        .from('announcement-assets')
+        .upload(path, file, { cacheControl: '3600', upsert: false });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage
+        .from('announcement-assets')
+        .getPublicUrl(path);
+      onChange(publicUrl);
+      toast.success('Đã tải ảnh lên');
+    } catch (err) {
+      toast.error(`Lỗi tải ảnh: ${(err as Error).message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  if (value) {
+    return (
+      <div className="relative inline-block">
+        <img
+          src={value}
+          alt="Banner"
+          className="h-32 w-full max-w-xs rounded-md border object-cover"
+        />
+        <button
+          type="button"
+          onClick={() => onChange('')}
+          className="absolute -right-2 -top-2 rounded-full bg-destructive p-1 text-destructive-foreground shadow-sm hover:bg-destructive/90"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <label className="relative flex h-32 cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/40 transition-colors">
+      <input
+        type="file"
+        accept="image/*"
+        onChange={handleFile}
+        disabled={uploading}
+        className="absolute inset-0 cursor-pointer opacity-0"
+      />
+      {uploading ? (
+        <>
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <span className="text-xs text-muted-foreground mt-2">Đang tải...</span>
+        </>
+      ) : (
+        <>
+          <Upload className="h-6 w-6 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground mt-2">Nhấp để chọn ảnh (≤5MB)</span>
+        </>
+      )}
+    </label>
+  );
+}
