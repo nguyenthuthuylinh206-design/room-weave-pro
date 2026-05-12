@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
-import { Menu, X, Hotel } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
+import logoRoomQc from '@/assets/logo-roomqc.png'
 
 export const LandingNavbar = () => {
   const { t } = useTranslation('landing')
