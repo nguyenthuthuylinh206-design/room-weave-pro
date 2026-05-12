@@ -81,15 +81,7 @@ export default defineConfig(({ mode }) => ({
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined;
 
-          // React core — needed everywhere, keep small + cached forever
-          if (
-            id.includes('/react/') ||
-            id.includes('/react-dom/') ||
-            id.includes('/react-router') ||
-            id.includes('/scheduler/')
-          ) return 'react-vendor';
-
-          // Heaviest, route-specific libs — keep isolated
+          // Heaviest, route-specific libs — lazy-loaded only, keep isolated
           if (id.includes('/exceljs/')) return 'excel-vendor';
           if (id.includes('/jspdf') || id.includes('/html2canvas')) return 'pdf-vendor';
           if (id.includes('/mermaid/')) return 'mermaid-vendor';
@@ -107,23 +99,12 @@ export default defineConfig(({ mode }) => ({
             id.includes('/highlight.js') ||
             id.includes('/refractor')
           ) return 'markdown-vendor';
-          if (id.includes('/framer-motion')) return 'motion-vendor';
-          if (id.includes('/@supabase/')) return 'supabase-vendor';
-          if (id.includes('/@tanstack/')) return 'query-vendor';
-          if (
-            id.includes('/i18next') ||
-            id.includes('/react-i18next')
-          ) return 'i18n-vendor';
-          if (id.includes('/@radix-ui/')) return 'radix-vendor';
-          if (id.includes('/lucide-react/')) return 'icons-vendor';
-          if (
-            id.includes('/date-fns/') ||
-            id.includes('/react-day-picker') ||
-            id.includes('/react-hook-form') ||
-            id.includes('/zod')
-          ) return 'forms-vendor';
 
-          // All other small npm deps lumped together
+          // Everything else — including React, Radix, framer-motion, react-hook-form,
+          // @tanstack, @supabase, lucide, i18next, date-fns, zod — goes into ONE
+          // vendor chunk. Splitting React from libs that do `import * as React from 'react'`
+          // (Radix, etc.) caused `Cannot read properties of undefined (reading 'forwardRef')`
+          // in production due to ESM namespace interop across split chunks.
           return 'vendor';
         },
       },
