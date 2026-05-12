@@ -1,6 +1,14 @@
 {
-  "current": "1.0.13",
+  "current": "1.0.14",
   "versions": [
+    {
+      "version": "1.0.14",
+      "releaseDate": "2026-05-12",
+      "title": "Super Admin gia hạn thủ công tự bỏ chế độ chỉ đọc",
+      "changes": [
+        { "type": "fixed", "text": "Khi Super Admin đổi gói/gia hạn thủ công, tự động bỏ chế độ chỉ đọc và reset thời gian ân hạn" }
+      ]
+    },
     {
       "version": "1.0.13",
       "releaseDate": "2026-05-12",

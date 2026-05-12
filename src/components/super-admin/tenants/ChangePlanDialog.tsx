@@ -126,6 +126,21 @@ export function ChangePlanDialog({
 
       if (error) throw error;
 
+      // Bỏ chế độ chỉ-đọc nếu trước đó đã bị bật do hết hạn
+      const { error: clearRoErr } = await supabase.rpc('clear_tenant_read_only', {
+        p_tenant_id: tenant.id,
+        p_reason: 'super_admin_manual_extend',
+      });
+      if (clearRoErr) {
+        console.warn('clear_tenant_read_only failed:', clearRoErr.message);
+      }
+
+      // Reset grace period vì subscription đã được gia hạn
+      await supabase
+        .from('tenants')
+        .update({ grace_period_ends_at: null })
+        .eq('id', tenant.id);
+
       // Recalculate tenant usage
       const { error: usageError } = await supabase.rpc('update_tenant_usage', {
         p_tenant_id: tenant.id,
