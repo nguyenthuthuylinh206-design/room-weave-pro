@@ -6,15 +6,21 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { CacheBuster } from "@/components/pwa/CacheBuster";
 
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { PermissionRoute } from "@/components/auth/PermissionRoute";
 import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
-import { MainLayout } from "@/components/layout/MainLayout";
-import { SuperAdminLayout } from './components/super-admin/SuperAdminLayout';
-import { SuperAdminErrorBoundary } from './components/super-admin/ErrorBoundary';
+
+// Heavy layout shells — lazy-loaded so anonymous landing/auth/payment-QR
+// pages don't pull in HotelProvider, PWA prompts, banners, sidebars, etc.
+const MainLayout = lazyNamed(() => import("@/components/layout/MainLayout"), "MainLayout");
+const SuperAdminLayout = lazyNamed(() => import('./components/super-admin/SuperAdminLayout'), "SuperAdminLayout");
+const SuperAdminErrorBoundary = lazyNamed(() => import('./components/super-admin/ErrorBoundary'), "SuperAdminErrorBoundary");
+// CacheBuster runs in requestIdleCallback so it's safe (and cheaper) to lazy-load.
+const CacheBuster = lazy(() =>
+  import("@/components/pwa/CacheBuster").then((m) => ({ default: m.CacheBuster }))
+);
 
 // Helper: lazy-load named export as default
 const lazyNamed = <T extends Record<string, any>>(

@@ -20,6 +20,10 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
 
+    <!-- Performance: preconnect Supabase backend so first auth/session call doesn't pay DNS+TLS cost -->
+    <link rel="preconnect" href="https://ehjtoajnlnuvuiwkpmbp.supabase.co" crossorigin />
+    <link rel="dns-prefetch" href="https://ehjtoajnlnuvuiwkpmbp.supabase.co" />
+
     
     
     <meta property="og:type" content="website" />
