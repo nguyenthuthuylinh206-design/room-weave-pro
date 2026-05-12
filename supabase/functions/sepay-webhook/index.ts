@@ -537,6 +537,15 @@ Deno.serve(async (req) => {
           .update(updateData)
           .eq('id', tenantId);
 
+        // Bỏ chế độ chỉ-đọc nếu trước đó đã bị bật do hết hạn
+        const { error: clearRoErr } = await supabase.rpc('clear_tenant_read_only', {
+          p_tenant_id: tenantId,
+          p_reason: 'payment_received_extend',
+        });
+        if (clearRoErr) {
+          console.warn(`clear_tenant_read_only failed for ${tenantId}:`, clearRoErr.message);
+        }
+
         console.log(`Updated tenant ${tenantId}: extended to ${newEndDate.toISOString()}, status reset to active`);
       }
     } else if (metadata.type === 'add_rooms' && metadata.additional_rooms) {
