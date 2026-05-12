@@ -1,75 +1,65 @@
-## Khi nào hiện banner "Chế độ chỉ đọc"
+## Vấn đề
 
-Banner `ReadOnlyBanner` (MainLayout.tsx:64) hiện khi cờ `tenants.is_read_only = true`.
+Sau publish, trang trắng. Console production:
 
-**Cờ này được BẬT bởi:**
-- Cron `auto_apply_read_only_after_grace` chạy hàng ngày (03:30 UTC) — set `is_read_only=true` cho mọi tenant đã hết grace period (`grace_period_ends_at < now()`).
-- Hoặc gọi RPC `set_tenant_read_only(tenant_id, reason)` thủ công.
-
-**Cờ này được TẮT bởi:**
-- Chỉ duy nhất RPC `clear_tenant_read_only(tenant_id)` — nhưng **KHÔNG có flow nào gọi RPC này**.
-
----
-
-## Bug đã phát hiện (rất nghiêm trọng)
-
-Kiểm tra DB, có **6 tenants** đang `is_read_only=true` dù `subscription_status='active'` và `subscription_end_date` ở **tương lai** (ví dụ "Gia Lộc Hưng Phát" hết hạn 2026-06-11, hôm nay 2026-05-12). Tức là họ **đã thanh toán/gia hạn xong** nhưng banner vẫn hiện và mọi mutation vẫn bị DB trigger `enforce_read_only_mutation` chặn.
-
-**Nguyên nhân:**
-1. `supabase/functions/sepay-webhook/index.ts:524-528` khi nhận thanh toán gia hạn chỉ update:
-   ```ts
-   subscription_end_date, subscription_status='active', grace_period_ends_at=null
-   ```
-   Không hề reset `is_read_only`. → Tenant trả tiền xong vẫn kẹt chỉ-đọc.
-
-2. Cron `auto_apply_read_only_after_grace` chỉ **bật** cờ, không có cron đối ứng để **tắt** cờ khi subscription được gia hạn lại.
-
-3. Các flow renewal khác (manual approve, super-admin extend) cũng không gọi `clear_tenant_read_only`.
-
----
-
-## Phương án sửa
-
-### A. Migration mới — tự động clear khi grace_period_ends_at lùi về tương lai
-Mở rộng `auto_apply_read_only_after_grace()` (hoặc tạo function `auto_clear_read_only_after_renewal()`) chạy cùng cron:
-```sql
-UPDATE tenants
-SET is_read_only=false, read_only_reason=NULL, read_only_since=NULL
-WHERE is_read_only=true
-  AND (grace_period_ends_at IS NULL OR grace_period_ends_at > now())
-  AND subscription_status IN ('active','trial');
--- + ghi audit log 'auto_clear_read_only'
+```
+TypeError: Cannot read properties of undefined (reading 'forwardRef')
+  at radix-vendor-BsELkO4s.js
 ```
 
-### B. Sửa `sepay-webhook` (và mọi nhánh extend / add_rooms / approve manual)
-Sau khi update subscription thành công, gọi:
-```ts
-await supabase.rpc('clear_tenant_read_only', { 
-  p_tenant_id: tenantId, 
-  p_reason: 'payment_received' 
-});
-```
-Áp dụng ở 2 nhánh: `metadata.type === 'extend'` (line 535) và bất kỳ nhánh nào khác làm `subscription_status='active'`.
+Đây là lỗi do `manualChunks` trong `vite.config.ts` (vừa thêm gần đây) tách:
+- `react`, `react-dom`, `scheduler` → `react-vendor`
+- `@radix-ui/*` → `radix-vendor`
+- `framer-motion`, `react-hook-form`, `@tanstack/*` → các vendor riêng
 
-### C. Backfill ngay (one-shot SQL trong cùng migration)
-Clear `is_read_only` cho 6 tenants hiện đang bị kẹt (điều kiện: end_date tương lai HOẶC grace chưa hết).
+Radix UI dùng `import * as React from 'react'` và truy cập `React.forwardRef`. Khi React bị tách sang chunk khác, namespace import bị resolve sai (undefined) ở runtime của Radix → crash trước khi React render → màn hình trắng.
 
-### D. (Tùy chọn) Realtime invalidate
-Sau khi clear, banner tự ẩn ở lần `useReadOnlyMode` refetch tiếp theo (staleTime 60s). Có thể thêm subscribe `postgres_changes` trên `tenants` để ẩn ngay lập tức — nhưng không bắt buộc.
+Lỗi này KHÔNG xuất hiện ở dev vì Vite dev không bundle/manualChunks.
 
----
+## Cách sửa (frontend-only, chỉ `vite.config.ts`)
+
+Gộp **tất cả thư viện phụ thuộc trực tiếp vào React** vào CÙNG chunk với React, để namespace import luôn resolve đúng. Chỉ giữ tách chunk cho các lib **lazy-load** thật sự (PDF, Excel, Mermaid, Charts, QR, Markdown) — vốn là mục tiêu ban đầu để giảm initial bundle.
+
+### Sửa `manualChunks` trong `vite.config.ts`
+
+Chunk strategy mới:
+
+| Chunk | Nội dung | Lý do |
+|---|---|---|
+| `react-core` | react, react-dom, scheduler, react-router, **@radix-ui/***, framer-motion, react-hook-form, @tanstack/*, lucide-react, i18next, react-i18next, date-fns, react-day-picker, zod, @supabase/* | Tất cả phụ thuộc React → cùng chunk → tránh lỗi forwardRef undefined |
+| `excel-vendor` | exceljs | Lazy (export Excel) |
+| `pdf-vendor` | jspdf, html2canvas | Lazy (in PDF) |
+| `mermaid-vendor` | mermaid | Lazy (docs page) |
+| `charts-vendor` | recharts, d3-* | Lazy (reports) |
+| `qr-vendor` | html5-qrcode, qr-scanner-wechat, qr-code-styling, qrcode.react | Lazy (scan/QR) |
+| `markdown-vendor` | react-markdown, rehype-*, remark-*, highlight.js, refractor | Lazy (docs/help) |
+| `vendor` | mọi npm dep còn lại | Catch-all |
+
+Lưu ý: react-core sẽ to hơn (~1.5–2 MB) nhưng vẫn dưới giới hạn precache 3 MB đã set, KHÔNG cần bỏ precache. Initial bundle vẫn nhỏ hơn nhiều so với trước khi tách (vì 6 chunk lazy đã tách ra).
+
+### `globIgnores`
+
+Giữ nguyên ignore cho 6 chunk lazy nặng (qr, pdf, excel, mermaid, charts, markdown) trong PWA precache. `react-core` và `vendor` vẫn được precache để PWA hoạt động offline.
+
+### Bump version
+
+- `src/lib/app-version.ts`: `1.0.14` → `1.0.15`
+- `public/changelog.json`: thêm entry mô tả "Sửa lỗi màn hình trắng sau publish do tách chunk React/Radix sai"
+
+## Rollout
+
+1. Sửa `vite.config.ts` (chỉ phần `manualChunks`).
+2. Bump version + changelog.
+3. User publish lại → build chạy, không còn cảnh báo precache size, runtime không còn lỗi forwardRef.
+4. Verify bằng cách mở `https://roomqc.lovable.app/` sau publish, kiểm tra console.
 
 ## Files sẽ sửa
 
-- **NEW** `supabase/migrations/<timestamp>_auto_clear_read_only.sql` — function clear + thêm vào cron + backfill 6 tenants kẹt.
-- `supabase/functions/sepay-webhook/index.ts` — gọi `clear_tenant_read_only` sau khi extend (line ~538) và sau add_rooms nếu subscription đang active.
-- (kiểm tra) các edge function khác có set `subscription_status='active'`: `check-subscription-status`, các RPC super-admin extend.
+- `vite.config.ts` (manualChunks)
+- `src/lib/app-version.ts`
+- `public/changelog.json`
 
-## Test cases
-1. Tenant đang read-only → SePay webhook báo extend → sau webhook: `is_read_only=false`, banner biến mất, mutations OK.
-2. Cron chạy: tenant có `grace_period_ends_at > now()` và `is_read_only=true` → bị clear.
-3. Tenant thực sự hết hạn (grace đã qua) → vẫn bị set `is_read_only=true` như cũ (không regression).
-4. Audit log có entry `auto_clear_read_only` / `clear_read_only` cho từng case.
+## Rủi ro
 
-## Rollback
-- Drop function `auto_clear_read_only_after_renewal`, gỡ schedule cron, revert sepay-webhook diff. Backfill không cần rollback vì 6 tenants đó đáng lẽ phải `false`.
+- Initial chunk `react-core` to hơn (~+800KB so với react-vendor cũ) nhưng được gzip + cached vĩnh viễn theo hash. Trade-off chấp nhận để app load được.
+- Nếu vẫn còn lỗi tương tự với lib khác (ví dụ `@hookform/resolvers`), bổ sung vào `react-core`.
