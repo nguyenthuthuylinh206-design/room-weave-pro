@@ -6,6 +6,7 @@ import { useUser } from '@/hooks/useUser'
 import { useUserModulePermissions, type PermissionSummary } from '@/hooks/useUserModulePermissions'
 import { usePendingTaskCount } from '@/hooks/useHousekeepingTasks'
 import { usePendingCounts, type PendingCounts } from '@/hooks/usePendingCounts'
+import { prefetchRoute } from '@/lib/route-prefetch'
 
 type PendingCountKey = keyof PendingCounts | 'tasks'
 
@@ -116,6 +117,7 @@ export const MobileBottomNav = () => {
           return (
             <button
               key={item.id}
+              onPointerDown={() => prefetchRoute(item.path)}
               onClick={() => navigate(item.path)}
               className={cn(
                 'relative flex flex-col items-center justify-center gap-1 px-3 py-2 min-w-[64px] transition-all',

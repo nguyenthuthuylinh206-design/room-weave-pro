@@ -20,6 +20,7 @@ import { useUser } from '@/hooks/useUser'
 import { useGracePeriod } from '@/hooks/useGracePeriod'
 import { usePostUpdateToast } from '@/hooks/usePostUpdateToast'
 import { isStaff, isTenantOwner, isManager } from '@/lib/userAccess'
+import { useIdlePrefetch } from '@/hooks/useIdlePrefetch'
 
 const MainLayoutContent = () => {
   const { isMobile } = useBreakpoint()
@@ -29,6 +30,9 @@ const MainLayoutContent = () => {
   const isStaffUser = isStaff(user)
   const showSubscriptionBanner = isTenantOwner(user) || isManager(user)
   const isSuspended = isGracePeriodExpired && !location.pathname.startsWith('/settings/subscription')
+
+  // Idle-prefetch các route phổ biến theo permission để chuyển trang gần như tức thì.
+  useIdlePrefetch()
 
   if (isMobile) {
     return (

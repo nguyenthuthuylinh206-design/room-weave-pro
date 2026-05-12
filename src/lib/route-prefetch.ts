@@ -1,9 +1,11 @@
 /**
- * Route prefetch — kích hoạt khi user hover/focus link trong sidebar.
+ * Route prefetch — kích hoạt khi user hover/focus/pointerdown link trong sidebar,
+ * hoặc chủ động sau khi app idle.
+ *
  * Mỗi route chỉ prefetch 1 lần, browser tự dedupe network nếu trùng chunk.
  *
  * Cách dùng:
- *   <Link onMouseEnter={() => prefetchRoute('/inventory')} ... />
+ *   <Link onPointerDown={() => prefetchRoute('/inventory')} ... />
  *
  * Lợi ích: Khi user click, chunk thường đã ở cache → chuyển trang gần như tức thì.
  */
@@ -44,6 +46,9 @@ const loaders: Record<string, () => Promise<unknown>> = {
   '/guests': () => import('@/pages/guests/GuestsPage'),
   '/guest-invoices': () => import('@/pages/invoices/GuestInvoicesPage'),
   '/lost-found': () => import('@/pages/lost-found/LostFoundPage'),
+
+  // My tasks (mobile bottom nav)
+  '/my-tasks': () => import('@/pages/MyTasksPage'),
 
   // Laundry
   '/laundry/batches/new': () => import('@/pages/laundry/CreateBatchPage'),
@@ -112,23 +117,24 @@ const loaders: Record<string, () => Promise<unknown>> = {
 
 const prefetched = new Set<string>()
 
-/**
- * Tìm loader khớp longest-prefix với pathname.
- */
 const findLoader = (path: string): (() => Promise<unknown>) | null => {
-  // Strip query string & hash
   const clean = path.split('?')[0].split('#')[0]
-
-  // Exact match trước
   if (loaders[clean]) return loaders[clean]
-
-  // Sau đó longest-prefix (ưu tiên prefix dài hơn)
   const sorted = Object.keys(loaders).sort((a, b) => b.length - a.length)
   for (const key of sorted) {
     if (key === '/') continue
     if (clean === key || clean.startsWith(key + '/')) return loaders[key]
   }
   return null
+}
+
+const isSlowConnection = () => {
+  if (typeof navigator === 'undefined') return false
+  const conn = (navigator as any).connection
+  if (!conn) return false
+  if (conn.saveData) return true
+  if (conn.effectiveType && /(^|-)2g$/.test(conn.effectiveType)) return true
+  return false
 }
 
 /**
@@ -138,16 +144,31 @@ const findLoader = (path: string): (() => Promise<unknown>) | null => {
 export const prefetchRoute = (path: string) => {
   if (typeof window === 'undefined') return
   if (prefetched.has(path)) return
-
-  // Skip nếu user bật Save-Data hoặc đang ở mạng chậm
-  const conn = (navigator as any).connection
-  if (conn?.saveData) return
-  if (conn?.effectiveType && /(^|-)2g$/.test(conn.effectiveType)) return
+  if (isSlowConnection()) return
 
   const loader = findLoader(path)
   if (!loader) return
 
   prefetched.add(path)
-  // Fire-and-forget; lỗi mạng cũng không sao, lần click sau React.lazy sẽ retry
   loader().catch(() => prefetched.delete(path))
+}
+
+/**
+ * Prefetch danh sách route khi browser idle. Dùng sau khi app mount để
+ * "âm thầm" kéo các chunk người dùng nhiều khả năng sẽ click tới.
+ */
+export const prefetchRoutesIdle = (paths: string[]) => {
+  if (typeof window === 'undefined') return
+  if (isSlowConnection()) return
+
+  const ric: (cb: () => void, opts?: { timeout: number }) => number =
+    (window as any).requestIdleCallback ||
+    ((cb: () => void) => window.setTimeout(cb, 200))
+
+  // Stagger để không nghẽn main thread / network đồng thời.
+  paths.forEach((path, i) => {
+    ric(() => {
+      window.setTimeout(() => prefetchRoute(path), i * 80)
+    }, { timeout: 2000 })
+  })
 }

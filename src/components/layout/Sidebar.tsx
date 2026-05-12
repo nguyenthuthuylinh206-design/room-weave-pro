@@ -458,6 +458,7 @@ export const Sidebar = () => {
                 <button
                   onClick={() => toggleExpanded(item.titleKey)}
                   onMouseEnter={handleParentPrefetch}
+                  onPointerDown={handleParentPrefetch}
                   onFocus={handleParentPrefetch}
                   className={cn(
                     'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
@@ -512,6 +513,7 @@ export const Sidebar = () => {
                               <Link
                                 to={child.href || '#'}
                                 onMouseEnter={() => child.href && prefetchRoute(child.href)}
+                                onPointerDown={() => child.href && prefetchRoute(child.href)}
                                 onFocus={() => child.href && prefetchRoute(child.href)}
                                 className={cn(
                                   'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
@@ -552,6 +554,7 @@ export const Sidebar = () => {
               key={item.titleKey}
               to={item.href || '#'}
               onMouseEnter={() => item.href && prefetchRoute(item.href)}
+              onPointerDown={() => item.href && prefetchRoute(item.href)}
               onFocus={() => item.href && prefetchRoute(item.href)}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',

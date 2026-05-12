@@ -2,13 +2,20 @@ import i18n, { type BackendModule, type ReadCallback } from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
 // === Vietnamese-only configuration ===
-// App chạy 100% tiếng Việt. Bỏ hoàn toàn LanguageDetector và mọi tài nguyên EN
-// để tránh "flash" tiếng Anh / key code khi load (do detector ưu tiên ngôn ngữ
-// trình duyệt hoặc localStorage cũ trước khi React mount).
+// Bundle các namespace dùng nhiều ngay từ đầu để tránh nháy key code khi
+// điều hướng. Các namespace lớn hơn / ít dùng vẫn lazy-load.
 
 import viCommon from './locales/vi/common.json';
 import viAuth from './locales/vi/auth.json';
 import viLanding from './locales/vi/landing.json';
+import viNavigation from './locales/vi/navigation.json';
+import viDashboard from './locales/vi/dashboard.json';
+import viRooms from './locales/vi/rooms.json';
+import viInventory from './locales/vi/inventory.json';
+import viItems from './locales/vi/items.json';
+import viSettings from './locales/vi/settings.json';
+import viNotifications from './locales/vi/notifications.json';
+import viHotels from './locales/vi/hotels.json';
 
 // Lazy registry CHỈ quét locales/vi → Vite không tạo chunk EN.
 const lazyResources = import.meta.glob('./locales/vi/*.json') as Record<
@@ -20,12 +27,20 @@ const EAGER_KEYS = new Set([
   './locales/vi/common.json',
   './locales/vi/auth.json',
   './locales/vi/landing.json',
+  './locales/vi/navigation.json',
+  './locales/vi/dashboard.json',
+  './locales/vi/rooms.json',
+  './locales/vi/inventory.json',
+  './locales/vi/items.json',
+  './locales/vi/settings.json',
+  './locales/vi/notifications.json',
+  './locales/vi/hotels.json',
 ]);
 
 const inflight = new Map<string, Promise<Record<string, unknown> | null>>();
 
 async function loadResource(language: string, namespace: string) {
-  if (language !== 'vi') return null; // chỉ phục vụ tiếng Việt
+  if (language !== 'vi') return null;
   const key = `./locales/vi/${namespace}.json`;
   if (EAGER_KEYS.has(key)) return null;
   const loader = lazyResources[key];
@@ -87,6 +102,14 @@ i18n
         common: viCommon,
         auth: viAuth,
         landing: viLanding,
+        navigation: viNavigation,
+        dashboard: viDashboard,
+        rooms: viRooms,
+        inventory: viInventory,
+        items: viItems,
+        settings: viSettings,
+        notifications: viNotifications,
+        hotels: viHotels,
       },
     },
     defaultNS: 'common',
