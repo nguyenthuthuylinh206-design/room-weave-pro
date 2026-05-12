@@ -1,6 +1,15 @@
 {
-  "current": "1.0.9",
+  "current": "1.0.10",
   "versions": [
+    {
+      "version": "1.0.10",
+      "releaseDate": "2026-05-12",
+      "title": "Lazy-load ngôn ngữ theo trang",
+      "changes": [
+        { "type": "improved", "text": "Giao diện chỉ tải file ngôn ngữ của trang đang xem (giảm ~200KB JSON ở entry)" },
+        { "type": "improved", "text": "Landing & đăng nhập tải nhanh hơn rõ rệt trên 3G/4G" }
+      ]
+    },
     {
       "version": "1.0.9",
       "releaseDate": "2026-05-12",
