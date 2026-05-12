@@ -1,6 +1,14 @@
 {
-  "current": "1.0.14",
+  "current": "1.0.15",
   "versions": [
+    {
+      "version": "1.0.15",
+      "releaseDate": "2026-05-12",
+      "title": "Sửa lỗi màn hình trắng sau publish",
+      "changes": [
+        { "type": "fixed", "text": "Gộp lại các vendor chunk để tránh lỗi 'Cannot read properties of undefined (reading forwardRef)' khiến trang trắng sau khi publish" }
+      ]
+    },
     {
       "version": "1.0.14",
       "releaseDate": "2026-05-12",
