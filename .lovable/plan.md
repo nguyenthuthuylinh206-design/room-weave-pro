@@ -1,101 +1,109 @@
+## Chẩn đoán nguyên nhân chậm
 
-# Trang lịch sử phiên bản & luồng thông báo cập nhật
+Sau khi đọc `src/App.tsx`, `src/i18n/index.ts`, `vite.config.ts`, `MainLayout`, `RootRoute`, `package.json`, đây là các nguyên nhân chính khiến lần load đầu rất chậm:
 
-## Mục tiêu
-- Có 1 trang **`/whats-new`** trong app cho user xem toàn bộ lịch sử thay đổi theo phiên bản.
-- Giữ nguyên luồng đã có: mỗi lần publish → AI bump version + thêm entry changelog → auto-tạo announcement `version_update` trạng thái **chờ bật** → admin chỉnh & bật → user thấy popup "Cập nhật phiên bản mới" với CTA reload + clear cache.
-- Popup có link phụ "Xem tất cả thay đổi" mở `/whats-new`.
+### 1. i18n nuốt cả bundle khởi động (~250KB JSON, gzip ~60–80KB)
+`src/i18n/index.ts` **eager import 40 file JSON** (vi + en × 20 namespace: rooms 20KB, inventory 20KB, laundry 18KB, superAdmin 14KB, …). Trang Landing chỉ cần namespace `landing` + `common` nhưng vẫn phải tải toàn bộ. Đây là khoản phình lớn nhất trong main chunk.
 
-## A. Kiến trúc
+### 2. Không có `manualChunks` → vendor chunk khổng lồ
+`vite.config.ts` không cấu hình `build.rollupOptions.output.manualChunks`. Các thư viện nặng đang dồn vào 1–2 chunk:
+- `recharts` (~300KB), `framer-motion` (~120KB), `mermaid` (~700KB), `exceljs` (~900KB), `jspdf` + `jspdf-autotable` (~400KB), `html2canvas` (~200KB), `html5-qrcode` + `qr-scanner-wechat` (~500KB + wasm), `react-markdown` + `rehype-highlight` (~300KB).
+- Khi bất kỳ route nào (kể cả lazy) import 1 lib → Rollup gom chung → các chunk lazy phình to và phải tải lại nhiều lib.
+
+### 3. Entry eager-import quá nhiều thứ landing không cần
+`App.tsx` import eager: `MainLayout`, `SuperAdminLayout`, `SuperAdminErrorBoundary`, tất cả Guards, `Toaster`, `Sonner`, `TooltipProvider`, `ThemeProvider`, `AuthProvider`, `CacheBuster`, `QueryClientProvider`. `MainLayout` lại kéo theo `HotelProvider`, `PushNotificationPrompt`, `PWAUpdatePrompt`, `FreeTrialPopup`, `AnnouncementHost`, `ShiftStatusBanner`, `GracePeriodBanner`, `SuspendedOverlay`, `ReadOnlyBanner`, `QuotaWarningBanner`, `Sidebar`, `Header`, `MobileHeader`, `MobileBottomNav`. → Khách vãng lai vào `/` (Landing) phải parse hàng trăm KB JS không dùng tới.
+
+### 4. PWA service worker đang prompt → request 1 vòng `changelog.json` + version check
+`CacheBuster` chạy cleanup SW ngay trên mọi load (preview hoặc prod mismatch). Trong production thật, khi version match thì OK; nhưng việc đăng ký SW + check vẫn block hydration của các effect khác.
+
+### 5. Một số chi tiết nhỏ
+- `docs-loader.ts` dùng `import.meta.glob('/docs/architecture/**/*.md', { eager: true })` (854KB markdown). May mắn nó nằm trong chunk lazy của `/docs` nên không ảnh hưởng landing — nhưng khi mở `/docs` thì cực nặng.
+- Không có `<link rel="preconnect">` tới Supabase trong `index.html` → request auth/session đầu tiên tốn thêm DNS+TLS.
+- 80 route `lazy()` nhưng nhiều route nhỏ → quá nhiều HTTP request chunk khi điều hướng (HTTP/2 vẫn nên gom).
+
+---
+
+## Phương án tối ưu (ưu tiên ROI cao → thấp)
+
+### A. Lazy hóa i18n theo namespace (giảm ~60–80KB gzip khỏi entry)
+- Bỏ `import` 40 JSON ở `src/i18n/index.ts`, dùng backend `i18next-resources-to-backend` hoặc `import.meta.glob('./locales/**/*.json')` không eager.
+- Init i18n chỉ với `ns: ['common']`, `partialBundledLanguages: true`. Page nào cần thêm sẽ `useTranslation('rooms')` → tự lazy fetch.
+- Landing chỉ load `vi/landing.json` + `vi/common.json` (≈ 8KB).
+
+### B. Cấu hình `manualChunks` trong `vite.config.ts`
+Tách rõ vendor để các route lazy không kéo theo lib nặng:
+```text
+react-vendor:    react, react-dom, react-router-dom
+ui-vendor:       @radix-ui/*, lucide-react, cmdk, sonner
+data-vendor:     @tanstack/react-query, @tanstack/react-table, @supabase/supabase-js
+chart-vendor:    recharts
+motion-vendor:   framer-motion
+pdf-vendor:      jspdf, jspdf-autotable, html2canvas
+excel-vendor:    exceljs, file-saver
+qr-vendor:       html5-qrcode, qr-scanner-wechat, qr-code-styling, qrcode.react
+markdown-vendor: react-markdown, rehype-*, remark-*, mermaid
 ```
-public/changelog.json (mảng versions)
-        │
-        ├─► useChangelogList() ──► /whats-new (timeline UI)
-        │
-        └─► useEnsureVersionDraft (lấy entry version hiện tại)
-                 │
-                 └─► tạo announcement version_update (is_active=false)
-                           │
-                           └─► Admin bật ──► AnnouncementPopup hiển thị
-                                                  │
-                                                  ├─ CTA "Cập nhật ngay" → clear cache + reload
-                                                  └─ link "Xem tất cả thay đổi" → /whats-new
+→ Landing/Auth chỉ cần `react-vendor + ui-vendor (subset)`.
+
+### C. Tách nhánh "anonymous landing" khỏi cây Provider lớn
+- Trong `App.tsx`: tạo router con: nếu route là `/landing`, `/`, `/auth/*`, `/pay/:ref`, `/scan/document`, `/install`, `/offline` → render layout tối giản (chỉ `ThemeProvider + QueryClientProvider + Toaster`), KHÔNG render `MainLayout`/`HotelProvider`/PWA prompts.
+- Hoặc đơn giản hơn: **lazy hoá `MainLayout` và `SuperAdminLayout`** (đổi `import` sang `lazy()`) để chúng chỉ tải khi user đã đăng nhập.
+- Lazy hoá luôn `PushNotificationPrompt`, `PWAUpdatePrompt`, `FreeTrialPopup`, `AnnouncementHost`, `CacheBuster` (load sau idle bằng `requestIdleCallback`).
+
+### D. Preconnect + preload tài nguyên quan trọng
+Trong `index.html` thêm:
+```html
+<link rel="preconnect" href="https://ehjtoajnlnuvuiwkpmbp.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="https://ehjtoajnlnuvuiwkpmbp.supabase.co">
+<link rel="preload" as="image" href="/src/assets/logo-roomqc.png">
 ```
+Giảm 100–300ms cho request Supabase đầu tiên.
 
-## B. Schema / Data
-**Đổi `public/changelog.json` từ object đơn → object có `versions` array:**
-```json
-{
-  "current": "1.0.7",
-  "versions": [
-    {
-      "version": "1.0.7",
-      "releaseDate": "2026-05-11",
-      "title": "Thông báo phiên bản giàu nội dung",
-      "changes": [
-        { "type": "new", "text": "..." },
-        { "type": "improved", "text": "..." },
-        { "type": "fixed", "text": "..." }
-      ]
-    },
-    { "version": "1.0.6", ... }
-  ]
-}
-```
-- Không cần migration DB — vẫn dùng bảng `announcements` hiện có.
-- `useChangelog` (đang dùng cho PWA update toast) cập nhật để đọc `versions.find(v => v.version === current)` — giữ tương thích ngược.
-- `useEnsureVersionDraft` đọc entry theo `APP_VERSION` từ mảng.
+### E. Tối ưu Landing page
+- `HeroSection` dùng `framer-motion` cho 4–5 element. Cân nhắc thay bằng CSS `@keyframes` (loại bỏ ~120KB framer-motion khỏi landing chunk) hoặc dùng `LazyMotion` + `domAnimation` (giảm ~70%).
+- Ảnh: ép định dạng WebP + `loading="lazy"` cho mọi ảnh dưới fold.
+- Inline critical CSS đã có sẵn qua Tailwind, OK.
 
-## C. Files mới / sửa
-**Mới:**
-- `src/types/changelog.ts` — bổ sung `ChangelogFile = { current: string; versions: ChangelogEntry[] }`
-- `src/hooks/useChangelogList.ts` — fetch toàn bộ `versions[]`, sort desc
-- `src/pages/WhatsNewPage.tsx` — Timeline: mỗi version 1 card (`border rounded-lg p-4`):
-  - Header: `v1.0.7` (font-mono) + badge "Mới nhất" (green) cho version đầu + date format `dd/MM/yyyy`
-  - Title bold
-  - List `changes`: icon nhỏ theo `type` (new=Sparkles green, improved=ArrowUpCircle primary, fixed=Wrench amber, removed=Trash red) + text
-  - Sticky filter chip lọc theo type ở đầu trang
-- Route trong `App.tsx`: `<Route path="/whats-new" element={<WhatsNewPage />} />` (auth required, không cần permission)
+### F. React Query defaults
+Set `staleTime: 60_000`, `refetchOnWindowFocus: false` global → giảm số request lặp khi chuyển tab.
 
-**Sửa:**
-- `public/changelog.json` — chuyển sang format mảng (giữ 1.0.6 + 1.0.7)
-- `src/hooks/useChangelog.ts` — adapt format mới, return entry của `current`
-- `src/hooks/announcements/useEnsureVersionDraft.ts` — đọc `data.versions.find(v => v.version === APP_VERSION)`
-- `src/components/announcements/AnnouncementPopup.tsx` — nếu `kind === 'version_update'`: thêm link nhỏ "Xem tất cả thay đổi →" dưới CTA, navigate `/whats-new`
-- `src/pages/profile/ProfilePage.tsx` (hoặc menu More mobile) — thêm mục "Lịch sử phiên bản" link `/whats-new` + hiển thị `v{APP_VERSION}` cạnh
-- `.lovable/memory/preferences/release-version-bump-convention.md` — cập nhật: format changelog.json mới (push entry vào đầu `versions[]` + cập nhật `current`)
-- `.lovable/memory/features/super-admin/version-update-auto-draft-v1.md` — bổ sung mục `/whats-new`
+### G. CacheBuster chạy sau idle
+Bọc effect trong `requestIdleCallback(() => …, { timeout: 2000 })` để không cạnh tranh CPU lúc render đầu.
 
-## D. UI /whats-new (desktop & mobile portrait)
-```
-┌─ Lịch sử phiên bản ──────────────────────┐
-│ Phiên bản hiện tại: v1.0.7               │
-│ [Tất cả] [Mới] [Cải tiến] [Sửa lỗi]      │ ← filter chips
-├──────────────────────────────────────────┤
-│ ┌─ v1.0.7  Mới nhất    11/05/2026 ─────┐ │
-│ │ Thông báo phiên bản giàu nội dung    │ │
-│ │ ✨ Popup highlight + contacts        │ │
-│ │ 🔧 Sửa lỗi version cũ                │ │
-│ └──────────────────────────────────────┘ │
-│ ┌─ v1.0.6              10/05/2026 ─────┐ │
-│ │ ...                                  │ │
-└──────────────────────────────────────────┘
-```
+### H. (Tuỳ chọn) Bật `build.cssCodeSplit: true` + `target: 'es2020'`
+Giảm polyfill, tách CSS theo route.
 
-## E. Permission
-- `/whats-new`: bất kỳ user đã đăng nhập (không gắn module permission).
-- Admin bật/tắt announcement vẫn qua super-admin RLS hiện có.
+---
 
-## F. Test cases
-1. Mở `/whats-new` → list 2 version, v1.0.7 ở đầu có badge "Mới nhất"
-2. Filter chip "Sửa lỗi" → chỉ hiển thị changes type=fixed
-3. Popup version_update bật → click "Xem tất cả thay đổi" → vào `/whats-new` đúng
-4. CTA "Cập nhật ngay" trong popup vẫn clear cache + reload (giữ nguyên)
-5. `useEnsureVersionDraft` với format mới → tạo draft với highlights = changes của 1.0.7
-6. Profile có link "Lịch sử phiên bản v1.0.7"
+## Kết quả kỳ vọng (Landing trên 4G mid-tier)
+| Chỉ số | Hiện tại (ước) | Sau tối ưu |
+|---|---|---|
+| JS transferred (entry) | ~600–800 KB | **~150–220 KB** |
+| Time to Interactive | ~4–6s | **~1.2–1.8s** |
+| LCP | ~3–4s | **~1.5s** |
 
-## G. Rollout & Rủi ro
-- **Backward compat**: `useChangelog` hỗ trợ cả 2 format (legacy object đơn + mới có `versions`) để tránh vỡ nếu cache cũ load file cũ.
-- **Cache**: file changelog.json được fetch với `?t=Date.now()` — không bị PWA cache.
-- **Không có DB change** → không cần rollback migration.
-- Bump APP_VERSION → 1.0.8, thêm entry mới với change "Trang lịch sử phiên bản /whats-new".
+---
+
+## Phạm vi triển khai (file dự kiến đụng vào)
+1. `src/i18n/index.ts` — refactor sang lazy backend.
+2. `vite.config.ts` — thêm `build.rollupOptions.output.manualChunks`, `cssCodeSplit`.
+3. `src/App.tsx` — `lazy()` cho `MainLayout`, `SuperAdminLayout`, defer các prompts.
+4. `src/components/layout/MainLayout.tsx` — lazy `PushNotificationPrompt`, `PWAUpdatePrompt`, `FreeTrialPopup`, `AnnouncementHost`.
+5. `src/components/pwa/CacheBuster.tsx` — wrap `requestIdleCallback`.
+6. `index.html` — preconnect Supabase.
+7. `src/components/landing/HeroSection.tsx` — `LazyMotion` thay `motion`.
+8. (Optional) `src/main.tsx` hoặc `App.tsx` — set React Query defaults.
+
+## Rủi ro & Rollout
+- **i18n lazy**: cần test mọi page render đúng (có loading flash ngắn). Mitigate bằng `Suspense` + cache + preload namespace cho route hiện tại.
+- **manualChunks**: có thể đổi tên file → invalidate cache cũ; OK vì `CacheBuster` đã có.
+- **Lazy MainLayout**: thêm 1 nhịp `Suspense` khi vào dashboard lần đầu — chấp nhận được vì đó là sau login.
+- Mỗi thay đổi đi kèm bump `APP_VERSION` + `CURRENT_VERSION` + entry `changelog.json` theo convention.
+
+## Đề xuất thứ tự thực thi (mỗi bước đo lại)
+1. **Bước 1 (impact lớn nhất, ít rủi ro)**: B + D + G + lazy MainLayout/SuperAdminLayout.
+2. **Bước 2**: A — lazy i18n namespace.
+3. **Bước 3**: E + F — landing motion + RQ defaults.
+4. (Khi rảnh) tách thêm route `/docs` để chỉ load markdown khi cần.
+
+Bạn muốn tôi triển khai cả 3 bước hay chỉ Bước 1 trước (an toàn nhất, đã đủ giảm 50–60% TTI)?

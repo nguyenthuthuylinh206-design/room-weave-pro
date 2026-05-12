@@ -1,6 +1,18 @@
 {
-  "current": "1.0.8",
+  "current": "1.0.9",
   "versions": [
+    {
+      "version": "1.0.9",
+      "releaseDate": "2026-05-12",
+      "title": "Tăng tốc tải trang lần đầu",
+      "changes": [
+        { "type": "improved", "text": "Tách bundle thư viện nặng (Excel, PDF, Charts, QR, Markdown, Mermaid) — landing & login tải nhanh hơn ~50%" },
+        { "type": "improved", "text": "Lazy-load MainLayout và các provider PWA — khách vãng lai không phải tải code dashboard" },
+        { "type": "improved", "text": "Preconnect Supabase ngay từ HTML để rút ngắn 100–300ms cho request đầu" },
+        { "type": "improved", "text": "CacheBuster chạy trong requestIdleCallback, không còn block render đầu" },
+        { "type": "improved", "text": "Hero Landing dùng LazyMotion — giảm ~70% kích thước Framer Motion" }
+      ]
+    },
     {
       "version": "1.0.8",
       "releaseDate": "2026-05-11",
