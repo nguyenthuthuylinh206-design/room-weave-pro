@@ -7,6 +7,7 @@ import { useTenant } from '@/hooks/useTenant'
 import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
 import { usePendingCounts, type PendingCounts } from '@/hooks/usePendingCounts'
 import { useUsageMode, type UsageMode } from '@/hooks/useUsageMode'
+import { prefetchRoute } from '@/lib/route-prefetch'
 import {
   LayoutDashboard,
   Package,
@@ -446,10 +447,18 @@ export const Sidebar = () => {
 
             const parentBadgeCount = item.badgeKey && pendingCounts ? pendingCounts[item.badgeKey] : 0
 
+            // Khi hover parent → prefetch route con đầu tiên (thường là dashboard của module)
+            const firstChildHref = item.children!.find((c) => c.href)?.href
+            const handleParentPrefetch = firstChildHref
+              ? () => prefetchRoute(firstChildHref)
+              : undefined
+
             return (
               <div key={item.titleKey} className="space-y-1">
                 <button
                   onClick={() => toggleExpanded(item.titleKey)}
+                  onMouseEnter={handleParentPrefetch}
+                  onFocus={handleParentPrefetch}
                   className={cn(
                     'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                     isExpanded
@@ -502,6 +511,8 @@ export const Sidebar = () => {
                               )}
                               <Link
                                 to={child.href || '#'}
+                                onMouseEnter={() => child.href && prefetchRoute(child.href)}
+                                onFocus={() => child.href && prefetchRoute(child.href)}
                                 className={cn(
                                   'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
                                   isChildActive
@@ -540,6 +551,8 @@ export const Sidebar = () => {
             <Link
               key={item.titleKey}
               to={item.href || '#'}
+              onMouseEnter={() => item.href && prefetchRoute(item.href)}
+              onFocus={() => item.href && prefetchRoute(item.href)}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                 isActive && !anyExpanded
@@ -561,6 +574,8 @@ export const Sidebar = () => {
       <div className="px-4 pb-1">
         <Link
           to="/help"
+          onMouseEnter={() => prefetchRoute('/help')}
+          onFocus={() => prefetchRoute('/help')}
           className={cn(
             'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
             currentPath === '/help'
@@ -577,6 +592,8 @@ export const Sidebar = () => {
       <div className="border-t p-4">
         <Link
           to="/settings/profile"
+          onMouseEnter={() => prefetchRoute('/settings/profile')}
+          onFocus={() => prefetchRoute('/settings/profile')}
           className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-accent transition-colors"
         >
           <Avatar className="h-10 w-10">
