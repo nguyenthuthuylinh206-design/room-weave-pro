@@ -1,6 +1,16 @@
 {
-  "current": "1.0.12",
+  "current": "1.0.13",
   "versions": [
+    {
+      "version": "1.0.13",
+      "releaseDate": "2026-05-12",
+      "title": "Sửa lỗi banner Chế độ chỉ đọc kẹt sau khi gia hạn",
+      "changes": [
+        { "type": "fixed", "text": "Khách sạn đã thanh toán gia hạn nhưng vẫn thấy banner 'Chế độ chỉ đọc' và bị chặn thao tác — nay tự động bỏ ngay khi nhận thanh toán" },
+        { "type": "fixed", "text": "Thêm cron tự kiểm tra hằng ngày để bỏ chế độ chỉ đọc cho mọi tenant đã gia hạn" },
+        { "type": "fixed", "text": "Backfill các tenant đang bị kẹt chế độ chỉ đọc dù subscription còn hạn" }
+      ]
+    },
     {
       "version": "1.0.12",
       "releaseDate": "2026-05-12",
