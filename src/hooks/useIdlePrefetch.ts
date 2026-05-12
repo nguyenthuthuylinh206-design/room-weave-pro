@@ -26,10 +26,12 @@ export const useIdlePrefetch = () => {
   useEffect(() => {
     const paths = new Set<string>(ALWAYS_PREFETCH)
 
-    if (modulePermissions) {
+    if (Array.isArray(modulePermissions)) {
+      const allowed = new Set(
+        modulePermissions.filter((p) => p?.can_view).map((p) => p.module)
+      )
       for (const [moduleId, routes] of Object.entries(ROUTE_BY_MODULE)) {
-        const perm = (modulePermissions as Record<string, any>)[moduleId]
-        if (perm?.canView || perm?.can_view) {
+        if (allowed.has(moduleId)) {
           routes.forEach((r) => paths.add(r))
         }
       }
