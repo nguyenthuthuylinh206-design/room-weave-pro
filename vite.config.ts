@@ -71,36 +71,14 @@ export default defineConfig(({ mode }) => ({
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        // Split heavy libs into dedicated chunks so route lazy-loading actually
-        // benefits — landing/auth no longer pull in PDF/Excel/Charts/QR vendors.
+        // Gộp toàn bộ node_modules vào MỘT chunk `vendor` duy nhất.
+        // Mọi nỗ lực tách (react/radix, markdown/excel) đều dẫn tới TDZ /
+        // circular import giữa chunk con trên production
+        // (forwardRef undefined, "Cannot access 'it' before initialization").
+        // Trade-off: vendor lớn hơn, nhưng cache theo content hash + gzip.
         manualChunks(id) {
-          if (!id.includes('node_modules')) return undefined;
-
-          // Heaviest, route-specific libs — lazy-loaded only, keep isolated
-          if (id.includes('/exceljs/')) return 'excel-vendor';
-          if (id.includes('/jspdf') || id.includes('/html2canvas')) return 'pdf-vendor';
-          if (id.includes('/mermaid/')) return 'mermaid-vendor';
-          if (id.includes('/recharts/') || id.includes('/d3-')) return 'charts-vendor';
-          if (
-            id.includes('/html5-qrcode') ||
-            id.includes('/qr-scanner-wechat') ||
-            id.includes('/qr-code-styling') ||
-            id.includes('/qrcode.react')
-          ) return 'qr-vendor';
-          if (
-            id.includes('/react-markdown') ||
-            id.includes('/rehype-') ||
-            id.includes('/remark-') ||
-            id.includes('/highlight.js') ||
-            id.includes('/refractor')
-          ) return 'markdown-vendor';
-
-          // Everything else — including React, Radix, framer-motion, react-hook-form,
-          // @tanstack, @supabase, lucide, i18next, date-fns, zod — goes into ONE
-          // vendor chunk. Splitting React from libs that do `import * as React from 'react'`
-          // (Radix, etc.) caused `Cannot read properties of undefined (reading 'forwardRef')`
-          // in production due to ESM namespace interop across split chunks.
-          return 'vendor';
+          if (id.includes('node_modules')) return 'vendor';
+          return undefined;
         },
       },
     },
