@@ -1,65 +1,55 @@
-## Vấn đề
+## Vấn đề hiện tại
 
-Sau publish, trang trắng. Console production:
+Production vẫn trắng nhưng lỗi đã đổi. Console hiện tại:
 
+```text
+ReferenceError: Cannot access 'it' before initialization
+at /assets/markdown-vendor-CArYqG8C.js:1:3689
 ```
-TypeError: Cannot read properties of undefined (reading 'forwardRef')
-  at radix-vendor-BsELkO4s.js
+
+HTML production đang preload `markdown-vendor` và `excel-vendor`; trong file `markdown-vendor` có import chéo sang `excel-vendor`:
+
+```js
+import { ... W as it ... } from "./vendor-CPMySoJX.js";
+import { g as ut } from "./excel-vendor-B1cfgbTZ.js";
 ```
 
-Đây là lỗi do `manualChunks` trong `vite.config.ts` (vừa thêm gần đây) tách:
-- `react`, `react-dom`, `scheduler` → `react-vendor`
-- `@radix-ui/*` → `radix-vendor`
-- `framer-motion`, `react-hook-form`, `@tanstack/*` → các vendor riêng
+Đây là lỗi vòng lặp/TDZ do `manualChunks` vẫn tách các package trong hệ sinh thái markdown/unified/rehype/remark không đầy đủ. Một dependency chung bị Rollup đưa sang chunk khác (`excel-vendor`), khiến chunk markdown chạy trước khi binding được khởi tạo.
 
-Radix UI dùng `import * as React from 'react'` và truy cập `React.forwardRef`. Khi React bị tách sang chunk khác, namespace import bị resolve sai (undefined) ở runtime của Radix → crash trước khi React render → màn hình trắng.
+## Kế hoạch sửa
 
-Lỗi này KHÔNG xuất hiện ở dev vì Vite dev không bundle/manualChunks.
+1. **Sửa `vite.config.ts`**
+   - Giảm rủi ro runtime bằng cách bỏ tách `markdown-vendor` riêng.
+   - Đưa toàn bộ `react-markdown`, `remark-*`, `rehype-*`, `highlight.js`, `refractor`, và các dependency unified liên quan về chunk `vendor` chung.
+   - Giữ tách riêng chỉ cho các lib nặng thật sự ít liên quan React/Markdown: `excel-vendor`, `pdf-vendor`, `mermaid-vendor`, `charts-vendor`, `qr-vendor`.
+   - Cập nhật `globIgnores`: bỏ ignore `markdown-vendor-*.js` vì chunk này sẽ không còn.
 
-## Cách sửa (frontend-only, chỉ `vite.config.ts`)
+2. **Tăng version release**
+   - Bump `src/lib/app-version.ts` lên `1.0.16`.
+   - Bump `CURRENT_VERSION` trong `CacheBuster.tsx` nếu file này tồn tại, đúng theo memory release convention.
+   - Thêm entry mới vào `public/changelog.json` mô tả sửa lỗi trắng trang production do tách chunk markdown/unified gây TDZ.
 
-Gộp **tất cả thư viện phụ thuộc trực tiếp vào React** vào CÙNG chunk với React, để namespace import luôn resolve đúng. Chỉ giữ tách chunk cho các lib **lazy-load** thật sự (PDF, Excel, Mermaid, Charts, QR, Markdown) — vốn là mục tiêu ban đầu để giảm initial bundle.
+3. **Kiểm tra sau khi implement**
+   - Không chạy build thủ công theo quy định hệ thống; harness sẽ build.
+   - Sau khi publish lại, kiểm tra `https://roomqc.lovable.app/` và console production.
+   - Nếu vẫn trắng do Service Worker cache shell cũ, bước tiếp theo sẽ là ship kill-switch/cache cleanup hoặc tăng cơ chế cache busting PWA.
 
-### Sửa `manualChunks` trong `vite.config.ts`
+## Files dự kiến sửa
 
-Chunk strategy mới:
-
-| Chunk | Nội dung | Lý do |
-|---|---|---|
-| `react-core` | react, react-dom, scheduler, react-router, **@radix-ui/***, framer-motion, react-hook-form, @tanstack/*, lucide-react, i18next, react-i18next, date-fns, react-day-picker, zod, @supabase/* | Tất cả phụ thuộc React → cùng chunk → tránh lỗi forwardRef undefined |
-| `excel-vendor` | exceljs | Lazy (export Excel) |
-| `pdf-vendor` | jspdf, html2canvas | Lazy (in PDF) |
-| `mermaid-vendor` | mermaid | Lazy (docs page) |
-| `charts-vendor` | recharts, d3-* | Lazy (reports) |
-| `qr-vendor` | html5-qrcode, qr-scanner-wechat, qr-code-styling, qrcode.react | Lazy (scan/QR) |
-| `markdown-vendor` | react-markdown, rehype-*, remark-*, highlight.js, refractor | Lazy (docs/help) |
-| `vendor` | mọi npm dep còn lại | Catch-all |
-
-Lưu ý: react-core sẽ to hơn (~1.5–2 MB) nhưng vẫn dưới giới hạn precache 3 MB đã set, KHÔNG cần bỏ precache. Initial bundle vẫn nhỏ hơn nhiều so với trước khi tách (vì 6 chunk lazy đã tách ra).
-
-### `globIgnores`
-
-Giữ nguyên ignore cho 6 chunk lazy nặng (qr, pdf, excel, mermaid, charts, markdown) trong PWA precache. `react-core` và `vendor` vẫn được precache để PWA hoạt động offline.
-
-### Bump version
-
-- `src/lib/app-version.ts`: `1.0.14` → `1.0.15`
-- `public/changelog.json`: thêm entry mô tả "Sửa lỗi màn hình trắng sau publish do tách chunk React/Radix sai"
-
-## Rollout
-
-1. Sửa `vite.config.ts` (chỉ phần `manualChunks`).
-2. Bump version + changelog.
-3. User publish lại → build chạy, không còn cảnh báo precache size, runtime không còn lỗi forwardRef.
-4. Verify bằng cách mở `https://roomqc.lovable.app/` sau publish, kiểm tra console.
-
-## Files sẽ sửa
-
-- `vite.config.ts` (manualChunks)
+- `vite.config.ts`
 - `src/lib/app-version.ts`
+- `src/components/CacheBuster.tsx` hoặc file chứa `CURRENT_VERSION` nếu có
 - `public/changelog.json`
 
-## Rủi ro
+## Migration
 
-- Initial chunk `react-core` to hơn (~+800KB so với react-vendor cũ) nhưng được gzip + cached vĩnh viễn theo hash. Trade-off chấp nhận để app load được.
-- Nếu vẫn còn lỗi tương tự với lib khác (ví dụ `@hookform/resolvers`), bổ sung vào `react-core`.
+Không có migration database.
+
+## Test
+
+Không thêm test unit vì đây là cấu hình bundling production. Kiểm chứng bằng build/publish và console runtime.
+
+## Phần còn thiếu/rủi ro
+
+- Nếu thiết bị người dùng đang bị Service Worker cũ giữ shell cũ, cần thêm bước cleanup SW sau khi bundle đã ổn.
+- Nếu chunk `excel-vendor` tiếp tục kéo dependency dùng chung gây TDZ với chunk khác, phương án an toàn nhất là chỉ tách các route bằng dynamic import, còn `manualChunks` catch-all về `vendor`.
