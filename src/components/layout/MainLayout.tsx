@@ -20,6 +20,7 @@ import { useUser } from '@/hooks/useUser'
 import { useGracePeriod } from '@/hooks/useGracePeriod'
 import { usePostUpdateToast } from '@/hooks/usePostUpdateToast'
 import { isStaff, isTenantOwner, isManager } from '@/lib/userAccess'
+import { useIdlePrefetch } from '@/hooks/useIdlePrefetch'
 
 const MainLayoutContent = () => {
   const { isMobile } = useBreakpoint()
