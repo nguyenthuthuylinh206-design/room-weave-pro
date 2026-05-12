@@ -29,7 +29,7 @@ export const LandingNavbar = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <Hotel className="h-7 w-7 text-[hsl(214,84%,56%)]" />
+            <img src={logoRoomQc} alt="RoomQc" className="h-7 w-7 rounded-md object-cover" />
             <span className="text-lg font-bold text-white">RoomQc</span>
           </Link>
 
