@@ -12,6 +12,12 @@ import { RoleGuard } from "@/components/auth/RoleGuard";
 import { PermissionRoute } from "@/components/auth/PermissionRoute";
 import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
 
+// Helper: lazy-load named export as default
+const lazyNamed = <T extends Record<string, any>>(
+  loader: () => Promise<T>,
+  name: keyof T
+) => lazy(() => loader().then((m) => ({ default: m[name] })));
+
 // Heavy layout shells — lazy-loaded so anonymous landing/auth/payment-QR
 // pages don't pull in HotelProvider, PWA prompts, banners, sidebars, etc.
 const MainLayout = lazyNamed(() => import("@/components/layout/MainLayout"), "MainLayout");
@@ -21,12 +27,6 @@ const SuperAdminErrorBoundary = lazyNamed(() => import('./components/super-admin
 const CacheBuster = lazy(() =>
   import("@/components/pwa/CacheBuster").then((m) => ({ default: m.CacheBuster }))
 );
-
-// Helper: lazy-load named export as default
-const lazyNamed = <T extends Record<string, any>>(
-  loader: () => Promise<T>,
-  name: keyof T
-) => lazy(() => loader().then((m) => ({ default: m[name] })));
 
 // === Lazy routes — code-split per page ===
 const Dashboard = lazy(() => import("./pages/Dashboard"));
