@@ -46,8 +46,18 @@ export default defineConfig(({ mode }) => ({
       },
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        globIgnores: ['**/wasm-*.js', '**/*.wasm', '**/changelog.json'],
-        maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
+        globIgnores: [
+          '**/wasm-*.js',
+          '**/*.wasm',
+          '**/changelog.json',
+          '**/qr-vendor-*.js',
+          '**/vendor-*.js',
+          '**/pdf-vendor-*.js',
+          '**/excel-vendor-*.js',
+          '**/mermaid-vendor-*.js',
+          '**/charts-vendor-*.js',
+        ],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       },
       devOptions: {
         enabled: false,
