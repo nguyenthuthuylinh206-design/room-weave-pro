@@ -30,6 +30,9 @@ const MainLayoutContent = () => {
   const showSubscriptionBanner = isTenantOwner(user) || isManager(user)
   const isSuspended = isGracePeriodExpired && !location.pathname.startsWith('/settings/subscription')
 
+  // Idle-prefetch các route phổ biến theo permission để chuyển trang gần như tức thì.
+  useIdlePrefetch()
+
   if (isMobile) {
     return (
       <div className="min-h-dvh flex flex-col bg-background overflow-x-hidden safe-area-x">
