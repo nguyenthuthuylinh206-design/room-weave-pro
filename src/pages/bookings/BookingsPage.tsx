@@ -266,6 +266,18 @@ export function BookingsPage() {
     new Set(bookingConflicts?.map(c => c.currentBooking.id) || []),
     [bookingConflicts]
   )
+
+  // Overdue check-in (khách đặt phòng quá giờ chưa đến)
+  const { data: overdueCheckins } = useOverdueCheckins()
+  const overdueCheckinMap = useMemo(() => {
+    const m = new Map<string, number>()
+    overdueCheckins?.forEach(o => m.set(o.id, o.hours_overdue))
+    return m
+  }, [overdueCheckins])
+
+  // No-show / Reschedule dialogs
+  const [noShowBooking, setNoShowBooking] = useState<BookingWithRoom | null>(null)
+  const [rescheduleBooking, setRescheduleBooking] = useState<BookingWithRoom | null>(null)
   
   const { data: bookings, isLoading } = useQuery({
     queryKey: ['all-bookings', isAllHotelsMode ? 'all' : selectedHotelId, statusFilter],
