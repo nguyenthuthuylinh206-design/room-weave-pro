@@ -547,6 +547,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "booking_consumables_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "v_overdue_checkins"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "booking_consumables_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
@@ -624,6 +631,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "room_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "v_overdue_checkins"
             referencedColumns: ["id"]
           },
           {
@@ -716,6 +730,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "room_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_service_charges_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "v_overdue_checkins"
             referencedColumns: ["id"]
           },
           {
@@ -897,6 +918,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "chargeable_consumptions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "v_overdue_checkins"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "chargeable_consumptions_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
@@ -1016,6 +1044,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "room_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_inspection_requests_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "v_overdue_checkins"
             referencedColumns: ["id"]
           },
           {
@@ -1633,6 +1668,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "room_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_order_rooms_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "v_overdue_checkins"
             referencedColumns: ["id"]
           },
           {
@@ -2427,6 +2469,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "guest_invoices_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "v_overdue_checkins"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "guest_invoices_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -3003,6 +3052,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "room_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "housekeeping_tasks_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "v_overdue_checkins"
             referencedColumns: ["id"]
           },
           {
@@ -10315,6 +10371,306 @@ export type Database = {
           },
         ]
       }
+      v_overdue_checkins: {
+        Row: {
+          actual_check_in: string | null
+          actual_check_out: string | null
+          amount_paid: number | null
+          booking_group_id: string | null
+          booking_hours: number | null
+          booking_months: number | null
+          booking_reference: string | null
+          booking_source: string | null
+          booking_type: string | null
+          check_in_date: string | null
+          check_out_date: string | null
+          created_at: string | null
+          created_by: string | null
+          damage_charges: number | null
+          damage_items: Json | null
+          damage_notes: string | null
+          deposit_amount: number | null
+          early_checkin_charge: number | null
+          expected_check_in_time: string | null
+          expected_check_out_time: string | null
+          extra_charges: number | null
+          guest_address: string | null
+          guest_count: number | null
+          guest_date_of_birth: string | null
+          guest_email: string | null
+          guest_gender: string | null
+          guest_id: string | null
+          guest_id_image_url: string | null
+          guest_id_number: string | null
+          guest_id_type: string | null
+          guest_name: string | null
+          guest_nationality: string | null
+          guest_phone: string | null
+          hotel_id: string | null
+          hourly_end_time: string | null
+          hourly_rate: number | null
+          hourly_start_time: string | null
+          hours_overdue: number | null
+          id: string | null
+          late_checkout_charge: number | null
+          monthly_rate: number | null
+          net_revenue: number | null
+          notes: string | null
+          ota_commission_amount: number | null
+          ota_commission_rate: number | null
+          ota_paid_amount: number | null
+          ota_payment_type: string | null
+          paid_at: string | null
+          payment_status: string | null
+          room_id: string | null
+          room_price: number | null
+          service_charges: number | null
+          service_fee_amount: number | null
+          service_fee_rate: number | null
+          skipper_amount_loss: number | null
+          skipper_amount_owed: number | null
+          skipper_at: string | null
+          skipper_marked_at: string | null
+          skipper_marked_by: string | null
+          skipper_note: string | null
+          skipper_reason: string | null
+          sleep_out_at: string | null
+          sleep_out_note: string | null
+          sleep_out_reason: string | null
+          status: string | null
+          subtotal: number | null
+          tenant_id: string | null
+          total_amount: number | null
+          updated_at: string | null
+          vat_amount: number | null
+          vat_rate: number | null
+        }
+        Insert: {
+          actual_check_in?: string | null
+          actual_check_out?: string | null
+          amount_paid?: number | null
+          booking_group_id?: string | null
+          booking_hours?: number | null
+          booking_months?: number | null
+          booking_reference?: string | null
+          booking_source?: string | null
+          booking_type?: string | null
+          check_in_date?: string | null
+          check_out_date?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          damage_charges?: number | null
+          damage_items?: Json | null
+          damage_notes?: string | null
+          deposit_amount?: number | null
+          early_checkin_charge?: number | null
+          expected_check_in_time?: string | null
+          expected_check_out_time?: string | null
+          extra_charges?: number | null
+          guest_address?: string | null
+          guest_count?: number | null
+          guest_date_of_birth?: string | null
+          guest_email?: string | null
+          guest_gender?: string | null
+          guest_id?: string | null
+          guest_id_image_url?: string | null
+          guest_id_number?: string | null
+          guest_id_type?: string | null
+          guest_name?: string | null
+          guest_nationality?: string | null
+          guest_phone?: string | null
+          hotel_id?: string | null
+          hourly_end_time?: string | null
+          hourly_rate?: number | null
+          hourly_start_time?: string | null
+          hours_overdue?: never
+          id?: string | null
+          late_checkout_charge?: number | null
+          monthly_rate?: number | null
+          net_revenue?: number | null
+          notes?: string | null
+          ota_commission_amount?: number | null
+          ota_commission_rate?: number | null
+          ota_paid_amount?: number | null
+          ota_payment_type?: string | null
+          paid_at?: string | null
+          payment_status?: string | null
+          room_id?: string | null
+          room_price?: number | null
+          service_charges?: number | null
+          service_fee_amount?: number | null
+          service_fee_rate?: number | null
+          skipper_amount_loss?: number | null
+          skipper_amount_owed?: number | null
+          skipper_at?: string | null
+          skipper_marked_at?: string | null
+          skipper_marked_by?: string | null
+          skipper_note?: string | null
+          skipper_reason?: string | null
+          sleep_out_at?: string | null
+          sleep_out_note?: string | null
+          sleep_out_reason?: string | null
+          status?: string | null
+          subtotal?: number | null
+          tenant_id?: string | null
+          total_amount?: number | null
+          updated_at?: string | null
+          vat_amount?: number | null
+          vat_rate?: number | null
+        }
+        Update: {
+          actual_check_in?: string | null
+          actual_check_out?: string | null
+          amount_paid?: number | null
+          booking_group_id?: string | null
+          booking_hours?: number | null
+          booking_months?: number | null
+          booking_reference?: string | null
+          booking_source?: string | null
+          booking_type?: string | null
+          check_in_date?: string | null
+          check_out_date?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          damage_charges?: number | null
+          damage_items?: Json | null
+          damage_notes?: string | null
+          deposit_amount?: number | null
+          early_checkin_charge?: number | null
+          expected_check_in_time?: string | null
+          expected_check_out_time?: string | null
+          extra_charges?: number | null
+          guest_address?: string | null
+          guest_count?: number | null
+          guest_date_of_birth?: string | null
+          guest_email?: string | null
+          guest_gender?: string | null
+          guest_id?: string | null
+          guest_id_image_url?: string | null
+          guest_id_number?: string | null
+          guest_id_type?: string | null
+          guest_name?: string | null
+          guest_nationality?: string | null
+          guest_phone?: string | null
+          hotel_id?: string | null
+          hourly_end_time?: string | null
+          hourly_rate?: number | null
+          hourly_start_time?: string | null
+          hours_overdue?: never
+          id?: string | null
+          late_checkout_charge?: number | null
+          monthly_rate?: number | null
+          net_revenue?: number | null
+          notes?: string | null
+          ota_commission_amount?: number | null
+          ota_commission_rate?: number | null
+          ota_paid_amount?: number | null
+          ota_payment_type?: string | null
+          paid_at?: string | null
+          payment_status?: string | null
+          room_id?: string | null
+          room_price?: number | null
+          service_charges?: number | null
+          service_fee_amount?: number | null
+          service_fee_rate?: number | null
+          skipper_amount_loss?: number | null
+          skipper_amount_owed?: number | null
+          skipper_at?: string | null
+          skipper_marked_at?: string | null
+          skipper_marked_by?: string | null
+          skipper_note?: string | null
+          skipper_reason?: string | null
+          sleep_out_at?: string | null
+          sleep_out_note?: string | null
+          sleep_out_reason?: string | null
+          status?: string | null
+          subtotal?: number | null
+          tenant_id?: string | null
+          total_amount?: number | null
+          updated_at?: string | null
+          vat_amount?: number | null
+          vat_rate?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_bookings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_bookings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_bookings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "room_bookings_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_bookings_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "room_bookings_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_bookings_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_bookings_skipper_marked_by_fkey"
+            columns: ["skipper_marked_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_bookings_skipper_marked_by_fkey"
+            columns: ["skipper_marked_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_bookings_skipper_marked_by_fkey"
+            columns: ["skipper_marked_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "room_bookings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_user_effective_roles: {
         Row: {
           hotel_id: string | null
@@ -12095,6 +12451,91 @@ export type Database = {
         Returns: Json
       }
       mark_batches_compensation_needed: { Args: never; Returns: Json }
+      mark_booking_no_show: {
+        Args: {
+          _booking_id: string
+          _reason?: string
+          _refund_deposit?: boolean
+        }
+        Returns: {
+          actual_check_in: string | null
+          actual_check_out: string | null
+          amount_paid: number | null
+          booking_group_id: string | null
+          booking_hours: number | null
+          booking_months: number | null
+          booking_reference: string | null
+          booking_source: string | null
+          booking_type: string
+          check_in_date: string
+          check_out_date: string
+          created_at: string | null
+          created_by: string | null
+          damage_charges: number | null
+          damage_items: Json | null
+          damage_notes: string | null
+          deposit_amount: number | null
+          early_checkin_charge: number | null
+          expected_check_in_time: string | null
+          expected_check_out_time: string | null
+          extra_charges: number | null
+          guest_address: string | null
+          guest_count: number | null
+          guest_date_of_birth: string | null
+          guest_email: string | null
+          guest_gender: string | null
+          guest_id: string | null
+          guest_id_image_url: string | null
+          guest_id_number: string | null
+          guest_id_type: string | null
+          guest_name: string
+          guest_nationality: string | null
+          guest_phone: string | null
+          hotel_id: string
+          hourly_end_time: string | null
+          hourly_rate: number | null
+          hourly_start_time: string | null
+          id: string
+          late_checkout_charge: number | null
+          monthly_rate: number | null
+          net_revenue: number | null
+          notes: string | null
+          ota_commission_amount: number | null
+          ota_commission_rate: number | null
+          ota_paid_amount: number | null
+          ota_payment_type: string | null
+          paid_at: string | null
+          payment_status: string | null
+          room_id: string
+          room_price: number | null
+          service_charges: number | null
+          service_fee_amount: number | null
+          service_fee_rate: number | null
+          skipper_amount_loss: number | null
+          skipper_amount_owed: number | null
+          skipper_at: string | null
+          skipper_marked_at: string | null
+          skipper_marked_by: string | null
+          skipper_note: string | null
+          skipper_reason: string | null
+          sleep_out_at: string | null
+          sleep_out_note: string | null
+          sleep_out_reason: string | null
+          status: string
+          subtotal: number | null
+          tenant_id: string
+          total_amount: number | null
+          updated_at: string | null
+          vat_amount: number | null
+          vat_rate: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "room_bookings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       mark_cannot_access: {
         Args: {
           p_actor_id?: string
@@ -12272,6 +12713,92 @@ export type Database = {
       reopen_room_check: {
         Args: { _check_id: string; _reason?: string }
         Returns: Json
+      }
+      reschedule_booking_checkin: {
+        Args: {
+          _booking_id: string
+          _new_check_in_date: string
+          _new_check_out_date: string
+          _reason?: string
+        }
+        Returns: {
+          actual_check_in: string | null
+          actual_check_out: string | null
+          amount_paid: number | null
+          booking_group_id: string | null
+          booking_hours: number | null
+          booking_months: number | null
+          booking_reference: string | null
+          booking_source: string | null
+          booking_type: string
+          check_in_date: string
+          check_out_date: string
+          created_at: string | null
+          created_by: string | null
+          damage_charges: number | null
+          damage_items: Json | null
+          damage_notes: string | null
+          deposit_amount: number | null
+          early_checkin_charge: number | null
+          expected_check_in_time: string | null
+          expected_check_out_time: string | null
+          extra_charges: number | null
+          guest_address: string | null
+          guest_count: number | null
+          guest_date_of_birth: string | null
+          guest_email: string | null
+          guest_gender: string | null
+          guest_id: string | null
+          guest_id_image_url: string | null
+          guest_id_number: string | null
+          guest_id_type: string | null
+          guest_name: string
+          guest_nationality: string | null
+          guest_phone: string | null
+          hotel_id: string
+          hourly_end_time: string | null
+          hourly_rate: number | null
+          hourly_start_time: string | null
+          id: string
+          late_checkout_charge: number | null
+          monthly_rate: number | null
+          net_revenue: number | null
+          notes: string | null
+          ota_commission_amount: number | null
+          ota_commission_rate: number | null
+          ota_paid_amount: number | null
+          ota_payment_type: string | null
+          paid_at: string | null
+          payment_status: string | null
+          room_id: string
+          room_price: number | null
+          service_charges: number | null
+          service_fee_amount: number | null
+          service_fee_rate: number | null
+          skipper_amount_loss: number | null
+          skipper_amount_owed: number | null
+          skipper_at: string | null
+          skipper_marked_at: string | null
+          skipper_marked_by: string | null
+          skipper_note: string | null
+          skipper_reason: string | null
+          sleep_out_at: string | null
+          sleep_out_note: string | null
+          sleep_out_reason: string | null
+          status: string
+          subtotal: number | null
+          tenant_id: string
+          total_amount: number | null
+          updated_at: string | null
+          vat_amount: number | null
+          vat_rate: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "room_bookings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       resolve_qc_settings: {
         Args: { _hotel_id: string; _task_type: string; _tenant_id: string }

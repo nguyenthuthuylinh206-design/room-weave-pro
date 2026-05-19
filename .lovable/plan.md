@@ -1,83 +1,171 @@
-# Kiểm tra sau 1.0.23 — tình trạng còn lại
+## Vấn đề
 
-## ✅ Đã sạch hoàn toàn từ 1.0.23
+Hệ thống hiện có:
+- Status `no_show` trong enum + RPC `transition_booking_status` cho transition `confirmed → no_show`
+- Filter "Quá hạn checkout" cho khách đang ở quá ngày trả phòng
+- Hook `useBookingFlagTransition` hỗ trợ flag `no_show`
 
-- Self-escalation `users_update_self_or_managed` — không còn báo error.
-- `marketing_campaigns` lộ với anon — fixed.
-- `plan_price_history` lộ với mọi user — fixed.
-- `bank_payment_settings` thiếu write policy — fixed.
+Nhưng **thiếu hoàn toàn** xử lý khách **quá giờ check-in chưa đến** (booking `confirmed`, đã qua `check_in_date` hoặc qua `expected_check_in_time` của hôm nay mà chưa `checked_in`):
+- Không có filter / tab "Quá giờ check-in" trên trang Bookings
+- Không có cảnh báo visual trên dòng booking
+- Không có nút thao tác nhanh (Liên hệ khách / Đánh dấu No-Show / Hủy / Dời ngày)
+- Không có cron tự động đánh dấu `no_show` sau ngưỡng cấu hình
+- Không có thông báo cho lễ tân khi đến ngưỡng
 
-## ⚠️ Còn lại sau scan mới (520 finding)
+## A. Logic nghiệp vụ
 
-### 🔴 1 finding error — Realtime không scoped theo tenant
+**Định nghĩa "Quá giờ check-in" (overdue check-in):**
+- `status = 'confirmed'`
+- VÀ một trong các điều kiện:
+  - `check_in_date < today` (đã qua ngày, chưa đến)
+  - HOẶC `check_in_date = today` AND `expected_check_in_time IS NOT NULL` AND `now() > check_in_date + expected_check_in_time + grace_minutes`
+- Phân loại mức độ:
+  - **Cảnh báo** (amber): quá `grace_minutes` (mặc định 60p) nhưng <  `auto_no_show_hours` (mặc định 24h)
+  - **Nghiêm trọng** (red): quá `auto_no_show_hours` → cron tự động đánh `no_show`
 
-- Đã biết từ trước, đã defer. RLS từng bảng vẫn filter row đúng, không rò data thực; chỉ metadata sự kiện rò ngang.
-- **Fix triệt để cần refactor FE**: chuẩn hoá tên kênh `tenant:{tenantId}:resource:{id}` ở mọi `supabase.channel(...)`, rồi siết policy `realtime.messages` chỉ cho `realtime.topic() LIKE 'tenant:' || my_tenant_id || ':%'`.
-- Ước lượng: ~30–40 file dùng `supabase.channel`. Phải làm 1 sprint riêng, kèm rollout flag.
-
-### 🟠 2 finding warning đáng vá ngay
-
-**A. `can_manage_user()` thiếu tenant guard nội tại (warn)**
-
-- Hiện hàm chỉ so cấp bậc và `created_by`. Tenant check nằm ở policy gọi nó — nếu sau này có policy/RPC khác gọi `can_manage_user` mà quên tenant guard, attacker có thể quản lý user khác tenant.
-- **Fix**: thêm `AND m.tenant_id = t.tenant_id` ngay trong function (defense-in-depth, không ảnh hưởng caller hiện tại).
-
-**B. `avatars` bucket public, không có SELECT policy (warn)**
-
-- Bucket public → ai có URL trực tiếp cũng tải được ảnh staff (PII mức thấp).
-- 2 lựa chọn:
-  1. **Chuyển private + signed URL** → đảm bảo nhất nhưng phải sửa mọi nơi render `<img src={publicUrl}>` thành signed URL (~10+ chỗ, lazy load avatar khắp app). Hard.
-  2. **Chấp nhận rủi ro & document** → ảnh staff công khai là chuẩn nhiều SaaS (Slack, Notion). Phù hợp use case.
-- **Đề xuất**: chọn (2), thêm vào `mem://security/` ghi nhận accepted risk.
-
-### 🟡 Còn lại — chấp nhận
-
-- **2 finding `Function Search Path Mutable**`: trong schema `extensions` (pgtap), không phải code app → bỏ qua.
-- **513 finding `SECURITY DEFINER function callable**`: mỗi RPC tự validate `auth.uid()` + `tenant_id`, không phải lỗ hổng → R-Backlog audit dài hạn.
-
----
-
-## Migration 1.0.24 (đề xuất nhỏ gọn)
-
-```sql
--- Defense-in-depth: thêm tenant guard ngay trong can_manage_user
-CREATE OR REPLACE FUNCTION public.can_manage_user(p_manager_id uuid, p_target_user_id uuid)
-RETURNS boolean LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  manager_level int;
-  target_level  int;
-  manager_tenant uuid;
-  target_tenant  uuid;
-  target_created_by uuid;
-BEGIN
-  IF p_manager_id = p_target_user_id THEN RETURN false; END IF;
-
-  SELECT u.tenant_id INTO manager_tenant FROM public.users u WHERE u.id = p_manager_id;
-  SELECT u.tenant_id, u.created_by INTO target_tenant, target_created_by
-    FROM public.users u WHERE u.id = p_target_user_id;
-
-  -- Tenant boundary bắt buộc (trừ super_admin được phục vụ ở nơi khác)
-  IF manager_tenant IS NULL OR target_tenant IS NULL OR manager_tenant <> target_tenant THEN
-    RETURN false;
-  END IF;
-
-  -- (giữ logic so cấp bậc / created_by hiện tại — sẽ giữ nguyên phần còn lại)
-  ...
-END $$;
+**Cấu hình per-hotel** (`hotels.settings.bookings.no_show`):
+```json
+{
+  "grace_minutes": 60,
+  "auto_no_show_hours": 24,
+  "auto_mark_enabled": false,
+  "notify_reception": true
+}
 ```
+Mặc định `auto_mark_enabled = false` để khách sạn opt-in (tránh phá data của tenant cũ).
 
-> Tôi sẽ đọc body hiện tại của `can_manage_user` rồi áp dụng giữ nguyên 100% logic, chỉ chèn thêm 4 dòng tenant guard ở đầu.
+**Thao tác lễ tân khi quá giờ:**
+1. Liên hệ khách (nút gọi/SMS — nếu có `guest_phone`)
+2. Dời ngày check-in (mở dialog đổi `check_in_date` + giữ phòng)
+3. Đánh dấu No-Show (gọi `transition_booking_status` → `no_show`, giải phóng phòng, giữ deposit theo policy)
+4. Hủy booking (transition → `cancelled`, hoàn deposit theo policy)
 
-## Cập nhật `mem://security/accepted-risks-v1`
+## B. Schema / migration
 
-- Avatars bucket public — ảnh staff PII mức thấp, đồng bộ pattern Slack/Notion. Không rò dữ liệu vận hành.
-- Realtime postgres_changes — RLS bảo vệ row, metadata leak chấp nhận tạm thời cho đến sprint refactor channel naming.
-- email_send_log / suppressed_emails — service_role only, không có access path cho authenticated.
+**Migration 1.0.25**:
 
-## Rollout
+1. Thêm view `v_overdue_checkins` (read-only) tính realtime danh sách booking quá giờ — đỡ phải compute ở client mọi nơi:
+   ```sql
+   CREATE OR REPLACE VIEW public.v_overdue_checkins AS
+   SELECT b.*,
+          EXTRACT(EPOCH FROM (now() - (b.check_in_date::timestamptz + COALESCE(b.expected_check_in_time, '14:00')::time)))/3600 AS hours_overdue
+   FROM room_bookings b
+   WHERE b.status = 'confirmed'
+     AND (
+       b.check_in_date < current_date
+       OR (b.check_in_date = current_date
+           AND b.expected_check_in_time IS NOT NULL
+           AND now() > (b.check_in_date + b.expected_check_in_time)::timestamptz)
+     );
+   ```
+   RLS: view kế thừa RLS từ `room_bookings` (security_invoker).
 
-- Bump `APP_VERSION` → **1.0.24**, entry changelog.
-- Migration single-statement, rollback dễ (restore body cũ).
-- QA: chạy lại login owner/manager quản lý nhân viên → vẫn hoạt động bình thường (chỉ thêm check tenant, không siết hơn so với policy).
+2. RPC `mark_booking_no_show(_booking_id, _reason, _refund_deposit)`:
+   - Validate booking ở trạng thái `confirmed` và thực sự overdue
+   - Gọi `transition_booking_status(_booking_id, 'no_show', _reason)`
+   - Nếu `_refund_deposit = false` → giữ `deposit_amount` làm phí no-show, ghi `booking_payments` type `no_show_fee`
+   - Audit log
 
-**Duyệt thì làm luôn?**
+3. RPC `reschedule_booking_checkin(_booking_id, _new_check_in_date, _new_check_out_date, _reason)`:
+   - Validate không conflict với booking khác trên cùng phòng
+   - Update dates + audit log
+   - Giữ nguyên status `confirmed`
+
+4. Cron `auto-mark-no-show` (Edge Function chạy mỗi 30 phút):
+   - Quét `v_overdue_checkins` với `hours_overdue > hotel.settings.bookings.no_show.auto_no_show_hours`
+   - Chỉ chạy với hotel có `auto_mark_enabled = true`
+   - Gọi `mark_booking_no_show` cho từng booking
+   - Log vào `audit_log` và gửi notification cho reception nếu `notify_reception = true`
+
+## C. Hooks / RPC client
+
+- `useOverdueCheckins(hotelId)` — query view, realtime subscribe `room_bookings`
+- `useOverdueCheckinsCount()` — badge số cho tab
+- `useMarkBookingNoShow()` — mutation gọi RPC `mark_booking_no_show`
+- `useRescheduleBookingCheckin()` — mutation gọi RPC `reschedule_booking_checkin`
+
+## D. UI
+
+**Trang `/bookings`** (desktop + mobile):
+1. Thêm option `overdue_checkin` vào dropdown Status filter ("Quá giờ check-in") với badge đếm số
+2. Khi filter active: highlight dòng booking bằng `border-l-2 border-amber-500` / `border-red-500` theo mức độ
+3. Cột "Trạng thái": hiển thị chip "Quá X giờ" cạnh "Đã đặt" (text-amber-600 / text-red-600, không dùng background)
+4. Cột "Thao tác": thay vì nút "Check-in", hiển thị dropdown menu:
+   - Check-in (vẫn cho phép nếu khách đến muộn)
+   - Liên hệ khách (mở tel: / sms:)
+   - Dời ngày check-in → mở `RescheduleCheckinDialog`
+   - Đánh dấu No-Show → mở `MarkNoShowDialog`
+
+**`MarkNoShowDialog`**:
+- Hiển thị thông tin booking + deposit
+- Radio: "Giữ deposit làm phí no-show" / "Hoàn deposit"
+- Textarea lý do (required)
+- Nút "Xác nhận No-Show" (variant destructive)
+
+**`RescheduleCheckinDialog`**:
+- DatePicker check-in mới + check-out mới (giữ số đêm)
+- Real-time check conflict
+- Textarea lý do
+
+**Trang `/settings/bookings`** (hoặc tab trong Hotel Settings):
+- Card "Quá giờ check-in":
+  - Slider `grace_minutes` (0–240)
+  - Slider `auto_no_show_hours` (6–72)
+  - Toggle `auto_mark_enabled`
+  - Toggle `notify_reception`
+
+**Dashboard widget** (Reception + Owner):
+- KPI card "Khách quá giờ check-in: X" với link → `/bookings?filter=overdue_checkin`
+
+## E. Permission
+
+- View overdue: bất kỳ user có `view_bookings`
+- `mark_booking_no_show`: cần `manage_bookings`
+- `reschedule_booking_checkin`: cần `manage_bookings`
+- Settings: chỉ `tenant_owner` + `manager`
+
+## F. Test
+
+`supabase/tests/overdue_checkin.sql`:
+1. Booking `confirmed`, `check_in_date = yesterday` → có trong view, `hours_overdue > 24`
+2. Booking `confirmed`, hôm nay, `expected_check_in_time = '14:00'`, giờ test = 15:30 → có trong view, `hours_overdue ≈ 1.5`
+3. Booking đã `checked_in` → KHÔNG có trong view
+4. `mark_booking_no_show` với `_refund_deposit = false` → tạo `booking_payments` type `no_show_fee`, status → `no_show`
+5. `mark_booking_no_show` cho booking chưa overdue → raise `NOT_OVERDUE`
+6. `reschedule_booking_checkin` với date conflict → raise `BOOKING_CONFLICT`
+7. Cross-tenant call → raise `PERMISSION_DENIED`
+
+Unit test FE (`useOverdueCheckins.test.ts`): mock view data + assert count.
+
+## G. Rollout
+
+1. Migration 1.0.25 deploy (view + 2 RPC + cron)
+2. Default `auto_mark_enabled = false` cho mọi hotel hiện có
+3. FE deploy: filter + dialogs + settings + dashboard widget
+4. Bump `APP_VERSION`, changelog "1.0.25 – Xử lý khách quá giờ check-in (No-Show)"
+5. Thêm memory `mem://features/bookings/no-show-handling-v1`
+6. Document tại `docs/architecture/03-flows/booking-lifecycle.md` (cập nhật mục No-Show)
+7. **Rollback**: drop view + 2 RPC + disable cron; FE filter ẩn qua feature flag
+
+## Files dự kiến tạo/sửa
+
+**Tạo:**
+- `supabase/migrations/2026xxxx_no_show_handling.sql`
+- `supabase/functions/auto-mark-no-show/index.ts`
+- `src/hooks/useOverdueCheckins.ts`
+- `src/hooks/useMarkBookingNoShow.ts`
+- `src/hooks/useRescheduleBookingCheckin.ts`
+- `src/components/bookings/MarkNoShowDialog.tsx`
+- `src/components/bookings/RescheduleCheckinDialog.tsx`
+- `src/components/bookings/OverdueCheckinBadge.tsx`
+- `src/components/settings/NoShowSettingsCard.tsx`
+- `supabase/tests/overdue_checkin.sql`
+- `.lovable/memory/features/bookings/no-show-handling-v1.md`
+
+**Sửa:**
+- `src/pages/bookings/BookingsPage.tsx` (filter + actions menu)
+- `src/pages/bookings/MobileBookingsPage.tsx` (filter + actions)
+- `src/pages/Dashboard.tsx` / `HousekeepingStaffDashboard.tsx` (widget)
+- `src/pages/settings/BusinessConfigurationPage.tsx` (cấu hình)
+- `src/lib/app-version.ts`, `public/changelog.json`, `.lovable/memory/index.md`
+- `docs/architecture/03-flows/booking-lifecycle.md`, `docs/architecture/05-state-machines/booking-status.md`

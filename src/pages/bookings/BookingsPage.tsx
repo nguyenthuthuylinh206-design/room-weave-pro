@@ -83,8 +83,19 @@ import { fetchServiceChargeSummary, type ServiceChargeDetail } from '@/hooks/use
 import { MobileBookingsPage } from './MobileBookingsPage'
 import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers'
 import { createInvoiceAfterCheckout } from '@/lib/invoiceHelpers'
+import { useOverdueCheckins } from '@/hooks/useOverdueCheckins'
+import { MarkNoShowDialog } from '@/components/bookings/MarkNoShowDialog'
+import { RescheduleCheckinDialog } from '@/components/bookings/RescheduleCheckinDialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { MoreVertical, PhoneCall, CalendarClock, UserX } from 'lucide-react'
 
-type BookingStatus = 'all' | 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show' | 'conflict' | 'overdue'
+type BookingStatus = 'all' | 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show' | 'conflict' | 'overdue' | 'overdue_checkin'
 
 export interface BookingWithRoom {
   id: string
@@ -202,6 +213,8 @@ export function BookingsPage() {
         setStatusFilter('conflict')
       } else if (filterParam === 'overdue') {
         setStatusFilter('overdue')
+      } else if (filterParam === 'overdue_checkin') {
+        setStatusFilter('overdue_checkin')
       } else if (filterParam === 'unpaid') {
         // For unpaid, we don't have a specific status, show all checked_out
         setStatusFilter('checked_out')
@@ -253,6 +266,18 @@ export function BookingsPage() {
     new Set(bookingConflicts?.map(c => c.currentBooking.id) || []),
     [bookingConflicts]
   )
+
+  // Overdue check-in (khách đặt phòng quá giờ chưa đến)
+  const { data: overdueCheckins } = useOverdueCheckins()
+  const overdueCheckinMap = useMemo(() => {
+    const m = new Map<string, number>()
+    overdueCheckins?.forEach(o => m.set(o.id, o.hours_overdue))
+    return m
+  }, [overdueCheckins])
+
+  // No-show / Reschedule dialogs
+  const [noShowBooking, setNoShowBooking] = useState<BookingWithRoom | null>(null)
+  const [rescheduleBooking, setRescheduleBooking] = useState<BookingWithRoom | null>(null)
   
   const { data: bookings, isLoading } = useQuery({
     queryKey: ['all-bookings', isAllHotelsMode ? 'all' : selectedHotelId, statusFilter],
@@ -279,13 +304,18 @@ export function BookingsPage() {
       }
       
       // Handle special filters
-      if (statusFilter !== 'all' && statusFilter !== 'conflict' && statusFilter !== 'overdue') {
+      if (statusFilter !== 'all' && statusFilter !== 'conflict' && statusFilter !== 'overdue' && statusFilter !== 'overdue_checkin') {
         query = query.eq('status', statusFilter)
       }
       
-      // For conflict and overdue, we fetch checked_in only
+      // For conflict and overdue (checked_in), we fetch checked_in only
       if (statusFilter === 'conflict' || statusFilter === 'overdue') {
         query = query.eq('status', 'checked_in')
+      }
+
+      // overdue_checkin: filter ở client dựa vào overdueCheckinMap
+      if (statusFilter === 'overdue_checkin') {
+        query = query.eq('status', 'confirmed')
       }
       
       const { data, error } = await query
@@ -330,6 +360,11 @@ export function BookingsPage() {
       const today = startOfDay(new Date())
       const checkOutDate = startOfDay(new Date(booking.check_out_date))
       return booking.status === 'checked_in' && isBefore(checkOutDate, today)
+    }
+
+    // Apply overdue check-in filter
+    if (statusFilter === 'overdue_checkin') {
+      return overdueCheckinMap.has(booking.id)
     }
     
     return true
@@ -1431,6 +1466,9 @@ export function BookingsPage() {
               <span className="text-red-600">⚠️ Xung đột lịch ({bookingConflicts?.length || 0})</span>
             </SelectItem>
             <SelectItem value="overdue">Quá hạn checkout</SelectItem>
+            <SelectItem value="overdue_checkin">
+              <span className="text-red-600">Quá giờ check-in ({overdueCheckins?.length || 0})</span>
+            </SelectItem>
             <SelectItem value="confirmed">Đã đặt</SelectItem>
             <SelectItem value="checked_in">Đang ở</SelectItem>
             <SelectItem value="checked_out">Đã trả phòng</SelectItem>
@@ -1650,7 +1688,16 @@ export function BookingsPage() {
                         })()}
                       </TableCell>
                       <TableCell>
-                        {getStatusBadge(booking.status, booking.check_out_date)}
+                        <div className="flex flex-col gap-1">
+                          {getStatusBadge(booking.status, booking.check_out_date)}
+                          {booking.status === 'confirmed' && overdueCheckinMap.has(booking.id) && (
+                            <span className={`text-xs font-medium ${
+                              overdueCheckinMap.get(booking.id)! >= 24 ? 'text-red-600' : 'text-amber-600'
+                            }`}>
+                              Quá {overdueCheckinMap.get(booking.id)!.toFixed(1)}h
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1">
@@ -1674,6 +1721,37 @@ export function BookingsPage() {
                                   </>
                                 )}
                               </Button>
+                              {overdueCheckinMap.has(booking.id) && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button type="button" size="sm" variant="ghost" className="h-7 w-7 p-0">
+                                      <MoreVertical className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-48">
+                                    {booking.guest_phone && (
+                                      <DropdownMenuItem asChild>
+                                        <a href={`tel:${booking.guest_phone}`}>
+                                          <PhoneCall className="h-3.5 w-3.5 mr-2" />
+                                          Gọi khách
+                                        </a>
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuItem onClick={() => setRescheduleBooking(booking)}>
+                                      <CalendarClock className="h-3.5 w-3.5 mr-2" />
+                                      Dời ngày check-in
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-red-600 focus:text-red-600"
+                                      onClick={() => setNoShowBooking(booking)}
+                                    >
+                                      <UserX className="h-3.5 w-3.5 mr-2" />
+                                      Đánh dấu No-Show
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
                             </>
                           )}
                           {/* Check-out and group actions for checked_in bookings */}
@@ -1729,6 +1807,32 @@ export function BookingsPage() {
           hotelId={selectedBooking.hotel_id}
           tenantId={selectedBooking.tenant_id}
           booking={selectedBooking}
+        />
+      )}
+
+      {/* No-Show Dialog */}
+      {noShowBooking && (
+        <MarkNoShowDialog
+          open={!!noShowBooking}
+          onOpenChange={(o) => !o && setNoShowBooking(null)}
+          bookingId={noShowBooking.id}
+          guestName={noShowBooking.guest_name}
+          roomNumber={noShowBooking.room?.room_number || ''}
+          depositAmount={noShowBooking.deposit_amount || 0}
+          hoursOverdue={overdueCheckinMap.get(noShowBooking.id) || 0}
+        />
+      )}
+
+      {/* Reschedule Check-in Dialog */}
+      {rescheduleBooking && (
+        <RescheduleCheckinDialog
+          open={!!rescheduleBooking}
+          onOpenChange={(o) => !o && setRescheduleBooking(null)}
+          bookingId={rescheduleBooking.id}
+          guestName={rescheduleBooking.guest_name}
+          roomNumber={rescheduleBooking.room?.room_number || ''}
+          currentCheckIn={rescheduleBooking.check_in_date}
+          currentCheckOut={rescheduleBooking.check_out_date}
         />
       )}
 

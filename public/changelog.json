@@ -1,6 +1,18 @@
 {
-  "current": "1.0.24",
+  "current": "1.0.25",
   "versions": [
+    {
+      "version": "1.0.25",
+      "releaseDate": "2026-05-19",
+      "title": "Xử lý khách quá giờ check-in (No-Show)",
+      "changes": [
+        { "type": "feature", "text": "Lọc nhanh \"Quá giờ check-in\" trên danh sách đặt phòng kèm số đếm" },
+        { "type": "feature", "text": "Dòng booking quá giờ hiện chip cảnh báo \"Quá X giờ\" (vàng < 24h, đỏ ≥ 24h)" },
+        { "type": "feature", "text": "Menu thao tác nhanh: Gọi khách, Dời ngày check-in, Đánh dấu No-Show" },
+        { "type": "feature", "text": "Dialog No-Show cho phép chọn giữ cọc làm phí huỷ hoặc hoàn lại khách" },
+        { "type": "feature", "text": "Dialog dời lịch giữ nguyên số đêm, kiểm tra xung đột phòng" }
+      ]
+    },
     {
       "version": "1.0.24",
       "releaseDate": "2026-05-19",

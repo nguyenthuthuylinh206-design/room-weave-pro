@@ -43,5 +43,12 @@ export function mapDbError(message: string | undefined | null): string {
   if (msg.includes('NO_PERMISSION_COMPLETE')) return 'Bạn không được phép hoàn tất công việc này.'
   if (msg.includes('REJECTION_REASON_REQUIRED')) return 'Vui lòng nhập lý do trả về (tối thiểu 3 ký tự).'
 
+  // No-Show / Reschedule (v1.0.25)
+  if (msg.includes('INVALID_BOOKING_STATUS_FOR_NO_SHOW')) return 'Chỉ booking đang "Đã đặt" mới có thể đánh dấu No-Show.'
+  if (msg.includes('INVALID_BOOKING_STATUS_FOR_RESCHEDULE')) return 'Chỉ booking đang "Đã đặt" mới có thể dời lịch.'
+  if (msg.includes('NOT_OVERDUE')) return 'Booking này chưa quá giờ check-in.'
+  if (msg.includes('BOOKING_CONFLICT')) return 'Phòng đã có lịch trùng trong khoảng thời gian này.'
+  if (msg.includes('INVALID_DATE_RANGE')) return 'Ngày trả phòng phải sau ngày nhận phòng.'
+
   return msg || 'Đã xảy ra lỗi không xác định.'
 }
