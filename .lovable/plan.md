@@ -1,113 +1,83 @@
-# Kiểm tra hotfix 1.0.22 — kết quả & vá tiếp 1.0.23
+# Kiểm tra sau 1.0.23 — tình trạng còn lại
 
-## ✅ Đã sửa xong (xác nhận)
-- **users INSERT escalation** → policy đã siết về owner/manager + trigger chặn cấp cao → scanner không còn flag.
-- **promotional_codes lộ với anon** → đã đổi `TO authenticated`, scanner không còn flag.
-- **reminder_email_templates / reminder_automation_rules** → có policy super_admin, scanner không còn flag.
-- **Mutable search_path** trong public: query trực tiếp `pg_proc` cho thấy **0 function** thiếu `search_path`. 2 finding còn lại thuộc schema khác (extension), không phải code app.
+## ✅ Đã sạch hoàn toàn từ 1.0.23
 
-## ⚠️ Còn lại sau scan mới (524 finding)
+- Self-escalation `users_update_self_or_managed` — không còn báo error.
+- `marketing_campaigns` lộ với anon — fixed.
+- `plan_price_history` lộ với mọi user — fixed.
+- `bank_payment_settings` thiếu write policy — fixed.
 
-### 🔴 1 lỗ hổng quan trọng vẫn bị flag
-**`users_update_self_or_managed` — vẫn báo "self-escalation"**
-- Trigger `prevent_user_privilege_escalation` ĐÃ chặn tại runtime, nhưng scanner làm static analysis chỉ nhìn policy `WITH CHECK` — không thấy guard nên báo error.
-- Cần thêm `WITH CHECK` defense-in-depth (2 lớp bảo vệ: policy + trigger).
+## ⚠️ Còn lại sau scan mới (520 finding)
 
-### 🟠 Lỗ hổng mới scanner phát hiện (trước bị che bởi issue lớn hơn)
+### 🔴 1 finding error — Realtime không scoped theo tenant
 
-| # | Vấn đề | Mức |
-|---|--------|-----|
-| A | `marketing_campaigns` policy gán role `{public}` → anon đọc được toàn bộ campaign (subject, template, cta_link, target audience) | warn |
-| B | `plan_price_history` cho mọi authenticated đọc → lộ chiến lược giá (old_price, new_price, reason) | warn |
-| C | `bank_payment_settings` chỉ có SELECT policy, thiếu INSERT/UPDATE/DELETE → tenant owner không cập nhật được STK qua API | warn |
+- Đã biết từ trước, đã defer. RLS từng bảng vẫn filter row đúng, không rò data thực; chỉ metadata sự kiện rò ngang.
+- **Fix triệt để cần refactor FE**: chuẩn hoá tên kênh `tenant:{tenantId}:resource:{id}` ở mọi `supabase.channel(...)`, rồi siết policy `realtime.messages` chỉ cho `realtime.topic() LIKE 'tenant:' || my_tenant_id || ':%'`.
+- Ước lượng: ~30–40 file dùng `supabase.channel`. Phải làm 1 sprint riêng, kèm rollout flag.
 
-### 🟡 Deferred (không phải lỗ hổng, ghi nhận)
-- **Realtime "không tenant-scoped"**: scanner cảnh báo defense-in-depth. RLS từng bảng đã filter row, không rò data. Fix triệt để cần refactor channel naming `tenant:{id}:*` ở FE → để Sprint kế.
-- **`email_send_log`, `suppressed_emails`**: chỉ service_role đọc/ghi, không rò ra ngoài → chấp nhận, ghi vào security memory.
-- **513 finding "SECURITY DEFINER function callable"**: không phải lỗ hổng, mỗi RPC tự validate auth.uid()+tenant_id → R-Backlog.
+### 🟠 2 finding warning đáng vá ngay
+
+**A. `can_manage_user()` thiếu tenant guard nội tại (warn)**
+
+- Hiện hàm chỉ so cấp bậc và `created_by`. Tenant check nằm ở policy gọi nó — nếu sau này có policy/RPC khác gọi `can_manage_user` mà quên tenant guard, attacker có thể quản lý user khác tenant.
+- **Fix**: thêm `AND m.tenant_id = t.tenant_id` ngay trong function (defense-in-depth, không ảnh hưởng caller hiện tại).
+
+**B. `avatars` bucket public, không có SELECT policy (warn)**
+
+- Bucket public → ai có URL trực tiếp cũng tải được ảnh staff (PII mức thấp).
+- 2 lựa chọn:
+  1. **Chuyển private + signed URL** → đảm bảo nhất nhưng phải sửa mọi nơi render `<img src={publicUrl}>` thành signed URL (~10+ chỗ, lazy load avatar khắp app). Hard.
+  2. **Chấp nhận rủi ro & document** → ảnh staff công khai là chuẩn nhiều SaaS (Slack, Notion). Phù hợp use case.
+- **Đề xuất**: chọn (2), thêm vào `mem://security/` ghi nhận accepted risk.
+
+### 🟡 Còn lại — chấp nhận
+
+- **2 finding `Function Search Path Mutable**`: trong schema `extensions` (pgtap), không phải code app → bỏ qua.
+- **513 finding `SECURITY DEFINER function callable**`: mỗi RPC tự validate `auth.uid()` + `tenant_id`, không phải lỗ hổng → R-Backlog audit dài hạn.
 
 ---
 
-## Migration 1.0.23 (đề xuất)
+## Migration 1.0.24 (đề xuất nhỏ gọn)
 
 ```sql
--- (1) Defense-in-depth: thêm WITH CHECK cho users UPDATE
-DROP POLICY IF EXISTS users_update_self_or_managed ON public.users;
-CREATE POLICY users_update_self_or_managed ON public.users
-  FOR UPDATE TO authenticated
-  USING (
-    is_super_admin(auth.uid())
-    OR id = auth.uid()
-    OR (tenant_id = get_current_user_tenant_id() AND can_manage_user(auth.uid(), id))
-  )
-  WITH CHECK (
-    -- Super admin: full quyền
-    is_super_admin(auth.uid())
-    OR (
-      -- Self-update: KHÔNG được đổi cột nhạy cảm (cộng hưởng với trigger)
-      id = auth.uid()
-      AND tenant_id = (SELECT tenant_id FROM public.users WHERE id = auth.uid())
-      AND user_level_code = (SELECT user_level_code FROM public.users WHERE id = auth.uid())
-      AND COALESCE(role::text, '') = COALESCE((SELECT role::text FROM public.users WHERE id = auth.uid()), '')
-      AND is_super_admin = false
-      AND COALESCE(is_primary_owner, false) = COALESCE((SELECT is_primary_owner FROM public.users WHERE id = auth.uid()), false)
-    )
-    OR (
-      -- Manager/Owner update target: scope theo tenant + quản lý được + không cấp super admin
-      tenant_id = get_current_user_tenant_id()
-      AND can_manage_user(auth.uid(), id)
-      AND is_super_admin = false
-    )
-  );
+-- Defense-in-depth: thêm tenant guard ngay trong can_manage_user
+CREATE OR REPLACE FUNCTION public.can_manage_user(p_manager_id uuid, p_target_user_id uuid)
+RETURNS boolean LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  manager_level int;
+  target_level  int;
+  manager_tenant uuid;
+  target_tenant  uuid;
+  target_created_by uuid;
+BEGIN
+  IF p_manager_id = p_target_user_id THEN RETURN false; END IF;
 
--- (2) marketing_campaigns: chỉ authenticated
-DROP POLICY IF EXISTS "Active campaigns are viewable by authenticated users" ON public.marketing_campaigns;
-CREATE POLICY "Active campaigns are viewable by authenticated users"
-  ON public.marketing_campaigns FOR SELECT TO authenticated
-  USING (status = 'active' AND starts_at <= now() AND (ends_at IS NULL OR ends_at > now()));
+  SELECT u.tenant_id INTO manager_tenant FROM public.users u WHERE u.id = p_manager_id;
+  SELECT u.tenant_id, u.created_by INTO target_tenant, target_created_by
+    FROM public.users u WHERE u.id = p_target_user_id;
 
--- (3) plan_price_history: chỉ super admin
-DROP POLICY IF EXISTS "Authenticated users can view price history" ON public.plan_price_history;
-CREATE POLICY "Super admins can view price history"
-  ON public.plan_price_history FOR SELECT TO authenticated
-  USING (is_super_admin(auth.uid()));
+  -- Tenant boundary bắt buộc (trừ super_admin được phục vụ ở nơi khác)
+  IF manager_tenant IS NULL OR target_tenant IS NULL OR manager_tenant <> target_tenant THEN
+    RETURN false;
+  END IF;
 
--- (4) bank_payment_settings: cho tenant_owner CRUD
-CREATE POLICY bank_payment_settings_tenant_insert
-  ON public.bank_payment_settings FOR INSERT TO authenticated
-  WITH CHECK (
-    is_super_admin(auth.uid())
-    OR (tenant_id = get_current_user_tenant_id() AND is_tenant_owner())
-  );
-CREATE POLICY bank_payment_settings_tenant_update
-  ON public.bank_payment_settings FOR UPDATE TO authenticated
-  USING (
-    is_super_admin(auth.uid())
-    OR (tenant_id = get_current_user_tenant_id() AND is_tenant_owner())
-  )
-  WITH CHECK (
-    is_super_admin(auth.uid())
-    OR (tenant_id = get_current_user_tenant_id() AND is_tenant_owner())
-  );
-CREATE POLICY bank_payment_settings_tenant_delete
-  ON public.bank_payment_settings FOR DELETE TO authenticated
-  USING (
-    is_super_admin(auth.uid())
-    OR (tenant_id = get_current_user_tenant_id() AND is_tenant_owner())
-  );
+  -- (giữ logic so cấp bậc / created_by hiện tại — sẽ giữ nguyên phần còn lại)
+  ...
+END $$;
 ```
 
+> Tôi sẽ đọc body hiện tại của `can_manage_user` rồi áp dụng giữ nguyên 100% logic, chỉ chèn thêm 4 dòng tenant guard ở đầu.
+
+## Cập nhật `mem://security/accepted-risks-v1`
+
+- Avatars bucket public — ảnh staff PII mức thấp, đồng bộ pattern Slack/Notion. Không rò dữ liệu vận hành.
+- Realtime postgres_changes — RLS bảo vệ row, metadata leak chấp nhận tạm thời cho đến sprint refactor channel naming.
+- email_send_log / suppressed_emails — service_role only, không có access path cho authenticated.
+
 ## Rollout
-- Bump `APP_VERSION` → **1.0.23**, thêm entry changelog.
-- Cập nhật `mem://security/...` ghi nhận:
-  - email_send_log / suppressed_emails — accepted risk (service_role only).
-  - Realtime channel refactor — đưa vào sprint kế.
-- Rollback: drop policy mới, restore policy cũ.
 
-## QA cần làm tay
-- Staff login → UPDATE chính mình đổi `user_level_code='tenant_owner'` → DB từ chối (policy + trigger).
-- Tenant owner UPDATE thông tin ngân hàng → thành công.
-- Anon GET `/marketing_campaigns` → trống.
-- Manager (không phải super admin) GET `/plan_price_history` → trống.
+- Bump `APP_VERSION` → **1.0.24**, entry changelog.
+- Migration single-statement, rollback dễ (restore body cũ).
+- QA: chạy lại login owner/manager quản lý nhân viên → vẫn hoạt động bình thường (chỉ thêm check tenant, không siết hơn so với policy).
 
-**Bạn duyệt thì triển khai luôn?**
+**Duyệt thì làm luôn?**
