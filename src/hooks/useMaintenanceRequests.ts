@@ -138,6 +138,7 @@ export function useMaintenanceRequests(filters: MaintenanceFilters = {}) {
       })
     },
     enabled: !!tenantId,
+    placeholderData: (prev) => prev,
   })
 }
 
