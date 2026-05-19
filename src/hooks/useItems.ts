@@ -117,6 +117,7 @@ export function useItems(
     retry: 2,
     staleTime: 60000, // Cache for 1 minute
     gcTime: 300000, // Keep in cache for 5 minutes
+    placeholderData: (prev) => prev,
   })
 }
 
