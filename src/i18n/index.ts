@@ -7,7 +7,6 @@ import { initReactI18next } from 'react-i18next';
 
 import viCommon from './locales/vi/common.json';
 import viAuth from './locales/vi/auth.json';
-import viLanding from './locales/vi/landing.json';
 import viNavigation from './locales/vi/navigation.json';
 import viDashboard from './locales/vi/dashboard.json';
 import viRooms from './locales/vi/rooms.json';
@@ -15,7 +14,6 @@ import viInventory from './locales/vi/inventory.json';
 import viItems from './locales/vi/items.json';
 import viSettings from './locales/vi/settings.json';
 import viNotifications from './locales/vi/notifications.json';
-import viHotels from './locales/vi/hotels.json';
 
 // Lazy registry CHỈ quét locales/vi → Vite không tạo chunk EN.
 const lazyResources = import.meta.glob('./locales/vi/*.json') as Record<
@@ -26,7 +24,6 @@ const lazyResources = import.meta.glob('./locales/vi/*.json') as Record<
 const EAGER_KEYS = new Set([
   './locales/vi/common.json',
   './locales/vi/auth.json',
-  './locales/vi/landing.json',
   './locales/vi/navigation.json',
   './locales/vi/dashboard.json',
   './locales/vi/rooms.json',
@@ -34,7 +31,6 @@ const EAGER_KEYS = new Set([
   './locales/vi/items.json',
   './locales/vi/settings.json',
   './locales/vi/notifications.json',
-  './locales/vi/hotels.json',
 ]);
 
 const inflight = new Map<string, Promise<Record<string, unknown> | null>>();
@@ -101,7 +97,6 @@ i18n
       vi: {
         common: viCommon,
         auth: viAuth,
-        landing: viLanding,
         navigation: viNavigation,
         dashboard: viDashboard,
         rooms: viRooms,
@@ -109,7 +104,6 @@ i18n
         items: viItems,
         settings: viSettings,
         notifications: viNotifications,
-        hotels: viHotels,
       },
     },
     defaultNS: 'common',

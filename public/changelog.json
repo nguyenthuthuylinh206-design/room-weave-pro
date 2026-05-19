@@ -1,14 +1,46 @@
 {
-  "current": "1.0.18",
+  "current": "1.0.19",
   "versions": [
+    {
+      "version": "1.0.19",
+      "releaseDate": "2026-05-19",
+      "title": "Tinh chỉnh ngôn ngữ và tải shell",
+      "changes": [
+        {
+          "type": "improved",
+          "text": "Khai báo ngôn ngữ trang là tiếng Việt (lang=\"vi\") cho SEO và trình đọc màn hình"
+        },
+        {
+          "type": "improved",
+          "text": "Preload sẵn shell giao diện chính và Dashboard để mở app sau đăng nhập nhanh hơn"
+        },
+        {
+          "type": "improved",
+          "text": "Tinh gọn gói ngôn ngữ tải trước — giảm dung lượng tải đầu"
+        },
+        {
+          "type": "improved",
+          "text": "Cache file ngôn ngữ trong Service Worker — mở lại PWA không phải tải lại"
+        }
+      ]
+    },
     {
       "version": "1.0.18",
       "releaseDate": "2026-05-12",
       "title": "Tăng tốc chuyển trang",
       "changes": [
-        { "type": "improved", "text": "Tự động tải trước các trang thường dùng ngay khi app rảnh để chuyển trang gần như tức thì" },
-        { "type": "improved", "text": "Bắt đầu tải trang ngay khi chạm/nhấn (không chờ thả tay) — giảm 100–300ms mỗi lần điều hướng trên mobile" },
-        { "type": "improved", "text": "Bundle thêm nhiều gói ngôn ngữ tiếng Việt vào lần tải đầu để hết nháy mã key khi mở trang mới" }
+        {
+          "type": "improved",
+          "text": "Tự động tải trước các trang thường dùng ngay khi app rảnh để chuyển trang gần như tức thì"
+        },
+        {
+          "type": "improved",
+          "text": "Bắt đầu tải trang ngay khi chạm/nhấn (không chờ thả tay) — giảm 100–300ms mỗi lần điều hướng trên mobile"
+        },
+        {
+          "type": "improved",
+          "text": "Bundle thêm nhiều gói ngôn ngữ tiếng Việt vào lần tải đầu để hết nháy mã key khi mở trang mới"
+        }
       ]
     },
     {
@@ -16,8 +48,14 @@
       "releaseDate": "2026-05-12",
       "title": "Khóa giao diện 100% tiếng Việt",
       "changes": [
-        { "type": "improved", "text": "Bỏ tự động phát hiện ngôn ngữ trình duyệt và toàn bộ tài nguyên tiếng Anh để tránh nháy chữ tiếng Anh khi mở app" },
-        { "type": "improved", "text": "Giảm dung lượng tải ban đầu nhờ loại bỏ các gói ngôn ngữ không dùng" }
+        {
+          "type": "improved",
+          "text": "Bỏ tự động phát hiện ngôn ngữ trình duyệt và toàn bộ tài nguyên tiếng Anh để tránh nháy chữ tiếng Anh khi mở app"
+        },
+        {
+          "type": "improved",
+          "text": "Giảm dung lượng tải ban đầu nhờ loại bỏ các gói ngôn ngữ không dùng"
+        }
       ]
     },
     {
@@ -25,7 +63,10 @@
       "releaseDate": "2026-05-12",
       "title": "Sửa triệt để lỗi trắng trang sau publish",
       "changes": [
-        { "type": "fixed", "text": "Gộp toàn bộ thư viện vendor về một chunk duy nhất để loại bỏ lỗi 'Cannot access it before initialization' do tách chunk markdown/excel gây vòng lặp khởi tạo" }
+        {
+          "type": "fixed",
+          "text": "Gộp toàn bộ thư viện vendor về một chunk duy nhất để loại bỏ lỗi 'Cannot access it before initialization' do tách chunk markdown/excel gây vòng lặp khởi tạo"
+        }
       ]
     },
     {
@@ -33,7 +74,10 @@
       "releaseDate": "2026-05-12",
       "title": "Sửa lỗi màn hình trắng sau publish",
       "changes": [
-        { "type": "fixed", "text": "Gộp lại các vendor chunk để tránh lỗi 'Cannot read properties of undefined (reading forwardRef)' khiến trang trắng sau khi publish" }
+        {
+          "type": "fixed",
+          "text": "Gộp lại các vendor chunk để tránh lỗi 'Cannot read properties of undefined (reading forwardRef)' khiến trang trắng sau khi publish"
+        }
       ]
     },
     {
@@ -41,7 +85,10 @@
       "releaseDate": "2026-05-12",
       "title": "Super Admin gia hạn thủ công tự bỏ chế độ chỉ đọc",
       "changes": [
-        { "type": "fixed", "text": "Khi Super Admin đổi gói/gia hạn thủ công, tự động bỏ chế độ chỉ đọc và reset thời gian ân hạn" }
+        {
+          "type": "fixed",
+          "text": "Khi Super Admin đổi gói/gia hạn thủ công, tự động bỏ chế độ chỉ đọc và reset thời gian ân hạn"
+        }
       ]
     },
     {
@@ -49,9 +96,18 @@
       "releaseDate": "2026-05-12",
       "title": "Sửa lỗi banner Chế độ chỉ đọc kẹt sau khi gia hạn",
       "changes": [
-        { "type": "fixed", "text": "Khách sạn đã thanh toán gia hạn nhưng vẫn thấy banner 'Chế độ chỉ đọc' và bị chặn thao tác — nay tự động bỏ ngay khi nhận thanh toán" },
-        { "type": "fixed", "text": "Thêm cron tự kiểm tra hằng ngày để bỏ chế độ chỉ đọc cho mọi tenant đã gia hạn" },
-        { "type": "fixed", "text": "Backfill các tenant đang bị kẹt chế độ chỉ đọc dù subscription còn hạn" }
+        {
+          "type": "fixed",
+          "text": "Khách sạn đã thanh toán gia hạn nhưng vẫn thấy banner 'Chế độ chỉ đọc' và bị chặn thao tác — nay tự động bỏ ngay khi nhận thanh toán"
+        },
+        {
+          "type": "fixed",
+          "text": "Thêm cron tự kiểm tra hằng ngày để bỏ chế độ chỉ đọc cho mọi tenant đã gia hạn"
+        },
+        {
+          "type": "fixed",
+          "text": "Backfill các tenant đang bị kẹt chế độ chỉ đọc dù subscription còn hạn"
+        }
       ]
     },
     {
@@ -59,8 +115,14 @@
       "releaseDate": "2026-05-12",
       "title": "Prefetch route khi hover sidebar",
       "changes": [
-        { "type": "improved", "text": "Hover/focus mục sidebar sẽ tự tải trước chunk trang đó — click chuyển trang gần như tức thì" },
-        { "type": "improved", "text": "Tự bỏ qua prefetch trên kết nối chậm (2G hoặc Save-Data)" }
+        {
+          "type": "improved",
+          "text": "Hover/focus mục sidebar sẽ tự tải trước chunk trang đó — click chuyển trang gần như tức thì"
+        },
+        {
+          "type": "improved",
+          "text": "Tự bỏ qua prefetch trên kết nối chậm (2G hoặc Save-Data)"
+        }
       ]
     },
     {
@@ -68,8 +130,14 @@
       "releaseDate": "2026-05-12",
       "title": "Tối ưu Landing Page",
       "changes": [
-        { "type": "improved", "text": "Lazy-load các section dưới fold (Features, Pricing, Footer) — Hero hiển thị tức thì" },
-        { "type": "improved", "text": "Giảm thêm ~30% kích thước chunk landing đầu tiên" }
+        {
+          "type": "improved",
+          "text": "Lazy-load các section dưới fold (Features, Pricing, Footer) — Hero hiển thị tức thì"
+        },
+        {
+          "type": "improved",
+          "text": "Giảm thêm ~30% kích thước chunk landing đầu tiên"
+        }
       ]
     },
     {
@@ -77,8 +145,14 @@
       "releaseDate": "2026-05-12",
       "title": "Lazy-load ngôn ngữ theo trang",
       "changes": [
-        { "type": "improved", "text": "Giao diện chỉ tải file ngôn ngữ của trang đang xem (giảm ~200KB JSON ở entry)" },
-        { "type": "improved", "text": "Landing & đăng nhập tải nhanh hơn rõ rệt trên 3G/4G" }
+        {
+          "type": "improved",
+          "text": "Giao diện chỉ tải file ngôn ngữ của trang đang xem (giảm ~200KB JSON ở entry)"
+        },
+        {
+          "type": "improved",
+          "text": "Landing & đăng nhập tải nhanh hơn rõ rệt trên 3G/4G"
+        }
       ]
     },
     {
@@ -86,11 +160,26 @@
       "releaseDate": "2026-05-12",
       "title": "Tăng tốc tải trang lần đầu",
       "changes": [
-        { "type": "improved", "text": "Tách bundle thư viện nặng (Excel, PDF, Charts, QR, Markdown, Mermaid) — landing & login tải nhanh hơn ~50%" },
-        { "type": "improved", "text": "Lazy-load MainLayout và các provider PWA — khách vãng lai không phải tải code dashboard" },
-        { "type": "improved", "text": "Preconnect Supabase ngay từ HTML để rút ngắn 100–300ms cho request đầu" },
-        { "type": "improved", "text": "CacheBuster chạy trong requestIdleCallback, không còn block render đầu" },
-        { "type": "improved", "text": "Hero Landing dùng LazyMotion — giảm ~70% kích thước Framer Motion" }
+        {
+          "type": "improved",
+          "text": "Tách bundle thư viện nặng (Excel, PDF, Charts, QR, Markdown, Mermaid) — landing & login tải nhanh hơn ~50%"
+        },
+        {
+          "type": "improved",
+          "text": "Lazy-load MainLayout và các provider PWA — khách vãng lai không phải tải code dashboard"
+        },
+        {
+          "type": "improved",
+          "text": "Preconnect Supabase ngay từ HTML để rút ngắn 100–300ms cho request đầu"
+        },
+        {
+          "type": "improved",
+          "text": "CacheBuster chạy trong requestIdleCallback, không còn block render đầu"
+        },
+        {
+          "type": "improved",
+          "text": "Hero Landing dùng LazyMotion — giảm ~70% kích thước Framer Motion"
+        }
       ]
     },
     {
@@ -98,9 +187,18 @@
       "releaseDate": "2026-05-11",
       "title": "Trang lịch sử phiên bản /whats-new",
       "changes": [
-        { "type": "new", "text": "Trang Lịch sử phiên bản hiển thị toàn bộ thay đổi theo từng version" },
-        { "type": "new", "text": "Liên kết 'Xem tất cả thay đổi' trong popup thông báo cập nhật" },
-        { "type": "improved", "text": "Truy cập nhanh từ trang More mobile (chạm vào số phiên bản)" }
+        {
+          "type": "new",
+          "text": "Trang Lịch sử phiên bản hiển thị toàn bộ thay đổi theo từng version"
+        },
+        {
+          "type": "new",
+          "text": "Liên kết 'Xem tất cả thay đổi' trong popup thông báo cập nhật"
+        },
+        {
+          "type": "improved",
+          "text": "Truy cập nhanh từ trang More mobile (chạm vào số phiên bản)"
+        }
       ]
     },
     {
@@ -108,8 +206,14 @@
       "releaseDate": "2026-05-11",
       "title": "Popup thông báo giàu nội dung",
       "changes": [
-        { "type": "new", "text": "Popup thông báo cập nhật hỗ trợ highlight + thông tin liên hệ" },
-        { "type": "improved", "text": "Form quản lý thông báo cho phép thêm icon và màu sắc" }
+        {
+          "type": "new",
+          "text": "Popup thông báo cập nhật hỗ trợ highlight + thông tin liên hệ"
+        },
+        {
+          "type": "improved",
+          "text": "Form quản lý thông báo cho phép thêm icon và màu sắc"
+        }
       ]
     },
     {
@@ -117,9 +221,18 @@
       "releaseDate": "2026-05-10",
       "title": "Sửa lỗi cache PWA giữ bản cũ",
       "changes": [
-        { "type": "fixed", "text": "Tắt Service Worker trong môi trường preview/iframe để luôn hiển thị bản code mới nhất khi sửa" },
-        { "type": "fixed", "text": "Tự động dọn cache + Service Worker cũ còn sót lại trên thiết bị người dùng" },
-        { "type": "improved", "text": "PWA install + offline vẫn hoạt động đầy đủ trên domain production" }
+        {
+          "type": "fixed",
+          "text": "Tắt Service Worker trong môi trường preview/iframe để luôn hiển thị bản code mới nhất khi sửa"
+        },
+        {
+          "type": "fixed",
+          "text": "Tự động dọn cache + Service Worker cũ còn sót lại trên thiết bị người dùng"
+        },
+        {
+          "type": "improved",
+          "text": "PWA install + offline vẫn hoạt động đầy đủ trên domain production"
+        }
       ]
     }
   ]
