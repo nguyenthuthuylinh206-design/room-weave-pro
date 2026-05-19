@@ -32,6 +32,7 @@ const EAGER_KEYS = new Set([
   './locales/vi/items.json',
   './locales/vi/settings.json',
   './locales/vi/notifications.json',
+  './locales/vi/landing.json',
 ]);
 
 const inflight = new Map<string, Promise<Record<string, unknown> | null>>();
