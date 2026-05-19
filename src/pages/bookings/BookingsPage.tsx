@@ -304,13 +304,18 @@ export function BookingsPage() {
       }
       
       // Handle special filters
-      if (statusFilter !== 'all' && statusFilter !== 'conflict' && statusFilter !== 'overdue') {
+      if (statusFilter !== 'all' && statusFilter !== 'conflict' && statusFilter !== 'overdue' && statusFilter !== 'overdue_checkin') {
         query = query.eq('status', statusFilter)
       }
       
-      // For conflict and overdue, we fetch checked_in only
+      // For conflict and overdue (checked_in), we fetch checked_in only
       if (statusFilter === 'conflict' || statusFilter === 'overdue') {
         query = query.eq('status', 'checked_in')
+      }
+
+      // overdue_checkin: filter ở client dựa vào overdueCheckinMap
+      if (statusFilter === 'overdue_checkin') {
+        query = query.eq('status', 'confirmed')
       }
       
       const { data, error } = await query
