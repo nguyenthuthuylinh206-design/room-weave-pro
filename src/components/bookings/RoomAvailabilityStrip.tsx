@@ -6,17 +6,21 @@ interface Props {
   fromDate: string // yyyy-MM-dd
   days: number
   selectedIn?: string
-  selectedOut?: string // exclusive
+  selectedOut?: string // exclusive (ngày khách trả phòng)
   isDateBooked: (d: string) => boolean
   onPickDate?: (d: string) => void
   isLoading?: boolean
+  /** Khi user đang chọn check-out (bước 2 của range mode) → highlight gợi ý */
+  pickingStep?: 'in' | 'out'
 }
 
 /**
- * Mini-calendar dạng grid 7 cột hiển thị `days` ngày kế tiếp từ `fromDate`.
- * - Ô bận: đỏ
- * - Ô trong khoảng đang chọn: viền primary
- * - Click ô trống để set check-in mới
+ * Mini-calendar grid 7 cột.
+ * Vai trò ô:
+ *  - Nhận (check-in): primary đậm
+ *  - Trả (check-out, ngày khách rời = selectedOut - 1 hiển thị label "Trả")
+ *  - Ở giữa: primary nhạt
+ *  - Bận: đỏ; Trống: muted
  */
 export function RoomAvailabilityStrip({
   fromDate,
@@ -26,6 +30,7 @@ export function RoomAvailabilityStrip({
   isDateBooked,
   onPickDate,
   isLoading,
+  pickingStep,
 }: Props) {
   const start = parseISO(fromDate)
   const cells = Array.from({ length: days }, (_, i) => {
@@ -34,26 +39,33 @@ export function RoomAvailabilityStrip({
       iso: format(d, 'yyyy-MM-dd'),
       dayNum: format(d, 'd'),
       dow: format(d, 'EEEEEE', { locale: vi }),
-      isMonthStart: format(d, 'd') === '1' || i === 0,
-      monthLabel: format(d, 'MM/yyyy'),
     }
   })
 
+  // Ngày trả thực tế = selectedOut - 1 (vì selectedOut là exclusive)
+  const checkoutDay = selectedOut
+    ? format(addDays(parseISO(selectedOut), -1), 'yyyy-MM-dd')
+    : undefined
+
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>Lịch phòng {days} ngày tới</span>
-        <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-sm bg-muted border" /> Trống
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-sm bg-red-100 border border-red-300" /> Đã đặt
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-sm ring-2 ring-primary bg-background" /> Đang chọn
-          </span>
-        </div>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+        <span className="font-medium text-foreground">Lịch {days} ngày tới</span>
+        <span className="flex items-center gap-1">
+          <span className="w-3 h-3 rounded-sm bg-muted border" /> Trống
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-3 h-3 rounded-sm bg-red-100 border border-red-300" /> Đã đặt
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-3 h-3 rounded-sm bg-primary" /> Nhận
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-3 h-3 rounded-sm bg-primary/70" /> Trả
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-3 h-3 rounded-sm bg-primary/20" /> Trong khoảng
+        </span>
       </div>
 
       {isLoading ? (
@@ -62,8 +74,33 @@ export function RoomAvailabilityStrip({
         <div className="grid grid-cols-7 gap-1">
           {cells.map((c) => {
             const booked = isDateBooked(c.iso)
+            const isIn = selectedIn === c.iso
+            const isOut = checkoutDay === c.iso
             const inRange =
-              selectedIn && selectedOut && c.iso >= selectedIn && c.iso < selectedOut
+              !isIn &&
+              !isOut &&
+              selectedIn &&
+              selectedOut &&
+              c.iso > selectedIn &&
+              c.iso < selectedOut
+
+            let stateClass =
+              'bg-muted hover:bg-accent border-transparent text-foreground cursor-pointer'
+            if (booked) {
+              stateClass = 'bg-red-50 border-red-200 text-red-600 cursor-not-allowed'
+            } else if (isIn) {
+              stateClass =
+                'bg-primary border-primary text-primary-foreground font-semibold cursor-pointer'
+            } else if (isOut) {
+              stateClass =
+                'bg-primary/70 border-primary text-primary-foreground font-semibold cursor-pointer'
+            } else if (inRange) {
+              stateClass =
+                'bg-primary/20 border-primary/30 text-primary hover:bg-primary/30 cursor-pointer'
+            }
+
+            const label = isIn ? 'Nhận' : isOut ? 'Trả' : c.dow
+
             return (
               <button
                 key={c.iso}
@@ -73,18 +110,23 @@ export function RoomAvailabilityStrip({
                 title={
                   booked
                     ? `${format(parseISO(c.iso), 'dd/MM/yyyy')} — Đã đặt`
-                    : `${format(parseISO(c.iso), 'dd/MM/yyyy')} — Trống`
+                    : `${format(parseISO(c.iso), 'dd/MM/yyyy')}${isIn ? ' — Nhận phòng' : isOut ? ' — Trả phòng' : ''}`
                 }
                 className={cn(
-                  'h-10 rounded text-[11px] leading-tight flex flex-col items-center justify-center border transition-colors',
-                  booked
-                    ? 'bg-red-50 border-red-200 text-red-600 cursor-not-allowed'
-                    : 'bg-muted hover:bg-accent border-transparent text-foreground cursor-pointer',
-                  inRange && 'ring-2 ring-primary',
+                  'h-12 rounded text-[11px] leading-tight flex flex-col items-center justify-center border transition-colors',
+                  stateClass,
+                  pickingStep === 'out' && !booked && !isIn && 'ring-1 ring-primary/30',
                 )}
               >
-                <span className="text-[9px] uppercase opacity-60">{c.dow}</span>
-                <span className="font-medium">{c.dayNum}</span>
+                <span
+                  className={cn(
+                    'text-[9px] uppercase tracking-tight',
+                    isIn || isOut ? 'opacity-90' : 'opacity-60',
+                  )}
+                >
+                  {label}
+                </span>
+                <span className="font-medium text-sm">{c.dayNum}</span>
               </button>
             )
           })}
