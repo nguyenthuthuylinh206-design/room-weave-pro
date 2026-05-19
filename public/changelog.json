@@ -1,6 +1,17 @@
 {
-  "current": "1.0.21",
+  "current": "1.0.22",
   "versions": [
+    {
+      "version": "1.0.22",
+      "releaseDate": "2026-05-19",
+      "title": "Vá bảo mật — chống leo quyền & rò mã khuyến mãi",
+      "changes": [
+        { "type": "security", "text": "Chặn nhân viên tự nâng cấp bậc/vai trò/cờ super admin qua bảng người dùng (trigger BEFORE INSERT/UPDATE)" },
+        { "type": "security", "text": "Chỉ chủ khách sạn hoặc quản lý mới được tạo tài khoản mới — chặn staff tạo user giả mạo" },
+        { "type": "security", "text": "Mã khuyến mãi không còn lộ với khách vô danh, chỉ user đã đăng nhập đọc được" },
+        { "type": "security", "text": "Bổ sung chính sách truy cập rõ ràng cho Super Admin trên reminder_email_templates và reminder_automation_rules" }
+      ]
+    },
     {
       "version": "1.0.21",
       "releaseDate": "2026-05-19",
