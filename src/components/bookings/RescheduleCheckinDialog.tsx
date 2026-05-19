@@ -240,24 +240,44 @@ export function RescheduleCheckinDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs">Check-in mới</Label>
+              <Label className="text-xs flex items-center gap-1">
+                <span className="w-2 h-2 rounded-sm bg-primary inline-block" />
+                Check-in mới
+              </Label>
               <Input
                 type="date"
                 min={today}
                 value={newIn}
-                onChange={(e) => setNewIn(e.target.value)}
+                onChange={(e) => {
+                  setNewIn(e.target.value)
+                  if (pickMode === 'range') setPickingStep('out')
+                }}
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Check-out mới</Label>
+              <Label className="text-xs flex items-center gap-1">
+                <span className="w-2 h-2 rounded-sm bg-primary/70 inline-block" />
+                Check-out mới
+              </Label>
               <Input
                 type="date"
                 min={newIn}
                 value={newOut}
-                onChange={(e) => setNewOut(e.target.value)}
+                onChange={(e) => {
+                  setNewOut(e.target.value)
+                  if (pickMode === 'range') setPickingStep('in')
+                }}
               />
             </div>
           </div>
+
+          {/* Tóm tắt khoảng đang chọn */}
+          {newIn && newOut && rangeFree && (
+            <div className="rounded border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-primary">
+              Đang chọn: <b>{format(parseISO(newIn), 'dd/MM/yyyy')}</b> →{' '}
+              <b>{format(parseISO(newOut), 'dd/MM/yyyy')}</b> ({nightsSelected} đêm) — phòng trống ✓
+            </div>
+          )}
 
           {roomId && newIn && newOut && !rangeFree && (
             <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-xs space-y-1">
@@ -288,7 +308,7 @@ export function RescheduleCheckinDialog({
 
           <div className="text-xs text-muted-foreground">
             Lịch cũ: {format(parseISO(currentCheckIn), 'dd/MM/yyyy')} →{' '}
-            {format(parseISO(currentCheckOut), 'dd/MM/yyyy')}
+            {format(parseISO(currentCheckOut), 'dd/MM/yyyy')} ({nights} đêm)
           </div>
 
           <div className="space-y-1">
