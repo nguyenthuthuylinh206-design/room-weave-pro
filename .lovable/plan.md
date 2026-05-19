@@ -1,46 +1,98 @@
-## Vấn đề
+## Mục tiêu
+Sửa nhóm lỗi hiện có gây màn `Unexpected Application Error`, đồng thời tối ưu mobile portrait để không còn tràn ngang, header/bottom nav gọn hơn và các màn vận hành chính dễ dùng hơn trên iPhone/Android nhỏ.
 
-`PricingSection` (và bất kỳ component nào dùng `t(..., { returnObjects: true })` trên namespace `landing`) crash với `l.map is not a function` ngay khi mở `/` lần đầu.
+## Phân tích hiện trạng
 
-**Root cause:**
-- `src/i18n/index.ts` chỉ eager-bundle 9 namespace lớn (common, auth, dashboard, …). Namespace `landing` lazy-load qua `import.meta.glob`.
-- `useTranslation('landing')` được cấu hình `useSuspense: false`. Khi component render frame đầu mà file `vi/landing.json` chưa fetch xong, `t('pricing.starter.features', { returnObjects: true })` trả về **string key fallback** thay vì array → `.map` ném `TypeError`.
-- Lỗi này lan ra ErrorBoundary của React Router → user thấy "Unexpected Application Error".
+### 1) Có thể reuse
+- `ChunkErrorBoundary` và `src/lib/chunk-reload.ts` đã có logic nhận diện lỗi chunk/module script và reload cache.
+- `MainLayout`, `MobileHeader`, `MobileBottomNav`, `HotelSwitcher` là lớp layout mobile trung tâm, sửa ở đây sẽ tác động rộng mà không phải sửa từng màn.
+- `MobileRoomsDashboard`, `GeneralSettingsPage`, `UsageModeSelector`, `HotelQcModeSettings`, `HotelPhotoEvidenceSettings` đã có cấu trúc mobile cơ bản.
+- Design tokens trong `index.css` đã có dark theme, safe-area, `pb-safe`, `min-h-dvh`.
 
-## Giải pháp (2 lớp, an toàn)
+### 2) Cần refactor
+- React Router đang dùng data router nhưng chưa có `errorElement` chung, nên lỗi render/lazy route vẫn rơi vào default UI `Unexpected Application Error` thay vì fallback tiếng Việt và xử lý reload chunk.
+- `ChunkErrorBoundary` bọc ngoài `RouterProvider` chưa đủ cho lỗi route do React Router tự bắt bên trong.
+- `MobileHeader` hiện dễ tràn ngang vì vừa hiển thị tên khách sạn bên trái, vừa render `HotelSwitcher` đầy đủ ở cụm action bên phải.
+- `HotelSwitcher` bản mobile đang dùng width/popover desktop (`w-full lg:w-[320px]`, popover `w-[400px]`) và status badge nền, không tối ưu cho màn 390–414px.
+- Một số container mobile cần `min-w-0`, `max-w-full`, `overflow-hidden`, sticky footer tốt hơn để tránh lệch/tràn.
 
-### 1. Eager-bundle namespace `landing`
-Trang chủ luôn cần `landing`, nên không có lý do lazy.
+### 3) Cần thêm mới
+- `RouteErrorBoundary` dùng `useRouteError()` để thay màn lỗi mặc định của React Router:
+  - Nếu là lỗi chunk/module script: purge caches + reload, hoặc hiển thị CTA “Tải lại phiên bản mới”.
+  - Nếu là lỗi thường: hiển thị lỗi tiếng Việt gọn, có nút “Tải lại trang”, không tự reload nhầm.
+- Biến thể mobile/compact cho `HotelSwitcher` để dùng trong header:
+  - Một dòng, truncate tên khách sạn.
+  - Popover/sheet width theo viewport: `calc(100vw - 1rem)`.
+  - Không dùng badge nền cho status, chỉ text semantic theo chuẩn UI.
+- Mobile layout hardening:
+  - Chặn x-overflow ở `#root`, body và các shell chính.
+  - Header dùng grid cố định: chuông / hotel switcher / menu, không đẩy layout ngang.
+  - Bottom nav giảm padding/min-width, label truncate, giữ 5 item.
+- Tối ưu nhanh 2 màn trong ảnh:
+  - `GeneralSettingsPage`: padding mobile nhất quán, card compact, action footer không tràn, section heading không làm lệch ngang.
+  - `MobileRoomsDashboard`: card phòng có `min-w-0`, status text không đẩy width, action buttons responsive.
 
-`src/i18n/index.ts`:
-- Import `viLanding from './locales/vi/landing.json'`.
-- Thêm `'./locales/vi/landing.json'` vào `EAGER_KEYS`.
-- Thêm `landing: viLanding` vào `resources.vi`.
+### 4) Rủi ro migration
+- Không có schema/migration.
+- Rủi ro chính là tác động layout toàn app mobile vì sửa `MobileHeader`/`HotelSwitcher`; sẽ giới hạn bằng prop `variant="mobile"` để desktop giữ nguyên.
+- PWA/iOS cache: cần bump version/changelog để thiết bị nhận bản mới theo quy ước release.
 
-### 2. Guard runtime cho mọi `returnObjects` trong landing
-Phòng trường hợp tương lai có thêm key array bị thiếu.
+## Kế hoạch triển khai
 
-`src/components/landing/PricingSection.tsx`:
-```ts
-const featuresRaw = t(`pricing.${plan}.features`, { returnObjects: true, defaultValue: [] });
-const features = Array.isArray(featuresRaw) ? featuresRaw as string[] : [];
-```
+### A. Kiến trúc / logic nghiệp vụ
+1. Thêm route-level error boundary cho React Router để thay thế default `Unexpected Application Error`.
+2. Tái sử dụng `isChunkLoadError()` và `purgeCachesAndReload()` hiện có, tránh tạo logic reload mới.
+3. Giữ lỗi nghiệp vụ/render thường ở fallback tiếng Việt, không tự reload để tránh loop.
+4. Tối ưu mobile layout ở shell chung trước, sau đó chỉnh các màn cụ thể trong ảnh.
 
-`src/components/landing/FeaturesSection.tsx` — rà soát, áp dụng cùng pattern nếu có dùng `returnObjects`.
+### B. Schema / migration
+- Không thêm migration.
+- Không thay đổi database/RLS/RPC.
 
-## File sẽ thay đổi
-- ✏️ `src/i18n/index.ts` — eager bundle `landing`
-- ✏️ `src/components/landing/PricingSection.tsx` — `Array.isArray` guard
-- ✏️ `src/components/landing/FeaturesSection.tsx` — guard nếu cần (chỉ khi có `returnObjects`)
-- ✏️ `src/lib/app-version.ts` → `1.0.31`
-- ✏️ `public/changelog.json` — entry mới
+### C. API / RPC / server actions
+- Không thêm API/RPC/server action.
+- Không thay đổi mutation hiện có.
 
-## Test
-1. Hard reload `/` ở mobile + desktop → không còn lỗi, pricing render đủ 3 cột.
-2. Throttle Slow 3G trong DevTools → vẫn không crash (vì giờ landing eager bundled).
-3. Build size: tăng ~2-5KB (landing.json) — chấp nhận được vì là trang public.
+### D. UI screens / components
+Sẽ sửa/tạo các file chính:
+- Tạo `src/components/RouteErrorBoundary.tsx`
+  - Fallback tiếng Việt cho React Router.
+  - Detect chunk error và gọi reload cache.
+- Sửa `src/App.tsx`
+  - Gắn `errorElement` cho các nhánh route chính hoặc wrapper route phù hợp.
+  - Giữ `ChunkErrorBoundary` ngoài cùng như lớp bảo vệ bổ sung.
+- Sửa `src/components/layout/MobileHeader.tsx`
+  - Header mobile không còn double hotel name.
+  - Dùng layout grid/flex có `min-w-0`, không tràn ngang.
+- Sửa `src/components/layout/HotelSwitcher.tsx`
+  - Thêm prop mobile compact, popover width responsive.
+  - Truncate tên khách sạn, status dùng semantic text thay badge nền ở mobile.
+- Sửa `src/components/layout/MobileBottomNav.tsx`
+  - Giảm nguy cơ overflow: item `min-w-0 flex-1`, label truncate, touch target vẫn đủ.
+- Sửa `src/index.css`
+  - Bổ sung guard overflow cho `#root` và mobile shell.
+- Sửa `src/pages/settings/GeneralSettingsPage.tsx`
+  - Compact mobile: `px-3/space-y-3`, section header `min-w-0`, action footer wrap/sticky hợp lý.
+- Sửa `src/components/settings/UsageModeSelector.tsx`, `HotelQcModeSettings.tsx`, `HotelPhotoEvidenceSettings.tsx`
+  - Thêm `min-w-0`, text wrap/truncate đúng, giảm padding mobile.
+- Sửa `src/components/rooms/MobileRoomsDashboard.tsx`
+  - Card/list không đẩy ngang, status/chips gọn, actions responsive.
+- Bump `src/lib/app-version.ts` và thêm entry `public/changelog.json` theo quy ước release.
 
-## Rollback
-Revert 4 file. Không schema/migration.
+### E. Permission / role rules
+- Không thay đổi quyền.
+- Mobile bottom nav vẫn filter theo permission hiện có, giữ tối đa 5 item và More.
 
-**Duyệt để triển khai?**
+### F. Test cases / QA
+- Kiểm tra route lỗi chunk/module script không còn hiện default `Unexpected Application Error`.
+- Kiểm tra lỗi render thường vẫn hiện fallback lỗi tiếng Việt, không auto reload.
+- Mobile viewport 390x844 và 414x756:
+  - `/settings/general`: không tràn ngang, header không bị kéo lệch, footer/nút không che nội dung.
+  - `/rooms`: card phòng không tràn, bottom nav không đẩy ngang, label không overlap.
+- Desktop quick check để đảm bảo `HotelSwitcher` desktop không đổi layout.
+- Không chạy build thủ công; harness sẽ kiểm tra build/typecheck.
+
+### G. Rollout notes
+- Đây là thay đổi frontend-only, rollback bằng cách revert các file UI/error-boundary/version/changelog.
+- Thiết bị iOS PWA đang cache bản cũ có thể cần mở lại/tải lại một lần để nhận bản mới; từ bản này route error boundary sẽ xử lý tốt hơn các lỗi chunk sau deploy.
+- Sau khi triển khai, nên publish ngay để người dùng mobile nhận fix cache/runtime.
