@@ -1,6 +1,15 @@
 {
-  "current": "1.0.29",
+  "current": "1.0.30",
   "versions": [
+    {
+      "version": "1.0.30",
+      "releaseDate": "2026-05-19",
+      "title": "Sửa lỗi \"Importing a module script failed\" trên mobile",
+      "changes": [
+        { "type": "fix", "text": "Tự động xoá cache & tải lại khi gặp lỗi chunk JS sau khi app cập nhật — không còn kẹt màn hình lỗi trên iOS PWA" },
+        { "type": "improvement", "text": "Thêm màn hình fallback \"Đã có bản cập nhật mới\" với nút Tải lại thủ công khi auto-reload không thành công" }
+      ]
+    },
     {
       "version": "1.0.29",
       "releaseDate": "2026-05-19",

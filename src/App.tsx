@@ -1,4 +1,5 @@
 import { Suspense, lazy } from "react";
+import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -532,9 +533,11 @@ const App = () => (
           <CacheBuster />
           <Toaster />
           <Sonner />
-          <Suspense fallback={<RouteFallback />}>
-            <RouterProvider router={router} />
-          </Suspense>
+          <ChunkErrorBoundary>
+            <Suspense fallback={<RouteFallback />}>
+              <RouterProvider router={router} />
+            </Suspense>
+          </ChunkErrorBoundary>
         </TooltipProvider>
       </ThemeProvider>
     </AuthProvider>
