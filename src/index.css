@@ -267,9 +267,9 @@ All colors MUST be HSL.
 
   /* Prevent horizontal overflow on mobile + chặn back-swipe iOS xung đột với swipe trong app */
   @media screen and (max-width: 768px) {
-    html, body {
+    html, body, #root {
       overflow-x: hidden;
-      max-width: 100%;
+      max-width: 100vw;
       overscroll-behavior-y: contain;
       overscroll-behavior-x: none;
     }

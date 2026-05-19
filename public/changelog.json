@@ -1,6 +1,17 @@
 {
-  "current": "1.0.31",
+  "current": "1.0.32",
   "versions": [
+    {
+      "version": "1.0.32",
+      "releaseDate": "2026-05-19",
+      "title": "Sửa màn lỗi mặc định & tối ưu giao diện mobile",
+      "changes": [
+        { "type": "fix", "text": "Thay màn \"Unexpected Application Error\" mặc định bằng fallback tiếng Việt; lỗi chunk sau deploy tự tải lại bản mới" },
+        { "type": "fix", "text": "Sửa lỗi tràn ngang ở trang Cài đặt chung trên mobile (tiêu đề bị cắt bên trái)" },
+        { "type": "improvement", "text": "Gọn header mobile: bỏ nút chuyển khách sạn trùng lặp; nút chạm trong header nhỏ gọn hơn" },
+        { "type": "improvement", "text": "Chặn cuộn ngang toàn cục trên mobile để layout không bị lệch khi nội dung dài" }
+      ]
+    },
     {
       "version": "1.0.31",
       "releaseDate": "2026-05-19",
