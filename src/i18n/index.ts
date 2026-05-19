@@ -14,6 +14,7 @@ import viInventory from './locales/vi/inventory.json';
 import viItems from './locales/vi/items.json';
 import viSettings from './locales/vi/settings.json';
 import viNotifications from './locales/vi/notifications.json';
+import viLanding from './locales/vi/landing.json';
 
 // Lazy registry CHỈ quét locales/vi → Vite không tạo chunk EN.
 const lazyResources = import.meta.glob('./locales/vi/*.json') as Record<
