@@ -361,6 +361,11 @@ export function BookingsPage() {
       const checkOutDate = startOfDay(new Date(booking.check_out_date))
       return booking.status === 'checked_in' && isBefore(checkOutDate, today)
     }
+
+    // Apply overdue check-in filter
+    if (statusFilter === 'overdue_checkin') {
+      return overdueCheckinMap.has(booking.id)
+    }
     
     return true
   }) || []).sort((a, b) => {
