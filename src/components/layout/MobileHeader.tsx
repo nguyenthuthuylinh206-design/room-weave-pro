@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { Menu, Search } from 'lucide-react'
+import { Menu, Search, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { MobileSidebar } from './MobileSidebar'
-import { HotelSwitcher } from './HotelSwitcher'
+import { MobileHotelSwitcher } from './MobileHotelSwitcher'
 import { NotificationBell } from '@/components/notifications'
 import { cn } from '@/lib/utils'
 import logoRoomQc from '@/assets/logo-roomqc.png'
@@ -21,7 +21,29 @@ export const MobileHeader = ({
   className
 }: MobileHeaderProps) => {
   const [menuOpen, setMenuOpen] = useState(false)
-  const { selectedHotel } = useHotelContext()
+  const { selectedHotel, isAllHotelsMode, availableHotels } = useHotelContext()
+
+  const canSwitch = showHotelSelector && availableHotels.length > 0
+
+  const headerLabel = (
+    <div className="min-w-0 flex-1">
+      <div className="flex items-center gap-1 min-w-0">
+        <p className="font-semibold text-sm truncate">
+          {isAllHotelsMode
+            ? 'Tất cả khách sạn'
+            : selectedHotel?.name ?? 'RoomQc'}
+        </p>
+        {canSwitch && (
+          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        )}
+      </div>
+      {!isAllHotelsMode && selectedHotel && (selectedHotel.city || selectedHotel.country) && (
+        <p className="text-[11px] text-muted-foreground truncate">
+          {selectedHotel.city || selectedHotel.country}
+        </p>
+      )}
+    </div>
+  )
 
   return (
     <header className={cn(
@@ -29,22 +51,17 @@ export const MobileHeader = ({
       className
     )}>
       <div className="flex items-center justify-between gap-2 px-3 h-14 max-w-full">
-        {/* Left: Logo + Hotel Name */}
+        {/* Left: Logo + Hotel Name (tap to switch) */}
         <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
           <img src={logoRoomQc} alt="RoomQc" className="h-7 w-7 rounded-md object-cover flex-shrink-0" />
-          {selectedHotel ? (
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold text-sm truncate">
-                {selectedHotel.name}
-              </p>
-              {(selectedHotel.city || selectedHotel.country) && (
-                <p className="text-[11px] text-muted-foreground truncate">
-                  {selectedHotel.city || selectedHotel.country}
-                </p>
-              )}
-            </div>
+          {canSwitch ? (
+            <MobileHotelSwitcher>
+              <button type="button" className="min-w-0 flex-1 text-left active:opacity-70">
+                {headerLabel}
+              </button>
+            </MobileHotelSwitcher>
           ) : (
-            <span className="font-semibold text-sm truncate">RoomQc</span>
+            headerLabel
           )}
         </div>
 
@@ -62,12 +79,6 @@ export const MobileHeader = ({
           )}
 
           <NotificationBell className="h-9 w-9" />
-
-          {showHotelSelector && (
-            <div className="lg:hidden">
-              <HotelSwitcher />
-            </div>
-          )}
 
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger asChild>
