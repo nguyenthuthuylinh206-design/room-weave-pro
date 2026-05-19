@@ -53,7 +53,7 @@ export function useOverdueCheckins() {
         console.error('useOverdueCheckins error', error)
         return []
       }
-      return (data || []) as OverdueCheckin[]
+      return ((data as any) || []) as OverdueCheckin[]
     },
   })
 
