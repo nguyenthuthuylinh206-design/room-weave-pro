@@ -46,6 +46,22 @@ registerRoute(
   })
 );
 
+// Cache i18n JSON namespace lazy (StaleWhileRevalidate) — PWA cold start không phải fetch lại.
+registerRoute(
+  ({ url }) => /\/locales\/vi\/.+\.json$/.test(url.pathname),
+  new NetworkFirst({
+    cacheName: 'i18n-vi-cache',
+    networkTimeoutSeconds: 2,
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 40,
+        maxAgeSeconds: 60 * 60 * 24 * 7, // 7 ngày
+      }),
+      new CacheableResponsePlugin({ statuses: [200] }),
+    ],
+  })
+);
+
 // Cache images
 registerRoute(
   /\.(?:png|jpg|jpeg|svg|gif|webp)$/,
