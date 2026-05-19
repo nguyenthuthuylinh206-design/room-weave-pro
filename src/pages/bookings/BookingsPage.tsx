@@ -1688,7 +1688,16 @@ export function BookingsPage() {
                         })()}
                       </TableCell>
                       <TableCell>
-                        {getStatusBadge(booking.status, booking.check_out_date)}
+                        <div className="flex flex-col gap-1">
+                          {getStatusBadge(booking.status, booking.check_out_date)}
+                          {booking.status === 'confirmed' && overdueCheckinMap.has(booking.id) && (
+                            <span className={`text-xs font-medium ${
+                              overdueCheckinMap.get(booking.id)! >= 24 ? 'text-red-600' : 'text-amber-600'
+                            }`}>
+                              Quá {overdueCheckinMap.get(booking.id)!.toFixed(1)}h
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1">
@@ -1712,6 +1721,37 @@ export function BookingsPage() {
                                   </>
                                 )}
                               </Button>
+                              {overdueCheckinMap.has(booking.id) && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button type="button" size="sm" variant="ghost" className="h-7 w-7 p-0">
+                                      <MoreVertical className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-48">
+                                    {booking.guest_phone && (
+                                      <DropdownMenuItem asChild>
+                                        <a href={`tel:${booking.guest_phone}`}>
+                                          <PhoneCall className="h-3.5 w-3.5 mr-2" />
+                                          Gọi khách
+                                        </a>
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuItem onClick={() => setRescheduleBooking(booking)}>
+                                      <CalendarClock className="h-3.5 w-3.5 mr-2" />
+                                      Dời ngày check-in
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-red-600 focus:text-red-600"
+                                      onClick={() => setNoShowBooking(booking)}
+                                    >
+                                      <UserX className="h-3.5 w-3.5 mr-2" />
+                                      Đánh dấu No-Show
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
                             </>
                           )}
                           {/* Check-out and group actions for checked_in bookings */}
