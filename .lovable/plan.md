@@ -1,47 +1,118 @@
-## Đánh giá: Còn cải thiện gì sau 1.0.18?
+## Nhóm 2: Tối ưu chuyển trang (mục 6 + 7)
 
-Sau khi rà soát `vite.config.ts`, `App.tsx`, `index.html`, `i18n/index.ts`, `route-prefetch.ts` và `MainLayout.tsx`, dưới đây là các điểm còn có thể cải thiện. Tôi chia thành 3 nhóm theo ROI và rủi ro.
+Mục tiêu: chuyển trang gần như tức thì, không còn skeleton chớp nháy khi đổi filter/tab, dữ liệu sẵn sàng ngay khi vào trang.
 
-### Nhóm 1 — Nên làm (ROI cao, rủi ro thấp)
+---
 
-1. **`<html lang="en">` → `<html lang="vi">`** trong `index.html`. App đã khoá 100% tiếng Việt nhưng thẻ HTML vẫn khai báo `en`, ảnh hưởng SEO + accessibility (screen reader đọc giọng Anh).
-2. **Thêm `<link rel="modulepreload">` cho `MainLayout` + `Dashboard`** trong `index.html`. Hiện `MainLayout` được `lazy()` (do tách shell cho landing), nên user đã đăng nhập phải chờ thêm 1 round-trip để tải shell trước khi thấy Dashboard. Preload sẽ song song hoá việc này với `main.tsx`.
-3. **Giảm `EAGER_KEYS` i18n** — đang eager 11 namespace (~80–120KB). Các namespace `hotels`, `landing` ít dùng ở flow chính có thể chuyển lại lazy. Giữ `common`, `auth`, `navigation`, `dashboard`, `rooms`, `inventory`, `bookings`, `settings`, `notifications`.
-4. **Bổ sung `bookings` namespace vào eager** (đang quên — kế hoạch ghi nhưng chưa thêm). Khi vào trang `/bookings` vẫn nháy key code.
-5. **Service worker `runtimeCaching` cho i18n JSON** — namespace lazy hiện không được SW cache, mỗi lần PWA cold start lại fetch. Thêm `StaleWhileRevalidate` cho `/locales/vi/*.json`.
+### Mục 6 — `placeholderData: keepPreviousData` cho list hooks
 
-### Nhóm 2 — Cân nhắc (ROI vừa, có rủi ro)
+**Vấn đề hiện tại:** Mỗi lần đổi `filters`, `page`, `selectedHotel`, query key đổi → React Query bỏ data cũ → component thấy `isLoading=true` → skeleton chớp → khó chịu.
 
-6. **Bật React Query `placeholderData: keepPreviousData`** ở các hook list page (rooms, bookings, inventory). Khi đổi filter / điều hướng, UI không bị flash skeleton.
-7. **Prefetch dữ liệu React Query khi `onPointerDown`** (không chỉ chunk JS). Hiện chỉ prefetch chunk; user vẫn chờ 200–500ms query. Có thể thêm `queryClient.prefetchQuery` cho 3 trang phổ biến nhất.
-8. **`MainLayout` đang lazy** → bỏ lazy cho user đã login (giữ lazy cho path public). Hoặc đơn giản nhất: dùng `modulePreload` (mục 2).
+**Giải pháp:** Thêm `placeholderData: keepPreviousData` (React Query v5) — giữ data cũ hiển thị trong khi fetch data mới, chỉ thay khi có kết quả mới.
 
-### Nhóm 3 — Không nên làm bây giờ
+**Phạm vi áp dụng (8 hooks chính):**
+1. `useRooms` (src/hooks/useRooms.ts)
+2. `useBookings` (src/hooks/useBookings.ts)
+3. `useInventoryItems` (src/hooks/useInventoryItems.ts hoặc tương đương)
+4. `useRoutesWithFilters` (src/hooks/useRouteFilters.ts) — đang ở trang user xem
+5. `usePurchaseOrders` (src/hooks/usePurchaseOrders.ts)
+6. `useVendors` (src/hooks/useVendors.ts)
+7. `useMaintenanceRequests`
+8. `useLaundryBatches`
 
-- Tách lại `manualChunks` (mermaid/xlsx/jspdf) — đã từng gây TDZ ở 1.0.15/1.0.16, comment trong vite.config cảnh báo rõ. Bỏ qua.
-- Bật React Router `unstable_viewTransition` — Safari cũ buggy.
-- Refactor query keys toàn bộ — phạm vi quá lớn.
+**Cách làm:**
+```ts
+import { keepPreviousData } from '@tanstack/react-query'
 
-### Kế hoạch triển khai (nếu duyệt Nhóm 1)
+return useQuery({
+  queryKey: [...],
+  queryFn: ...,
+  placeholderData: keepPreviousData,
+  staleTime: 30_000, // bonus: giảm refetch khi quay lại
+})
+```
 
-**File sửa:**
-- `index.html` — đổi `lang="vi"`, thêm `modulepreload` cho `MainLayout` + `Dashboard`.
-- `src/i18n/index.ts` — bỏ `hotels`, `landing` khỏi EAGER; thêm `bookings`.
-- `vite.config.ts` — thêm `runtimeCaching` rule cho `locales/vi/*.json` trong `injectManifest` (hoặc trong `sw.ts` nếu dùng custom SW).
-- `src/sw.ts` — thêm route caching cho i18n JSON nếu đang dùng custom strategy.
-- `src/lib/app-version.ts` → `1.0.19`.
-- `public/changelog.json` → entry "Tinh chỉnh ngôn ngữ HTML, preload shell, cache i18n".
+**Cộng:**
+- Không còn flash skeleton khi đổi tab/filter/page
+- Cảm giác "instant" rõ rệt
+- Zero rủi ro về business logic (chỉ đổi UX render)
 
-**Không thay đổi:** DB, RPC, permission, UI screens.
+**Trừ:**
+- User có thể thấy data cũ ~200–500ms khi đổi filter (thường không nhận ra)
+- Có thể cần thêm indicator nhỏ `isFetching` để báo "đang cập nhật" ở các bảng lớn
 
-**Test:**
-- Lighthouse: lang attribute pass, không còn warning "page-has-no-lang".
-- Network: vào Dashboard sau login chỉ tải 1 lần `MainLayout` chunk song song với main.
-- Offline: reload trang `/bookings` ở chế độ máy bay — không còn flash key code.
+---
 
-### Câu hỏi cho bạn
+### Mục 7 — Prefetch React Query data on `onPointerDown`
 
-Bạn muốn tôi:
-- **(a)** Làm hết Nhóm 1 (5 mục, ~10 phút, rủi ro thấp)?
-- **(b)** Làm Nhóm 1 + Nhóm 2 (8 mục, có refactor hook React Query)?
-- **(c)** Chỉ làm các mục cụ thể bạn chọn?
+**Vấn đề hiện tại:** `useIdlePrefetch` đã prefetch JS chunks, nhưng khi vào trang vẫn phải đợi network query (300–800ms). Data chưa sẵn sàng → vẫn thấy skeleton lần đầu.
+
+**Giải pháp:** Khi user `pointerdown` (chạm/click chưa thả) trên link sidebar/bottom nav → gọi `queryClient.prefetchQuery(...)` cho query chính của trang đích. Đến lúc Router render trang → data đã có sẵn trong cache.
+
+**Phạm vi (chỉ 4 route đông user nhất):**
+- `/dashboard` → prefetch `useDashboardMetrics`
+- `/rooms` → prefetch `useRooms({})` (filter mặc định)
+- `/bookings` → prefetch `useBookings({})`
+- `/inventory/distributions` → prefetch `useRoutesWithFilters({}, 1, 25)`
+
+**Cách làm:**
+
+Tạo `src/lib/route-data-prefetch.ts`:
+```ts
+type PrefetchFn = (qc: QueryClient, ctx: PrefetchCtx) => Promise<void>
+
+export const ROUTE_DATA_PREFETCH: Record<string, PrefetchFn> = {
+  '/rooms': async (qc, { tenantId, hotelId }) => {
+    await qc.prefetchQuery({
+      queryKey: ['rooms', tenantId, hotelId, {}],
+      queryFn: () => fetchRooms(tenantId, hotelId, {}),
+      staleTime: 30_000,
+    })
+  },
+  // ...
+}
+```
+
+Trong `Sidebar.tsx` / `MobileBottomNav.tsx`:
+```tsx
+<Link
+  to={item.path}
+  onPointerDown={() => {
+    prefetchRouteChunk(item.path)        // đã có (JS)
+    prefetchRouteData(item.path, ctx)    // MỚI (data)
+  }}
+>
+```
+
+**Cộng:**
+- Trang mở gần như tức thì (cache hit ngay khi mount)
+- Tận dụng "intent gap" (200–400ms giữa pointerdown và pointerup)
+
+**Trừ:**
+- Lãng phí băng thông nếu user pointerdown nhầm rồi không click (hiếm, chỉ 1 query)
+- Phải duy trì query key đồng bộ giữa hook và prefetcher (nếu lệch → cache miss vô hại)
+- Mỗi route mới muốn prefetch phải đăng ký vào map
+
+**Giảm thiểu rủi ro:**
+- Chỉ prefetch query "trang trống filter" (filter mặc định), không prefetch theo state hiện tại
+- Throttle 1 lần / route / 30s để không spam
+- Bỏ qua nếu Network Information API báo `saveData` hoặc `2g/3g`
+
+---
+
+### Phần kỹ thuật phụ
+
+- **Bump version:** `APP_VERSION` → `1.0.20`, `CURRENT_VERSION` trong CacheBuster, thêm entry `changelog.json`
+- **Không cần migration**
+- **Không có thay đổi business logic**
+- **Test cần chạy:** lint + typecheck (auto), manual QA chuyển tab nhanh giữa Dashboard/Rooms/Bookings/Distributions
+
+---
+
+### Đề xuất triển khai
+
+Làm **cả 6 và 7** trong cùng 1 release `1.0.20`:
+1. Trước: thêm `keepPreviousData` cho 8 hooks (mục 6) — an toàn, lợi ích lớn nhất
+2. Sau: thêm data prefetch cho 4 route phổ biến (mục 7) — boost thêm
+
+Ước lượng: ~25–30 phút build, rủi ro thấp, không breaking change.
