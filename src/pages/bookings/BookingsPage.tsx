@@ -213,6 +213,8 @@ export function BookingsPage() {
         setStatusFilter('conflict')
       } else if (filterParam === 'overdue') {
         setStatusFilter('overdue')
+      } else if (filterParam === 'overdue_checkin') {
+        setStatusFilter('overdue_checkin')
       } else if (filterParam === 'unpaid') {
         // For unpaid, we don't have a specific status, show all checked_out
         setStatusFilter('checked_out')
