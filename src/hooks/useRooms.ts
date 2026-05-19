@@ -42,6 +42,8 @@ export function useRooms(filters: RoomFilters = {}) {
       })) as RoomWithStats[]
     },
     enabled: !!tenantId,
+    placeholderData: (prev) => prev,
+    staleTime: 30_000,
   })
 
   // Realtime subscription for room_items changes

@@ -1,6 +1,25 @@
 {
-  "current": "1.0.19",
+  "current": "1.0.20",
   "versions": [
+    {
+      "version": "1.0.20",
+      "releaseDate": "2026-05-19",
+      "title": "Chuyển trang gần như tức thì",
+      "changes": [
+        {
+          "type": "improved",
+          "text": "Giữ lại dữ liệu trang cũ khi đổi tab/bộ lọc — không còn nháy skeleton (rooms, bookings, items, distributions, purchase orders, vendors, maintenance)"
+        },
+        {
+          "type": "improved",
+          "text": "Prefetch dữ liệu (không chỉ mã JS) khi chạm vào Rooms, Bookings, Inventory/Phân phối — vào trang là có sẵn"
+        },
+        {
+          "type": "improved",
+          "text": "Tự động bỏ qua prefetch trên mạng 2G/Save-Data, throttle 30s/route"
+        }
+      ]
+    },
     {
       "version": "1.0.19",
       "releaseDate": "2026-05-19",

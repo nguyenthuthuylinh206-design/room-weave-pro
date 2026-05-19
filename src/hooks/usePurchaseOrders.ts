@@ -55,6 +55,8 @@ export function usePurchaseOrders(filters?: POFilters) {
       return data as unknown as PurchaseOrder[];
     },
     enabled: !!tenantId,
+    placeholderData: (prev) => prev,
+    staleTime: 30_000,
   });
 }
 

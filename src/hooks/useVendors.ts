@@ -41,6 +41,8 @@ export function useVendors(filters?: VendorFilters) {
       return data as Vendor[];
     },
     enabled: !!tenantId,
+    placeholderData: (prev) => prev,
+    staleTime: 30_000,
   });
 }
 

@@ -106,6 +106,8 @@ export function useRoutesWithFilters(
       }
     },
     enabled: !!tenant?.id && (isAllHotelsMode || !!selectedHotel?.id),
+    placeholderData: (prev) => prev,
+    staleTime: 30_000,
   })
 }
 

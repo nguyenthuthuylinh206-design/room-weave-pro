@@ -21,6 +21,10 @@ import { useGracePeriod } from '@/hooks/useGracePeriod'
 import { usePostUpdateToast } from '@/hooks/usePostUpdateToast'
 import { isStaff, isTenantOwner, isManager } from '@/lib/userAccess'
 import { useIdlePrefetch } from '@/hooks/useIdlePrefetch'
+import { useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useHotelContext } from '@/contexts/HotelContext'
+import { setPrefetchContext } from '@/lib/route-data-prefetch'
 
 const MainLayoutContent = () => {
   const { isMobile } = useBreakpoint()
@@ -33,6 +37,18 @@ const MainLayoutContent = () => {
 
   // Idle-prefetch các route phổ biến theo permission để chuyển trang gần như tức thì.
   useIdlePrefetch()
+
+  // Đăng ký context (tenant + hotel + queryClient) cho data prefetch trên hover/pointerdown.
+  const queryClient = useQueryClient()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
+  useEffect(() => {
+    setPrefetchContext({
+      queryClient,
+      tenantId: user?.tenant_id,
+      hotelId: selectedHotel?.id,
+      isAllHotelsMode,
+    })
+  }, [queryClient, user?.tenant_id, selectedHotel?.id, isAllHotelsMode])
 
   if (isMobile) {
     return (
