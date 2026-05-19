@@ -1,6 +1,21 @@
 {
-  "current": "1.0.20",
+  "current": "1.0.21",
   "versions": [
+    {
+      "version": "1.0.21",
+      "releaseDate": "2026-05-19",
+      "title": "Vá bảo mật — Realtime, phân quyền, storage",
+      "changes": [
+        { "type": "security", "text": "Chặn cross-tenant qua Realtime broadcast/presence — chỉ cho phép postgres_changes (đã bảo vệ bởi RLS từng bảng)" },
+        { "type": "security", "text": "Chủ khách sạn không còn được tự cấp/gán vai trò super_admin (chống leo quyền)" },
+        { "type": "security", "text": "Ghi audit log mọi thay đổi user_roles" },
+        { "type": "security", "text": "Chặn liệt kê file ở 4 bucket công khai (logo, ảnh sản phẩm, avatar, ảnh thông báo) — URL trực tiếp vẫn hoạt động" },
+        { "type": "security", "text": "Bật chống mật khẩu rò rỉ (Have I Been Pwned) khi đăng ký / đổi mật khẩu" },
+        { "type": "security", "text": "Khoá search_path cho 4 hàm email queue, chuyển pgtap ra schema extensions" },
+        { "type": "security", "text": "Thu hồi quyền REST API trên materialized view monthly_expenses" },
+        { "type": "security", "text": "Bổ sung chính sách đọc minh bạch cho super admin trên payment_webhook_logs, platform_settings, super_admin_activity_log" }
+      ]
+    },
     {
       "version": "1.0.20",
       "releaseDate": "2026-05-19",
