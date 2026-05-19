@@ -12,6 +12,7 @@ import { AuthGuard } from "@/components/auth/AuthGuard";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { PermissionRoute } from "@/components/auth/PermissionRoute";
 import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 
 // Helper: lazy-load named export as default
 const lazyNamed = <T extends Record<string, any>>(
@@ -276,6 +277,7 @@ const router = createBrowserRouter([
         <SuperAdminLayout />
       </SuperAdminErrorBoundary>
     ),
+    errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: <SuperAdminDashboard /> },
       { path: "tenants", element: <TenantsPage /> },
@@ -294,6 +296,7 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: <RootRoute />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       { 
         index: true, 
@@ -522,7 +525,7 @@ const router = createBrowserRouter([
   },
 
   // Catch all
-  { path: "*", element: <NotFound /> },
+  { path: "*", element: <NotFound />, errorElement: <RouteErrorBoundary /> },
 ]);
 
 const App = () => (

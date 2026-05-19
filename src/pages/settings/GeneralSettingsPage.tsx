@@ -152,11 +152,11 @@ export function GeneralSettingsPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 px-3 sm:px-0 pb-4 max-w-full overflow-x-hidden">
       {/* Header */}
-      <div className="pb-2 border-b">
-        <h1 className="text-lg font-semibold">{t('settings:general.pageTitle')}</h1>
-        <p className="text-xs text-muted-foreground mt-0.5">
+      <div className="pb-2 border-b min-w-0">
+        <h1 className="text-lg font-semibold truncate">{t('settings:general.pageTitle')}</h1>
+        <p className="text-xs text-muted-foreground mt-0.5 break-words">
           {t('settings:general.pageDescription')}
         </p>
       </div>
@@ -316,20 +316,20 @@ export function GeneralSettingsPage() {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-between gap-3 pt-2 border-t">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t">
+          <div className="flex items-center gap-2 min-w-0">
             <Switch
               id="auto-save"
               checked={enableAutoSave}
               onCheckedChange={setEnableAutoSave}
               className="scale-90"
             />
-            <Label htmlFor="auto-save" className="text-xs font-normal cursor-pointer">
+            <Label htmlFor="auto-save" className="text-xs font-normal cursor-pointer truncate">
               {t('settings:general.autoSave')}
             </Label>
           </div>
-          
-          <div className="flex gap-2">
+
+          <div className="flex gap-2 ml-auto">
             <Button type="button" variant="outline" size="sm" className="h-8 text-xs">
               {t('settings:general.cancel')}
             </Button>
