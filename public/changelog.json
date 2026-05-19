@@ -1,6 +1,17 @@
 {
-  "current": "1.0.22",
+  "current": "1.0.23",
   "versions": [
+    {
+      "version": "1.0.23",
+      "releaseDate": "2026-05-19",
+      "title": "Vá bảo mật — defense-in-depth & rò marketing/giá gói",
+      "changes": [
+        { "type": "security", "text": "Thêm WITH CHECK chặn nhân viên đổi cấp bậc/vai trò/cờ super admin của chính mình (lớp 2 cùng trigger)" },
+        { "type": "security", "text": "Chiến dịch marketing không còn lộ với khách vô danh, chỉ user đã đăng nhập đọc được" },
+        { "type": "security", "text": "Lịch sử thay đổi giá gói dịch vụ chỉ Super Admin xem được (tránh lộ chiến lược giá)" },
+        { "type": "security", "text": "Chủ khách sạn có thể tự thêm/sửa/xoá cấu hình tài khoản ngân hàng nhận thanh toán" }
+      ]
+    },
     {
       "version": "1.0.22",
       "releaseDate": "2026-05-19",
