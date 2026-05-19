@@ -143,6 +143,13 @@ const isSlowConnection = () => {
  */
 export const prefetchRoute = (path: string) => {
   if (typeof window === 'undefined') return
+
+  // Data prefetch (React Query) — chạy độc lập với chunk prefetch, tự throttle.
+  // Import động để tránh chu trình import.
+  import('./route-data-prefetch').then(({ prefetchRouteData }) => {
+    prefetchRouteData(path)
+  }).catch(() => {})
+
   if (prefetched.has(path)) return
   if (isSlowConnection()) return
 
