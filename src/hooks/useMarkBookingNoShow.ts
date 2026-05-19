@@ -29,6 +29,6 @@ export function useMarkBookingNoShow() {
       qc.invalidateQueries({ queryKey: ['rooms'] })
       toast.success('Đã đánh dấu khách No-Show')
     },
-    onError: (err: any) => toast.error(mapDbError(err)),
+    onError: (err: any) => toast.error(mapDbError(err?.message ?? String(err))),
   })
 }
