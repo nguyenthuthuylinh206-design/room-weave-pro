@@ -37,6 +37,8 @@ export function useDistributionOrders(filters: DistributionFilters = {}, page = 
       }
     },
     enabled: !!tenant?.id && (isAllHotelsMode || !!selectedHotel?.id),
+    placeholderData: (prev) => prev,
+    staleTime: 30_000,
   })
 }
 
