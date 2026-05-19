@@ -27,7 +27,8 @@ export const PricingSection = () => {
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {plans.map((plan, i) => {
             const isPro = plan === 'professional'
-            const features = t(`pricing.${plan}.features`, { returnObjects: true }) as string[]
+            const featuresRaw = t(`pricing.${plan}.features`, { returnObjects: true, defaultValue: [] })
+            const features = Array.isArray(featuresRaw) ? (featuresRaw as string[]) : []
 
             return (
               <motion.div

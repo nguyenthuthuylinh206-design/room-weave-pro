@@ -14,6 +14,7 @@ import viInventory from './locales/vi/inventory.json';
 import viItems from './locales/vi/items.json';
 import viSettings from './locales/vi/settings.json';
 import viNotifications from './locales/vi/notifications.json';
+import viLanding from './locales/vi/landing.json';
 
 // Lazy registry CHỈ quét locales/vi → Vite không tạo chunk EN.
 const lazyResources = import.meta.glob('./locales/vi/*.json') as Record<
@@ -31,6 +32,7 @@ const EAGER_KEYS = new Set([
   './locales/vi/items.json',
   './locales/vi/settings.json',
   './locales/vi/notifications.json',
+  './locales/vi/landing.json',
 ]);
 
 const inflight = new Map<string, Promise<Record<string, unknown> | null>>();
@@ -104,6 +106,7 @@ i18n
         items: viItems,
         settings: viSettings,
         notifications: viNotifications,
+        landing: viLanding,
       },
     },
     defaultNS: 'common',
