@@ -1,6 +1,15 @@
 {
-  "current": "1.0.32",
+  "current": "1.0.33",
   "versions": [
+    {
+      "version": "1.0.33",
+      "releaseDate": "2026-05-19",
+      "title": "Bộ chọn khách sạn mới trên mobile",
+      "changes": [
+        { "type": "improvement", "text": "Chạm vào tên khách sạn trên header mobile để mở bottom sheet full-width: tìm kiếm, xem trạng thái và chuyển nhanh giữa các khách sạn" },
+        { "type": "improvement", "text": "Bỏ nút chuyển khách sạn trùng lặp trên header, tránh xung đột thao tác trong vùng ngón cái" }
+      ]
+    },
     {
       "version": "1.0.32",
       "releaseDate": "2026-05-19",
