@@ -1810,6 +1810,32 @@ export function BookingsPage() {
         />
       )}
 
+      {/* No-Show Dialog */}
+      {noShowBooking && (
+        <MarkNoShowDialog
+          open={!!noShowBooking}
+          onOpenChange={(o) => !o && setNoShowBooking(null)}
+          bookingId={noShowBooking.id}
+          guestName={noShowBooking.guest_name}
+          roomNumber={noShowBooking.room?.room_number || ''}
+          depositAmount={noShowBooking.deposit_amount || 0}
+          hoursOverdue={overdueCheckinMap.get(noShowBooking.id) || 0}
+        />
+      )}
+
+      {/* Reschedule Check-in Dialog */}
+      {rescheduleBooking && (
+        <RescheduleCheckinDialog
+          open={!!rescheduleBooking}
+          onOpenChange={(o) => !o && setRescheduleBooking(null)}
+          bookingId={rescheduleBooking.id}
+          guestName={rescheduleBooking.guest_name}
+          roomNumber={rescheduleBooking.room?.room_number || ''}
+          currentCheckIn={rescheduleBooking.check_in_date}
+          currentCheckOut={rescheduleBooking.check_out_date}
+        />
+      )}
+
       {/* Check-in Confirmation Dialog */}
       {actionBooking && (
         <CheckInConfirmDialog
