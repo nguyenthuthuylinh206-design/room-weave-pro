@@ -1,6 +1,14 @@
 {
-  "current": "1.0.28",
+  "current": "1.0.29",
   "versions": [
+    {
+      "version": "1.0.29",
+      "releaseDate": "2026-05-19",
+      "title": "Bảng booking tự cập nhật sau khi dời lịch",
+      "changes": [
+        { "type": "fix", "text": "Dời ngày check-in xong, ngày trong bảng /bookings và các thẻ thống kê tự cập nhật ngay, không cần F5" }
+      ]
+    },
     {
       "version": "1.0.28",
       "releaseDate": "2026-05-19",

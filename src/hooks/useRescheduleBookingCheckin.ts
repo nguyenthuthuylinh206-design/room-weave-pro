@@ -26,8 +26,12 @@ export function useRescheduleBookingCheckin() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['overdue-checkins'] })
+      qc.invalidateQueries({ queryKey: ['all-bookings'] })
+      qc.invalidateQueries({ queryKey: ['booking-stats'] })
+      qc.invalidateQueries({ queryKey: ['group-booking'] })
       qc.invalidateQueries({ queryKey: ['bookings'] })
       qc.invalidateQueries({ queryKey: ['room-bookings'] })
+      qc.invalidateQueries({ queryKey: ['room-availability-window'] })
       toast.success('Đã dời ngày check-in')
     },
     onError: (err: any) => toast.error(mapDbError(err?.message ?? String(err))),
