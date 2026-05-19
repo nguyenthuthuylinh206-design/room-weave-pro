@@ -30,6 +30,6 @@ export function useRescheduleBookingCheckin() {
       qc.invalidateQueries({ queryKey: ['room-bookings'] })
       toast.success('Đã dời ngày check-in')
     },
-    onError: (err: any) => toast.error(mapDbError(err)),
+    onError: (err: any) => toast.error(mapDbError(err?.message ?? String(err))),
   })
 }
