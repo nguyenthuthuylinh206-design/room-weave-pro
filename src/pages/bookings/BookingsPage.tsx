@@ -1466,6 +1466,9 @@ export function BookingsPage() {
               <span className="text-red-600">⚠️ Xung đột lịch ({bookingConflicts?.length || 0})</span>
             </SelectItem>
             <SelectItem value="overdue">Quá hạn checkout</SelectItem>
+            <SelectItem value="overdue_checkin">
+              <span className="text-red-600">Quá giờ check-in ({overdueCheckins?.length || 0})</span>
+            </SelectItem>
             <SelectItem value="confirmed">Đã đặt</SelectItem>
             <SelectItem value="checked_in">Đang ở</SelectItem>
             <SelectItem value="checked_out">Đã trả phòng</SelectItem>
