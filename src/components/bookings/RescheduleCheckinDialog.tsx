@@ -53,19 +53,23 @@ export function RescheduleCheckinDialog({
   const [newOut, setNewOut] = useState(format(addDays(parseISO(today), nights), 'yyyy-MM-dd'))
   const [reason, setReason] = useState('')
   const [windowDays, setWindowDays] = useState(DEFAULT_WINDOW_DAYS)
+  const [pickMode, setPickMode] = useState<'keep_nights' | 'range'>('keep_nights')
+  const [pickingStep, setPickingStep] = useState<'in' | 'out'>('in')
   const mutation = useRescheduleBookingCheckin()
 
-  // Auto-adjust check-out khi đổi check-in (giữ số đêm)
+  // Auto-adjust check-out khi đổi check-in (chỉ ở mode giữ số đêm)
   useEffect(() => {
-    if (!newIn) return
+    if (!newIn || pickMode !== 'keep_nights') return
     setNewOut(format(addDays(parseISO(newIn), nights), 'yyyy-MM-dd'))
-  }, [newIn, nights])
+  }, [newIn, nights, pickMode])
 
-  // Reset cửa sổ khi mở lại
+  // Reset khi mở lại
   useEffect(() => {
     if (open) {
       setWindowDays(DEFAULT_WINDOW_DAYS)
       setNewIn(today)
+      setPickMode('keep_nights')
+      setPickingStep('in')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
@@ -90,6 +94,40 @@ export function RescheduleCheckinDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rangeFree, roomId, nights, newIn, isLoading])
 
+  const handlePickDate = (d: string) => {
+    if (pickMode === 'keep_nights') {
+      setNewIn(d)
+      return
+    }
+    // range mode
+    if (pickingStep === 'in') {
+      setNewIn(d)
+      // Reset check-out để chờ chạm lần 2
+      setNewOut('')
+      setPickingStep('out')
+      return
+    }
+    // pickingStep === 'out'
+    if (d <= newIn) {
+      // Chạm ngày trước hoặc bằng check-in → coi như chọn lại check-in
+      setNewIn(d)
+      setNewOut('')
+      return
+    }
+    // selectedOut là exclusive → cộng thêm 1 ngày so với ô khách rời
+    setNewOut(format(addDays(parseISO(d), 1), 'yyyy-MM-dd'))
+    setPickingStep('in')
+  }
+
+  const resetRange = () => {
+    setNewIn(today)
+    setNewOut('')
+    setPickingStep('in')
+  }
+
+  const nightsSelected =
+    newIn && newOut ? Math.max(0, differenceInDays(parseISO(newOut), parseISO(newIn))) : 0
+
   const handleSubmit = async () => {
     if (!newIn || !newOut || newOut <= newIn) return
     await mutation.mutateAsync({
@@ -105,27 +143,83 @@ export function RescheduleCheckinDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Dời ngày check-in</DialogTitle>
           <DialogDescription>
-            Đổi lịch nhận phòng cho khách <b>{guestName}</b> — phòng <b>{roomNumber}</b>. Hệ thống
-            giữ nguyên số đêm ({nights} đêm) và kiểm tra phòng có sẵn.
+            Đổi lịch nhận phòng cho khách <b>{guestName}</b> — phòng <b>{roomNumber}</b>.
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4">
           {roomId && (
             <div className="space-y-2">
+              {/* Mode toggle */}
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-muted-foreground">Cách chọn:</span>
+                <div className="inline-flex rounded border overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPickMode('keep_nights')
+                      setPickingStep('in')
+                      if (newIn)
+                        setNewOut(format(addDays(parseISO(newIn), nights), 'yyyy-MM-dd'))
+                    }}
+                    className={
+                      pickMode === 'keep_nights'
+                        ? 'px-2 py-1 bg-primary text-primary-foreground'
+                        : 'px-2 py-1 bg-background hover:bg-muted'
+                    }
+                  >
+                    Giữ {nights} đêm
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPickMode('range')
+                      resetRange()
+                    }}
+                    className={
+                      pickMode === 'range'
+                        ? 'px-2 py-1 bg-primary text-primary-foreground'
+                        : 'px-2 py-1 bg-background hover:bg-muted'
+                    }
+                  >
+                    Chọn ngày trả riêng
+                  </button>
+                </div>
+                {pickMode === 'range' && (
+                  <span
+                    className={
+                      pickingStep === 'in' ? 'text-primary font-medium' : 'text-amber-600 font-medium'
+                    }
+                  >
+                    {pickingStep === 'in' ? '→ Chạm ngày nhận' : '→ Chạm ngày trả phòng'}
+                  </span>
+                )}
+                {pickMode === 'range' && newOut && (
+                  <button
+                    type="button"
+                    onClick={resetRange}
+                    className="ml-auto text-xs text-muted-foreground hover:text-foreground underline"
+                  >
+                    Đặt lại
+                  </button>
+                )}
+              </div>
+
               <RoomAvailabilityStrip
                 fromDate={today}
                 days={windowDays}
                 selectedIn={newIn}
-                selectedOut={newOut}
+                selectedOut={newOut || undefined}
                 isDateBooked={isDateBooked}
-                onPickDate={(d) => setNewIn(d)}
+                onPickDate={handlePickDate}
                 isLoading={isLoading}
+                pickingStep={pickMode === 'range' ? pickingStep : undefined}
               />
+
               {windowDays < MAX_WINDOW_DAYS && (
                 <div className="flex justify-end">
                   <Button
