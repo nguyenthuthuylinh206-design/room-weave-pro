@@ -106,6 +106,7 @@ i18n
         items: viItems,
         settings: viSettings,
         notifications: viNotifications,
+        landing: viLanding,
       },
     },
     defaultNS: 'common',
