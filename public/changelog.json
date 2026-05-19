@@ -1,6 +1,14 @@
 {
-  "current": "1.0.23",
+  "current": "1.0.24",
   "versions": [
+    {
+      "version": "1.0.24",
+      "releaseDate": "2026-05-19",
+      "title": "Vá bảo mật — siết kiểm tra tenant trong phân quyền",
+      "changes": [
+        { "type": "security", "text": "Hàm phân quyền quản lý người dùng giờ tự kiểm tra cùng khách sạn — chặn rò chéo tenant kể cả khi RLS bên ngoài có sơ hở" }
+      ]
+    },
     {
       "version": "1.0.23",
       "releaseDate": "2026-05-19",
