@@ -1,6 +1,18 @@
 {
-  "current": "1.0.25",
+  "current": "1.0.26",
   "versions": [
+    {
+      "version": "1.0.26",
+      "releaseDate": "2026-05-19",
+      "title": "Lịch phòng trống trong dialog dời ngày check-in",
+      "changes": [
+        { "type": "feature", "text": "Dialog dời lịch hiển thị mini-calendar 30 ngày tới của phòng — ô đỏ là đã đặt, ô xám là trống" },
+        { "type": "feature", "text": "Chạm ô trống để chọn ngày check-in mới (số đêm tự giữ nguyên)" },
+        { "type": "feature", "text": "Cảnh báo đỏ ngay khi khoảng chọn trùng lịch + gợi ý khoảng trống gần nhất 1 chạm" },
+        { "type": "feature", "text": "Nút \"Xem thêm 30 ngày\" mở rộng cửa sổ lịch tới 120 ngày" },
+        { "type": "improvement", "text": "Realtime tự cập nhật lịch nếu có booking khác tạo cùng phòng" }
+      ]
+    },
     {
       "version": "1.0.25",
       "releaseDate": "2026-05-19",

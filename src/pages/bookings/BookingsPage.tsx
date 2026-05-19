@@ -1829,6 +1829,7 @@ export function BookingsPage() {
           open={!!rescheduleBooking}
           onOpenChange={(o) => !o && setRescheduleBooking(null)}
           bookingId={rescheduleBooking.id}
+          roomId={rescheduleBooking.room_id}
           guestName={rescheduleBooking.guest_name}
           roomNumber={rescheduleBooking.room?.room_number || ''}
           currentCheckIn={rescheduleBooking.check_in_date}

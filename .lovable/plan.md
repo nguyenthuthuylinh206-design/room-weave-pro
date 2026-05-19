@@ -1,171 +1,57 @@
 ## Vấn đề
+Trong `RescheduleCheckinDialog`, nhân viên không biết phòng đó còn trống ngày nào — chỉ chọn ngày mới rồi submit, nếu trùng booking khác mới bị RPC `reschedule_booking_checkin` báo `BOOKING_CONFLICT`. Trải nghiệm phải đoán mò.
 
-Hệ thống hiện có:
-- Status `no_show` trong enum + RPC `transition_booking_status` cho transition `confirmed → no_show`
-- Filter "Quá hạn checkout" cho khách đang ở quá ngày trả phòng
-- Hook `useBookingFlagTransition` hỗ trợ flag `no_show`
+## Giải pháp
+Thêm dải lịch trực quan + validate inline ngay trong dialog: tải tất cả booking của đúng `room_id` trong cửa sổ 60 ngày tới (loại trừ chính booking đang dời), highlight ngày bận, chặn submit nếu khoảng chọn chồng lịch, và gợi ý khoảng trống gần nhất đủ số đêm.
 
-Nhưng **thiếu hoàn toàn** xử lý khách **quá giờ check-in chưa đến** (booking `confirmed`, đã qua `check_in_date` hoặc qua `expected_check_in_time` của hôm nay mà chưa `checked_in`):
-- Không có filter / tab "Quá giờ check-in" trên trang Bookings
-- Không có cảnh báo visual trên dòng booking
-- Không có nút thao tác nhanh (Liên hệ khách / Đánh dấu No-Show / Hủy / Dời ngày)
-- Không có cron tự động đánh dấu `no_show` sau ngưỡng cấu hình
-- Không có thông báo cho lễ tân khi đến ngưỡng
+## Phạm vi
 
-## A. Logic nghiệp vụ
+### A. Logic
+- Khoảng overlap: `existing.check_in_date < new.check_out_date AND existing.check_out_date > new.check_in_date`, chỉ tính status `confirmed | checked_in`, **loại** chính `bookingId` đang dời.
+- Cửa sổ mặc định: hôm nay → +60 ngày (đủ dùng cho thao tác dời lịch tay).
 
-**Định nghĩa "Quá giờ check-in" (overdue check-in):**
-- `status = 'confirmed'`
-- VÀ một trong các điều kiện:
-  - `check_in_date < today` (đã qua ngày, chưa đến)
-  - HOẶC `check_in_date = today` AND `expected_check_in_time IS NOT NULL` AND `now() > check_in_date + expected_check_in_time + grace_minutes`
-- Phân loại mức độ:
-  - **Cảnh báo** (amber): quá `grace_minutes` (mặc định 60p) nhưng <  `auto_no_show_hours` (mặc định 24h)
-  - **Nghiêm trọng** (red): quá `auto_no_show_hours` → cron tự động đánh `no_show`
+### B. Schema / Migration
+Không cần. Dùng query `room_bookings` hiện có (đã có index `room_id`, `check_in_date`).
 
-**Cấu hình per-hotel** (`hotels.settings.bookings.no_show`):
-```json
-{
-  "grace_minutes": 60,
-  "auto_no_show_hours": 24,
-  "auto_mark_enabled": false,
-  "notify_reception": true
-}
-```
-Mặc định `auto_mark_enabled = false` để khách sạn opt-in (tránh phá data của tenant cũ).
+### C. Hook mới
+`src/hooks/useRoomAvailabilityWindow.ts`
+- Input: `{ roomId, fromDate, toDate, excludeBookingId? }`
+- Query key: `['room-availability', roomId, fromDate, toDate, excludeBookingId]`
+- Trả về: `{ bookedRanges: Array<{ checkIn: string; checkOut: string; bookingId: string }>, isDateBooked(date), isRangeFree(in,out), findNextFreeWindow(nights) }`
+- Filter `tenant_id` bắt buộc + realtime subscribe `room_bookings` cho `room_id` này → `invalidateQueries`.
 
-**Thao tác lễ tân khi quá giờ:**
-1. Liên hệ khách (nút gọi/SMS — nếu có `guest_phone`)
-2. Dời ngày check-in (mở dialog đổi `check_in_date` + giữ phòng)
-3. Đánh dấu No-Show (gọi `transition_booking_status` → `no_show`, giải phóng phòng, giữ deposit theo policy)
-4. Hủy booking (transition → `cancelled`, hoàn deposit theo policy)
+### D. UI (`RescheduleCheckinDialog.tsx`)
+Thêm 3 khối, không đổi flow submit:
+1. **Dải lịch 30 ngày kế tiếp** dạng grid 7 cột (giống mini-calendar):
+   - Ô trống: nền `bg-muted`, chữ `text-foreground`.
+   - Ô bận: nền `bg-red-50`, chữ `text-red-600`, hover tooltip "Đã đặt".
+   - Ô nằm trong khoảng đang chọn (`newIn` → `newOut - 1`): viền `ring-2 ring-primary`.
+   - Click ô trống = set `newIn` = ngày đó (giữ logic auto-tính `newOut` theo số đêm).
+   - Có nút "Xem 30 ngày tiếp" để mở rộng cửa sổ.
+2. **Inline conflict banner**: nếu `isRangeFree(newIn, newOut) === false` → text đỏ "Khoảng này trùng lịch khác, vui lòng chọn ngày trống.", disable nút Xác nhận.
+3. **Gợi ý**: nếu trùng, hiện chip "Khoảng trống gần nhất: dd/MM → dd/MM" (click = set luôn).
 
-## B. Schema / migration
+### E. Permission
+Không đổi. Chỉ dùng `view_bookings` (đã có khi mở dialog này).
 
-**Migration 1.0.25**:
+### F. Test cases
+- Phòng hoàn toàn trống → toàn bộ ô xám, mọi range hợp lệ.
+- Phòng có booking 10–12/02 → ô 10, 11 đỏ; chọn 10/02 1 đêm → banner đỏ + disable.
+- Booking đang dời chính nó nằm 04–05/02 → 04/02 KHÔNG hiển thị đỏ (đã loại trừ).
+- Click "Khoảng trống gần nhất" với 1 đêm khi 10–12/02 bận → set 09/02 hoặc 12/02 tuỳ vị trí hiện tại.
+- Realtime: booking khác tạo mới ở phòng này trong lúc dialog mở → ô tự chuyển đỏ.
 
-1. Thêm view `v_overdue_checkins` (read-only) tính realtime danh sách booking quá giờ — đỡ phải compute ở client mọi nơi:
-   ```sql
-   CREATE OR REPLACE VIEW public.v_overdue_checkins AS
-   SELECT b.*,
-          EXTRACT(EPOCH FROM (now() - (b.check_in_date::timestamptz + COALESCE(b.expected_check_in_time, '14:00')::time)))/3600 AS hours_overdue
-   FROM room_bookings b
-   WHERE b.status = 'confirmed'
-     AND (
-       b.check_in_date < current_date
-       OR (b.check_in_date = current_date
-           AND b.expected_check_in_time IS NOT NULL
-           AND now() > (b.check_in_date + b.expected_check_in_time)::timestamptz)
-     );
-   ```
-   RLS: view kế thừa RLS từ `room_bookings` (security_invoker).
+### G. Rollout
+- Không breaking, không cần feature flag.
+- Bump `APP_VERSION` 1.0.25 → **1.0.26**, thêm entry `public/changelog.json`: "Lịch phòng trống ngay trong dialog dời ngày check-in".
+- Memory: thêm `mem://features/bookings/reschedule-availability-picker-v1` mô tả pattern này (sẽ tái dùng cho dialog đổi phòng tương lai).
 
-2. RPC `mark_booking_no_show(_booking_id, _reason, _refund_deposit)`:
-   - Validate booking ở trạng thái `confirmed` và thực sự overdue
-   - Gọi `transition_booking_status(_booking_id, 'no_show', _reason)`
-   - Nếu `_refund_deposit = false` → giữ `deposit_amount` làm phí no-show, ghi `booking_payments` type `no_show_fee`
-   - Audit log
+## File dự kiến
+- **Tạo**: `src/hooks/useRoomAvailabilityWindow.ts`, `src/components/bookings/RoomAvailabilityStrip.tsx`, `.lovable/memory/features/bookings/reschedule-availability-picker-v1.md`
+- **Sửa**: `src/components/bookings/RescheduleCheckinDialog.tsx`, `src/lib/app-version.ts`, `public/changelog.json`, `mem://index.md`
 
-3. RPC `reschedule_booking_checkin(_booking_id, _new_check_in_date, _new_check_out_date, _reason)`:
-   - Validate không conflict với booking khác trên cùng phòng
-   - Update dates + audit log
-   - Giữ nguyên status `confirmed`
+## Phần CHƯA làm trong vòng này
+- Đổi sang **phòng khác** ngay trong dialog dời lịch (cần thêm hook `useAvailableRoomsForRange` + xử lý đổi `room_id` trong RPC). Tách thành 1.0.27.
+- Picker dạng full month calendar (tháng/năm điều hướng) — bản này chỉ strip 30-60 ngày.
 
-4. Cron `auto-mark-no-show` (Edge Function chạy mỗi 30 phút):
-   - Quét `v_overdue_checkins` với `hours_overdue > hotel.settings.bookings.no_show.auto_no_show_hours`
-   - Chỉ chạy với hotel có `auto_mark_enabled = true`
-   - Gọi `mark_booking_no_show` cho từng booking
-   - Log vào `audit_log` và gửi notification cho reception nếu `notify_reception = true`
-
-## C. Hooks / RPC client
-
-- `useOverdueCheckins(hotelId)` — query view, realtime subscribe `room_bookings`
-- `useOverdueCheckinsCount()` — badge số cho tab
-- `useMarkBookingNoShow()` — mutation gọi RPC `mark_booking_no_show`
-- `useRescheduleBookingCheckin()` — mutation gọi RPC `reschedule_booking_checkin`
-
-## D. UI
-
-**Trang `/bookings`** (desktop + mobile):
-1. Thêm option `overdue_checkin` vào dropdown Status filter ("Quá giờ check-in") với badge đếm số
-2. Khi filter active: highlight dòng booking bằng `border-l-2 border-amber-500` / `border-red-500` theo mức độ
-3. Cột "Trạng thái": hiển thị chip "Quá X giờ" cạnh "Đã đặt" (text-amber-600 / text-red-600, không dùng background)
-4. Cột "Thao tác": thay vì nút "Check-in", hiển thị dropdown menu:
-   - Check-in (vẫn cho phép nếu khách đến muộn)
-   - Liên hệ khách (mở tel: / sms:)
-   - Dời ngày check-in → mở `RescheduleCheckinDialog`
-   - Đánh dấu No-Show → mở `MarkNoShowDialog`
-
-**`MarkNoShowDialog`**:
-- Hiển thị thông tin booking + deposit
-- Radio: "Giữ deposit làm phí no-show" / "Hoàn deposit"
-- Textarea lý do (required)
-- Nút "Xác nhận No-Show" (variant destructive)
-
-**`RescheduleCheckinDialog`**:
-- DatePicker check-in mới + check-out mới (giữ số đêm)
-- Real-time check conflict
-- Textarea lý do
-
-**Trang `/settings/bookings`** (hoặc tab trong Hotel Settings):
-- Card "Quá giờ check-in":
-  - Slider `grace_minutes` (0–240)
-  - Slider `auto_no_show_hours` (6–72)
-  - Toggle `auto_mark_enabled`
-  - Toggle `notify_reception`
-
-**Dashboard widget** (Reception + Owner):
-- KPI card "Khách quá giờ check-in: X" với link → `/bookings?filter=overdue_checkin`
-
-## E. Permission
-
-- View overdue: bất kỳ user có `view_bookings`
-- `mark_booking_no_show`: cần `manage_bookings`
-- `reschedule_booking_checkin`: cần `manage_bookings`
-- Settings: chỉ `tenant_owner` + `manager`
-
-## F. Test
-
-`supabase/tests/overdue_checkin.sql`:
-1. Booking `confirmed`, `check_in_date = yesterday` → có trong view, `hours_overdue > 24`
-2. Booking `confirmed`, hôm nay, `expected_check_in_time = '14:00'`, giờ test = 15:30 → có trong view, `hours_overdue ≈ 1.5`
-3. Booking đã `checked_in` → KHÔNG có trong view
-4. `mark_booking_no_show` với `_refund_deposit = false` → tạo `booking_payments` type `no_show_fee`, status → `no_show`
-5. `mark_booking_no_show` cho booking chưa overdue → raise `NOT_OVERDUE`
-6. `reschedule_booking_checkin` với date conflict → raise `BOOKING_CONFLICT`
-7. Cross-tenant call → raise `PERMISSION_DENIED`
-
-Unit test FE (`useOverdueCheckins.test.ts`): mock view data + assert count.
-
-## G. Rollout
-
-1. Migration 1.0.25 deploy (view + 2 RPC + cron)
-2. Default `auto_mark_enabled = false` cho mọi hotel hiện có
-3. FE deploy: filter + dialogs + settings + dashboard widget
-4. Bump `APP_VERSION`, changelog "1.0.25 – Xử lý khách quá giờ check-in (No-Show)"
-5. Thêm memory `mem://features/bookings/no-show-handling-v1`
-6. Document tại `docs/architecture/03-flows/booking-lifecycle.md` (cập nhật mục No-Show)
-7. **Rollback**: drop view + 2 RPC + disable cron; FE filter ẩn qua feature flag
-
-## Files dự kiến tạo/sửa
-
-**Tạo:**
-- `supabase/migrations/2026xxxx_no_show_handling.sql`
-- `supabase/functions/auto-mark-no-show/index.ts`
-- `src/hooks/useOverdueCheckins.ts`
-- `src/hooks/useMarkBookingNoShow.ts`
-- `src/hooks/useRescheduleBookingCheckin.ts`
-- `src/components/bookings/MarkNoShowDialog.tsx`
-- `src/components/bookings/RescheduleCheckinDialog.tsx`
-- `src/components/bookings/OverdueCheckinBadge.tsx`
-- `src/components/settings/NoShowSettingsCard.tsx`
-- `supabase/tests/overdue_checkin.sql`
-- `.lovable/memory/features/bookings/no-show-handling-v1.md`
-
-**Sửa:**
-- `src/pages/bookings/BookingsPage.tsx` (filter + actions menu)
-- `src/pages/bookings/MobileBookingsPage.tsx` (filter + actions)
-- `src/pages/Dashboard.tsx` / `HousekeepingStaffDashboard.tsx` (widget)
-- `src/pages/settings/BusinessConfigurationPage.tsx` (cấu hình)
-- `src/lib/app-version.ts`, `public/changelog.json`, `.lovable/memory/index.md`
-- `docs/architecture/03-flows/booking-lifecycle.md`, `docs/architecture/05-state-machines/booking-status.md`
+Bạn duyệt thì triển khai luôn?
