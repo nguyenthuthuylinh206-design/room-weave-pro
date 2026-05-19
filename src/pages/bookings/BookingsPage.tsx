@@ -298,6 +298,8 @@ export function BookingsPage() {
       return data as BookingWithRoom[]
     },
     enabled: !!tenantId,
+    placeholderData: (prev) => prev,
+    staleTime: 30_000,
   })
   
   // Get group booking counts for badge display
