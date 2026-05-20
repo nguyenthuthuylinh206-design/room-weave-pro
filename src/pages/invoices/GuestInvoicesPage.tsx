@@ -243,12 +243,7 @@ export default function GuestInvoicesPage() {
         open={!!previewInvoice}
         onOpenChange={(v) => { if (!v) setPreviewInvoice(null) }}
         onSendEmail={(inv) => { setPreviewInvoice(null); setEmailInvoice(inv) }}
-        hotelInfo={selectedHotel ? {
-          name: selectedHotel.name,
-          address: (selectedHotel as any).address,
-          phone: (selectedHotel as any).phone,
-          taxCode: (selectedHotel as any).tax_code,
-        } : undefined}
+        hotelInfo={hotelInfo}
       />
       <EditInvoiceDialog
         invoice={editInvoice}
@@ -259,12 +254,7 @@ export default function GuestInvoicesPage() {
         invoice={emailInvoice}
         open={!!emailInvoice}
         onOpenChange={(v) => { if (!v) setEmailInvoice(null) }}
-        hotelInfo={selectedHotel ? {
-          name: selectedHotel.name,
-          address: (selectedHotel as any).address,
-          phone: (selectedHotel as any).phone,
-          taxCode: (selectedHotel as any).tax_code,
-        } : undefined}
+        hotelInfo={hotelInfo}
       />
     </div>
   )
