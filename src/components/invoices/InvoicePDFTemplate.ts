@@ -56,10 +56,20 @@ async function qrDataUrl(text: string, size = 180): Promise<string> {
   }
 }
 
-/** Build QR URL khách quét lấy HĐĐT VAT. Truyền claimToken nếu có; fallback dùng invoice.id (preview). */
-export function buildVatClaimUrl(invoice: GuestInvoice, claimToken?: string | null): string {
-  const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  return `${origin}/i/${claimToken || invoice.id}`
+/**
+ * Build QR URL khách quét lấy HĐĐT VAT.
+ * BẮT BUỘC phải có `claimToken` thật từ `ensure_vat_claim_token` —
+ * không fallback `invoice.id` (RPC public sẽ trả `not_found` ⇒ "Mã QR không hợp lệ").
+ * Trả `null` nếu chưa có token để caller biết không render QR.
+ */
+export function buildVatClaimUrl(_invoice: GuestInvoice, claimToken?: string | null): string | null {
+  if (!claimToken) return null
+  const envOrigin = (typeof window !== 'undefined' ? window.location.origin : '')
+  // Production luôn dùng domain chính thức
+  const isProd = typeof window !== 'undefined'
+    && /roomqc\.com$|roomqc\.lovable\.app$/i.test(window.location.hostname)
+  const origin = isProd ? 'https://roomqc.com' : (envOrigin || 'https://roomqc.com')
+  return `${origin}/i/${claimToken}`
 }
 
 function signatureBlock() {
@@ -107,7 +117,7 @@ async function buildReceiptHTML(
 ): Promise<string> {
   const config = PAPER_CONFIG[paperSize]
   const lineItems = invoice.line_items || []
-  const remaining = invoice.total_amount - invoice.amount_paid
+  const remaining = invoice.total_amount - invoice.amount_paid - (invoice.deposit_amount || 0)
   const qrSize = paperSize === 'K58' ? 140 : 170
   const qr = qrPayload ? await qrDataUrl(qrPayload.url, qrSize * 2) : ''
   const qrLabel = qrPayload?.label || 'Quét để lấy hoá đơn VAT'
@@ -169,7 +179,7 @@ async function buildSheetHTML(
 ): Promise<string> {
   const config = PAPER_CONFIG[paperSize]
   const lineItems = invoice.line_items || []
-  const remaining = invoice.total_amount - invoice.amount_paid
+  const remaining = invoice.total_amount - invoice.amount_paid - (invoice.deposit_amount || 0)
   const qr = qrPayload ? await qrDataUrl(qrPayload.url, 220) : ''
   const qrLabel = qrPayload?.label || 'Quét để lấy hoá đơn VAT'
 
@@ -257,7 +267,7 @@ export function buildInvoiceHTML(
   const config = PAPER_CONFIG[paperSize]
   if (config.isReceipt) {
     const lineItems = invoice.line_items || []
-    const remaining = invoice.total_amount - invoice.amount_paid
+    const remaining = invoice.total_amount - invoice.amount_paid - (invoice.deposit_amount || 0)
     return `<div id="invoice-pdf" style="width:${config.width}px;padding:${config.padding};font-family:'Segoe UI',Arial,sans-serif;font-size:${config.fontSize}px;color:#111;background:#fff;">
       <div style="text-align:center;font-weight:700;">${hotelInfo?.name || 'KHÁCH SẠN'}</div>
       <div style="text-align:center;border-top:1px dashed #999;border-bottom:1px dashed #999;padding:4px 0;margin:6px 0;font-weight:700;">${invoice.invoice_number}</div>

@@ -1,6 +1,19 @@
 {
-  "current": "1.0.37",
+  "current": "1.0.38",
   "versions": [
+    {
+      "version": "1.0.38",
+      "releaseDate": "2026-05-20",
+      "title": "Sửa lỗi QR VAT báo 'Mã không hợp lệ hoặc hết hạn'",
+      "changes": [
+        { "type": "fix", "text": "QR lấy hoá đơn VAT trên bill nay luôn dùng token thật từ hệ thống, không còn fallback sang ID hoá đơn (nguyên nhân khiến khách quét báo mã không hợp lệ/hết hạn)" },
+        { "type": "fix", "text": "Khi token chưa sẵn sàng, các nút In / PDF / In QR VAT sẽ chờ tạo token xong rồi mới chạy — bill in ra chắc chắn có QR đúng" },
+        { "type": "improvement", "text": "QR luôn trỏ đến domain chính thức roomqc.com/i/:token, kèm URL ngắn + hạn 7 ngày in dưới mã để khách gõ tay nếu cần" },
+        { "type": "improvement", "text": "Nút In hoá đơn ở màn Booking nay mặc định khổ K80 và lấy QR VAT đúng cho hoá đơn của booking" },
+        { "type": "fix", "text": "Công thức Còn lại trên bill trừ cả tiền cọc: Còn lại = Tổng − Đã thanh toán − Đã cọc" }
+      ]
+    },
+    {
     {
       "version": "1.0.37",
       "releaseDate": "2026-05-20",

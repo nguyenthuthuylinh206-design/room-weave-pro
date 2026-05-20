@@ -24,7 +24,8 @@ import { useBookingConsumables } from '@/hooks/useBookingConsumables'
 import { useBookingIssues } from '@/hooks/useBookingConsumables'
 import { useGuestInvoices } from '@/hooks/useGuestInvoices'
 import { useHotelContext } from '@/contexts/HotelContext'
-import { printInvoice } from '@/components/invoices/InvoicePDFTemplate'
+import { printInvoice, buildVatClaimUrl } from '@/components/invoices/InvoicePDFTemplate'
+import { useEnsureVatClaimToken } from '@/hooks/useVatClaimToken'
 import { cn, formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -122,7 +123,8 @@ export function BookingDetailPage() {
   const completedPayments = payments?.filter((p) => p.payment_status === 'completed') || []
   const totalReceived = deposit + paid
 
-  const handlePrintInvoice = () => {
+  const ensureToken = useEnsureVatClaimToken()
+  const handlePrintInvoice = async () => {
     if (!invoice) {
       toast.error('Chưa có hóa đơn cho booking này. Vui lòng tạo hóa đơn trước.')
       return
@@ -132,9 +134,18 @@ export function BookingDetailPage() {
           name: selectedHotel.name,
           address: selectedHotel.address || undefined,
           phone: selectedHotel.phone || undefined,
+          taxCode: (selectedHotel as any).tax_code || undefined,
         }
       : undefined
-    printInvoice(invoice, 'A4', hotelInfo)
+    let qrPayload: { url: string; label: string } | undefined
+    try {
+      const t = await ensureToken(invoice.id)
+      const url = buildVatClaimUrl(invoice, t?.token)
+      if (url) qrPayload = { url, label: `${url.replace(/^https?:\/\//, '')} · Hạn 7 ngày` }
+    } catch (e: any) {
+      toast.error('Không tạo được mã QR VAT', { description: e?.message })
+    }
+    printInvoice(invoice, 'K80', hotelInfo, qrPayload)
   }
 
   const shortId = booking.id.slice(0, 8).toUpperCase()

@@ -15,7 +15,9 @@ import { useHotelContext } from '@/contexts/HotelContext'
 import { useUser } from '@/hooks/useUser'
 import { formatCurrency } from '@/lib/utils'
 import { format } from 'date-fns'
-import { generateInvoicePDF, printInvoice } from '@/components/invoices/InvoicePDFTemplate'
+import { generateInvoicePDF, printInvoice, buildVatClaimUrl } from '@/components/invoices/InvoicePDFTemplate'
+import { useEnsureVatClaimToken } from '@/hooks/useVatClaimToken'
+import { toast } from 'sonner'
 import { exportToExcel } from '@/utils/exportUtils'
 import CreateInvoiceDialog from '@/components/invoices/CreateInvoiceDialog'
 import InvoicePreviewDialog from '@/components/invoices/InvoicePreviewDialog'
@@ -49,6 +51,36 @@ export default function GuestInvoicesPage() {
   const { data: invoices = [], isLoading } = useGuestInvoices({ status: statusFilter, search })
   const updateInvoice = useUpdateGuestInvoice()
   const createInvoice = useCreateGuestInvoice()
+  const ensureToken = useEnsureVatClaimToken()
+
+  const hotelInfo = selectedHotel ? {
+    name: selectedHotel.name,
+    address: (selectedHotel as any).address,
+    phone: (selectedHotel as any).phone,
+    taxCode: (selectedHotel as any).tax_code,
+  } : undefined
+
+  const buildQrPayload = async (inv: GuestInvoice) => {
+    try {
+      const t = await ensureToken(inv.id)
+      const url = buildVatClaimUrl(inv, t?.token)
+      if (!url) return undefined
+      return { url, label: `${url.replace(/^https?:\/\//, '')} · Hạn 7 ngày` }
+    } catch (e: any) {
+      toast.error('Không tạo được mã QR VAT', { description: e?.message })
+      return undefined
+    }
+  }
+
+  const handlePrint = async (inv: GuestInvoice) => {
+    const qr = await buildQrPayload(inv)
+    printInvoice(inv, 'K80', hotelInfo, qr)
+  }
+
+  const handleDownloadPDF = async (inv: GuestInvoice) => {
+    const qr = await buildQrPayload(inv)
+    generateInvoicePDF(inv, 'K80', hotelInfo, qr)
+  }
 
   const handleIssue = (id: string) => {
     updateInvoice.mutate({ id, status: 'issued', issued_at: new Date().toISOString() })
@@ -170,10 +202,10 @@ export default function GuestInvoicesPage() {
                   <DropdownMenuItem onClick={() => setPreviewInvoice(inv)}>
                     <Eye className="h-4 w-4 mr-2" /> Xem trước
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => generateInvoicePDF(inv)}>
+                  <DropdownMenuItem onClick={() => handleDownloadPDF(inv)}>
                     <Download className="h-4 w-4 mr-2" /> Tải PDF
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => printInvoice(inv)}>
+                  <DropdownMenuItem onClick={() => handlePrint(inv)}>
                     <Printer className="h-4 w-4 mr-2" /> In
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setEmailInvoice(inv)}>
@@ -211,12 +243,7 @@ export default function GuestInvoicesPage() {
         open={!!previewInvoice}
         onOpenChange={(v) => { if (!v) setPreviewInvoice(null) }}
         onSendEmail={(inv) => { setPreviewInvoice(null); setEmailInvoice(inv) }}
-        hotelInfo={selectedHotel ? {
-          name: selectedHotel.name,
-          address: (selectedHotel as any).address,
-          phone: (selectedHotel as any).phone,
-          taxCode: (selectedHotel as any).tax_code,
-        } : undefined}
+        hotelInfo={hotelInfo}
       />
       <EditInvoiceDialog
         invoice={editInvoice}
@@ -227,12 +254,7 @@ export default function GuestInvoicesPage() {
         invoice={emailInvoice}
         open={!!emailInvoice}
         onOpenChange={(v) => { if (!v) setEmailInvoice(null) }}
-        hotelInfo={selectedHotel ? {
-          name: selectedHotel.name,
-          address: (selectedHotel as any).address,
-          phone: (selectedHotel as any).phone,
-          taxCode: (selectedHotel as any).tax_code,
-        } : undefined}
+        hotelInfo={hotelInfo}
       />
     </div>
   )
