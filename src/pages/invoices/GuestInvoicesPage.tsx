@@ -202,10 +202,10 @@ export default function GuestInvoicesPage() {
                   <DropdownMenuItem onClick={() => setPreviewInvoice(inv)}>
                     <Eye className="h-4 w-4 mr-2" /> Xem trước
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => generateInvoicePDF(inv)}>
+                  <DropdownMenuItem onClick={() => handleDownloadPDF(inv)}>
                     <Download className="h-4 w-4 mr-2" /> Tải PDF
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => printInvoice(inv)}>
+                  <DropdownMenuItem onClick={() => handlePrint(inv)}>
                     <Printer className="h-4 w-4 mr-2" /> In
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setEmailInvoice(inv)}>
