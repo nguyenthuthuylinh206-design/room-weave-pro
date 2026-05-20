@@ -28,8 +28,8 @@ export default function EditInvoiceDialog({ invoice, open, onOpenChange }: Props
     check_in_date: '',
     check_out_date: '',
     line_items: [{ ...DEFAULT_LINE_ITEM }] as InvoiceLineItem[],
-    vat_rate: 0.1,
-    service_fee_rate: 0.05,
+    vat_rate: 8,
+    service_fee_rate: 5,
     deposit_amount: 0,
     amount_paid: 0,
     payment_method: 'cash',
@@ -39,6 +39,8 @@ export default function EditInvoiceDialog({ invoice, open, onOpenChange }: Props
 
   useEffect(() => {
     if (invoice && open) {
+      // Tương thích ngược: invoice cũ có thể lưu rate dạng decimal (0.08) → quy về integer %.
+      const normalize = (r: number) => (r > 0 && r < 1 ? Math.round(r * 100) : Math.round(r))
       setForm({
         guest_name: invoice.guest_name || '',
         guest_phone: invoice.guest_phone || '',
@@ -49,8 +51,8 @@ export default function EditInvoiceDialog({ invoice, open, onOpenChange }: Props
         check_in_date: invoice.check_in_date || '',
         check_out_date: invoice.check_out_date || '',
         line_items: invoice.line_items?.length ? invoice.line_items : [{ ...DEFAULT_LINE_ITEM }],
-        vat_rate: invoice.vat_rate,
-        service_fee_rate: invoice.service_fee_rate,
+        vat_rate: normalize(invoice.vat_rate),
+        service_fee_rate: normalize(invoice.service_fee_rate),
         deposit_amount: invoice.deposit_amount,
         amount_paid: invoice.amount_paid,
         payment_method: invoice.payment_method || 'cash',
@@ -61,8 +63,8 @@ export default function EditInvoiceDialog({ invoice, open, onOpenChange }: Props
   }, [invoice, open])
 
   const subtotal = form.line_items.reduce((sum, item) => sum + item.amount, 0)
-  const vatAmount = subtotal * form.vat_rate
-  const serviceFeeAmount = subtotal * form.service_fee_rate
+  const vatAmount = Math.round(subtotal * form.vat_rate / 100)
+  const serviceFeeAmount = Math.round(subtotal * form.service_fee_rate / 100)
   const totalAmount = subtotal + vatAmount + serviceFeeAmount
 
   const updateLineItem = (index: number, field: keyof InvoiceLineItem, value: string | number) => {
