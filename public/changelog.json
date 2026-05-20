@@ -1,6 +1,17 @@
 {
-  "current": "1.0.36",
+  "current": "1.0.37",
   "versions": [
+    {
+      "version": "1.0.37",
+      "releaseDate": "2026-05-20",
+      "title": "Sửa hoá đơn: VAT/Phí DV đúng %, thông tin khách sạn đầy đủ trên bill",
+      "changes": [
+        { "type": "fix", "text": "Khắc phục lỗi hiển thị VAT 800% / Phí DV 500% trên bill và email — quy ước về integer percent, có normalize tương thích ngược cho hoá đơn cũ" },
+        { "type": "fix", "text": "Bill nhiệt và A4/A5 hiển thị đúng tên khách sạn, địa chỉ, điện thoại, MST (trước đó luôn ghi 'KHÁCH SẠN' do không truyền hotelInfo vào preview)" },
+        { "type": "improvement", "text": "Bill thêm dòng: Đã cọc, Hình thức thanh toán, Tiền thừa trả khách, dòng nhắc hạn 7 ngày quét QR lấy HĐ GTGT" },
+        { "type": "improvement", "text": "Form tạo/sửa hoá đơn: ô % VAT và Phí DV nhập trực tiếp số nguyên (8, 10, 5...), tính tiền chính xác đến đồng" }
+      ]
+    },
     {
       "version": "1.0.36",
       "releaseDate": "2026-05-20",
