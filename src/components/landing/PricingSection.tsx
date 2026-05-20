@@ -64,7 +64,7 @@ export const PricingSection = () => {
                   )}
                 </div>
 
-                <ul className="flex-1 space-y-3 mb-8">
+                <ul className="flex-1 space-y-2.5 mb-6 sm:mb-8">
                   {features.map((feature) => (
                     <li key={feature} className="flex items-start gap-2 text-xs text-foreground">
                       <Check className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
