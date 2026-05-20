@@ -1,6 +1,17 @@
 {
-  "current": "1.0.34",
+  "current": "1.0.35",
   "versions": [
+    {
+      "version": "1.0.35",
+      "releaseDate": "2026-05-20",
+      "title": "Hoá đơn: hỗ trợ 4 khổ giấy + QR lấy VAT điện tử",
+      "changes": [
+        { "type": "improvement", "text": "Refactor bộ render hoá đơn: tách rõ khổ A4, A5, K80, K58 với layout và print CSS @page chuẩn cho từng khổ máy in" },
+        { "type": "feature", "text": "Bill nhiệt K80/K58 và hoá đơn A4/A5 đều in kèm QR Code; khách quét để tự nhập thông tin công ty/email lấy hoá đơn VAT điện tử (chuẩn bị cho luồng tự phát hành HĐĐT)" },
+        { "type": "feature", "text": "Thêm nút In QR VAT riêng — in một tem nhỏ khổ K80 chỉ chứa mã QR và hướng dẫn, đưa khách khi quên xin VAT lúc thanh toán" },
+        { "type": "improvement", "text": "Preview hoá đơn dựng lại bất đồng bộ, hiển thị skeleton khi đang render, tránh nhấp nháy" }
+      ]
+    },
     {
       "version": "1.0.34",
       "releaseDate": "2026-05-20",

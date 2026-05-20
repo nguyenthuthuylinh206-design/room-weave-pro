@@ -1,72 +1,147 @@
+import QRCode from 'qrcode'
 import { GuestInvoice } from '@/hooks/useGuestInvoices'
 import { PaperSize, PAPER_CONFIG } from './PaperSizeSelector'
+
+export interface HotelInfo {
+  name?: string
+  address?: string
+  phone?: string
+  taxCode?: string
+}
+
+export interface QrPayload {
+  url: string
+  label?: string
+}
 
 function formatVND(amount: number): string {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
 }
 
-function buildSignatureBlock() {
+async function qrDataUrl(text: string, size = 180): Promise<string> {
+  try {
+    return await QRCode.toDataURL(text, {
+      width: size,
+      margin: 1,
+      errorCorrectionLevel: 'M',
+      color: { dark: '#000000', light: '#ffffff' },
+    })
+  } catch {
+    return ''
+  }
+}
+
+/** Build QR URL khách quét lấy HĐĐT VAT. Placeholder dùng invoice.id; sẽ thay bằng claim_token ở Phase 2. */
+export function buildVatClaimUrl(invoice: GuestInvoice): string {
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  return `${origin}/i/${invoice.id}`
+}
+
+function signatureBlock() {
   return `
-    <div style="display:flex;justify-content:space-between;margin-top:50px;text-align:center;">
-      <div style="width:200px;">
+    <div style="display:flex;justify-content:space-between;margin-top:40px;text-align:center;page-break-inside:avoid;">
+      <div style="width:45%;">
         <div style="font-weight:600;">Thu ngân</div>
         <div style="font-size:11px;color:#888;margin-top:4px;">(Ký, ghi rõ họ tên)</div>
       </div>
-      <div style="width:200px;">
+      <div style="width:45%;">
         <div style="font-weight:600;">Khách hàng</div>
         <div style="font-size:11px;color:#888;margin-top:4px;">(Ký, ghi rõ họ tên)</div>
       </div>
     </div>`
 }
 
-export function buildInvoiceHTML(
+function qrBlockReceipt(qr: string, label: string, size: number) {
+  if (!qr) return ''
+  return `
+    <div style="text-align:center;margin-top:10px;padding-top:8px;border-top:1px dashed #999;">
+      <div style="font-weight:700;margin-bottom:4px;">QUÉT MÃ LẤY HOÁ ĐƠN VAT</div>
+      <img src="${qr}" alt="QR" style="width:${size}px;height:${size}px;display:block;margin:0 auto;" />
+      <div style="font-size:10px;color:#555;margin-top:4px;line-height:1.3;">${label}</div>
+    </div>`
+}
+
+function qrBlockA4(qr: string, label: string) {
+  if (!qr) return ''
+  return `
+    <div style="margin-top:24px;display:flex;gap:12px;align-items:center;border:1px solid #ccc;border-radius:6px;padding:12px;page-break-inside:avoid;">
+      <img src="${qr}" alt="QR" style="width:110px;height:110px;flex-shrink:0;" />
+      <div style="font-size:12px;line-height:1.5;">
+        <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Lấy hoá đơn VAT điện tử</div>
+        <div style="color:#444;">Quý khách dùng camera điện thoại quét mã QR bên trái, nhập thông tin công ty và email để nhận hoá đơn GTGT điện tử qua email.</div>
+        <div style="color:#888;font-size:11px;margin-top:4px;">${label}</div>
+      </div>
+    </div>`
+}
+
+async function buildReceiptHTML(
   invoice: GuestInvoice,
-  paperSize: PaperSize = 'A4',
-  hotelInfo?: { name?: string; address?: string; phone?: string; taxCode?: string }
-): string {
+  paperSize: 'K80' | 'K58',
+  hotelInfo: HotelInfo | undefined,
+  qrPayload: QrPayload | undefined,
+): Promise<string> {
   const config = PAPER_CONFIG[paperSize]
   const lineItems = invoice.line_items || []
   const remaining = invoice.total_amount - invoice.amount_paid
+  const qrSize = paperSize === 'K58' ? 140 : 170
+  const qr = qrPayload ? await qrDataUrl(qrPayload.url, qrSize * 2) : ''
+  const qrLabel = qrPayload?.label || 'Quét để lấy hoá đơn VAT'
 
-  if (config.isReceipt) {
-    return `
-      <div id="invoice-pdf" style="width:${config.width}px;padding:${config.padding};font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:${config.fontSize}px;color:#111;background:#fff;">
-        <div style="text-align:center;margin-bottom:4px;">
-          <div style="font-size:${config.fontSize + 2}px;font-weight:700;">${hotelInfo?.name || 'KHÁCH SẠN'}</div>
-          ${hotelInfo?.phone ? `<div style="font-size:${config.fontSize - 1}px;color:#555;">ĐT: ${hotelInfo.phone}</div>` : ''}
-        </div>
-        <div style="text-align:center;margin:8px 0 6px;border-top:1px dashed #999;border-bottom:1px dashed #999;padding:4px 0;">
-          <div style="font-size:${config.fontSize + 3}px;font-weight:700;">HÓA ĐƠN</div>
-          <div style="font-size:${config.fontSize - 1}px;color:#555;">${invoice.invoice_number}</div>
-        </div>
-        <div style="margin-bottom:6px;line-height:1.6;">
-          <div>Khách: ${invoice.guest_name}</div>
-          ${invoice.room_number ? `<div>Phòng: ${invoice.room_number}</div>` : ''}
-        </div>
-        <div style="border-top:1px dashed #999;border-bottom:1px dashed #999;padding:4px 0;margin-bottom:4px;">
-          ${lineItems.map(item => `
-            <div style="display:flex;justify-content:space-between;padding:2px 0;">
-              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.description || ''}</span>
-              <span style="margin-left:4px;white-space:nowrap;">${item.quantity}x${formatVND(item.unit_price)}</span>
+  return `
+    <div id="invoice-pdf" style="width:${config.width}px;padding:${config.padding};font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:${config.fontSize}px;color:#111;background:#fff;line-height:1.4;word-wrap:break-word;">
+      <div style="text-align:center;margin-bottom:4px;">
+        <div style="font-size:${config.fontSize + 2}px;font-weight:700;">${hotelInfo?.name || 'KHÁCH SẠN'}</div>
+        ${hotelInfo?.address ? `<div style="font-size:${config.fontSize - 1}px;color:#555;">${hotelInfo.address}</div>` : ''}
+        ${hotelInfo?.phone ? `<div style="font-size:${config.fontSize - 1}px;color:#555;">ĐT: ${hotelInfo.phone}</div>` : ''}
+        ${hotelInfo?.taxCode ? `<div style="font-size:${config.fontSize - 1}px;color:#555;">MST: ${hotelInfo.taxCode}</div>` : ''}
+      </div>
+      <div style="text-align:center;margin:8px 0 6px;border-top:1px dashed #999;border-bottom:1px dashed #999;padding:4px 0;">
+        <div style="font-size:${config.fontSize + 3}px;font-weight:700;">PHIẾU THANH TOÁN</div>
+        <div style="font-size:${config.fontSize - 1}px;color:#555;">${invoice.invoice_number}</div>
+        <div style="font-size:${config.fontSize - 1}px;color:#555;">${new Date(invoice.issued_at || invoice.created_at).toLocaleString('vi-VN')}</div>
+      </div>
+      <div style="margin-bottom:6px;line-height:1.5;">
+        <div>Khách: ${invoice.guest_name}</div>
+        ${invoice.room_number ? `<div>Phòng: ${invoice.room_number}</div>` : ''}
+      </div>
+      <div style="border-top:1px dashed #999;border-bottom:1px dashed #999;padding:4px 0;margin-bottom:4px;">
+        ${lineItems.map(item => `
+          <div style="padding:2px 0;">
+            <div style="word-break:break-word;">${item.description || ''}</div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:#555;">${item.quantity} × ${formatVND(item.unit_price)}</span>
+              <span style="font-weight:600;">${formatVND(item.amount)}</span>
             </div>
-            <div style="text-align:right;font-weight:600;">${formatVND(item.amount)}</div>
-          `).join('')}
-        </div>
-        <div style="padding:2px 0;">
-          <div style="display:flex;justify-content:space-between;"><span>Tạm tính:</span><span>${formatVND(invoice.subtotal)}</span></div>
-          ${invoice.vat_amount > 0 ? `<div style="display:flex;justify-content:space-between;"><span>VAT ${Math.round(invoice.vat_rate * 100)}%:</span><span>${formatVND(invoice.vat_amount)}</span></div>` : ''}
-          ${invoice.service_fee_amount > 0 ? `<div style="display:flex;justify-content:space-between;"><span>Phí DV ${Math.round(invoice.service_fee_rate * 100)}%:</span><span>${formatVND(invoice.service_fee_amount)}</span></div>` : ''}
-          <div style="display:flex;justify-content:space-between;font-weight:700;border-top:1px dashed #999;padding-top:4px;margin-top:4px;">
-            <span>TỔNG:</span><span>${formatVND(invoice.total_amount)}</span>
           </div>
-          ${invoice.amount_paid > 0 ? `<div style="display:flex;justify-content:space-between;"><span>Đã TT:</span><span>${formatVND(invoice.amount_paid)}</span></div>` : ''}
-          ${remaining > 0 ? `<div style="display:flex;justify-content:space-between;font-weight:600;"><span>Còn lại:</span><span>${formatVND(remaining)}</span></div>` : ''}
+        `).join('')}
+      </div>
+      <div style="padding:2px 0;">
+        <div style="display:flex;justify-content:space-between;"><span>Tạm tính:</span><span>${formatVND(invoice.subtotal)}</span></div>
+        ${invoice.vat_amount > 0 ? `<div style="display:flex;justify-content:space-between;"><span>VAT ${Math.round(invoice.vat_rate * 100)}%:</span><span>${formatVND(invoice.vat_amount)}</span></div>` : ''}
+        ${invoice.service_fee_amount > 0 ? `<div style="display:flex;justify-content:space-between;"><span>Phí DV ${Math.round(invoice.service_fee_rate * 100)}%:</span><span>${formatVND(invoice.service_fee_amount)}</span></div>` : ''}
+        <div style="display:flex;justify-content:space-between;font-weight:700;border-top:1px dashed #999;padding-top:4px;margin-top:4px;font-size:${config.fontSize + 1}px;">
+          <span>TỔNG:</span><span>${formatVND(invoice.total_amount)}</span>
         </div>
-        <div style="text-align:center;margin-top:8px;font-size:${config.fontSize - 1}px;color:#888;">Cảm ơn quý khách!</div>
-      </div>`
-  }
+        ${invoice.amount_paid > 0 ? `<div style="display:flex;justify-content:space-between;"><span>Đã TT:</span><span>${formatVND(invoice.amount_paid)}</span></div>` : ''}
+        ${remaining > 0 ? `<div style="display:flex;justify-content:space-between;font-weight:600;"><span>Còn lại:</span><span>${formatVND(remaining)}</span></div>` : ''}
+      </div>
+      ${qrBlockReceipt(qr, qrLabel, qrSize)}
+      <div style="text-align:center;margin-top:8px;font-size:${config.fontSize - 1}px;color:#888;">Cảm ơn quý khách!</div>
+    </div>`
+}
 
-  // A4 / A5
+async function buildSheetHTML(
+  invoice: GuestInvoice,
+  paperSize: 'A4' | 'A5',
+  hotelInfo: HotelInfo | undefined,
+  qrPayload: QrPayload | undefined,
+): Promise<string> {
+  const config = PAPER_CONFIG[paperSize]
+  const lineItems = invoice.line_items || []
+  const remaining = invoice.total_amount - invoice.amount_paid
+  const qr = qrPayload ? await qrDataUrl(qrPayload.url, 220) : ''
+  const qrLabel = qrPayload?.label || 'Quét để lấy hoá đơn VAT'
+
   return `
     <div id="invoice-pdf" style="width:${config.width}px;padding:${config.padding};font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:${config.fontSize}px;color:#111;background:#fff;">
       <div style="text-align:center;margin-bottom:8px;">
@@ -77,7 +152,7 @@ export function buildInvoiceHTML(
       </div>
       <div style="text-align:center;margin:16px 0 12px;">
         <div style="font-size:${config.fontSize + 7}px;font-weight:700;">HÓA ĐƠN THANH TOÁN</div>
-        <div style="font-size:${config.fontSize - 1}px;color:#555;">Số: ${invoice.invoice_number}</div>
+        <div style="font-size:${config.fontSize - 1}px;color:#555;">Số: ${invoice.invoice_number} · ${new Date(invoice.issued_at || invoice.created_at).toLocaleString('vi-VN')}</div>
       </div>
       <div style="margin-bottom:12px;line-height:1.8;">
         <div><b>Khách hàng:</b> ${invoice.guest_name}</div>
@@ -112,48 +187,65 @@ export function buildInvoiceHTML(
       </table>
       <div style="display:flex;justify-content:flex-end;">
         <div style="width:300px;">
-          <div style="display:flex;justify-content:space-between;padding:3px 0;">
-            <span>Tạm tính:</span><span style="font-family:monospace;">${formatVND(invoice.subtotal)}</span>
-          </div>
-          ${invoice.vat_amount > 0 ? `
-            <div style="display:flex;justify-content:space-between;padding:3px 0;">
-              <span>VAT (${Math.round(invoice.vat_rate * 100)}%):</span><span style="font-family:monospace;">${formatVND(invoice.vat_amount)}</span>
-            </div>` : ''}
-          ${invoice.service_fee_amount > 0 ? `
-            <div style="display:flex;justify-content:space-between;padding:3px 0;">
-              <span>Phí dịch vụ (${Math.round(invoice.service_fee_rate * 100)}%):</span><span style="font-family:monospace;">${formatVND(invoice.service_fee_amount)}</span>
-            </div>` : ''}
-          <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:2px solid #333;font-size:${config.fontSize + 2}px;font-weight:700;">
-            <span>TỔNG CỘNG:</span><span style="font-family:monospace;">${formatVND(invoice.total_amount)}</span>
-          </div>
-          ${invoice.deposit_amount > 0 ? `
-            <div style="display:flex;justify-content:space-between;padding:3px 0;">
-              <span>Đã cọc:</span><span style="font-family:monospace;">${formatVND(invoice.deposit_amount)}</span>
-            </div>` : ''}
-          ${invoice.amount_paid > 0 ? `
-            <div style="display:flex;justify-content:space-between;padding:3px 0;">
-              <span>Đã thanh toán:</span><span style="font-family:monospace;">${formatVND(invoice.amount_paid)}</span>
-            </div>` : ''}
-          ${remaining > 0 ? `
-            <div style="display:flex;justify-content:space-between;padding:3px 0;color:#c00;font-weight:600;">
-              <span>Còn lại:</span><span style="font-family:monospace;">${formatVND(remaining)}</span>
-            </div>` : ''}
+          <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Tạm tính:</span><span style="font-family:monospace;">${formatVND(invoice.subtotal)}</span></div>
+          ${invoice.vat_amount > 0 ? `<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>VAT (${Math.round(invoice.vat_rate * 100)}%):</span><span style="font-family:monospace;">${formatVND(invoice.vat_amount)}</span></div>` : ''}
+          ${invoice.service_fee_amount > 0 ? `<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Phí dịch vụ (${Math.round(invoice.service_fee_rate * 100)}%):</span><span style="font-family:monospace;">${formatVND(invoice.service_fee_amount)}</span></div>` : ''}
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:2px solid #333;font-size:${config.fontSize + 2}px;font-weight:700;"><span>TỔNG CỘNG:</span><span style="font-family:monospace;">${formatVND(invoice.total_amount)}</span></div>
+          ${invoice.deposit_amount > 0 ? `<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Đã cọc:</span><span style="font-family:monospace;">${formatVND(invoice.deposit_amount)}</span></div>` : ''}
+          ${invoice.amount_paid > 0 ? `<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Đã thanh toán:</span><span style="font-family:monospace;">${formatVND(invoice.amount_paid)}</span></div>` : ''}
+          ${remaining > 0 ? `<div style="display:flex;justify-content:space-between;padding:3px 0;color:#c00;font-weight:600;"><span>Còn lại:</span><span style="font-family:monospace;">${formatVND(remaining)}</span></div>` : ''}
         </div>
       </div>
-      ${buildSignatureBlock()}
+      ${qrBlockA4(qr, qrLabel)}
+      ${signatureBlock()}
     </div>`
 }
 
-/**
- * Internal: render invoice HTML to a jsPDF doc instance
- */
+/** Async builder (with QR rendering). */
+export async function buildInvoiceHTMLAsync(
+  invoice: GuestInvoice,
+  paperSize: PaperSize = 'A4',
+  hotelInfo?: HotelInfo,
+  qrPayload?: QrPayload,
+): Promise<string> {
+  if (paperSize === 'K80' || paperSize === 'K58') {
+    return buildReceiptHTML(invoice, paperSize, hotelInfo, qrPayload)
+  }
+  return buildSheetHTML(invoice, paperSize, hotelInfo, qrPayload)
+}
+
+/** @deprecated Sync version — không có QR. Dùng buildInvoiceHTMLAsync. */
+export function buildInvoiceHTML(
+  invoice: GuestInvoice,
+  paperSize: PaperSize = 'A4',
+  hotelInfo?: HotelInfo,
+): string {
+  // Fallback đồng bộ (không QR) cho code cũ
+  const config = PAPER_CONFIG[paperSize]
+  if (config.isReceipt) {
+    const lineItems = invoice.line_items || []
+    const remaining = invoice.total_amount - invoice.amount_paid
+    return `<div id="invoice-pdf" style="width:${config.width}px;padding:${config.padding};font-family:'Segoe UI',Arial,sans-serif;font-size:${config.fontSize}px;color:#111;background:#fff;">
+      <div style="text-align:center;font-weight:700;">${hotelInfo?.name || 'KHÁCH SẠN'}</div>
+      <div style="text-align:center;border-top:1px dashed #999;border-bottom:1px dashed #999;padding:4px 0;margin:6px 0;font-weight:700;">${invoice.invoice_number}</div>
+      <div>Khách: ${invoice.guest_name}</div>
+      ${lineItems.map(i => `<div style="display:flex;justify-content:space-between;"><span>${i.description}</span><span>${formatVND(i.amount)}</span></div>`).join('')}
+      <div style="border-top:1px dashed #999;margin-top:4px;padding-top:4px;display:flex;justify-content:space-between;font-weight:700;"><span>TỔNG:</span><span>${formatVND(invoice.total_amount)}</span></div>
+      ${remaining > 0 ? `<div style="display:flex;justify-content:space-between;"><span>Còn lại:</span><span>${formatVND(remaining)}</span></div>` : ''}
+    </div>`
+  }
+  // delegate to async-less rendering via simple template
+  return `<div id="invoice-pdf" style="width:${config.width}px;padding:${config.padding};font-family:Arial,sans-serif;background:#fff;">Đang tải...</div>`
+}
+
 async function renderInvoiceToPDF(
   invoice: GuestInvoice,
   paperSize: PaperSize = 'A4',
-  hotelInfo?: { name?: string; address?: string; phone?: string; taxCode?: string }
+  hotelInfo?: HotelInfo,
+  qrPayload?: QrPayload,
 ) {
   const config = PAPER_CONFIG[paperSize]
-  const html = buildInvoiceHTML(invoice, paperSize, hotelInfo)
+  const html = await buildInvoiceHTMLAsync(invoice, paperSize, hotelInfo, qrPayload)
 
   const container = document.createElement('div')
   container.style.position = 'fixed'
@@ -183,60 +275,102 @@ async function renderInvoiceToPDF(
   }
 }
 
-/**
- * Generate invoice PDF and trigger download.
- */
 export async function generateInvoicePDF(
   invoice: GuestInvoice,
   paperSize: PaperSize = 'A4',
-  hotelInfo?: { name?: string; address?: string; phone?: string; taxCode?: string }
+  hotelInfo?: HotelInfo,
+  qrPayload?: QrPayload,
 ) {
-  const doc = await renderInvoiceToPDF(invoice, paperSize, hotelInfo)
+  const doc = await renderInvoiceToPDF(invoice, paperSize, hotelInfo, qrPayload)
   doc.save(`${invoice.invoice_number}.pdf`)
 }
 
-/**
- * Generate invoice PDF and return as base64 string (for email attachment).
- */
 export async function generateInvoicePDFBase64(
   invoice: GuestInvoice,
   paperSize: PaperSize = 'A4',
-  hotelInfo?: { name?: string; address?: string; phone?: string; taxCode?: string }
+  hotelInfo?: HotelInfo,
+  qrPayload?: QrPayload,
 ): Promise<string> {
-  const doc = await renderInvoiceToPDF(invoice, paperSize, hotelInfo)
-  // Returns raw base64 without data URI prefix
+  const doc = await renderInvoiceToPDF(invoice, paperSize, hotelInfo, qrPayload)
   return doc.output('datauristring').split(',')[1]
 }
 
-/**
- * Print invoice directly using window.print() with appropriate styling
- */
-export function printInvoice(
+function pageCSS(paperSize: PaperSize): string {
+  switch (paperSize) {
+    case 'K80':
+      return `@page { size: 80mm auto; margin: 2mm; }`
+    case 'K58':
+      return `@page { size: 58mm auto; margin: 2mm; }`
+    case 'A5':
+      return `@page { size: A5 portrait; margin: 8mm; }`
+    case 'A4':
+    default:
+      return `@page { size: A4 portrait; margin: 10mm; }`
+  }
+}
+
+export async function printInvoice(
   invoice: GuestInvoice,
   paperSize: PaperSize = 'A4',
-  hotelInfo?: { name?: string; address?: string; phone?: string; taxCode?: string }
+  hotelInfo?: HotelInfo,
+  qrPayload?: QrPayload,
 ) {
-  const html = buildInvoiceHTML(invoice, paperSize, hotelInfo)
+  const html = await buildInvoiceHTMLAsync(invoice, paperSize, hotelInfo, qrPayload)
   const printWindow = window.open('', '_blank')
   if (!printWindow) return
 
   printWindow.document.write(`
     <!DOCTYPE html>
-    <html>
-    <head>
+    <html><head>
+      <meta charset="utf-8" />
       <title>${invoice.invoice_number}</title>
       <style>
+        ${pageCSS(paperSize)}
+        html, body { margin: 0; padding: 0; background: #fff; }
+        body { display: flex; justify-content: center; }
         @media print {
-          body { margin: 0; padding: 0; }
-          @page { margin: 5mm; }
+          body { display: block; }
+          #invoice-pdf { width: 100% !important; padding: 0 !important; }
         }
-        body { margin: 0; padding: 0; display: flex; justify-content: center; }
       </style>
-    </head>
-    <body>${html}</body>
-    </html>
+    </head><body>${html}</body></html>
   `)
   printWindow.document.close()
   printWindow.focus()
-  setTimeout(() => { printWindow.print(); printWindow.close(); }, 300)
+  setTimeout(() => { printWindow.print(); printWindow.close() }, 400)
+}
+
+/** In một tem nhỏ chỉ chứa QR + hướng dẫn lấy VAT (khổ K80). */
+export async function printVatQrSlip(
+  invoice: GuestInvoice,
+  qrPayload: QrPayload,
+  hotelInfo?: HotelInfo,
+) {
+  const qr = await qrDataUrl(qrPayload.url, 360)
+  const printWindow = window.open('', '_blank')
+  if (!printWindow) return
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html><head><meta charset="utf-8" /><title>QR VAT ${invoice.invoice_number}</title>
+    <style>
+      @page { size: 80mm auto; margin: 3mm; }
+      html, body { margin: 0; padding: 0; font-family: Arial, sans-serif; background: #fff; }
+      .wrap { width: 74mm; padding: 4mm 2mm; text-align: center; }
+      .title { font-weight: 700; font-size: 13px; }
+      .hotel { font-size: 11px; color: #555; margin-bottom: 4px; }
+      .num { font-size: 11px; color: #555; margin: 4px 0 6px; }
+      img { width: 60mm; height: 60mm; }
+      .hint { font-size: 11px; color: #333; margin-top: 6px; line-height: 1.4; }
+    </style></head>
+    <body><div class="wrap">
+      <div class="hotel">${hotelInfo?.name || ''}</div>
+      <div class="title">LẤY HOÁ ĐƠN VAT</div>
+      <div class="num">${invoice.invoice_number}</div>
+      <img src="${qr}" alt="QR" />
+      <div class="hint">Quét mã bằng camera điện thoại, nhập thông tin công ty & email để nhận hoá đơn GTGT điện tử.</div>
+    </div></body></html>
+  `)
+  printWindow.document.close()
+  printWindow.focus()
+  setTimeout(() => { printWindow.print(); printWindow.close() }, 400)
 }
