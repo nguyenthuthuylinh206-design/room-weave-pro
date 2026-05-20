@@ -56,10 +56,20 @@ async function qrDataUrl(text: string, size = 180): Promise<string> {
   }
 }
 
-/** Build QR URL khách quét lấy HĐĐT VAT. Truyền claimToken nếu có; fallback dùng invoice.id (preview). */
-export function buildVatClaimUrl(invoice: GuestInvoice, claimToken?: string | null): string {
-  const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  return `${origin}/i/${claimToken || invoice.id}`
+/**
+ * Build QR URL khách quét lấy HĐĐT VAT.
+ * BẮT BUỘC phải có `claimToken` thật từ `ensure_vat_claim_token` —
+ * không fallback `invoice.id` (RPC public sẽ trả `not_found` ⇒ "Mã QR không hợp lệ").
+ * Trả `null` nếu chưa có token để caller biết không render QR.
+ */
+export function buildVatClaimUrl(_invoice: GuestInvoice, claimToken?: string | null): string | null {
+  if (!claimToken) return null
+  const envOrigin = (typeof window !== 'undefined' ? window.location.origin : '')
+  // Production luôn dùng domain chính thức
+  const isProd = typeof window !== 'undefined'
+    && /roomqc\.com$|roomqc\.lovable\.app$/i.test(window.location.hostname)
+  const origin = isProd ? 'https://roomqc.com' : (envOrigin || 'https://roomqc.com')
+  return `${origin}/i/${claimToken}`
 }
 
 function signatureBlock() {
