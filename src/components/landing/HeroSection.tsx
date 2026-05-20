@@ -11,12 +11,12 @@ export const HeroSection = () => {
 
   return (
     <LazyMotion features={domAnimation} strict>
-      <section className="relative min-h-[90vh] flex items-center pt-16 overflow-hidden bg-gradient-to-br from-[hsl(215,28%,12%)] via-[hsl(215,28%,17%)] to-[hsl(220,30%,20%)]">
+      <section className="relative min-h-[80svh] sm:min-h-[90vh] flex items-center pt-16 overflow-hidden bg-gradient-to-br from-[hsl(215,28%,12%)] via-[hsl(215,28%,17%)] to-[hsl(220,30%,20%)]">
         <div className="absolute inset-0 bg-[linear-gradient(hsl(214,84%,56%,0.03)_1px,transparent_1px),linear-gradient(90deg,hsl(214,84%,56%,0.03)_1px,transparent_1px)] bg-[size:60px_60px]" />
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[hsl(214,84%,56%,0.08)] rounded-full blur-[120px]" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[hsl(192,85%,50%,0.06)] rounded-full blur-[120px]" />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
           <div className="max-w-3xl mx-auto text-center">
             <m.div
               initial={{ opacity: 0, y: 20 }}
