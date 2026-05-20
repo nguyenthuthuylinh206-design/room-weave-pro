@@ -190,5 +190,33 @@ export const ROOM_STATUS_V2_LIST: RoomStatusV2[] = [
   'out_of_service',
 ]
 
+/** Có thể check-in vào phòng không? (theo nghiệp vụ thường) */
+export function canRoomCheckIn(status: string | null | undefined): boolean {
+  const v = normalizeRoomStatus(status)
+  return v === 'vacant_clean' || v === 'vacant_inspected'
+}
+
+/** Phòng đang có khách (mọi biến thể occupied) */
+export function isRoomOccupied(status: string | null | undefined): boolean {
+  return getRoomStatusMeta(status).group === 'occupied'
+}
+
+/** Phòng đang bị chặn vì bảo trì/hỏng */
+export function isRoomBlockedForMaintenance(status: string | null | undefined): boolean {
+  const v = normalizeRoomStatus(status)
+  return v === 'out_of_order' || v === 'out_of_service'
+}
+
+/** Phòng cần dọn */
+export function isRoomDirty(status: string | null | undefined): boolean {
+  const v = normalizeRoomStatus(status)
+  return v === 'vacant_dirty' || v === 'occupied_dirty'
+}
+
+/** Lấy nhóm hiển thị filter */
+export function getRoomStatusGroup(status: string | null | undefined): RoomStatusGroup {
+  return getRoomStatusMeta(status).group
+}
+
 /** Re-export cho convenience */
 export type { RoomStatus, RoomStatusV2, RoomStatusLegacy }

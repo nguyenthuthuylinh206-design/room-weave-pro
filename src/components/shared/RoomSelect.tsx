@@ -18,6 +18,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { useRooms } from '@/hooks/useRooms'
 import { useTranslation } from 'react-i18next'
+import { getRoomStatusMeta } from '@/lib/roomStatus'
 
 interface RoomSelectProps {
   value: string
@@ -26,15 +27,6 @@ interface RoomSelectProps {
   disabled?: boolean
 }
 
-const statusColors: Record<string, string> = {
-  vacant: 'bg-emerald-500',
-  occupied: 'bg-blue-500',
-  check_in: 'bg-amber-500',
-  check_out: 'bg-orange-500',
-  cleaning: 'bg-purple-500',
-  maintenance: 'bg-red-500',
-  out_of_order: 'bg-gray-500',
-}
 
 export function RoomSelect({ value, onChange, placeholder, disabled }: RoomSelectProps) {
   const { t } = useTranslation(['rooms', 'common'])
@@ -58,9 +50,8 @@ export function RoomSelect({ value, onChange, placeholder, disabled }: RoomSelec
               <DoorOpen className="h-4 w-4 text-muted-foreground" />
               <span className="font-medium">{selectedRoom.room_number}</span>
               <span className="text-muted-foreground">- Tầng {selectedRoom.floor}</span>
-              <Badge variant="outline" className="ml-auto">
-                <span className={cn("mr-1.5 h-2 w-2 rounded-full", statusColors[selectedRoom.status])} />
-                {t(`rooms:status.${selectedRoom.status}`)}
+              <Badge variant="outline" className={cn("ml-auto", getRoomStatusMeta(selectedRoom.status).text)}>
+                {getRoomStatusMeta(selectedRoom.status).short}
               </Badge>
             </div>
           ) : (
@@ -108,9 +99,8 @@ export function RoomSelect({ value, onChange, placeholder, disabled }: RoomSelec
                         )}
                       </div>
                     </div>
-                    <Badge variant="outline" className="ml-auto">
-                      <span className={cn("mr-1.5 h-2 w-2 rounded-full", statusColors[room.status])} />
-                      {t(`rooms:status.${room.status}`)}
+                    <Badge variant="outline" className={cn("ml-auto", getRoomStatusMeta(room.status).text)}>
+                      {getRoomStatusMeta(room.status).short}
                     </Badge>
                   </div>
                 </CommandItem>

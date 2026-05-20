@@ -221,19 +221,35 @@ export function useRoomStats(tenantId: string | undefined, hotelId: string | und
         max_hours: (room as any).max_hours ?? null,
       })) as RoomWithStats[]
       
+      // Đếm theo nhóm trạng thái v2 (group) — bao gồm cả legacy nhờ normalize
+      const groups = rooms.reduce((acc: Record<string, number>, r) => {
+        const g = (r.status as string) || ''
+        acc[g] = (acc[g] ?? 0) + 1
+        return acc
+      }, {})
+      // Helper count theo set status v2
+      const countIn = (set: string[]) => rooms.filter(r => set.includes(r.status as string)).length
       return {
-        vacant: rooms.filter(r => r.status === 'vacant').length,
-        occupied: rooms.filter(r => r.status === 'occupied').length,
-        check_in: rooms.filter(r => r.status === 'check_in').length,
-        check_out: rooms.filter(r => r.status === 'check_out').length,
-        cleaning: rooms.filter(r => r.status === 'cleaning').length,
-        maintenance: rooms.filter(r => r.status === 'maintenance').length,
+        // Nhóm tổng hợp (UI dùng)
+        ready: countIn(['vacant_clean', 'vacant_inspected', 'vacant', 'reserved']),
+        occupied: countIn(['occupied_clean', 'occupied_dirty', 'dnd', 'service_refused', 'sleep_out', 'occupied']),
+        dirty: countIn(['vacant_dirty', 'cleaning', 'check_out']),
+        unavailable: countIn(['out_of_order', 'out_of_service', 'maintenance']),
+        special: countIn(['skipper']),
         total: rooms.length,
+        // Legacy keys giữ cho UI cũ chưa migrate
+        vacant: countIn(['vacant_clean', 'vacant_inspected', 'vacant']),
+        cleaning: countIn(['vacant_dirty', 'cleaning']),
+        maintenance: countIn(['out_of_service', 'maintenance']),
+        check_in: 0,
+        check_out: countIn(['check_out']),
+        raw: groups,
       }
     },
     enabled: !!tenantId,
   })
 }
+
 
 export function useCreateRoom() {
   const queryClient = useQueryClient()

@@ -51,27 +51,31 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
   const ERROR_MESSAGES: Record<string, string> = {
     'ROOM_NOT_FOUND': 'Phòng không tồn tại',
     'ROOM_OCCUPIED': 'Phòng đang có khách. Vui lòng checkout khách hiện tại trước.',
-    'INVALID_ROOM_STATUS': 'Phòng không ở trạng thái có thể check-in (đang bảo trì hoặc ngừng hoạt động).',
+    'ROOM_DIRTY_NEEDS_CLEANING': 'Phòng đang ở trạng thái "Trống – chưa dọn". Vui lòng dọn phòng (chuyển sang "Trống – đã dọn") trước khi check-in.',
+    'ROOM_BLOCKED_FOR_MAINTENANCE': 'Phòng đang bảo trì/ngừng hoạt động. Không thể check-in.',
+    'INVALID_ROOM_STATUS': 'Phòng không ở trạng thái cho phép check-in.',
     'BOOKING_NOT_VALID': 'Booking không hợp lệ hoặc đã được check-in.',
   }
 
   const parseRpcError = (errorMessage: string): string => {
-    // Check for error codes like "ROOM_OCCUPIED:Guest Name"
     for (const [code, message] of Object.entries(ERROR_MESSAGES)) {
       if (errorMessage.includes(code)) {
-        // Extract additional info after colon if present
         const parts = errorMessage.split(':')
         if (parts.length > 1 && code === 'ROOM_OCCUPIED') {
-          return `Phòng đang có khách "${parts[1]}". Vui lòng checkout trước.`
+          return `Phòng đang có khách "${parts[1]?.trim()}". Vui lòng checkout trước.`
+        }
+        if (parts.length > 1 && code === 'ROOM_BLOCKED_FOR_MAINTENANCE') {
+          return `Phòng đang ở trạng thái "${parts[1]?.trim()}". Không thể check-in.`
         }
         if (parts.length > 1 && code === 'INVALID_ROOM_STATUS') {
-          return `Phòng đang ở trạng thái "${parts[1]}". Không thể check-in.`
+          return `Phòng đang ở trạng thái "${parts[1]?.trim()}". Không thể check-in.`
         }
         return message
       }
     }
     return errorMessage
   }
+
 
   const handleCheckIn = async (bookingId: string, roomId: string) => {
     setIsLoading(true)

@@ -85,11 +85,14 @@ export function RoomFilters({ filters, onFilterChange }: RoomFiltersProps) {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">{t('filters.all')}</SelectItem>
-          <SelectItem value="vacant">{t('status.vacant')}</SelectItem>
-          <SelectItem value="occupied">{t('status.occupied')}</SelectItem>
-          <SelectItem value="cleaning">{t('status.cleaning')}</SelectItem>
-          <SelectItem value="maintenance">{t('status.maintenance')}</SelectItem>
-          <SelectItem value="out_of_order">{t('status.out_of_order')}</SelectItem>
+          <SelectItem value="vacant_clean">Trống – đã dọn</SelectItem>
+          <SelectItem value="vacant_inspected">Trống – đã QC</SelectItem>
+          <SelectItem value="vacant_dirty">Trống – chưa dọn</SelectItem>
+          <SelectItem value="occupied_clean">Đang ở – đã dọn</SelectItem>
+          <SelectItem value="occupied_dirty">Đang ở – cần dọn</SelectItem>
+          <SelectItem value="dnd">Không làm phiền</SelectItem>
+          <SelectItem value="out_of_service">Tạm ngừng</SelectItem>
+          <SelectItem value="out_of_order">Phòng hỏng</SelectItem>
         </SelectContent>
       </Select>
       
