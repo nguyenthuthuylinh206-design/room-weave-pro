@@ -3,7 +3,7 @@ import { Search, Bell, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { MobileHotelSwitcher } from '@/components/mobile/MobileHotelSwitcher'
+import { MobileHotelSwitcher } from '@/components/layout/MobileHotelSwitcher'
 import { useInventoryDashboard } from '@/hooks/useInventoryDashboard'
 import { motion, AnimatePresence } from 'framer-motion'
 

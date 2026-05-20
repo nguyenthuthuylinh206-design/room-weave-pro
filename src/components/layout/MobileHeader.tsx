@@ -56,9 +56,9 @@ export const MobileHeader = ({
           <img src={logoRoomQc} alt="RoomQc" className="h-7 w-7 rounded-md object-cover flex-shrink-0" />
           {canSwitch ? (
             <MobileHotelSwitcher>
-              <button type="button" className="min-w-0 flex-1 text-left active:opacity-70">
+              <span className="min-w-0 flex-1 text-left">
                 {headerLabel}
-              </button>
+              </span>
             </MobileHotelSwitcher>
           ) : (
             headerLabel

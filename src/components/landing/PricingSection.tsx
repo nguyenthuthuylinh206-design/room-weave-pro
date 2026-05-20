@@ -11,20 +11,20 @@ export const PricingSection = () => {
   const { t } = useTranslation('landing')
 
   return (
-    <section id="pricing" className="py-20 sm:py-28 bg-muted/30">
+    <section id="pricing" className="py-14 sm:py-24 bg-muted/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center max-w-2xl mx-auto mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
+        <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-16">
+          <h2 className="text-2xl sm:text-4xl font-bold text-foreground">
             {t('pricing.title')}
           </h2>
-          <p className="mt-4 text-muted-foreground">
+          <p className="mt-3 text-sm sm:text-base text-muted-foreground">
             {t('pricing.subtitle')}
           </p>
         </div>
 
         {/* Cards */}
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-5 sm:gap-6 max-w-5xl mx-auto">
           {plans.map((plan, i) => {
             const isPro = plan === 'professional'
             const featuresRaw = t(`pricing.${plan}.features`, { returnObjects: true, defaultValue: [] })
@@ -35,12 +35,12 @@ export const PricingSection = () => {
                 key={plan}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+                viewport={{ once: true, amount: 0.1 }}
                 transition={{ duration: 0.4, delay: i * 0.1 }}
                 className={cn(
-                  'relative flex flex-col rounded-lg border p-6',
+                  'relative flex flex-col rounded-lg border p-5 sm:p-6',
                   isPro
-                    ? 'border-primary bg-card shadow-lg shadow-primary/10 ring-1 ring-primary/20'
+                    ? 'border-primary bg-card sm:shadow-lg sm:shadow-primary/10 ring-1 ring-primary/20'
                     : 'bg-card'
                 )}
               >
@@ -64,7 +64,7 @@ export const PricingSection = () => {
                   )}
                 </div>
 
-                <ul className="flex-1 space-y-3 mb-8">
+                <ul className="flex-1 space-y-2.5 mb-6 sm:mb-8">
                   {features.map((feature) => (
                     <li key={feature} className="flex items-start gap-2 text-xs text-foreground">
                       <Check className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />

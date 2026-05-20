@@ -1,98 +1,92 @@
-## Mục tiêu
-Sửa nhóm lỗi hiện có gây màn `Unexpected Application Error`, đồng thời tối ưu mobile portrait để không còn tràn ngang, header/bottom nav gọn hơn và các màn vận hành chính dễ dùng hơn trên iPhone/Android nhỏ.
+# Kế hoạch tối ưu giao diện Mobile
 
-## Phân tích hiện trạng
+## Bối cảnh
+Chụp preview ở 390×844 (iPhone 14). Vì chưa đăng nhập nên màn hiện tại là **landing page** — đây cũng là vấn đề lớn nhất nhìn thấy. Sau đó review thêm các màn chính trong app dựa trên code.
 
-### 1) Có thể reuse
-- `ChunkErrorBoundary` và `src/lib/chunk-reload.ts` đã có logic nhận diện lỗi chunk/module script và reload cache.
-- `MainLayout`, `MobileHeader`, `MobileBottomNav`, `HotelSwitcher` là lớp layout mobile trung tâm, sửa ở đây sẽ tác động rộng mà không phải sửa từng màn.
-- `MobileRoomsDashboard`, `GeneralSettingsPage`, `UsageModeSelector`, `HotelQcModeSettings`, `HotelPhotoEvidenceSettings` đã có cấu trúc mobile cơ bản.
-- Design tokens trong `index.css` đã có dark theme, safe-area, `pb-safe`, `min-h-dvh`.
+## Vấn đề phát hiện
 
-### 2) Cần refactor
-- React Router đang dùng data router nhưng chưa có `errorElement` chung, nên lỗi render/lazy route vẫn rơi vào default UI `Unexpected Application Error` thay vì fallback tiếng Việt và xử lý reload chunk.
-- `ChunkErrorBoundary` bọc ngoài `RouterProvider` chưa đủ cho lỗi route do React Router tự bắt bên trong.
-- `MobileHeader` hiện dễ tràn ngang vì vừa hiển thị tên khách sạn bên trái, vừa render `HotelSwitcher` đầy đủ ở cụm action bên phải.
-- `HotelSwitcher` bản mobile đang dùng width/popover desktop (`w-full lg:w-[320px]`, popover `w-[400px]`) và status badge nền, không tối ưu cho màn 390–414px.
-- Một số container mobile cần `min-w-0`, `max-w-full`, `overflow-hidden`, sticky footer tốt hơn để tránh lệch/tràn.
+### A. Landing page (ưu tiên 1 — user gặp ngay)
+1. **Khoảng trắng khổng lồ** giữa Hero ↔ Features ↔ Pricing ↔ Footer trên mobile. Nguyên nhân: `py-20 sm:py-28`, `mb-16`, `mt-20` được dùng đồng nhất cho mọi breakpoint → trên 390px tạo ra 80–112px padding dọc + 64px margin tiêu đề. Cộng với `motion.div initial opacity-0 whileInView`, nội dung "biến mất" khi screenshot/scroll nhanh, càng làm cảm giác trống.
+2. **Hero title** `Quản lý khách sạn thông minh & toàn diện` vỡ 3 dòng xấu, `text-4xl` quá lớn cho 390px (chữ tràn sát mép).
+3. **Hero min-h-[90vh]** trên iPhone notch (~844px) chiếm gần trọn screen, đẩy stats xuống dưới fold → không thấy.
+4. **Stats grid 2 cột** có `mt-20` (80px gap) — quá xa Hero CTA.
+5. **Pricing card 1 cột mobile** OK nhưng `py-20` + `mb-16` header lại tạo khoảng trống.
 
-### 3) Cần thêm mới
-- `RouteErrorBoundary` dùng `useRouteError()` để thay màn lỗi mặc định của React Router:
-  - Nếu là lỗi chunk/module script: purge caches + reload, hoặc hiển thị CTA “Tải lại phiên bản mới”.
-  - Nếu là lỗi thường: hiển thị lỗi tiếng Việt gọn, có nút “Tải lại trang”, không tự reload nhầm.
-- Biến thể mobile/compact cho `HotelSwitcher` để dùng trong header:
-  - Một dòng, truncate tên khách sạn.
-  - Popover/sheet width theo viewport: `calc(100vw - 1rem)`.
-  - Không dùng badge nền cho status, chỉ text semantic theo chuẩn UI.
-- Mobile layout hardening:
-  - Chặn x-overflow ở `#root`, body và các shell chính.
-  - Header dùng grid cố định: chuông / hotel switcher / menu, không đẩy layout ngang.
-  - Bottom nav giảm padding/min-width, label truncate, giữ 5 item.
-- Tối ưu nhanh 2 màn trong ảnh:
-  - `GeneralSettingsPage`: padding mobile nhất quán, card compact, action footer không tràn, section heading không làm lệch ngang.
-  - `MobileRoomsDashboard`: card phòng có `min-w-0`, status text không đẩy width, action buttons responsive.
+### B. Header / HotelSwitcher trong app
+- `MobileHeader` hiện đã gọn (1.0.33), nhưng `MobileHotelSwitcher` wrapper là `<span onClick>` với class `contents` bọc `<button>` → **nested button + bubbling**, có thể gây sự kiện kép trên iOS Safari.
+- Có **2 file `MobileHotelSwitcher`** khác nhau:
+  - `src/components/layout/MobileHotelSwitcher.tsx` (bottom sheet — mới)
+  - `src/components/mobile/MobileHotelSwitcher.tsx` (dropdown menu — cũ, vẫn được `MobileInventoryHeader` dùng)
+  → Không nhất quán UX giữa các module.
 
-### 4) Rủi ro migration
-- Không có schema/migration.
-- Rủi ro chính là tác động layout toàn app mobile vì sửa `MobileHeader`/`HotelSwitcher`; sẽ giới hạn bằng prop `variant="mobile"` để desktop giữ nguyên.
-- PWA/iOS cache: cần bump version/changelog để thiết bị nhận bản mới theo quy ước release.
+### C. Mobile Inventory (route hiện tại sau khi login)
+- `MobileInventoryHeader` dùng bản dropdown cũ với `w-[280px]` popover → trên 390px sẽ tràn nếu mở từ mép.
+- `MobileInventoryDashboard` đặt `pb-32` để chừa cho bottom nav + FAB, nhưng nếu có safe-area lớn (iPhone 14 Pro) vẫn bị FAB đè lên content cuối.
 
-## Kế hoạch triển khai
+### D. Touch target & overflow guard
+- `index.css` đã có `overflow-x: hidden` cho `#root` (1.0.32) — OK.
+- Một số `Button size="icon"` trong header dùng `h-9 w-9` = 36px, dưới chuẩn 44px iOS HIG. Chấp nhận được nhưng nên nâng touch target tối thiểu lên 44×44 qua `tap-highlight` padding ảo.
 
-### A. Kiến trúc / logic nghiệp vụ
-1. Thêm route-level error boundary cho React Router để thay thế default `Unexpected Application Error`.
-2. Tái sử dụng `isChunkLoadError()` và `purgeCachesAndReload()` hiện có, tránh tạo logic reload mới.
-3. Giữ lỗi nghiệp vụ/render thường ở fallback tiếng Việt, không tự reload để tránh loop.
-4. Tối ưu mobile layout ở shell chung trước, sau đó chỉnh các màn cụ thể trong ảnh.
+## Phạm vi triển khai (đề xuất)
 
-### B. Schema / migration
-- Không thêm migration.
-- Không thay đổi database/RLS/RPC.
+### Phần 1 — Landing mobile (ưu tiên cao, fix ngay)
+- `HeroSection.tsx`
+  - `min-h-[90vh]` → `min-h-[80svh] sm:min-h-[90vh]`
+  - Title: `text-3xl sm:text-5xl lg:text-6xl` (giảm từ 4xl→3xl mobile)
+  - `pt-16 py-20` → `pt-20 pb-12 sm:py-20`
+  - Stats: `mt-20` → `mt-10 sm:mt-20`, `grid-cols-2` giữ nguyên
+  - CTA row: `gap-4` → `gap-3` + 2 nút `w-full sm:w-auto`
+- `FeaturesSection.tsx`
+  - `py-20 sm:py-28` → `py-14 sm:py-24`
+  - Header `mb-16` → `mb-10 sm:mb-16`
+  - Grid `gap-6` → `gap-4 sm:gap-6`
+  - `motion.div` thêm `viewport={{ amount: 0.1 }}` để trigger sớm hơn trên mobile (không bị thấy trống).
+- `PricingSection.tsx`
+  - `py-20 sm:py-28` → `py-14 sm:py-24`
+  - Header `mb-16` → `mb-10 sm:mb-16`
+  - Card padding `p-6` → `p-5 sm:p-6`
+  - Card list `space-y-3` → `space-y-2.5`
+  - Pro card scale: bỏ shadow nặng trên mobile (`shadow-lg sm:shadow-primary/10`).
+- `LandingNavbar.tsx`: kiểm tra logo + menu trigger còn trong thumb zone, padding gọn.
 
-### C. API / RPC / server actions
-- Không thêm API/RPC/server action.
-- Không thay đổi mutation hiện có.
+### Phần 2 — Thống nhất HotelSwitcher
+- **Xoá** `src/components/mobile/MobileHotelSwitcher.tsx` (bản dropdown cũ).
+- `MobileInventoryHeader.tsx`: chuyển sang dùng `@/components/layout/MobileHotelSwitcher` (bottom sheet).
+- `MobileHotelSwitcher` (layout): đổi wrapper `<span onClick className="contents">` → `<div role="button" tabIndex={0}>` hoặc clone props vào children để tránh nested-button.
 
-### D. UI screens / components
-Sẽ sửa/tạo các file chính:
-- Tạo `src/components/RouteErrorBoundary.tsx`
-  - Fallback tiếng Việt cho React Router.
-  - Detect chunk error và gọi reload cache.
-- Sửa `src/App.tsx`
-  - Gắn `errorElement` cho các nhánh route chính hoặc wrapper route phù hợp.
-  - Giữ `ChunkErrorBoundary` ngoài cùng như lớp bảo vệ bổ sung.
-- Sửa `src/components/layout/MobileHeader.tsx`
-  - Header mobile không còn double hotel name.
-  - Dùng layout grid/flex có `min-w-0`, không tràn ngang.
-- Sửa `src/components/layout/HotelSwitcher.tsx`
-  - Thêm prop mobile compact, popover width responsive.
-  - Truncate tên khách sạn, status dùng semantic text thay badge nền ở mobile.
-- Sửa `src/components/layout/MobileBottomNav.tsx`
-  - Giảm nguy cơ overflow: item `min-w-0 flex-1`, label truncate, touch target vẫn đủ.
-- Sửa `src/index.css`
-  - Bổ sung guard overflow cho `#root` và mobile shell.
-- Sửa `src/pages/settings/GeneralSettingsPage.tsx`
-  - Compact mobile: `px-3/space-y-3`, section header `min-w-0`, action footer wrap/sticky hợp lý.
-- Sửa `src/components/settings/UsageModeSelector.tsx`, `HotelQcModeSettings.tsx`, `HotelPhotoEvidenceSettings.tsx`
-  - Thêm `min-w-0`, text wrap/truncate đúng, giảm padding mobile.
-- Sửa `src/components/rooms/MobileRoomsDashboard.tsx`
-  - Card/list không đẩy ngang, status/chips gọn, actions responsive.
-- Bump `src/lib/app-version.ts` và thêm entry `public/changelog.json` theo quy ước release.
+### Phần 3 — Safe area & touch target
+- `MobileLayout.tsx`: `pb-safe-20` → `pb-[calc(5rem+env(safe-area-inset-bottom))]` chính xác cho iPhone notch.
+- `MobileHeader` icon buttons: thêm `min-h-[44px] min-w-[44px]` (giữ visual h-9 bằng padding) — chỉ nếu cần.
 
-### E. Permission / role rules
-- Không thay đổi quyền.
-- Mobile bottom nav vẫn filter theo permission hiện có, giữ tối đa 5 item và More.
+### Phần 4 — Version bump
+- `src/lib/app-version.ts` → `1.0.34`
+- `src/components/CacheBuster.tsx` → bump `CURRENT_VERSION`
+- `public/changelog.json`: entry "Tối ưu mobile landing + thống nhất HotelSwitcher".
 
-### F. Test cases / QA
-- Kiểm tra route lỗi chunk/module script không còn hiện default `Unexpected Application Error`.
-- Kiểm tra lỗi render thường vẫn hiện fallback lỗi tiếng Việt, không auto reload.
-- Mobile viewport 390x844 và 414x756:
-  - `/settings/general`: không tràn ngang, header không bị kéo lệch, footer/nút không che nội dung.
-  - `/rooms`: card phòng không tràn, bottom nav không đẩy ngang, label không overlap.
-- Desktop quick check để đảm bảo `HotelSwitcher` desktop không đổi layout.
-- Không chạy build thủ công; harness sẽ kiểm tra build/typecheck.
+## File sẽ thay đổi
+1. ✏️ `src/components/landing/HeroSection.tsx`
+2. ✏️ `src/components/landing/FeaturesSection.tsx`
+3. ✏️ `src/components/landing/PricingSection.tsx`
+4. ✏️ `src/components/landing/LandingNavbar.tsx` (rà soát, có thể chỉ minor)
+5. ✏️ `src/components/layout/MobileHotelSwitcher.tsx` (fix wrapper)
+6. ✏️ `src/components/inventory/MobileInventoryHeader.tsx` (dùng layout version)
+7. 🗑️ `src/components/mobile/MobileHotelSwitcher.tsx` (xoá, không còn ai import)
+8. ✏️ `src/components/layout/MobileLayout.tsx` (safe-area)
+9. ✏️ `src/lib/app-version.ts` → 1.0.34
+10. ✏️ `src/components/CacheBuster.tsx`
+11. ✏️ `public/changelog.json`
 
-### G. Rollout notes
-- Đây là thay đổi frontend-only, rollback bằng cách revert các file UI/error-boundary/version/changelog.
-- Thiết bị iOS PWA đang cache bản cũ có thể cần mở lại/tải lại một lần để nhận bản mới; từ bản này route error boundary sẽ xử lý tốt hơn các lỗi chunk sau deploy.
-- Sau khi triển khai, nên publish ngay để người dùng mobile nhận fix cache/runtime.
+## Không động vào
+- Logic nghiệp vụ, RPC, schema, migration — **không có thay đổi DB**.
+- Desktop layout — chỉ tinh chỉnh responsive prefix `sm:` trở lên giữ nguyên hành vi cũ.
+
+## Test
+- Mobile 390×844 và 360×800: scroll landing → không còn vùng trắng > 80px, Hero stats visible above fold sau scroll 1 lần.
+- Mobile Inventory: mở HotelSwitcher → bottom sheet thay vì dropdown 280px.
+- iPhone safe-area: FAB không che content cuối list.
+- Desktop ≥ 768px: layout không đổi.
+
+## Rollback
+Revert 11 file. Không có migration.
+
+**Duyệt để triển khai?**
