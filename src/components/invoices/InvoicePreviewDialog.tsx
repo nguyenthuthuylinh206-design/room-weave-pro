@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { Download, Printer, Mail, QrCode, Loader2 } from 'lucide-react'
 import { GuestInvoice } from '@/hooks/useGuestInvoices'
+import { useVatClaimToken } from '@/hooks/useVatClaimToken'
 import PaperSizeSelector, { PaperSize } from './PaperSizeSelector'
 import {
   buildInvoiceHTMLAsync,
