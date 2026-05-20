@@ -18,6 +18,31 @@ function formatVND(amount: number): string {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
 }
 
+/**
+ * Chuẩn hoá thuế suất hiển thị về số phần trăm nguyên.
+ * - Quy ước mới: lưu integer % (8, 10, 5).
+ * - Tương thích ngược: dữ liệu cũ lưu decimal (0.08, 0.1) — nếu < 1 thì × 100.
+ */
+function normalizeRatePct(r: number | null | undefined): number {
+  const v = Number(r) || 0
+  if (v > 0 && v < 1) return Math.round(v * 100)
+  return Math.round(v)
+}
+
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  cash: 'Tiền mặt',
+  bank_transfer: 'Chuyển khoản',
+  card: 'Thẻ',
+  qr: 'QR / VietQR',
+  vietqr: 'QR / VietQR',
+  ota: 'OTA',
+  other: 'Khác',
+}
+function paymentMethodLabel(m: string | null | undefined): string {
+  if (!m) return ''
+  return PAYMENT_METHOD_LABEL[m] || m
+}
+
 async function qrDataUrl(text: string, size = 180): Promise<string> {
   try {
     return await QRCode.toDataURL(text, {
