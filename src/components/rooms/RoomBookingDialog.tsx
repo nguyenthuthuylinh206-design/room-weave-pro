@@ -36,6 +36,8 @@ import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
 import { cn, formatCurrency } from '@/lib/utils'
+import { canRoomCheckIn, isRoomOccupied, isRoomBlockedForMaintenance } from '@/lib/roomStatus'
+
 import { CheckoutSummaryDialog } from '@/components/bookings/CheckoutSummaryDialog'
 import { BookingServiceCharges } from '@/components/services/BookingServiceCharges'
 import { fetchServiceChargeSummary, type ServiceChargeDetail } from '@/hooks/useBookingServiceCharges'
