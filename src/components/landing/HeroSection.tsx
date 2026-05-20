@@ -33,7 +33,7 @@ export const HeroSection = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="mt-6 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white leading-tight"
+              className="mt-6 text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white leading-tight"
             >
               {t('hero.title')}{' '}
               <span className="bg-gradient-to-r from-[hsl(214,84%,56%)] to-[hsl(192,85%,50%)] bg-clip-text text-transparent">
