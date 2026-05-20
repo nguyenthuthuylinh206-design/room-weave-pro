@@ -18,6 +18,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { useRooms } from '@/hooks/useRooms'
 import { useTranslation } from 'react-i18next'
+import { getRoomStatusMeta } from '@/lib/roomStatus'
 
 interface RoomSelectProps {
   value: string
@@ -26,15 +27,6 @@ interface RoomSelectProps {
   disabled?: boolean
 }
 
-const statusColors: Record<string, string> = {
-  vacant: 'bg-emerald-500',
-  occupied: 'bg-blue-500',
-  check_in: 'bg-amber-500',
-  check_out: 'bg-orange-500',
-  cleaning: 'bg-purple-500',
-  maintenance: 'bg-red-500',
-  out_of_order: 'bg-gray-500',
-}
 
 export function RoomSelect({ value, onChange, placeholder, disabled }: RoomSelectProps) {
   const { t } = useTranslation(['rooms', 'common'])
