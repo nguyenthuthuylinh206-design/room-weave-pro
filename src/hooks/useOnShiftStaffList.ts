@@ -1,9 +1,14 @@
 import { useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
-import { isCurrentlyOnShift } from './useShiftManagement'
 import { useUser } from './useUser'
 import type { StaffStatusType } from './useStaffStatus'
+import {
+  getPresenceState,
+  isOnShift,
+  PRESENCE_SORT_ORDER,
+  type StaffPresenceState,
+} from '@/lib/staffPresence'
 
 export interface OnShiftStaffMember {
   id: string
@@ -16,10 +21,13 @@ export interface OnShiftStaffMember {
   telegram_username: string | null
   telegram_chat_id: string | null
   shift_start_at: string | null
+  last_seen_at: string | null
   // Status tracking fields
   status: StaffStatusType
   current_activity: string | null
   current_location: string | null
+  // Unified presence (new)
+  presence_state: StaffPresenceState
 }
 
 export function useOnShiftStaffList(hotelId: string | undefined) {
@@ -54,7 +62,7 @@ export function useOnShiftStaffList(hotelId: string | undefined) {
     queryKey: ['on-shift-staff-list', hotelId],
     queryFn: async () => {
       if (!hotelId) return []
-      
+
       // Get all users assigned to this hotel with their info
       const { data: userHotels, error: uhError } = await supabase
         .from('user_hotels')
@@ -68,35 +76,30 @@ export function useOnShiftStaffList(hotelId: string | undefined) {
           )
         `)
         .eq('hotel_id', hotelId)
-      
+
       if (uhError) throw uhError
 
-      // Get staff_status for all users (including status, activity, location)
       const userIds = userHotels?.map(uh => uh.user_id).filter(Boolean) || []
-      
       if (userIds.length === 0) return []
-      
+
       const { data: statuses, error: statusError } = await supabase
         .from('staff_status')
-        .select('user_id, shift_start_at, shift_end_at, status, current_activity, current_location')
+        .select('user_id, shift_start_at, shift_end_at, status, current_activity, current_location, last_seen_at')
         .in('user_id', userIds)
-      
+
       if (statusError) throw statusError
 
       const statusMap = new Map(statuses?.map(s => [s.user_id, s]) || [])
 
-      // Filter only on-shift staff
-      const onShiftStaff: OnShiftStaffMember[] = userHotels
+      // Filter only staff "on shift" theo định nghĩa mới (loại ca treo + status offline)
+      const onShiftStaff: OnShiftStaffMember[] = (userHotels || [])
         .filter(item => item.user)
-        .filter(item => {
-          const status = statusMap.get(item.user_id)
-          return isCurrentlyOnShift(status || null)
-        })
         .map(item => {
           const user = item.user as any
           const status = statusMap.get(item.user_id)
           const activeConnection = user.telegram_connections?.find((tc: any) => tc.is_active)
-          
+          const presence_state = getPresenceState(status || null)
+
           return {
             id: user.id,
             full_name: user.full_name || 'Không tên',
@@ -108,17 +111,25 @@ export function useOnShiftStaffList(hotelId: string | undefined) {
             telegram_username: user.telegram_username || null,
             telegram_chat_id: activeConnection?.chat_id || null,
             shift_start_at: status?.shift_start_at || null,
-            // Status tracking
+            last_seen_at: status?.last_seen_at || null,
             status: (status?.status as StaffStatusType) || 'offline',
             current_activity: status?.current_activity || null,
             current_location: status?.current_location || null,
-          }
+            presence_state,
+            _status: status,
+          } as OnShiftStaffMember & { _status: any }
         })
-      
-      // Sort by name
-      return onShiftStaff.sort((a, b) => a.full_name.localeCompare(b.full_name, 'vi'))
+        .filter(s => isOnShift((s as any)._status || null))
+        .map(({ _status, ...rest }: any) => rest)
+
+      // Sort: available → busy → offline-heartbeat; trong nhóm sort theo tên
+      return onShiftStaff.sort((a, b) => {
+        const diff = PRESENCE_SORT_ORDER[a.presence_state] - PRESENCE_SORT_ORDER[b.presence_state]
+        if (diff !== 0) return diff
+        return a.full_name.localeCompare(b.full_name, 'vi')
+      })
     },
     enabled: !!hotelId,
-    staleTime: 30 * 1000, // 30s — realtime sẽ invalidate khi có shift thay đổi
+    staleTime: 30 * 1000,
   })
 }
