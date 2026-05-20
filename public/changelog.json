@@ -1,6 +1,18 @@
 {
-  "current": "1.0.38",
+  "current": "1.0.39",
   "versions": [
+    {
+      "version": "1.0.39",
+      "releaseDate": "2026-05-20",
+      "title": "Đồng bộ trạng thái phòng & sửa lỗi không check-in được phòng vacant_clean",
+      "changes": [
+        { "type": "fix", "text": "Sửa lỗi không check-in được khi phòng đang ở trạng thái 'Trống – đã dọn' (vacant_clean): RPC perform_checkin nay hiểu đầy đủ bộ trạng thái mới v2" },
+        { "type": "improvement", "text": "Sau checkout, phòng tự chuyển sang 'Trống – chưa dọn' (vacant_dirty) để housekeeping xử lý, thay vì trạng thái cũ check_out" },
+        { "type": "improvement", "text": "Thông báo lỗi check-in rõ ràng hơn: phân biệt 'Phòng chưa dọn', 'Phòng bảo trì', 'Phòng đang có khách'" },
+        { "type": "improvement", "text": "Bộ lọc trạng thái phòng và Floor Plan dùng nhãn thống nhất theo state machine v2 (Trống – đã dọn / chưa dọn / đã QC, Đang ở – đã dọn / cần dọn, DND, OOO, OOS...)" },
+        { "type": "fix", "text": "Tự động chuẩn hóa các phòng còn dùng tên trạng thái cũ (vacant, occupied, cleaning, maintenance...) về tên mới" }
+      ]
+    },
     {
       "version": "1.0.38",
       "releaseDate": "2026-05-20",
