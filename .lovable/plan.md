@@ -1,92 +1,137 @@
-# Kế hoạch tối ưu giao diện Mobile
+## Mục tiêu
 
-## Bối cảnh
-Chụp preview ở 390×844 (iPhone 14). Vì chưa đăng nhập nên màn hiện tại là **landing page** — đây cũng là vấn đề lớn nhất nhìn thấy. Sau đó review thêm các màn chính trong app dựa trên code.
+Chuẩn hoá luồng xuất hoá đơn theo thực tế khách sạn VN:
 
-## Vấn đề phát hiện
+```
+Thanh toán → In bill nhiệt (K80/K58) → In QR "Lấy hoá đơn VAT"
+   → Khách quét QR, tự nhập thông tin công ty/email (public form)
+   → Hệ thống tự phát hành HĐĐT (e-invoice)
+   → Gửi PDF + link tra cứu qua email
+```
 
-### A. Landing page (ưu tiên 1 — user gặp ngay)
-1. **Khoảng trắng khổng lồ** giữa Hero ↔ Features ↔ Pricing ↔ Footer trên mobile. Nguyên nhân: `py-20 sm:py-28`, `mb-16`, `mt-20` được dùng đồng nhất cho mọi breakpoint → trên 390px tạo ra 80–112px padding dọc + 64px margin tiêu đề. Cộng với `motion.div initial opacity-0 whileInView`, nội dung "biến mất" khi screenshot/scroll nhanh, càng làm cảm giác trống.
-2. **Hero title** `Quản lý khách sạn thông minh & toàn diện` vỡ 3 dòng xấu, `text-4xl` quá lớn cho 390px (chữ tràn sát mép).
-3. **Hero min-h-[90vh]** trên iPhone notch (~844px) chiếm gần trọn screen, đẩy stats xuống dưới fold → không thấy.
-4. **Stats grid 2 cột** có `mt-20` (80px gap) — quá xa Hero CTA.
-5. **Pricing card 1 cột mobile** OK nhưng `py-20` + `mb-16` header lại tạo khoảng trống.
+Hỗ trợ đầy đủ khổ giấy: **A4, A5, K80, K58**, có **QR code** in trực tiếp trên bill nhiệt.
 
-### B. Header / HotelSwitcher trong app
-- `MobileHeader` hiện đã gọn (1.0.33), nhưng `MobileHotelSwitcher` wrapper là `<span onClick>` với class `contents` bọc `<button>` → **nested button + bubbling**, có thể gây sự kiện kép trên iOS Safari.
-- Có **2 file `MobileHotelSwitcher`** khác nhau:
-  - `src/components/layout/MobileHotelSwitcher.tsx` (bottom sheet — mới)
-  - `src/components/mobile/MobileHotelSwitcher.tsx` (dropdown menu — cũ, vẫn được `MobileInventoryHeader` dùng)
-  → Không nhất quán UX giữa các module.
+---
 
-### C. Mobile Inventory (route hiện tại sau khi login)
-- `MobileInventoryHeader` dùng bản dropdown cũ với `w-[280px]` popover → trên 390px sẽ tràn nếu mở từ mép.
-- `MobileInventoryDashboard` đặt `pb-32` để chừa cho bottom nav + FAB, nhưng nếu có safe-area lớn (iPhone 14 Pro) vẫn bị FAB đè lên content cuối.
+## A. Kiến trúc nghiệp vụ
 
-### D. Touch target & overflow guard
-- `index.css` đã có `overflow-x: hidden` cho `#root` (1.0.32) — OK.
-- Một số `Button size="icon"` trong header dùng `h-9 w-9` = 36px, dưới chuẩn 44px iOS HIG. Chấp nhận được nhưng nên nâng touch target tối thiểu lên 44×44 qua `tap-highlight` padding ảo.
+1. **Bill nhiệt (K80/K58)** in tại quầy ngay khi thanh toán — chỉ là phiếu thu, không phải HĐĐT.
+2. Trên bill in **QR code** dẫn tới `/i/:claimToken` (public, không cần login).
+3. Khách quét → form công khai nhập: Tên công ty, MST, địa chỉ, email nhận hoá đơn. Chỉ điền 1 lần, có TTL 7 ngày.
+4. Submit → edge function `issue-einvoice`:
+  - Validate MST (regex 10/13 số)
+  - Cập nhật `guest_invoices` (tax_code, company_name, email, status='issued')
+  - Gọi provider HĐĐT (giai đoạn 1: mock/stub – tạo PDF HĐĐT nội bộ; giai đoạn 2: tích hợp VNPT/Misa/Easyinvoice qua API key)
+  - Lưu file vào storage bucket `einvoices/`
+  - Gọi `send-transactional-email` với template `einvoice-issued` (link tải PDF + mã tra cứu)
+5. Khách nhận email; lễ tân thấy trạng thái invoice chuyển `pending_vat → issued`.
 
-## Phạm vi triển khai (đề xuất)
+---
 
-### Phần 1 — Landing mobile (ưu tiên cao, fix ngay)
-- `HeroSection.tsx`
-  - `min-h-[90vh]` → `min-h-[80svh] sm:min-h-[90vh]`
-  - Title: `text-3xl sm:text-5xl lg:text-6xl` (giảm từ 4xl→3xl mobile)
-  - `pt-16 py-20` → `pt-20 pb-12 sm:py-20`
-  - Stats: `mt-20` → `mt-10 sm:mt-20`, `grid-cols-2` giữ nguyên
-  - CTA row: `gap-4` → `gap-3` + 2 nút `w-full sm:w-auto`
-- `FeaturesSection.tsx`
-  - `py-20 sm:py-28` → `py-14 sm:py-24`
-  - Header `mb-16` → `mb-10 sm:mb-16`
-  - Grid `gap-6` → `gap-4 sm:gap-6`
-  - `motion.div` thêm `viewport={{ amount: 0.1 }}` để trigger sớm hơn trên mobile (không bị thấy trống).
-- `PricingSection.tsx`
-  - `py-20 sm:py-28` → `py-14 sm:py-24`
-  - Header `mb-16` → `mb-10 sm:mb-16`
-  - Card padding `p-6` → `p-5 sm:p-6`
-  - Card list `space-y-3` → `space-y-2.5`
-  - Pro card scale: bỏ shadow nặng trên mobile (`shadow-lg sm:shadow-primary/10`).
-- `LandingNavbar.tsx`: kiểm tra logo + menu trigger còn trong thumb zone, padding gọn.
+## B. Schema / Migration
 
-### Phần 2 — Thống nhất HotelSwitcher
-- **Xoá** `src/components/mobile/MobileHotelSwitcher.tsx` (bản dropdown cũ).
-- `MobileInventoryHeader.tsx`: chuyển sang dùng `@/components/layout/MobileHotelSwitcher` (bottom sheet).
-- `MobileHotelSwitcher` (layout): đổi wrapper `<span onClick className="contents">` → `<div role="button" tabIndex={0}>` hoặc clone props vào children để tránh nested-button.
+**Bảng mới `invoice_vat_claims**` (public access qua token):
 
-### Phần 3 — Safe area & touch target
-- `MobileLayout.tsx`: `pb-safe-20` → `pb-[calc(5rem+env(safe-area-inset-bottom))]` chính xác cho iPhone notch.
-- `MobileHeader` icon buttons: thêm `min-h-[44px] min-w-[44px]` (giữ visual h-9 bằng padding) — chỉ nếu cần.
+- `id uuid pk`
+- `invoice_id uuid fk guest_invoices`
+- `tenant_id uuid`
+- `claim_token text unique` (random 24 ký tự, dùng cho URL)
+- `expires_at timestamptz` (default now()+7 days)
+- `claimed_at timestamptz null`
+- `company_name, tax_code, company_address, email text`
+- `einvoice_pdf_path text null`
+- `einvoice_lookup_code text null`
+- `status text` (`pending` | `submitted` | `issued` | `failed` | `expired`)
 
-### Phần 4 — Version bump
-- `src/lib/app-version.ts` → `1.0.34`
-- `src/components/CacheBuster.tsx` → bump `CURRENT_VERSION`
-- `public/changelog.json`: entry "Tối ưu mobile landing + thống nhất HotelSwitcher".
+`**guest_invoices` thêm cột:**
 
-## File sẽ thay đổi
-1. ✏️ `src/components/landing/HeroSection.tsx`
-2. ✏️ `src/components/landing/FeaturesSection.tsx`
-3. ✏️ `src/components/landing/PricingSection.tsx`
-4. ✏️ `src/components/landing/LandingNavbar.tsx` (rà soát, có thể chỉ minor)
-5. ✏️ `src/components/layout/MobileHotelSwitcher.tsx` (fix wrapper)
-6. ✏️ `src/components/inventory/MobileInventoryHeader.tsx` (dùng layout version)
-7. 🗑️ `src/components/mobile/MobileHotelSwitcher.tsx` (xoá, không còn ai import)
-8. ✏️ `src/components/layout/MobileLayout.tsx` (safe-area)
-9. ✏️ `src/lib/app-version.ts` → 1.0.34
-10. ✏️ `src/components/CacheBuster.tsx`
-11. ✏️ `public/changelog.json`
+- `vat_claim_status text default 'none'` (`none` | `pending` | `issued`)
+- `einvoice_issued_at timestamptz null`
+- `einvoice_provider text null`
 
-## Không động vào
-- Logic nghiệp vụ, RPC, schema, migration — **không có thay đổi DB**.
-- Desktop layout — chỉ tinh chỉnh responsive prefix `sm:` trở lên giữ nguyên hành vi cũ.
+**RLS:**
 
-## Test
-- Mobile 390×844 và 360×800: scroll landing → không còn vùng trắng > 80px, Hero stats visible above fold sau scroll 1 lần.
-- Mobile Inventory: mở HotelSwitcher → bottom sheet thay vì dropdown 280px.
-- iPhone safe-area: FAB không che content cuối list.
-- Desktop ≥ 768px: layout không đổi.
+- `invoice_vat_claims`: SELECT/UPDATE public bằng `claim_token` (anon role, WHERE expires_at > now() AND claimed_at IS NULL); authenticated full theo `tenant_id`.
+- Storage bucket `einvoices` private; signed URL trong email.
 
-## Rollback
-Revert 11 file. Không có migration.
+**Trigger:** sau khi `payment_transactions` chuyển `completed` cho invoice loại VAT-eligible → auto insert `invoice_vat_claims` row + token.
 
-**Duyệt để triển khai?**
+---
+
+## C. API / RPC / Edge Functions
+
+1. `POST /functions/v1/issue-einvoice` (public, có rate-limit theo token)
+  - Body: `{ claim_token, company_name, tax_code, company_address, email }`
+  - Zod validate, normalize MST, kiểm tra token còn hạn
+  - Atomic: update claim + invoice + enqueue email
+2. `GET /functions/v1/lookup-einvoice?code=...` — public tra cứu HĐĐT (giai đoạn 2).
+3. Email template `einvoice-issued.tsx` (React Email) trong `_shared/transactional-email-templates/`.
+4. Reuse `send-transactional-email`.
+
+---
+
+## D. UI / Components
+
+### D1. Refactor `InvoicePDFTemplate.ts`
+
+- Tách thành 4 builder rõ ràng: `buildA4Html`, `buildA5Html`, `buildK80Html`, `buildK58Html`.
+- Mỗi builder nhận thêm `qrPayload?: { url: string; label: string }`.
+- Khổ nhiệt (K80/K58): chèn block QR cuối bill (canvas inline SVG `qrcode` lib đã có sẵn) + dòng *"Quét mã để lấy hoá đơn VAT"*.
+- A4/A5: thêm QR nhỏ góc dưới phải.
+- Fix giãn dòng / wrap cho tên dài trên K58.
+- `printInvoice`: thêm `@page { size: 80mm auto; margin: 2mm }` cho K80, tương tự K58, giữ A4/A5 chuẩn.
+
+### D2. `InvoicePreviewDialog.tsx`
+
+- Thêm tab/segment **"In bill thanh toán"** vs **"Hoá đơn VAT điện tử"** (khi đã issued).
+- Hiển thị trạng thái claim VAT: badge `Chưa lấy VAT / Khách đang nhập / Đã phát hành`.
+- Nút **"In lại QR lấy VAT"** (in một mảnh K80 chỉ có QR + hướng dẫn).
+
+### D3. Trang public `src/pages/public/InvoiceVatClaimPage.tsx`
+
+- Route `/i/:token` (no auth, mobile-first).
+- Form Zod: company_name, tax_code (10/13 số), company_address, email.
+- Sau submit: màn hình "Đã gửi, hoá đơn sẽ tới email trong vài phút".
+- Token hết hạn / đã dùng: trạng thái rõ ràng, có CTA gọi lễ tân.
+
+### D4. `GuestInvoicesPage.tsx`
+
+- Thêm cột **VAT** (badge trạng thái), filter "Chưa lấy VAT".
+- Action menu: **Copy link VAT**, **In lại QR**, **Resend email**.
+
+---
+
+## E. Permission / Role
+
+- Lễ tân/Manager: in bill, in lại QR, resend email.
+- Owner/Manager: cấu hình provider HĐĐT trong `/settings/einvoice` (giai đoạn 2).
+- Public anon: chỉ thao tác qua claim_token hợp lệ.
+
+---
+
+## F. Test cases
+
+- Unit: `parseTaxCode`, builder HTML từng khổ, snapshot QR payload.
+- Edge function: token hết hạn, MST sai, double-submit, email suppressed.
+- E2E: thanh toán → in K80 có QR → mở `/i/:token` mobile → submit → invoice status = issued → email log có row `sent`.
+
+---
+
+## G. Rollout
+
+1. **Phase 1 (PR1)**: refactor builder 4 khổ + QR + print CSS chuẩn — không đụng DB.
+2. **Phase 2 (PR2)**: migration `invoice_vat_claims`, edge function `issue-einvoice` (stub provider — tự render PDF HĐĐT từ template A5), public claim page, email template.
+3. **Phase 3 (PR3)**: tích hợp provider thật (VNPT/Misa) qua secret + settings page.
+4. Feature flag `settings.einvoice.enabled` per tenant; mặc định OFF, bật khi tenant cấu hình xong.
+5. Bump APP_VERSION + changelog mỗi PR.
+
+---
+
+## Câu hỏi cần xác nhận trước khi code
+
+1. **Provider HĐĐT**: tích hợp luôn 
+2. **QR target**: dùng domain hiện tại `roomqc.com/i/:token` hay subdomain riêng?
+3. **Khách bắt buộc nhập email** hay cho phép chỉ MST + nhận PDF tải về luôn trên trình duyệt?
+4. **Bill nhiệt mặc định khổ nào** (K80 phổ biến nhất) — để set default khi bấm "In bill"?
+
+Trả lời 4 câu trên rồi mình bắt tay vào Phase 1 ngay.
