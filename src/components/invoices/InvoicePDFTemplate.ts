@@ -117,7 +117,7 @@ async function buildReceiptHTML(
 ): Promise<string> {
   const config = PAPER_CONFIG[paperSize]
   const lineItems = invoice.line_items || []
-  const remaining = invoice.total_amount - invoice.amount_paid
+  const remaining = invoice.total_amount - invoice.amount_paid - (invoice.deposit_amount || 0)
   const qrSize = paperSize === 'K58' ? 140 : 170
   const qr = qrPayload ? await qrDataUrl(qrPayload.url, qrSize * 2) : ''
   const qrLabel = qrPayload?.label || 'Quét để lấy hoá đơn VAT'
@@ -179,7 +179,7 @@ async function buildSheetHTML(
 ): Promise<string> {
   const config = PAPER_CONFIG[paperSize]
   const lineItems = invoice.line_items || []
-  const remaining = invoice.total_amount - invoice.amount_paid
+  const remaining = invoice.total_amount - invoice.amount_paid - (invoice.deposit_amount || 0)
   const qr = qrPayload ? await qrDataUrl(qrPayload.url, 220) : ''
   const qrLabel = qrPayload?.label || 'Quét để lấy hoá đơn VAT'
 
@@ -267,7 +267,7 @@ export function buildInvoiceHTML(
   const config = PAPER_CONFIG[paperSize]
   if (config.isReceipt) {
     const lineItems = invoice.line_items || []
-    const remaining = invoice.total_amount - invoice.amount_paid
+    const remaining = invoice.total_amount - invoice.amount_paid - (invoice.deposit_amount || 0)
     return `<div id="invoice-pdf" style="width:${config.width}px;padding:${config.padding};font-family:'Segoe UI',Arial,sans-serif;font-size:${config.fontSize}px;color:#111;background:#fff;">
       <div style="text-align:center;font-weight:700;">${hotelInfo?.name || 'KHÁCH SẠN'}</div>
       <div style="text-align:center;border-top:1px dashed #999;border-bottom:1px dashed #999;padding:4px 0;margin:6px 0;font-weight:700;">${invoice.invoice_number}</div>
