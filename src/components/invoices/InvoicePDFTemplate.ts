@@ -31,10 +31,10 @@ async function qrDataUrl(text: string, size = 180): Promise<string> {
   }
 }
 
-/** Build QR URL khách quét lấy HĐĐT VAT. Placeholder dùng invoice.id; sẽ thay bằng claim_token ở Phase 2. */
-export function buildVatClaimUrl(invoice: GuestInvoice): string {
+/** Build QR URL khách quét lấy HĐĐT VAT. Truyền claimToken nếu có; fallback dùng invoice.id (preview). */
+export function buildVatClaimUrl(invoice: GuestInvoice, claimToken?: string | null): string {
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  return `${origin}/i/${invoice.id}`
+  return `${origin}/i/${claimToken || invoice.id}`
 }
 
 function signatureBlock() {
