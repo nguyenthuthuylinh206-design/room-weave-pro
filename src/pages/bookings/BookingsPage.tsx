@@ -483,8 +483,8 @@ export function BookingsPage() {
       return
     }
 
-    // Block if room is occupied
-    if (roomData.status === 'occupied') {
+    // Block if room is occupied bởi booking khác
+    if (isRoomOccupied(roomData.status)) {
       const { data: currentBooking } = await supabase
         .from('room_bookings')
         .select('id, guest_name, check_out_date')
@@ -504,15 +504,26 @@ export function BookingsPage() {
       }
     }
 
-    // Block if room is under maintenance
-    if (roomData.status === 'maintenance' || roomData.status === 'out_of_order') {
+    // Block bảo trì
+    if (isRoomBlockedForMaintenance(roomData.status)) {
       toast({
         variant: 'destructive',
         title: 'Phòng không khả dụng',
-        description: `Phòng đang trong trạng thái "${roomData.status === 'maintenance' ? 'bảo trì' : 'ngừng hoạt động'}". Không thể check-in.`,
+        description: 'Phòng đang bảo trì/ngừng hoạt động. Không thể check-in.',
       })
       return
     }
+
+    // Cảnh báo trước nếu phòng chưa dọn — RPC vẫn là nguồn quyết định cuối
+    if (!canRoomCheckIn(roomData.status) && !isRoomOccupied(roomData.status)) {
+      toast({
+        variant: 'destructive',
+        title: 'Phòng chưa sẵn sàng',
+        description: 'Phòng đang ở trạng thái "Trống – chưa dọn". Vui lòng dọn phòng trước khi check-in.',
+      })
+      return
+    }
+
 
     const actualTime = format(now, 'HH:mm')
     const hours = parseInt(actualTime.split(':')[0])
