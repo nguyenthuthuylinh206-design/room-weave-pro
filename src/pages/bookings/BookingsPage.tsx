@@ -65,6 +65,8 @@ import { ExtendBookingDialog } from '@/components/bookings/ExtendBookingDialog'
 import { GroupPaymentDialog } from '@/components/bookings/GroupPaymentDialog'
 import { GroupCheckoutDialog } from '@/components/bookings/GroupCheckoutDialog'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
+import { canRoomCheckIn, isRoomOccupied, isRoomBlockedForMaintenance } from '@/lib/roomStatus'
+
 import { formatCurrency } from '@/lib/utils'
 import { useGroupBookingCounts } from '@/hooks/useGroupBooking'
 import { useBookingConflicts } from '@/hooks/useBookingConflicts'
