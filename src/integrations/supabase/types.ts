@@ -2370,6 +2370,9 @@ export type Database = {
           created_at: string
           created_by: string | null
           deposit_amount: number
+          einvoice_issued_at: string | null
+          einvoice_pdf_path: string | null
+          einvoice_provider: string | null
           email_sent_at: string | null
           guest_address: string | null
           guest_email: string | null
@@ -2392,6 +2395,7 @@ export type Database = {
           total_amount: number
           updated_at: string
           vat_amount: number
+          vat_claim_status: string
           vat_rate: number
         }
         Insert: {
@@ -2403,6 +2407,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deposit_amount?: number
+          einvoice_issued_at?: string | null
+          einvoice_pdf_path?: string | null
+          einvoice_provider?: string | null
           email_sent_at?: string | null
           guest_address?: string | null
           guest_email?: string | null
@@ -2425,6 +2432,7 @@ export type Database = {
           total_amount?: number
           updated_at?: string
           vat_amount?: number
+          vat_claim_status?: string
           vat_rate?: number
         }
         Update: {
@@ -2436,6 +2444,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deposit_amount?: number
+          einvoice_issued_at?: string | null
+          einvoice_pdf_path?: string | null
+          einvoice_provider?: string | null
           email_sent_at?: string | null
           guest_address?: string | null
           guest_email?: string | null
@@ -2458,6 +2469,7 @@ export type Database = {
           total_amount?: number
           updated_at?: string
           vat_amount?: number
+          vat_claim_status?: string
           vat_rate?: number
         }
         Relationships: [
@@ -3578,6 +3590,77 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_vat_claims: {
+        Row: {
+          claim_token: string
+          claimed_at: string | null
+          company_address: string | null
+          company_name: string | null
+          created_at: string
+          einvoice_lookup_code: string | null
+          einvoice_pdf_path: string | null
+          email: string | null
+          expires_at: string
+          hotel_id: string | null
+          id: string
+          invoice_id: string
+          issued_at: string | null
+          notes: string | null
+          status: string
+          tax_code: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          claim_token: string
+          claimed_at?: string | null
+          company_address?: string | null
+          company_name?: string | null
+          created_at?: string
+          einvoice_lookup_code?: string | null
+          einvoice_pdf_path?: string | null
+          email?: string | null
+          expires_at?: string
+          hotel_id?: string | null
+          id?: string
+          invoice_id: string
+          issued_at?: string | null
+          notes?: string | null
+          status?: string
+          tax_code?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          claim_token?: string
+          claimed_at?: string | null
+          company_address?: string | null
+          company_name?: string | null
+          created_at?: string
+          einvoice_lookup_code?: string | null
+          einvoice_pdf_path?: string | null
+          email?: string | null
+          expires_at?: string
+          hotel_id?: string | null
+          id?: string
+          invoice_id?: string
+          issued_at?: string | null
+          notes?: string | null
+          status?: string
+          tax_code?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_vat_claims_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "guest_invoices"
             referencedColumns: ["id"]
           },
         ]
@@ -11267,6 +11350,14 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      ensure_vat_claim_token: {
+        Args: { p_invoice_id: string }
+        Returns: {
+          expires_at: string
+          status: string
+          token: string
+        }[]
+      }
       fn_can_user_transition_room: {
         Args: { _from: string; _to: string; _user_id: string }
         Returns: boolean
@@ -11280,6 +11371,7 @@ export type Database = {
         Returns: boolean
       }
       fn_room_status_alias: { Args: { _status: string }; Returns: string }
+      gen_vat_claim_token: { Args: never; Returns: string }
       generate_guest_invoice_number: {
         Args: { p_tenant_id: string }
         Returns: string
@@ -12297,6 +12389,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_vat_claim_public: { Args: { p_token: string }; Returns: Json }
       get_vendor_performance: {
         Args: { p_days?: number; p_vendor_id: string }
         Returns: Json
@@ -12544,6 +12637,15 @@ export type Database = {
           p_room_order_id: string
         }
         Returns: Json
+      }
+      mark_vat_claim_issued: {
+        Args: {
+          p_claim_id: string
+          p_lookup_code: string
+          p_pdf_path: string
+          p_provider: string
+        }
+        Returns: undefined
       }
       move_to_dlq: {
         Args: {
@@ -12911,6 +13013,16 @@ export type Database = {
           _room_id: string
           _started_at: string
           _task_id?: string
+        }
+        Returns: Json
+      }
+      submit_vat_claim_public: {
+        Args: {
+          p_company_address: string
+          p_company_name: string
+          p_email: string
+          p_tax_code: string
+          p_token: string
         }
         Returns: Json
       }
