@@ -99,9 +99,8 @@ export function RoomSelect({ value, onChange, placeholder, disabled }: RoomSelec
                         )}
                       </div>
                     </div>
-                    <Badge variant="outline" className="ml-auto">
-                      <span className={cn("mr-1.5 h-2 w-2 rounded-full", statusColors[room.status])} />
-                      {t(`rooms:status.${room.status}`)}
+                    <Badge variant="outline" className={cn("ml-auto", getRoomStatusMeta(room.status).text)}>
+                      {getRoomStatusMeta(room.status).short}
                     </Badge>
                   </div>
                 </CommandItem>
