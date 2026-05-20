@@ -35,12 +35,12 @@ export const PricingSection = () => {
                 key={plan}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+                viewport={{ once: true, amount: 0.1 }}
                 transition={{ duration: 0.4, delay: i * 0.1 }}
                 className={cn(
-                  'relative flex flex-col rounded-lg border p-6',
+                  'relative flex flex-col rounded-lg border p-5 sm:p-6',
                   isPro
-                    ? 'border-primary bg-card shadow-lg shadow-primary/10 ring-1 ring-primary/20'
+                    ? 'border-primary bg-card sm:shadow-lg sm:shadow-primary/10 ring-1 ring-primary/20'
                     : 'bg-card'
                 )}
               >
