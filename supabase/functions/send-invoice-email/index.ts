@@ -165,12 +165,12 @@ Deno.serve(async (req) => {
               </tr>
               ${invoice.vat_amount > 0 ? `
               <tr>
-                <td style="padding:4px 0;font-size:12px;color:#666;">VAT (${Math.round(invoice.vat_rate * 100)}%)</td>
+                <td style="padding:4px 0;font-size:12px;color:#666;">VAT (${(Number(invoice.vat_rate) > 0 && Number(invoice.vat_rate) < 1) ? Math.round(Number(invoice.vat_rate) * 100) : Math.round(Number(invoice.vat_rate))}%)</td>
                 <td style="padding:4px 0;font-size:12px;color:#333;text-align:right;">${formatVND(invoice.vat_amount)}</td>
               </tr>` : ''}
               ${invoice.service_fee_amount > 0 ? `
               <tr>
-                <td style="padding:4px 0;font-size:12px;color:#666;">Phí dịch vụ (${Math.round(invoice.service_fee_rate * 100)}%)</td>
+                <td style="padding:4px 0;font-size:12px;color:#666;">Phí dịch vụ (${(Number(invoice.service_fee_rate) > 0 && Number(invoice.service_fee_rate) < 1) ? Math.round(Number(invoice.service_fee_rate) * 100) : Math.round(Number(invoice.service_fee_rate))}%)</td>
                 <td style="padding:4px 0;font-size:12px;color:#333;text-align:right;">${formatVND(invoice.service_fee_amount)}</td>
               </tr>` : ''}
               <tr>
