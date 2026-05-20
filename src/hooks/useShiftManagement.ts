@@ -128,14 +128,12 @@ export function useShiftCheckOut() {
 }
 
 /**
- * Check if a staff member is currently on shift
- * On shift = shift_start_at exists AND (shift_end_at is null OR shift_end_at < shift_start_at)
+ * Check if a staff member is currently on shift.
+ *
+ * Delegates to the unified `staffPresence` module (single source of truth).
+ * Kept as a re-export for backward compatibility with existing callers.
  */
-export function isCurrentlyOnShift(status: Pick<StaffStatus, 'shift_start_at' | 'shift_end_at'> | null | undefined): boolean {
-  if (!status?.shift_start_at) return false
-  if (!status.shift_end_at) return true
-  return new Date(status.shift_start_at) > new Date(status.shift_end_at)
-}
+export { isOnShift as isCurrentlyOnShift } from '@/lib/staffPresence'
 
 /**
  * Calculate how long the current shift has been

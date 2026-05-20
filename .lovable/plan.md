@@ -1,330 +1,83 @@
-## Vấn đề đã xác định
+## Vấn đề
 
-Hiện hệ thống đang có 3 lớp trạng thái bị lệch nhau:
+Logic "đang trong ca" (`isCurrentlyOnShift`) hiện tại **chỉ dựa vào `shift_start_at` / `shift_end_at`** trong bảng `staff_status`, dẫn đến hai loại sai lệch đã thấy ngay trong dữ liệu thực:
 
-1. **Dữ liệu thật trong database** đang dùng bộ trạng thái mới kiểu:
-   - `vacant_clean`, `vacant_dirty`, `occupied_clean`, ...
-   - Hiện có: 77 phòng `vacant_clean`, 14 phòng `vacant_dirty`, 2 phòng `occupied_clean`.
+1. **Ca treo (false positive)** — Có user `shift_start_at = 2026-02-05` nhưng `shift_end_at = null` → vẫn được coi là "đang trong ca" suốt 3,5 tháng. Người này có thể đã nghỉ từ lâu nhưng vẫn xuất hiện ở dropdown giao việc kiểm tra phòng, giao task housekeeping, distribution, group checkout…
+2. **Đang làm nhưng không thấy (false negative)** — User `last_seen_at` hôm nay nhưng chưa bấm "Vào ca" (`shift_start_at = null`) → bị loại khỏi dropdown dù đang online.
+3. **Trường `status` (available / busy / break / offline) bị bỏ qua hoàn toàn** ở dropdown giao việc, nhưng lại được hiển thị ở trang Quản lý nhân sự. Hai nơi không cùng định nghĩa "đang trong ca".
 
-2. **RPC check-in/check-out cũ** vẫn dùng bộ trạng thái cũ:
-   - `perform_checkin` chỉ cho check-in khi phòng là `vacant`, `cleaning`, `check_out`, `reserved`.
-   - Vì vậy phòng `vacant_clean` nhìn ngoài UI là “Trống – đã dọn” nhưng RPC lại báo không hợp lệ.
-   - `perform_checkout` vẫn set phòng về `check_out`, trong khi luồng mới muốn `vacant_dirty`.
+## Mục tiêu
 
-3. **Frontend còn nhiều nơi hardcode trạng thái cũ**:
-   - Thống kê phòng đếm `vacant`, `occupied`, `cleaning` nên số liệu sai hoặc bằng 0.
-   - Bộ lọc phòng còn filter theo status cũ nên không khớp dữ liệu thật.
-   - Floor plan, mobile room page, bulk action, room select, booking check-in validation còn lẫn cũ/mới.
+Một **định nghĩa "đang trong ca" duy nhất**, dùng chung cho:
+- Dropdown giao việc (CheckoutInspectionSection, AssignTaskDialog, BulkCreateTaskDialog, DistributionForm, GroupCheckoutDialog, ApproveSupplementDialog, InspectionStatusCard, CleaningRequestBanner, GroupCheckoutRoomCard…)
+- Trang Quản lý nhân sự (`/staff-management`, `OnShiftStaffPanel`, `ShiftStatusBanner`).
+- Cron tự đóng ca treo.
 
-Kết luận: lỗi không phải do một phòng riêng lẻ, mà do **state machine phòng đang bị chia đôi** giữa legacy và v2.
+## A. Logic nghiệp vụ thống nhất
 
-```text
-Hiện tại:
-UI mới hiển thị vacant_clean
-        ↓
-perform_checkin cũ chỉ hiểu vacant
-        ↓
-Check-in bị chặn dù phòng đang sẵn sàng
-```
+Một nhân viên được coi là **"đang trong ca"** khi **tất cả** đúng:
 
-## Mục tiêu triển khai
+1. `shift_start_at` không null **và** (`shift_end_at` null hoặc `shift_end_at < shift_start_at`).
+2. `shift_start_at` **trong vòng ≤ 16 giờ** (max ca làm) — quá 16h coi như ca treo, không tính.
+3. `status` ≠ `'offline'`.
+4. Tuỳ chọn (mặc định bật): `last_seen_at` trong vòng ≤ 30 phút — nếu không thì là "ngoại tuyến" (đã đăng ký ca nhưng mất kết nối lâu).
 
-Đưa toàn bộ hệ thống về **một nguồn trạng thái phòng duy nhất**:
+Trạng thái hiển thị ở dropdown chia 3 nhóm rõ ràng (cùng định nghĩa với trang Quản lý nhân sự):
 
-```text
-vacant_clean       = Trống – đã dọn, cho phép check-in
-vacant_inspected   = Trống – đã QC, cho phép check-in
-vacant_dirty       = Trống – chưa dọn, không check-in thường
-occupied_clean     = Đang ở – đã dọn
-occupied_dirty     = Đang ở – cần dọn
-dnd                = Không làm phiền
-service_refused    = Khách từ chối dọn
-sleep_out          = Khách ngủ ngoài
-skipper            = Khách bỏ trốn
-out_of_order       = Phòng hỏng
-out_of_service     = Tạm ngừng
-```
+- **Sẵn sàng** — đủ 4 điều kiện trên, `status = 'available'`.
+- **Đang bận / nghỉ giải lao** — đủ 1-3, `status ∈ {'busy','break'}` → vẫn chọn được, có badge cảnh báo.
+- **Ngoại tuyến (heartbeat quá hạn)** — đủ 1-3 nhưng `last_seen_at` quá 30 phút → disable hoặc tách nhóm cuối.
 
-## Những gì reuse được
-
-- `src/lib/roomStatus.ts`: đã có metadata/label/màu/normalize cho status mới.
-- `RoomStatusBadge`, `RoomStatusSelector`: có nền tảng tốt, chỉ cần sửa lại dropdown/logic theo status canonical.
-- `transition_room_status`: đã có validate transition + audit log + permission.
-- `fn_is_valid_room_transition`, `fn_can_user_transition_room`: đã phần lớn hiểu status mới.
-- `useRoomChecks`: nhiều đoạn đã gọi `safeTransitionRoomStatus` với `vacant_clean`, `vacant_dirty`, `occupied_clean`.
-
-## Những gì cần refactor
-
-- `perform_checkin`: sửa để hiểu status mới, set phòng sang `occupied_clean`, có tenant/booking/occupancy validation chặt hơn.
-- `perform_checkout`: sửa để set phòng sang `vacant_dirty` thay vì `check_out`.
-- `useBookingActions`, `BookingsPage`, `RoomBookingDialog`: bỏ validation hardcode legacy, dùng helper chung.
-- `useRooms/useRoomStats`: đếm theo nhóm trạng thái mới thay vì legacy.
-- `RoomFilters`, `MobileRoomsPage`, `RoomFloorPlan`, `RoomSelect`, bulk action: bỏ `vacant/occupied/cleaning/check_in/check_out/maintenance` khỏi UI vận hành chính.
-- `roomFormSchema`: default/status enum phải theo trạng thái mới.
-
-## Những gì cần thêm mới
-
-- Helper frontend dùng chung:
-  - `canRoomCheckIn(status)`
-  - `isRoomOccupied(status)`
-  - `isRoomBlockedForSale(status)`
-  - `isRoomDirty(status)`
-  - `getRoomStatusGroup(status)`
-- Bộ filter theo nhóm dễ hiểu cho vận hành:
-  - Tất cả
-  - Sẵn sàng
-  - Đang ở
-  - Cần dọn
-  - Không khả dụng
-  - Đặc biệt
-- Unit tests cho mapping/permission/check-in eligibility.
-- Migration sửa RPC để backend là nguồn quyết định cuối cùng.
-
-## Rủi ro migration
-
-- Đây là thay đổi nghiệp vụ lõi, ảnh hưởng trực tiếp check-in/check-out.
-- Cần staged rollout:
-  1. Sửa RPC giữ backward compatibility với status cũ nếu còn dữ liệu cũ.
-  2. Backfill dữ liệu legacy nếu phát hiện còn `vacant`, `occupied`, `cleaning`, `check_out`, `maintenance`.
-  3. Frontend chỉ hiển thị trạng thái mới.
-- Không đổi tên bảng/cột, không xóa dữ liệu lịch sử.
-- Không update trực tiếp `rooms.status` từ client; mọi chuyển trạng thái vẫn qua RPC/audit.
-
----
-
-# Kế hoạch triển khai
-
-## A. Kiến trúc / logic nghiệp vụ
-
-Chuẩn hóa flow phòng như sau:
-
-```text
-Tạo phòng
-  → vacant_clean
-
-Check-in booking
-  vacant_clean / vacant_inspected / reserved
-  → occupied_clean
-
-Checkout booking
-  occupied_clean / occupied_dirty / dnd / service_refused / sleep_out
-  → vacant_dirty
-
-Housekeeping dọn xong
-  vacant_dirty
-  → vacant_clean
-
-QC pass
-  vacant_clean
-  → vacant_inspected
-
-Bảo trì / khóa phòng
-  any allowed status
-  → out_of_service / out_of_order
-  → vacant_clean / vacant_dirty khi mở lại
-```
-
-Nguyên tắc:
-- Check-in thường chỉ cho `vacant_clean`, `vacant_inspected`, `reserved`.
-- `vacant_dirty` không cho check-in thường; nếu cần override thì chỉ manager/owner dùng `force` có audit.
-- Checkout luôn đưa phòng về `vacant_dirty` để housekeeping xử lý.
-- UI chỉ hiển thị tiếng Việt, không còn `Check In/Check Out` như room status.
+Người không thoả điều kiện 1-2 (ca treo / chưa vào ca) **không xuất hiện**.
 
 ## B. Schema / migration
 
-Thêm migration sửa function, không tạo bảng mới:
+1. **Cron tự đóng ca treo**: bổ sung cron `auto_close_stale_shifts` chạy mỗi giờ — set `shift_end_at = now()`, `status = 'offline'` cho mọi `staff_status` có `shift_start_at < now() - interval '16 hours'` và `shift_end_at` null. Ghi vào `audit_log` với reason `'auto_close_stale_shift'`.
+2. Không thay đổi cấu trúc bảng. Không cột mới.
 
-1. Cập nhật `perform_checkin`:
-   - Lock room row.
-   - Validate tenant/booking cùng phòng.
-   - Chặn nếu có booking khác đang `checked_in`.
-   - Cho phép từ `vacant_clean`, `vacant_inspected`, `reserved`.
-   - Có thể tạm chấp nhận legacy `vacant` để compatibility.
-   - Update booking `checked_in`.
-   - Update room `occupied_clean`.
-   - Ghi audit hoặc gọi helper transition nếu phù hợp.
+## C. Code dùng chung
 
-2. Cập nhật `perform_checkout`:
-   - Update booking `checked_out` như hiện tại.
-   - Update room `vacant_dirty` thay vì `check_out`.
-   - Ghi audit trạng thái phòng.
+1. **`src/lib/staffPresence.ts`** (mới) — single source of truth:
+   - Hằng số `MAX_SHIFT_HOURS = 16`, `OFFLINE_THRESHOLD_MIN = 30`.
+   - `getPresenceState(status): 'on_shift_available' | 'on_shift_busy' | 'on_shift_offline' | 'shift_stale' | 'not_on_shift'`.
+   - `isOnShift(status)` (bao gồm điều kiện 1+2+3), `isAvailableNow(status)` (đủ 4).
+   - Label tiếng Việt + màu semantic cho từng state.
+2. **`src/hooks/useShiftManagement.ts`**:
+   - Thay `isCurrentlyOnShift` → re-export từ `staffPresence.ts` (compat layer, không breaking).
+3. **`src/hooks/useOnShiftStaffList.ts` + `useOnShiftStaffListAll.ts`**:
+   - Dùng `isOnShift` mới (loại ca treo, loại offline status).
+   - Trả về thêm `presence_state` cho mỗi staff để UI render badge.
+   - Sort: available → busy/break → offline-heartbeat.
 
-3. Backfill dữ liệu legacy nếu còn:
-   - `vacant` → `vacant_clean`
-   - `occupied` → `occupied_clean`
-   - `cleaning`, `check_out` → `vacant_dirty`
-   - `maintenance` → `out_of_service`
+## D. UI
 
-4. Đảm bảo `rooms.status` vẫn chỉ được ghi qua RPC/SECURITY DEFINER, không mở quyền update trực tiếp.
+1. **`CheckoutInspectionSection.tsx`** (chỗ user đang chọn):
+   - Group dropdown theo nhóm: "Sẵn sàng", "Đang bận", "Ngoại tuyến (>30 phút)".
+   - Badge nhỏ bên cạnh tên: chấm xanh / vàng / xám.
+   - Đổi label `(đang trong ca)` → `(đang trong ca, đã loại ca treo & ngoại tuyến lâu)` tooltip; label chính giữ ngắn.
+   - Hiển thị `last_seen_at` tương đối ("vừa xong", "5 phút trước") khi không phải available.
+2. **Tất cả dialog giao việc khác** (AssignTaskDialog, BulkCreateTaskDialog, DistributionForm, GroupCheckoutDialog, ApproveSupplementDialog, InspectionStatusCard, CleaningRequestBanner, GroupCheckoutRoomCard): áp cùng component `<StaffPicker>` mới → tái sử dụng nhóm + badge.
+3. **Trang `/staff-management` (`OnShiftStaffPanel`, `ShiftStatusBanner`)**: dùng cùng `getPresenceState`, hiển thị thêm cảnh báo "Ca quá 16 giờ — sẽ tự đóng" để Manager biết.
 
-## C. API / RPC / server actions
+## E. Permission
 
-- Sửa RPC:
-  - `perform_checkin`
-  - `perform_checkout`
-  - nếu cần: thêm helper `public.fn_normalize_room_status(_status text)` ở database để RPC cùng hiểu alias.
+Không thay đổi. Vẫn dùng `useHotelStaffList`/`useOnShiftStaffList` đã tôn trọng `user_hotels` + RLS theo `tenant_id`.
 
-- Kiểm tra lại:
-  - `transition_room_status`
-  - `fn_is_valid_room_transition`
-  - `fn_can_user_transition_room`
-  - `get_rooms_filtered`
-  - `get_floor_plan`
+## F. Test
 
-- Chuẩn hóa error code tiếng Việt:
-  - `ROOM_NOT_READY_FOR_CHECKIN`
-  - `ROOM_DIRTY_NEEDS_CLEANING`
-  - `ROOM_OCCUPIED`
-  - `ROOM_BLOCKED_FOR_MAINTENANCE`
-  - `BOOKING_NOT_VALID`
+- Unit `staffPresence.test.ts`: 8 case (chưa vào ca / vừa vào ca / ca 17h / shift_end_at < start / status offline / status busy / heartbeat quá 30' / available healthy).
+- Component test `CheckoutInspectionSection`: render đúng group, disable đúng item ngoại tuyến.
+- SQL test cron `auto_close_stale_shifts`: insert row 20h trước → chạy cron → assert đã đóng + audit log.
 
-## D. UI screens / components
+## G. Rollout
 
-Sửa các nơi đang hardcode status cũ:
+1. Bật migration cron (không phá dữ liệu — chỉ đóng ca treo).
+2. Chạy 1 lần thủ công để dọn ngay dữ liệu sai hiện tại (4 user có ca treo > 16h).
+3. Deploy code: hook + UI cùng release; vì compat layer giữ tên `isCurrentlyOnShift`, không component nào vỡ.
+4. Bump `APP_VERSION` + thêm entry changelog.
+5. Theo dõi audit log `auto_close_stale_shift` 1 tuần.
 
-- `src/lib/roomStatus.ts`
-  - Thêm helper eligibility/group.
-  - Dùng làm nguồn duy nhất cho label/status.
+## Rủi ro
 
-- `src/types/rooms.types.ts`
-  - Giữ legacy alias nếu cần tương thích, nhưng UI chính dùng `RoomStatusV2`.
-
-- `src/hooks/useRooms.ts`
-  - `useRoomStats` đếm theo nhóm mới.
-  - `useMarkRoomReady` sửa gọi `transition_task_status` đúng signature `_reason` thay vì `_note` nếu đang lỗi.
-
-- `src/hooks/useBookingActions.ts`
-  - Cập nhật error mapping.
-  - Sau check-in invalidate đủ `rooms`, `room-stats`, `floor-plan`, `booking-detail`, `today-checkins`.
-
-- `src/pages/bookings/BookingsPage.tsx`
-  - Bỏ validation cũ `occupied/maintenance/out_of_order`.
-  - Dùng `canRoomCheckIn` để cảnh báo trước; RPC vẫn là nguồn quyết định cuối.
-
-- `src/components/rooms/RoomBookingDialog.tsx`
-  - Đồng bộ logic check-in như BookingsPage.
-
-- `src/components/rooms/RoomFilters.tsx`
-  - Filter theo status mới hoặc group mới.
-
-- `src/components/rooms/MobileRoomsPage.tsx`
-  - Thống kê/filter/status chips theo status mới.
-
-- `src/components/rooms/RoomFloorPlan.tsx`
-  - Dùng `getRoomStatusMeta`, không hardcode legacy icon/config.
-
-- `src/components/shared/RoomSelect.tsx`
-  - Dùng `RoomStatusBadge` thay vì tự map legacy.
-
-- `src/components/rooms/RoomBulkActionsBar.tsx`
-- `src/components/rooms/MobileRoomBulkActionsBar.tsx`
-  - Chỉ cho bulk chuyển sang status mới.
-  - Không còn `check_in/check_out` như trạng thái phòng.
-
-- `src/lib/validations/rooms.schemas.ts`
-  - Schema tạo/sửa phòng default `vacant_clean`.
-
-- `src/i18n/locales/vi/rooms.json`
-  - Thêm label status mới.
-  - Giữ label cũ chỉ cho fallback, không dùng trong UI chính.
-
-## E. Permission / role rules
-
-- Staff lễ tân:
-  - Check-in: `vacant_clean/vacant_inspected/reserved → occupied_clean`.
-  - Checkout: `occupied_* / dnd / service_refused / sleep_out → vacant_dirty`.
-
-- Housekeeping staff:
-  - `vacant_dirty → vacant_clean`.
-  - `occupied_dirty → occupied_clean`.
-  - Đánh dấu `dnd`, `service_refused` khi phù hợp.
-
-- Manager/Owner:
-  - Được chuyển `out_of_service`, `out_of_order`.
-  - Được QC `vacant_clean → vacant_inspected`.
-  - Được override với `_force = true` nếu thật sự cần, có audit.
-
-## F. Test cases
-
-Thêm/sửa test cho logic quan trọng:
-
-1. Unit test frontend:
-   - `canRoomCheckIn('vacant_clean') = true`
-   - `canRoomCheckIn('vacant_inspected') = true`
-   - `canRoomCheckIn('vacant_dirty') = false`
-   - `isRoomOccupied('occupied_clean'/'occupied_dirty'/'dnd') = true`
-   - Legacy alias normalize đúng.
-
-2. RPC smoke tests:
-   - Check-in phòng `vacant_clean` thành công → room `occupied_clean`, booking `checked_in`.
-   - Check-in phòng `vacant_dirty` bị chặn với lỗi dễ hiểu.
-   - Checkout booking `checked_in` thành công → room `vacant_dirty`.
-   - Có booking khác đang ở thì check-in bị chặn.
-
-3. UI regression:
-   - Room stats đếm đúng 77 sẵn sàng / 14 cần dọn / 2 đang ở theo dữ liệu hiện tại.
-   - Filter “Sẵn sàng” hiển thị `vacant_clean` + `vacant_inspected`.
-   - Nút check-in trên `/bookings` không còn báo `vacant_clean` không hợp lệ.
-
-## G. Rollout notes
-
-- Bước 1: Migration sửa RPC + compatibility alias.
-- Bước 2: Refactor helper frontend và các màn chính.
-- Bước 3: Backfill status legacy nếu có.
-- Bước 4: QA trực tiếp các flow:
-  - Tạo booking → check-in.
-  - Checkout → phòng sang “Trống – chưa dọn”.
-  - Housekeeping hoàn tất → phòng sang “Trống – đã dọn”.
-  - Floor plan/mobile stats/filter đồng bộ.
-- Bước 5: Bump version/changelog theo quy ước release.
-
-## Rollback plan
-
-Nếu có lỗi sau triển khai:
-- Rollback function `perform_checkin`/`perform_checkout` về bản cũ từ migration trước.
-- Frontend vẫn có legacy normalize nên không trắng màn.
-- Không mất dữ liệu booking/room vì không đổi schema lớn.
-- Nếu cần, có thể map tạm:
-  - `occupied_clean` → `occupied`
-  - `vacant_dirty` → `cleaning`
-  - `vacant_clean` → `vacant`
-
-## File dự kiến sửa
-
-- `src/lib/roomStatus.ts`
-- `src/types/rooms.types.ts`
-- `src/hooks/useRooms.ts`
-- `src/hooks/useBookingActions.ts`
-- `src/hooks/useAvailableRooms.ts`
-- `src/pages/bookings/BookingsPage.tsx`
-- `src/components/rooms/RoomBookingDialog.tsx`
-- `src/components/rooms/RoomFilters.tsx`
-- `src/components/rooms/MobileRoomsPage.tsx`
-- `src/components/rooms/RoomFloorPlan.tsx`
-- `src/components/shared/RoomSelect.tsx`
-- `src/components/rooms/RoomBulkActionsBar.tsx`
-- `src/components/rooms/MobileRoomBulkActionsBar.tsx`
-- `src/lib/validations/rooms.schemas.ts`
-- `src/i18n/locales/vi/rooms.json`
-- `src/lib/app-version.ts`
-- `public/changelog.json`
-
-## Migration dự kiến thêm
-
-- Migration cập nhật:
-  - `perform_checkin`
-  - `perform_checkout`
-  - optional `fn_normalize_room_status`
-  - optional backfill status legacy nếu còn dữ liệu cũ
-
-## Test dự kiến viết
-
-- Test helper status trong `src/lib/roomStatus.test.ts`.
-- Test RPC hoặc SQL smoke test cho check-in/check-out nếu harness hiện tại cho phép.
-
-## Phần còn thiếu / cần kiểm tra trong lúc triển khai
-
-- Kiểm tra chính xác các constraint/quyền column-level hiện tại của `rooms.status` trước khi viết migration.
-- Kiểm tra có trigger audit riêng cho `rooms` hay chỉ dùng `audit_log` hiện tại.
-- Kiểm tra các màn dashboard/report khác ngoài `/rooms` và `/bookings` có đang đếm status cũ không.
-- Sau khi sửa cần test thực tế trên preview với một booking/phòng cụ thể.
+- Nhân viên đang dùng app nhưng quên bấm "Vào ca" sẽ vẫn không hiện → cần thêm banner nhắc ở `ShiftStatusBanner` (đã có) và đảm bảo flow "Vào ca" rõ ràng. Không thay đổi flow trong phạm vi này.
+- Threshold 16h / 30 phút là giả định hợp lý cho khách sạn 2–4 sao VN; cho phép Owner chỉnh sau qua `tenants.settings.shift` (mở rộng tương lai, không build trong sprint này).

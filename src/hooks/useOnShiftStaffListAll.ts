@@ -2,7 +2,12 @@ import { useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
-import { isCurrentlyOnShift } from './useShiftManagement'
+import {
+  getPresenceState,
+  isOnShift,
+  PRESENCE_SORT_ORDER,
+  type StaffPresenceState,
+} from '@/lib/staffPresence'
 
 export interface OnShiftStaffMember {
   id: string
@@ -17,6 +22,8 @@ export interface OnShiftStaffMember {
   telegram_username: string | null
   telegram_chat_id: string | null
   shift_start_at: string | null
+  last_seen_at: string | null
+  presence_state: StaffPresenceState
 }
 
 /**
@@ -84,19 +91,16 @@ export function useOnShiftStaffListAll() {
 
       const { data: statuses, error: statusError } = await supabase
         .from('staff_status')
-        .select('user_id, shift_start_at, shift_end_at')
+        .select('user_id, shift_start_at, shift_end_at, status, last_seen_at')
         .in('user_id', userIds)
 
       if (statusError) throw statusError
 
       const statusMap = new Map(statuses?.map(s => [s.user_id, s]) || [])
 
-      // Filter only on-shift staff
+      // Filter only on-shift staff (unified logic)
       const onShiftStaff: OnShiftStaffMember[] = users
-        .filter(user => {
-          const status = statusMap.get(user.id)
-          return isCurrentlyOnShift(status || null)
-        })
+        .filter(user => isOnShift(statusMap.get(user.id) || null))
         .map(user => {
           const status = statusMap.get(user.id)
           const activeConnection = (user as any).telegram_connections?.find((tc: any) => tc.is_active)
@@ -114,17 +118,19 @@ export function useOnShiftStaffListAll() {
             telegram_username: (user as any).telegram_username || null,
             telegram_chat_id: activeConnection?.chat_id || null,
             shift_start_at: status?.shift_start_at || null,
+            last_seen_at: status?.last_seen_at || null,
+            presence_state: getPresenceState(status || null),
           }
         })
 
-      // Sort by shift start time (most recent first)
+      // Sort: available → busy → offline-heartbeat, then by name
       return onShiftStaff.sort((a, b) => {
-        if (!a.shift_start_at) return 1
-        if (!b.shift_start_at) return -1
-        return new Date(b.shift_start_at).getTime() - new Date(a.shift_start_at).getTime()
+        const diff = PRESENCE_SORT_ORDER[a.presence_state] - PRESENCE_SORT_ORDER[b.presence_state]
+        if (diff !== 0) return diff
+        return a.full_name.localeCompare(b.full_name, 'vi')
       })
     },
     enabled: !!tenantId,
-    staleTime: 30 * 1000, // 30s — realtime sẽ invalidate khi có shift thay đổi
+    staleTime: 30 * 1000,
   })
 }

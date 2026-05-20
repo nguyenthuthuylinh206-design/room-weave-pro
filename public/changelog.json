@@ -1,6 +1,17 @@
 {
-  "current": "1.0.39",
+  "current": "1.0.40",
   "versions": [
+    {
+      "version": "1.0.40",
+      "releaseDate": "2026-05-20",
+      "title": "Đồng bộ logic 'đang trong ca' giữa giao việc và Quản lý nhân sự",
+      "changes": [
+        { "type": "fix", "text": "Dropdown chọn nhân viên kiểm tra phòng (checkout, housekeeping, distribution...) nay loại bỏ ca treo quá 16 giờ — không còn hiện nhân viên đã nghỉ từ tuần trước" },
+        { "type": "improvement", "text": "Nhân viên hiển thị theo nhóm rõ ràng: Sẵn sàng (chấm xanh) / Đang bận (vàng) / Mất kết nối >30 phút (xám), thay vì gộp chung" },
+        { "type": "improvement", "text": "Trạng thái busy/break/offline trong staff_status nay được tôn trọng ở mọi nơi giao việc, không chỉ ở trang Quản lý nhân sự" },
+        { "type": "improvement", "text": "Tự động đóng các ca làm việc đã mở quá 16 giờ (nhân viên quên bấm tan ca), chạy mỗi giờ và ghi nhật ký audit" }
+      ]
+    },
     {
       "version": "1.0.39",
       "releaseDate": "2026-05-20",

@@ -10903,6 +10903,7 @@ export type Database = {
       }
       auto_apply_read_only_after_grace: { Args: never; Returns: number }
       auto_clear_read_only_after_renewal: { Args: never; Returns: number }
+      auto_close_stale_shifts: { Args: never; Returns: Json }
       auto_offline_inactive_staff: { Args: never; Returns: undefined }
       batch_confirm_room_deliveries: {
         Args: { p_confirmed_by: string; p_room_order_ids: string[] }

@@ -195,7 +195,7 @@ export function GroupCheckoutRoomCard({
                   <InspectionStatusCard
                     inspection={inspection}
                     staffList={staffList}
-                    onViewDetail={(staff) => onViewStaffDetail(staff as StaffWithStatus)}
+                    onViewDetail={(staff) => onViewStaffDetail(staff as unknown as StaffWithStatus)}
                     onCancelInspection={onCancelInspection}
                     isProcessing={isProcessing}
                   />
