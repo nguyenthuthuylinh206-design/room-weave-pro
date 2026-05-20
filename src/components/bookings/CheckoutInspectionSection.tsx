@@ -310,10 +310,12 @@ export function CheckoutInspectionSection({
       <div className="space-y-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1">
           Chọn nhân viên kiểm tra
-          <span>(đang trong ca)</span>
+          <span title="Chỉ hiển thị nhân viên đang trong ca (đã loại ca treo &gt; 16h và nhân viên đã tan ca)">
+            (đang trong ca)
+          </span>
         </Label>
-        <Select 
-          value={selectedStaffId} 
+        <Select
+          value={selectedStaffId}
           onValueChange={setSelectedStaffId}
           disabled={isLoadingStaff}
         >
@@ -325,24 +327,46 @@ export function CheckoutInspectionSection({
               <div className="py-2 px-3 text-sm text-muted-foreground">
                 Không có nhân viên đang trong ca
               </div>
-            ) : staffList.map((staff) => (
-              <SelectItem key={staff.id} value={staff.id}>
-                <div className="flex items-center gap-2">
-                  <Avatar className="h-6 w-6">
-                    <AvatarImage src={staff.avatar_url || undefined} />
-                    <AvatarFallback className="text-xs">
-                      {staff.full_name.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col">
-                    <span className="text-sm">{staff.full_name}</span>
-                    {staff.position_name && (
-                      <span className="text-xs text-muted-foreground">{staff.position_name}</span>
-                    )}
+            ) : (
+              (['on_shift_available', 'on_shift_busy', 'on_shift_offline'] as StaffPresenceState[]).map(group => {
+                const groupStaff = staffList.filter(s => s.presence_state === group)
+                if (groupStaff.length === 0) return null
+                return (
+                  <div key={group}>
+                    <div className="px-2 py-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                      {PRESENCE_LABEL[group]} ({groupStaff.length})
+                    </div>
+                    {groupStaff.map((staff) => (
+                      <SelectItem key={staff.id} value={staff.id}>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              'h-2 w-2 rounded-full shrink-0',
+                              PRESENCE_DOT_COLOR[staff.presence_state]
+                            )}
+                          />
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage src={staff.avatar_url || undefined} />
+                            <AvatarFallback className="text-xs">
+                              {staff.full_name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-sm truncate">{staff.full_name}</span>
+                            <span className="text-xs text-muted-foreground truncate">
+                              {staff.position_name || PRESENCE_LABEL[staff.presence_state]}
+                              {staff.presence_state === 'on_shift_offline' && staff.last_seen_at && (
+                                <> · {formatDistanceToNow(new Date(staff.last_seen_at), { locale: vi, addSuffix: true })}</>
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))}
                   </div>
-                </div>
-              </SelectItem>
-            ))}
+                )
+              })
+            )}
           </SelectContent>
         </Select>
       </div>
