@@ -2,7 +2,12 @@ import { useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
-import { isCurrentlyOnShift } from './useShiftManagement'
+import {
+  getPresenceState,
+  isOnShift,
+  PRESENCE_SORT_ORDER,
+  type StaffPresenceState,
+} from '@/lib/staffPresence'
 
 export interface OnShiftStaffMember {
   id: string
@@ -17,6 +22,8 @@ export interface OnShiftStaffMember {
   telegram_username: string | null
   telegram_chat_id: string | null
   shift_start_at: string | null
+  last_seen_at: string | null
+  presence_state: StaffPresenceState
 }
 
 /**
