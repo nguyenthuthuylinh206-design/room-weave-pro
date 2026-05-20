@@ -46,8 +46,8 @@ export default function CreateInvoiceDialog({ open, onOpenChange, prefill }: Cre
     check_in_date: prefill?.check_in_date || '',
     check_out_date: prefill?.check_out_date || '',
     line_items: prefill?.line_items?.length ? prefill.line_items : [{ ...DEFAULT_LINE_ITEM }],
-    vat_rate: 0.1, // 10% stored as decimal
-    service_fee_rate: 0.05, // 5%
+    vat_rate: 8, // integer percent (8 = 8%)
+    service_fee_rate: 5, // integer percent
     deposit_amount: prefill?.deposit_amount || 0,
     amount_paid: prefill?.amount_paid || 0,
     payment_method: prefill?.payment_method || 'cash',
@@ -55,8 +55,8 @@ export default function CreateInvoiceDialog({ open, onOpenChange, prefill }: Cre
   }))
 
   const subtotal = form.line_items.reduce((sum, item) => sum + item.amount, 0)
-  const vatAmount = subtotal * form.vat_rate
-  const serviceFeeAmount = subtotal * form.service_fee_rate
+  const vatAmount = Math.round(subtotal * form.vat_rate / 100)
+  const serviceFeeAmount = Math.round(subtotal * form.service_fee_rate / 100)
   const totalAmount = subtotal + vatAmount + serviceFeeAmount
 
   const updateLineItem = (index: number, field: keyof InvoiceLineItem, value: string | number) => {
@@ -182,7 +182,7 @@ export default function CreateInvoiceDialog({ open, onOpenChange, prefill }: Cre
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1">
                 <span className="text-muted-foreground">VAT</span>
-                <Input className="h-6 w-14 text-xs text-center" type="number" value={Math.round(form.vat_rate * 100)} onChange={e => setForm(p => ({ ...p, vat_rate: Number(e.target.value) / 100 }))} />
+                <Input className="h-6 w-14 text-xs text-center" type="number" value={form.vat_rate} onChange={e => setForm(p => ({ ...p, vat_rate: Number(e.target.value) }))} />
                 <span className="text-xs text-muted-foreground">%</span>
               </div>
               <span className="font-mono">{formatCurrency(vatAmount)}</span>
@@ -190,7 +190,7 @@ export default function CreateInvoiceDialog({ open, onOpenChange, prefill }: Cre
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1">
                 <span className="text-muted-foreground">Phí DV</span>
-                <Input className="h-6 w-14 text-xs text-center" type="number" value={Math.round(form.service_fee_rate * 100)} onChange={e => setForm(p => ({ ...p, service_fee_rate: Number(e.target.value) / 100 }))} />
+                <Input className="h-6 w-14 text-xs text-center" type="number" value={form.service_fee_rate} onChange={e => setForm(p => ({ ...p, service_fee_rate: Number(e.target.value) }))} />
                 <span className="text-xs text-muted-foreground">%</span>
               </div>
               <span className="font-mono">{formatCurrency(serviceFeeAmount)}</span>

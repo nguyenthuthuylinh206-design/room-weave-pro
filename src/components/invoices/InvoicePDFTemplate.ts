@@ -18,6 +18,31 @@ function formatVND(amount: number): string {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
 }
 
+/**
+ * Chuẩn hoá thuế suất hiển thị về số phần trăm nguyên.
+ * - Quy ước mới: lưu integer % (8, 10, 5).
+ * - Tương thích ngược: dữ liệu cũ lưu decimal (0.08, 0.1) — nếu < 1 thì × 100.
+ */
+function normalizeRatePct(r: number | null | undefined): number {
+  const v = Number(r) || 0
+  if (v > 0 && v < 1) return Math.round(v * 100)
+  return Math.round(v)
+}
+
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  cash: 'Tiền mặt',
+  bank_transfer: 'Chuyển khoản',
+  card: 'Thẻ',
+  qr: 'QR / VietQR',
+  vietqr: 'QR / VietQR',
+  ota: 'OTA',
+  other: 'Khác',
+}
+function paymentMethodLabel(m: string | null | undefined): string {
+  if (!m) return ''
+  return PAYMENT_METHOD_LABEL[m] || m
+}
+
 async function qrDataUrl(text: string, size = 180): Promise<string> {
   try {
     return await QRCode.toDataURL(text, {
@@ -117,16 +142,22 @@ async function buildReceiptHTML(
       </div>
       <div style="padding:2px 0;">
         <div style="display:flex;justify-content:space-between;"><span>Tạm tính:</span><span>${formatVND(invoice.subtotal)}</span></div>
-        ${invoice.vat_amount > 0 ? `<div style="display:flex;justify-content:space-between;"><span>VAT ${Math.round(invoice.vat_rate * 100)}%:</span><span>${formatVND(invoice.vat_amount)}</span></div>` : ''}
-        ${invoice.service_fee_amount > 0 ? `<div style="display:flex;justify-content:space-between;"><span>Phí DV ${Math.round(invoice.service_fee_rate * 100)}%:</span><span>${formatVND(invoice.service_fee_amount)}</span></div>` : ''}
+        ${invoice.vat_amount > 0 ? `<div style="display:flex;justify-content:space-between;"><span>VAT ${normalizeRatePct(invoice.vat_rate)}%:</span><span>${formatVND(invoice.vat_amount)}</span></div>` : ''}
+        ${invoice.service_fee_amount > 0 ? `<div style="display:flex;justify-content:space-between;"><span>Phí DV ${normalizeRatePct(invoice.service_fee_rate)}%:</span><span>${formatVND(invoice.service_fee_amount)}</span></div>` : ''}
         <div style="display:flex;justify-content:space-between;font-weight:700;border-top:1px dashed #999;padding-top:4px;margin-top:4px;font-size:${config.fontSize + 1}px;">
           <span>TỔNG:</span><span>${formatVND(invoice.total_amount)}</span>
         </div>
+        ${invoice.deposit_amount > 0 ? `<div style="display:flex;justify-content:space-between;"><span>Đã cọc:</span><span>${formatVND(invoice.deposit_amount)}</span></div>` : ''}
         ${invoice.amount_paid > 0 ? `<div style="display:flex;justify-content:space-between;"><span>Đã TT:</span><span>${formatVND(invoice.amount_paid)}</span></div>` : ''}
         ${remaining > 0 ? `<div style="display:flex;justify-content:space-between;font-weight:600;"><span>Còn lại:</span><span>${formatVND(remaining)}</span></div>` : ''}
+        ${remaining < 0 ? `<div style="display:flex;justify-content:space-between;font-weight:600;"><span>Tiền thừa trả khách:</span><span>${formatVND(Math.abs(remaining))}</span></div>` : ''}
+        ${invoice.payment_method ? `<div style="display:flex;justify-content:space-between;margin-top:2px;"><span>Hình thức:</span><span>${paymentMethodLabel(invoice.payment_method)}</span></div>` : ''}
       </div>
       ${qrBlockReceipt(qr, qrLabel, qrSize)}
-      <div style="text-align:center;margin-top:8px;font-size:${config.fontSize - 1}px;color:#888;">Cảm ơn quý khách!</div>
+      <div style="text-align:center;margin-top:8px;font-size:${config.fontSize - 1}px;color:#888;line-height:1.5;">
+        <div>Cảm ơn quý khách. Hẹn gặp lại!</div>
+        ${qrPayload ? `<div style="margin-top:2px;">Quét QR trong vòng 7 ngày để lấy HĐ GTGT điện tử.</div>` : ''}
+      </div>
     </div>`
 }
 
@@ -188,12 +219,14 @@ async function buildSheetHTML(
       <div style="display:flex;justify-content:flex-end;">
         <div style="width:300px;">
           <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Tạm tính:</span><span style="font-family:monospace;">${formatVND(invoice.subtotal)}</span></div>
-          ${invoice.vat_amount > 0 ? `<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>VAT (${Math.round(invoice.vat_rate * 100)}%):</span><span style="font-family:monospace;">${formatVND(invoice.vat_amount)}</span></div>` : ''}
-          ${invoice.service_fee_amount > 0 ? `<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Phí dịch vụ (${Math.round(invoice.service_fee_rate * 100)}%):</span><span style="font-family:monospace;">${formatVND(invoice.service_fee_amount)}</span></div>` : ''}
+          ${invoice.vat_amount > 0 ? `<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>VAT (${normalizeRatePct(invoice.vat_rate)}%):</span><span style="font-family:monospace;">${formatVND(invoice.vat_amount)}</span></div>` : ''}
+          ${invoice.service_fee_amount > 0 ? `<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Phí dịch vụ (${normalizeRatePct(invoice.service_fee_rate)}%):</span><span style="font-family:monospace;">${formatVND(invoice.service_fee_amount)}</span></div>` : ''}
           <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:2px solid #333;font-size:${config.fontSize + 2}px;font-weight:700;"><span>TỔNG CỘNG:</span><span style="font-family:monospace;">${formatVND(invoice.total_amount)}</span></div>
           ${invoice.deposit_amount > 0 ? `<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Đã cọc:</span><span style="font-family:monospace;">${formatVND(invoice.deposit_amount)}</span></div>` : ''}
           ${invoice.amount_paid > 0 ? `<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Đã thanh toán:</span><span style="font-family:monospace;">${formatVND(invoice.amount_paid)}</span></div>` : ''}
           ${remaining > 0 ? `<div style="display:flex;justify-content:space-between;padding:3px 0;color:#c00;font-weight:600;"><span>Còn lại:</span><span style="font-family:monospace;">${formatVND(remaining)}</span></div>` : ''}
+          ${remaining < 0 ? `<div style="display:flex;justify-content:space-between;padding:3px 0;font-weight:600;"><span>Tiền thừa trả khách:</span><span style="font-family:monospace;">${formatVND(Math.abs(remaining))}</span></div>` : ''}
+          ${invoice.payment_method ? `<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Hình thức thanh toán:</span><span>${paymentMethodLabel(invoice.payment_method)}</span></div>` : ''}
         </div>
       </div>
       ${qrBlockA4(qr, qrLabel)}
