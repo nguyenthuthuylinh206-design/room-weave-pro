@@ -68,20 +68,14 @@ export function MobileHotelSwitcher({ children, className }: MobileHotelSwitcher
 
   return (
     <>
-      <span
+      <button
+        type="button"
         onClick={() => setOpen(true)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            setOpen(true)
-          }
-        }}
-        className="inline-flex min-w-0 max-w-full cursor-pointer active:opacity-70"
+        className="inline-flex min-w-0 max-w-full items-center text-left cursor-pointer active:opacity-70 bg-transparent border-0 p-0"
+        aria-label="Chọn khách sạn"
       >
         {trigger}
-      </span>
+      </button>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="bottom"
