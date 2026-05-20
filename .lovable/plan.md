@@ -1,137 +1,86 @@
-## Mục tiêu
 
-Chuẩn hoá luồng xuất hoá đơn theo thực tế khách sạn VN:
+## Bối cảnh
 
-```
-Thanh toán → In bill nhiệt (K80/K58) → In QR "Lấy hoá đơn VAT"
-   → Khách quét QR, tự nhập thông tin công ty/email (public form)
-   → Hệ thống tự phát hành HĐĐT (e-invoice)
-   → Gửi PDF + link tra cứu qua email
-```
+Bill trong ảnh có 2 nhóm vấn đề: **(A) Bug tính toán hiển thị**, **(B) Thiếu thông tin nghiệp vụ chuẩn KS Việt Nam**.
 
-Hỗ trợ đầy đủ khổ giấy: **A4, A5, K80, K58**, có **QR code** in trực tiếp trên bill nhiệt.
+## A. Bug nghiêm trọng cần sửa ngay
 
----
+### 1. Hiển thị thuế suất sai 100 lần ("VAT 800%", "Phí DV 500%")
+- `DEFAULT_PRICING_RULES` (src/lib/bookingCalculations.ts:46-47) và booking wizard lưu rate dạng **integer phần trăm** (8, 5).
+- Nhưng `InvoicePDFTemplate.ts:120-121, 191-192`, `EditInvoiceDialog`, `CreateInvoiceDialog`, `send-invoice-email/index.ts:168` lại assume **decimal** (0.08) và làm `rate * 100`.
+- Hệ quả: 8 × 100 = 800%. Số tiền VAT thì đúng vì đã lưu sẵn `vat_amount`.
 
-## A. Kiến trúc nghiệp vụ
+**Fix**: chuẩn hoá 1 quy ước duy nhất — đề xuất **giữ integer percent** (vì DB hiện có dữ liệu kiểu này và booking UI dùng vậy):
+- Sửa `InvoicePDFTemplate.ts` (K58/K80/A5/A4) và `send-invoice-email`: bỏ `* 100`, render `${invoice.vat_rate}%`.
+- Sửa `EditInvoiceDialog.tsx` và `CreateInvoiceDialog.tsx`:
+  - default `vat_rate: 10` thay `0.1`, `service_fee_rate: 5` thay `0.05`.
+  - `vatAmount = subtotal * form.vat_rate / 100`.
+  - Input ô % không cần chia 100.
+- Thêm helper `normalizeRate(r)` tạm thời: nếu `r < 1` thì coi là decimal cũ và `r*100`, để không vỡ các invoice cũ đã lưu rate=0.1.
 
-1. **Bill nhiệt (K80/K58)** in tại quầy ngay khi thanh toán — chỉ là phiếu thu, không phải HĐĐT.
-2. Trên bill in **QR code** dẫn tới `/i/:claimToken` (public, không cần login).
-3. Khách quét → form công khai nhập: Tên công ty, MST, địa chỉ, email nhận hoá đơn. Chỉ điền 1 lần, có TTL 7 ngày.
-4. Submit → edge function `issue-einvoice`:
-  - Validate MST (regex 10/13 số)
-  - Cập nhật `guest_invoices` (tax_code, company_name, email, status='issued')
-  - Gọi provider HĐĐT (giai đoạn 1: mock/stub – tạo PDF HĐĐT nội bộ; giai đoạn 2: tích hợp VNPT/Misa/Easyinvoice qua API key)
-  - Lưu file vào storage bucket `einvoices/`
-  - Gọi `send-transactional-email` với template `einvoice-issued` (link tải PDF + mã tra cứu)
-5. Khách nhận email; lễ tân thấy trạng thái invoice chuyển `pending_vat → issued`.
+### 2. Chênh "Tạm tính 58.800.000" vs line item 60.200.000
+Chênh đúng 1 đêm × 1.4M. Cần verify: subtotal đang trừ đêm checkout hay deposit? `useBookingForm.ts:491` tính subtotal từ `state.subtotal` nhưng line item lại in `nights × price`. Sẽ kiểm tra trong implement và đồng bộ: line item phải khớp subtotal (đúng số đêm tính tiền theo policy đêm cuối/đêm đầu).
 
----
+## B. Bổ sung nghiệp vụ KS Việt Nam (bill nhiệt K80)
 
-## B. Schema / Migration
+Header hiện chỉ ghi "KHÁCH SẠN". Cần đọc từ `hotels` table và đổ vào template:
+- Tên KS (in đậm, cỡ lớn)
+- Địa chỉ
+- Điện thoại / hotline
+- MST (nếu có) — để khách check cross trước khi điền form VAT
+- Logo tuỳ chọn (base64 hoặc bỏ qua)
 
-**Bảng mới `invoice_vat_claims**` (public access qua token):
+Body cần thêm:
+- **Mã booking / số phòng / số khách / số đêm** rõ ràng.
+- **Ngày nhận – ngày trả** (dd/MM/yy HH:mm).
+- **Chi tiết dịch vụ**: hiện chỉ in "Tiền phòng". Cần render các nhóm từ `line_items` (minibar, giặt ủi, phụ thu sớm/muộn, dịch vụ extra) theo group.
+- **Giảm giá / cọc** thành dòng riêng (nếu có).
+- **Phương thức thanh toán**: Tiền mặt / Chuyển khoản / Thẻ — đọc `payment_method`.
+- **Thu ngân / Ca**: lấy `created_by` → tên nhân viên; ca trực hiện tại.
+- **Số tiền đã thu / Còn lại / Tiền thừa trả khách**.
 
-- `id uuid pk`
-- `invoice_id uuid fk guest_invoices`
-- `tenant_id uuid`
-- `claim_token text unique` (random 24 ký tự, dùng cho URL)
-- `expires_at timestamptz` (default now()+7 days)
-- `claimed_at timestamptz null`
-- `company_name, tax_code, company_address, email text`
-- `einvoice_pdf_path text null`
-- `einvoice_lookup_code text null`
-- `status text` (`pending` | `submitted` | `issued` | `failed` | `expired`)
+Footer:
+- "Cảm ơn quý khách. Hẹn gặp lại!"
+- Dòng nhỏ: "Quét mã để lấy hoá đơn GTGT điện tử trong vòng 7 ngày."
+- URL ngắn dạng `roomqc.com/i/XXXX` dưới QR để khách không scan được vẫn gõ tay được.
+- Số bill + thời gian in + version app.
 
-`**guest_invoices` thêm cột:**
+## C. Đa khổ giấy — đảm bảo nhất quán
 
-- `vat_claim_status text default 'none'` (`none` | `pending` | `issued`)
-- `einvoice_issued_at timestamptz null`
-- `einvoice_provider text null`
+Cùng 1 hàm dựng data (`buildInvoiceModel(invoice, hotel, staff)`) → 4 renderer K58/K80/A5/A4 chỉ khác CSS/layout. Hiện 4 renderer copy logic riêng dễ lệch. Refactor:
+- `buildInvoiceModel()`: trả về object đã chuẩn hoá (rate %, các dòng, totals, footer text).
+- 4 builder chỉ format HTML.
 
-**RLS:**
+## D. QR lấy VAT — chỉnh nhỏ
 
-- `invoice_vat_claims`: SELECT/UPDATE public bằng `claim_token` (anon role, WHERE expires_at > now() AND claimed_at IS NULL); authenticated full theo `tenant_id`.
-- Storage bucket `einvoices` private; signed URL trong email.
+- Slip QR (`printVatQrSlip`) phải kèm **tên KS + số bill** để khách không nhầm khi quét bill của KS khác.
+- TTL 7 ngày — hiển thị "Hạn lấy HĐ: dd/MM/yyyy" dưới QR.
 
-**Trigger:** sau khi `payment_transactions` chuyển `completed` cho invoice loại VAT-eligible → auto insert `invoice_vat_claims` row + token.
+## E. Phạm vi KHÔNG đụng tới
 
----
+- DB schema invoice giữ nguyên (đã có vat_rate/service_fee_rate).
+- Flow public claim `/i/:token` (Phase 2) giữ nguyên.
+- Provider HĐĐT stub giữ nguyên (Phase 3 sau).
 
-## C. API / RPC / Edge Functions
+## File sẽ sửa
 
-1. `POST /functions/v1/issue-einvoice` (public, có rate-limit theo token)
-  - Body: `{ claim_token, company_name, tax_code, company_address, email }`
-  - Zod validate, normalize MST, kiểm tra token còn hạn
-  - Atomic: update claim + invoice + enqueue email
-2. `GET /functions/v1/lookup-einvoice?code=...` — public tra cứu HĐĐT (giai đoạn 2).
-3. Email template `einvoice-issued.tsx` (React Email) trong `_shared/transactional-email-templates/`.
-4. Reuse `send-transactional-email`.
+- `src/components/invoices/InvoicePDFTemplate.ts` — refactor 4 builders + thêm header KS, footer, dịch vụ, payment, thu ngân, QR slip có tên KS.
+- `src/components/invoices/InvoicePreviewDialog.tsx` — truyền `hotel`, `staff` xuống builder.
+- `src/components/invoices/EditInvoiceDialog.tsx` + `CreateInvoiceDialog.tsx` — chuẩn hoá rate sang integer %.
+- `src/lib/bookingCalculations.ts` — comment lại quy ước rate %.
+- `supabase/functions/send-invoice-email/index.ts` — bỏ `* 100`.
+- Thêm helper `src/components/invoices/buildInvoiceModel.ts` (mới).
+- `src/lib/app-version.ts` + `public/changelog.json` — bump 1.0.37.
 
----
+## QA checklist
 
-## D. UI / Components
+1. Bill cũ (vat_rate=0.08 lưu trước fix) vẫn render đúng "VAT 8%" nhờ `normalizeRate`.
+2. Bill mới (vat_rate=8) render "VAT 8%".
+3. Tạo invoice mới: số tiền VAT khớp khi nhập 10% → subtotal × 0.1.
+4. In K58/K80/A4/A5 đều có: tên KS, MST, địa chỉ, SĐT, thu ngân, payment method, QR + URL text.
+5. Email HĐ: % thuế hiển thị đúng.
+6. Tổng = Tạm tính + VAT + Phí DV − Giảm giá; Còn lại = Tổng − Đã thu − Cọc.
 
-### D1. Refactor `InvoicePDFTemplate.ts`
+## Cần xác nhận (1 câu hỏi)
 
-- Tách thành 4 builder rõ ràng: `buildA4Html`, `buildA5Html`, `buildK80Html`, `buildK58Html`.
-- Mỗi builder nhận thêm `qrPayload?: { url: string; label: string }`.
-- Khổ nhiệt (K80/K58): chèn block QR cuối bill (canvas inline SVG `qrcode` lib đã có sẵn) + dòng *"Quét mã để lấy hoá đơn VAT"*.
-- A4/A5: thêm QR nhỏ góc dưới phải.
-- Fix giãn dòng / wrap cho tên dài trên K58.
-- `printInvoice`: thêm `@page { size: 80mm auto; margin: 2mm }` cho K80, tương tự K58, giữ A4/A5 chuẩn.
-
-### D2. `InvoicePreviewDialog.tsx`
-
-- Thêm tab/segment **"In bill thanh toán"** vs **"Hoá đơn VAT điện tử"** (khi đã issued).
-- Hiển thị trạng thái claim VAT: badge `Chưa lấy VAT / Khách đang nhập / Đã phát hành`.
-- Nút **"In lại QR lấy VAT"** (in một mảnh K80 chỉ có QR + hướng dẫn).
-
-### D3. Trang public `src/pages/public/InvoiceVatClaimPage.tsx`
-
-- Route `/i/:token` (no auth, mobile-first).
-- Form Zod: company_name, tax_code (10/13 số), company_address, email.
-- Sau submit: màn hình "Đã gửi, hoá đơn sẽ tới email trong vài phút".
-- Token hết hạn / đã dùng: trạng thái rõ ràng, có CTA gọi lễ tân.
-
-### D4. `GuestInvoicesPage.tsx`
-
-- Thêm cột **VAT** (badge trạng thái), filter "Chưa lấy VAT".
-- Action menu: **Copy link VAT**, **In lại QR**, **Resend email**.
-
----
-
-## E. Permission / Role
-
-- Lễ tân/Manager: in bill, in lại QR, resend email.
-- Owner/Manager: cấu hình provider HĐĐT trong `/settings/einvoice` (giai đoạn 2).
-- Public anon: chỉ thao tác qua claim_token hợp lệ.
-
----
-
-## F. Test cases
-
-- Unit: `parseTaxCode`, builder HTML từng khổ, snapshot QR payload.
-- Edge function: token hết hạn, MST sai, double-submit, email suppressed.
-- E2E: thanh toán → in K80 có QR → mở `/i/:token` mobile → submit → invoice status = issued → email log có row `sent`.
-
----
-
-## G. Rollout
-
-1. **Phase 1 (PR1)**: refactor builder 4 khổ + QR + print CSS chuẩn — không đụng DB.
-2. **Phase 2 (PR2)**: migration `invoice_vat_claims`, edge function `issue-einvoice` (stub provider — tự render PDF HĐĐT từ template A5), public claim page, email template.
-3. **Phase 3 (PR3)**: tích hợp provider thật (VNPT/Misa) qua secret + settings page.
-4. Feature flag `settings.einvoice.enabled` per tenant; mặc định OFF, bật khi tenant cấu hình xong.
-5. Bump APP_VERSION + changelog mỗi PR.
-
----
-
-## Câu hỏi cần xác nhận trước khi code
-
-1. **Provider HĐĐT**: tích hợp luôn 
-2. **QR target**: dùng domain hiện tại `roomqc.com/i/:token` hay subdomain riêng?
-3. **Khách bắt buộc nhập email** hay cho phép chỉ MST + nhận PDF tải về luôn trên trình duyệt?
-4. **Bill nhiệt mặc định khổ nào** (K80 phổ biến nhất) — để set default khi bấm "In bill"?
-
-Trả lời 4 câu trên rồi mình bắt tay vào Phase 1 ngay.
+Bạn muốn quy ước rate giữ **integer % (8, 5)** hay đổi hết về **decimal (0.08, 0.05)**? Tôi đề xuất giữ integer % vì DB và booking UI hiện đang dùng vậy, ít rủi ro migrate dữ liệu hơn.
