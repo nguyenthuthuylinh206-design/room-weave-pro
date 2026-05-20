@@ -40,7 +40,7 @@ export default function InvoicePreviewDialog({ invoice, open, onOpenChange, onSe
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [invoice?.id, paperSize, open])
+  }, [invoice?.id, paperSize, open, tokenData?.token])
 
   if (!invoice) return null
 
