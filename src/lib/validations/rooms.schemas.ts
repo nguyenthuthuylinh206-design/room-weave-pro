@@ -9,7 +9,14 @@ export const roomFormSchema = z.object({
   room_type: z.enum(['standard', 'deluxe', 'suite', 'vip'], {
     required_error: 'Vui lòng chọn loại phòng',
   }),
-  status: z.enum(['vacant', 'occupied', 'cleaning', 'maintenance', 'out_of_order']).default('vacant'),
+  status: z.enum([
+    'vacant_clean','vacant_inspected','vacant_dirty',
+    'occupied_clean','occupied_dirty',
+    'dnd','service_refused','sleep_out','skipper',
+    'out_of_order','out_of_service',
+    // legacy aliases
+    'vacant','occupied','cleaning','maintenance',
+  ]).default('vacant_clean'),
   hotel_id: z.string().uuid('Vui lòng chọn khách sạn'),
   
   area_sqm: z.number().positive('Diện tích phải > 0').max(1000, 'Diện tích không hợp lệ').optional(),
