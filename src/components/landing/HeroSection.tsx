@@ -54,9 +54,9 @@ export const HeroSection = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
-              className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
+              className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3"
             >
-              <Button size="lg" asChild className="text-base px-8 h-12 shadow-lg shadow-[hsl(214,84%,56%,0.25)]">
+              <Button size="lg" asChild className="text-base px-8 h-12 w-full sm:w-auto shadow-lg shadow-[hsl(214,84%,56%,0.25)]">
                 <Link to="/auth/register">
                   {t('hero.cta')}
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -65,7 +65,7 @@ export const HeroSection = () => {
               <Button
                 size="lg"
                 variant="outline"
-                className="text-base px-8 h-12 border-[hsl(215,20%,30%)] bg-transparent text-white hover:bg-[hsl(215,25%,23%)] hover:text-white"
+                className="text-base px-8 h-12 w-full sm:w-auto border-[hsl(215,20%,30%)] bg-transparent text-white hover:bg-[hsl(215,25%,23%)] hover:text-white"
                 onClick={() => document.querySelector('#pricing')?.scrollIntoView({ behavior: 'smooth' })}
               >
                 {t('hero.ctaSecondary')}
