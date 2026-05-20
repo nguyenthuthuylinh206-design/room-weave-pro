@@ -245,8 +245,11 @@ export function useRoomStats(tenantId: string | undefined, hotelId: string | und
         check_out: countIn(['check_out']),
         raw: groups,
       }
-
+    },
+    enabled: !!tenantId,
+  })
 }
+
 
 export function useCreateRoom() {
   const queryClient = useQueryClient()
