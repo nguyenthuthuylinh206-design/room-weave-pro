@@ -25,12 +25,14 @@ import { useOnShiftStaffList, OnShiftStaffMember } from '@/hooks/useOnShiftStaff
 import { useCheckoutInspection } from '@/hooks/useCheckoutInspection'
 import type { CheckoutInspectionRequestWithDetails } from '@/types/checkout-inspection.types'
 import { cn } from '@/lib/utils'
-import { 
-  formatPhoneForTelegram, 
-  openTelegramWithFallback, 
-  getTelegramDownloadLink 
+import {
+  formatPhoneForTelegram,
+  openTelegramWithFallback,
+  getTelegramDownloadLink
 } from '@/lib/phone-utils'
 import { toast } from 'sonner'
+import { PRESENCE_LABEL, PRESENCE_DOT_COLOR, type StaffPresenceState } from '@/lib/staffPresence'
+import { formatDistanceToNow } from 'date-fns'
 
 interface CheckoutInspectionSectionProps {
   bookingId: string
