@@ -188,7 +188,7 @@ export default function EditInvoiceDialog({ invoice, open, onOpenChange }: Props
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1">
                 <span className="text-muted-foreground">VAT</span>
-                <Input className="h-6 w-14 text-xs text-center" type="number" value={Math.round(form.vat_rate * 100)} onChange={e => setForm(p => ({ ...p, vat_rate: Number(e.target.value) / 100 }))} />
+                <Input className="h-6 w-14 text-xs text-center" type="number" value={form.vat_rate} onChange={e => setForm(p => ({ ...p, vat_rate: Number(e.target.value) }))} />
                 <span className="text-xs text-muted-foreground">%</span>
               </div>
               <span className="font-mono">{formatCurrency(vatAmount)}</span>
@@ -196,7 +196,7 @@ export default function EditInvoiceDialog({ invoice, open, onOpenChange }: Props
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1">
                 <span className="text-muted-foreground">Phí DV</span>
-                <Input className="h-6 w-14 text-xs text-center" type="number" value={Math.round(form.service_fee_rate * 100)} onChange={e => setForm(p => ({ ...p, service_fee_rate: Number(e.target.value) / 100 }))} />
+                <Input className="h-6 w-14 text-xs text-center" type="number" value={form.service_fee_rate} onChange={e => setForm(p => ({ ...p, service_fee_rate: Number(e.target.value) }))} />
                 <span className="text-xs text-muted-foreground">%</span>
               </div>
               <span className="font-mono">{formatCurrency(serviceFeeAmount)}</span>
