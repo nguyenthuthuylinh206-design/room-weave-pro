@@ -45,7 +45,7 @@ export const FeaturesSection = () => {
               key={key}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-50px' }}
+              viewport={{ once: true, amount: 0.1, margin: '-50px' }}
               transition={{ duration: 0.4, delay: i * 0.05 }}
               className="group p-5 rounded-lg border bg-card hover:shadow-md transition-all"
             >
