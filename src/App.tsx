@@ -189,6 +189,7 @@ const WhatsNewPage = lazy(() => import("./pages/WhatsNewPage"));
 const StaffManagementPage = lazy(() => import("./pages/staff/StaffManagementPage"));
 const MyTasksPage = lazy(() => import("./pages/MyTasksPage"));
 const PaymentQRPage = lazy(() => import("./pages/payment/PaymentQRPage"));
+const InvoiceVatClaimPage = lazy(() => import("./pages/public/InvoiceVatClaimPage"));
 const ScanDocumentPage = lazy(() => import("./pages/scan/ScanDocumentPage"));
 const HousekeepingStaffDashboard = lazy(() => import("./pages/HousekeepingStaffDashboard"));
 const TasksPendingReviewPage = lazy(() => import("./pages/housekeeping/TasksPendingReviewPage"));
@@ -238,6 +239,13 @@ const router = createBrowserRouter([
     path: "/payment-qr/:paymentId",
     element: <PaymentQRPage />,
   },
+
+  // VAT e-invoice claim — public, khách quét QR trên bill nhiệt
+  {
+    path: "/i/:token",
+    element: <InvoiceVatClaimPage />,
+  },
+
   
   // Document Scan Page - Public route (mobile capture)
   {

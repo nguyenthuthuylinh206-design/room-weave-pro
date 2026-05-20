@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { Download, Printer, Mail, QrCode, Loader2 } from 'lucide-react'
 import { GuestInvoice } from '@/hooks/useGuestInvoices'
+import { useVatClaimToken } from '@/hooks/useVatClaimToken'
 import PaperSizeSelector, { PaperSize } from './PaperSizeSelector'
 import {
   buildInvoiceHTMLAsync,
@@ -21,12 +22,13 @@ interface Props {
 }
 
 export default function InvoicePreviewDialog({ invoice, open, onOpenChange, onSendEmail, hotelInfo }: Props) {
-  const [paperSize, setPaperSize] = useState<PaperSize>('A4')
+  const [paperSize, setPaperSize] = useState<PaperSize>('K80')
   const [html, setHtml] = useState('')
   const [loading, setLoading] = useState(false)
+  const { data: tokenData } = useVatClaimToken(open ? invoice?.id : null)
 
   const qrPayload = invoice
-    ? { url: buildVatClaimUrl(invoice), label: 'Quét để lấy hoá đơn VAT' }
+    ? { url: buildVatClaimUrl(invoice, tokenData?.token), label: 'Quét để lấy hoá đơn VAT' }
     : undefined
 
   useEffect(() => {
@@ -38,7 +40,7 @@ export default function InvoicePreviewDialog({ invoice, open, onOpenChange, onSe
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [invoice?.id, paperSize, open])
+  }, [invoice?.id, paperSize, open, tokenData?.token])
 
   if (!invoice) return null
 
