@@ -11370,6 +11370,10 @@ export type Database = {
         Args: { _from: string; _to: string }
         Returns: boolean
       }
+      fn_normalize_room_status_v2: {
+        Args: { _status: string }
+        Returns: string
+      }
       fn_room_status_alias: { Args: { _status: string }; Returns: string }
       gen_vat_claim_token: { Args: never; Returns: string }
       generate_guest_invoice_number: {
