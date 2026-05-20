@@ -239,6 +239,13 @@ const router = createBrowserRouter([
     path: "/payment-qr/:paymentId",
     element: <PaymentQRPage />,
   },
+
+  // VAT e-invoice claim — public, khách quét QR trên bill nhiệt
+  {
+    path: "/i/:token",
+    element: <InvoiceVatClaimPage />,
+  },
+
   
   // Document Scan Page - Public route (mobile capture)
   {
