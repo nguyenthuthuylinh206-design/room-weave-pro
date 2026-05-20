@@ -50,9 +50,8 @@ export function RoomSelect({ value, onChange, placeholder, disabled }: RoomSelec
               <DoorOpen className="h-4 w-4 text-muted-foreground" />
               <span className="font-medium">{selectedRoom.room_number}</span>
               <span className="text-muted-foreground">- Tầng {selectedRoom.floor}</span>
-              <Badge variant="outline" className="ml-auto">
-                <span className={cn("mr-1.5 h-2 w-2 rounded-full", statusColors[selectedRoom.status])} />
-                {t(`rooms:status.${selectedRoom.status}`)}
+              <Badge variant="outline" className={cn("ml-auto", getRoomStatusMeta(selectedRoom.status).text)}>
+                {getRoomStatusMeta(selectedRoom.status).short}
               </Badge>
             </div>
           ) : (
