@@ -26,20 +26,20 @@ export const FeaturesSection = () => {
   const { t } = useTranslation('landing')
 
   return (
-    <section id="features" className="py-20 sm:py-28 bg-[hsl(var(--background))]">
+    <section id="features" className="py-14 sm:py-24 bg-[hsl(var(--background))]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center max-w-2xl mx-auto mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
+        <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-16">
+          <h2 className="text-2xl sm:text-4xl font-bold text-foreground">
             {t('features.title')}
           </h2>
-          <p className="mt-4 text-muted-foreground">
+          <p className="mt-3 text-sm sm:text-base text-muted-foreground">
             {t('features.subtitle')}
           </p>
         </div>
 
         {/* Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {featureKeys.map(({ key, icon: Icon }, i) => (
             <motion.div
               key={key}
