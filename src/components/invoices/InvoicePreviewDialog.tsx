@@ -22,12 +22,13 @@ interface Props {
 }
 
 export default function InvoicePreviewDialog({ invoice, open, onOpenChange, onSendEmail, hotelInfo }: Props) {
-  const [paperSize, setPaperSize] = useState<PaperSize>('A4')
+  const [paperSize, setPaperSize] = useState<PaperSize>('K80')
   const [html, setHtml] = useState('')
   const [loading, setLoading] = useState(false)
+  const { data: tokenData } = useVatClaimToken(open ? invoice?.id : null)
 
   const qrPayload = invoice
-    ? { url: buildVatClaimUrl(invoice), label: 'Quét để lấy hoá đơn VAT' }
+    ? { url: buildVatClaimUrl(invoice, tokenData?.token), label: 'Quét để lấy hoá đơn VAT' }
     : undefined
 
   useEffect(() => {
