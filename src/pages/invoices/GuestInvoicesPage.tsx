@@ -211,6 +211,12 @@ export default function GuestInvoicesPage() {
         open={!!previewInvoice}
         onOpenChange={(v) => { if (!v) setPreviewInvoice(null) }}
         onSendEmail={(inv) => { setPreviewInvoice(null); setEmailInvoice(inv) }}
+        hotelInfo={selectedHotel ? {
+          name: selectedHotel.name,
+          address: (selectedHotel as any).address,
+          phone: (selectedHotel as any).phone,
+          taxCode: (selectedHotel as any).tax_code,
+        } : undefined}
       />
       <EditInvoiceDialog
         invoice={editInvoice}
