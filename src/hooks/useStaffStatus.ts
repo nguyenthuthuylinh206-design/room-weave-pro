@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
+import { getPresenceState, type StaffPresenceState } from '@/lib/staffPresence'
 
 export type StaffStatusType = 'available' | 'busy' | 'break' | 'offline'
 
