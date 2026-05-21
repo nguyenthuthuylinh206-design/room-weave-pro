@@ -11,7 +11,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { StaffStatusBadge } from './StaffStatusBadge'
+import { PRESENCE_DOT_COLOR, PRESENCE_LABEL, PRESENCE_TEXT_COLOR } from '@/lib/staffPresence'
+import { formatDistanceToNow } from 'date-fns'
+import { cn } from '@/lib/utils'
 import { StaffActivityTimeline } from './StaffActivityTimeline'
 import { useStaffActivities } from '@/hooks/useStaffActivity'
 import type { StaffWithStatus } from '@/hooks/useStaffStatus'
@@ -54,8 +56,16 @@ export function StaffDetailSheet({ staff, open, onOpenChange }: StaffDetailSheet
             <p className="text-sm text-muted-foreground">
               {staff.position_name || staff.user_level_code || 'Nhân viên'}
             </p>
-            <div className="mt-2 flex justify-center">
-              <StaffStatusBadge status={staff.status} />
+            <div className="mt-2 flex flex-col items-center gap-1">
+              <div className={cn('flex items-center gap-1.5 text-sm font-medium', PRESENCE_TEXT_COLOR[staff.presence_state])}>
+                <span className={cn('h-2 w-2 rounded-full', PRESENCE_DOT_COLOR[staff.presence_state])} />
+                {PRESENCE_LABEL[staff.presence_state]}
+              </div>
+              {staff.last_seen_at && staff.presence_state !== 'on_shift_available' && (
+                <p className="text-xs text-muted-foreground">
+                  Hoạt động {formatDistanceToNow(new Date(staff.last_seen_at), { addSuffix: true, locale: vi })}
+                </p>
+              )}
             </div>
           </div>
 

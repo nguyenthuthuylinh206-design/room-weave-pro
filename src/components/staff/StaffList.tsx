@@ -4,13 +4,22 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { StaffCard } from './StaffCard'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { StaffWithStatus, StaffStatusType } from '@/hooks/useStaffStatus'
+import type { StaffWithStatus } from '@/hooks/useStaffStatus'
+import type { PresenceFilterKey } from './StaffStatsCards'
+import { PRESENCE_SORT_ORDER, type StaffPresenceState } from '@/lib/staffPresence'
 
 interface StaffListProps {
   staff: StaffWithStatus[] | undefined
   isLoading: boolean
-  filterStatus: StaffStatusType | null
+  filterStatus: PresenceFilterKey | null
   onViewDetail?: (staff: StaffWithStatus) => void
+}
+
+const FILTER_TO_STATES: Record<PresenceFilterKey, StaffPresenceState[]> = {
+  available: ['on_shift_available'],
+  busy: ['on_shift_busy'],
+  disconnected: ['on_shift_offline'],
+  off_shift: ['shift_stale', 'not_on_shift'],
 }
 
 export function StaffList({ staff, isLoading, filterStatus, onViewDetail }: StaffListProps) {
@@ -21,12 +30,11 @@ export function StaffList({ staff, isLoading, filterStatus, onViewDetail }: Staf
 
     let result = staff
 
-    // Filter by status
     if (filterStatus) {
-      result = result.filter(s => s.status === filterStatus)
+      const allowed = new Set(FILTER_TO_STATES[filterStatus])
+      result = result.filter(s => allowed.has(s.presence_state))
     }
 
-    // Filter by search
     if (search.trim()) {
       const searchLower = search.toLowerCase()
       result = result.filter(s =>
@@ -37,14 +45,12 @@ export function StaffList({ staff, isLoading, filterStatus, onViewDetail }: Staf
       )
     }
 
-    // Sort: busy first, then available, then break, then offline
-    const statusOrder: Record<StaffStatusType, number> = {
-      busy: 0,
-      available: 1,
-      break: 2,
-      offline: 3,
-    }
-    result.sort((a, b) => statusOrder[a.status] - statusOrder[b.status])
+    // Sort by unified presence order, then by name
+    result = [...result].sort((a, b) => {
+      const diff = PRESENCE_SORT_ORDER[a.presence_state] - PRESENCE_SORT_ORDER[b.presence_state]
+      if (diff !== 0) return diff
+      return a.full_name.localeCompare(b.full_name, 'vi')
+    })
 
     return result
   }, [staff, filterStatus, search])
@@ -67,7 +73,6 @@ export function StaffList({ staff, isLoading, filterStatus, onViewDetail }: Staf
 
   return (
     <div className="flex flex-col h-full">
-      {/* Search */}
       <div className="p-3 border-b">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -80,7 +85,6 @@ export function StaffList({ staff, isLoading, filterStatus, onViewDetail }: Staf
         </div>
       </div>
 
-      {/* List */}
       <ScrollArea className="flex-1">
         {filteredStaff.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
@@ -95,7 +99,6 @@ export function StaffList({ staff, isLoading, filterStatus, onViewDetail }: Staf
         )}
       </ScrollArea>
 
-      {/* Count */}
       <div className="p-2 border-t text-xs text-muted-foreground text-center">
         {filteredStaff.length} nhân viên
       </div>

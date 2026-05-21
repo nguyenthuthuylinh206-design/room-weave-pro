@@ -1,77 +1,73 @@
-import { UserCheck, UserX, Coffee, Wifi } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { PRESENCE_DOT_COLOR } from '@/lib/staffPresence'
+import type { StaffPresenceStats } from '@/hooks/useStaffStatus'
 
-interface StaffStats {
-  available: number
-  busy: number
-  break: number
-  offline: number
-  total: number
-}
+export type PresenceFilterKey = 'available' | 'busy' | 'disconnected' | 'off_shift'
 
 interface StaffStatsCardsProps {
-  stats: StaffStats
-  selectedStatus: string | null
-  onStatusClick: (status: string | null) => void
+  stats: StaffPresenceStats
+  selectedStatus: PresenceFilterKey | null
+  onStatusClick: (status: PresenceFilterKey | null) => void
 }
 
-const statusConfig = [
+const config: Array<{
+  key: PresenceFilterKey
+  label: string
+  hint: string
+  dot: string
+  textColor: string
+}> = [
   {
     key: 'available',
-    label: 'Rảnh',
-    icon: UserCheck,
-    color: 'text-green-600',
-    bgHover: 'hover:bg-green-50',
-    bgActive: 'bg-green-50 border-green-200',
+    label: 'Sẵn sàng',
+    hint: 'Đang trong ca · sẵn sàng',
+    dot: PRESENCE_DOT_COLOR.on_shift_available,
+    textColor: 'text-green-600',
   },
   {
     key: 'busy',
     label: 'Đang bận',
-    icon: Wifi,
-    color: 'text-red-600',
-    bgHover: 'hover:bg-red-50',
-    bgActive: 'bg-red-50 border-red-200',
+    hint: 'Đang trong ca · busy / break',
+    dot: PRESENCE_DOT_COLOR.on_shift_busy,
+    textColor: 'text-amber-600',
   },
   {
-    key: 'break',
-    label: 'Nghỉ giải lao',
-    icon: Coffee,
-    color: 'text-amber-600',
-    bgHover: 'hover:bg-amber-50',
-    bgActive: 'bg-amber-50 border-amber-200',
+    key: 'disconnected',
+    label: 'Mất kết nối',
+    hint: 'Đang trong ca · không heartbeat >30 phút',
+    dot: PRESENCE_DOT_COLOR.on_shift_offline,
+    textColor: 'text-muted-foreground',
   },
   {
-    key: 'offline',
-    label: 'Offline',
-    icon: UserX,
-    color: 'text-muted-foreground',
-    bgHover: 'hover:bg-muted/50',
-    bgActive: 'bg-muted/50 border-muted',
+    key: 'off_shift',
+    label: 'Ngoài ca',
+    hint: 'Chưa vào ca / đã tan ca / ca treo',
+    dot: PRESENCE_DOT_COLOR.not_on_shift,
+    textColor: 'text-muted-foreground',
   },
 ]
 
 export function StaffStatsCards({ stats, selectedStatus, onStatusClick }: StaffStatsCardsProps) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      {statusConfig.map(({ key, label, icon: Icon, color, bgHover, bgActive }) => {
-        const count = stats[key as keyof StaffStats] as number
+      {config.map(({ key, label, hint, dot, textColor }) => {
+        const count = stats[key]
         const isSelected = selectedStatus === key
-        
+
         return (
           <button
             key={key}
             type="button"
             onClick={() => onStatusClick(isSelected ? null : key)}
+            title={hint}
             className={cn(
-              'flex items-center gap-3 p-3 rounded-lg border transition-colors text-left',
-              isSelected ? bgActive : `bg-background ${bgHover}`
+              'flex items-center gap-3 p-3 rounded-lg border text-left transition-colors',
+              isSelected ? 'bg-muted/50 border-foreground/30' : 'bg-background hover:bg-muted/30'
             )}
           >
-            <div className={cn('p-2 rounded-full bg-background', color)}>
-              <Icon className="h-4 w-4" />
-            </div>
+            <span className={cn('h-2.5 w-2.5 rounded-full flex-shrink-0', dot)} />
             <div>
-              <p className="text-2xl font-semibold">{count}</p>
+              <p className={cn('text-2xl font-semibold', textColor)}>{count}</p>
               <p className="text-xs text-muted-foreground">{label}</p>
             </div>
           </button>

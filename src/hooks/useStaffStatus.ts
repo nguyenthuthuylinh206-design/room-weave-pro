@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
+import { getPresenceState, type StaffPresenceState } from '@/lib/staffPresence'
 
 export type StaffStatusType = 'available' | 'busy' | 'break' | 'offline'
 
@@ -40,6 +41,8 @@ export interface StaffWithStatus {
   telegram_chat_id: string | null
   shift_start_at: string | null
   shift_end_at: string | null
+  /** Derived unified presence (single source of truth) */
+  presence_state: StaffPresenceState
 }
 
 export function useStaffStatus() {
@@ -118,6 +121,12 @@ export function useStaffStatus() {
           telegram_chat_id: activeTelegramConnection?.chat_id || null,
           shift_start_at: status?.shift_start_at || null,
           shift_end_at: status?.shift_end_at || null,
+          presence_state: getPresenceState({
+            shift_start_at: status?.shift_start_at,
+            shift_end_at: status?.shift_end_at,
+            status: status?.status,
+            last_seen_at: status?.last_seen_at,
+          }),
         }
       })
 
@@ -245,12 +254,24 @@ export function useUpdateMyStatus() {
   })
 }
 
-export function useStaffStatusStats(staffList: StaffWithStatus[] | undefined) {
-  const stats = {
+/**
+ * Presence-based stats. Đếm theo `presence_state` (single source of truth)
+ * thay vì cột `status` thô để dot/badge luôn khớp với dropdown giao việc.
+ */
+export interface StaffPresenceStats {
+  available: number   // on_shift_available
+  busy: number        // on_shift_busy
+  disconnected: number // on_shift_offline (đang trong ca + mất heartbeat)
+  off_shift: number   // not_on_shift + shift_stale
+  total: number
+}
+
+export function useStaffStatusStats(staffList: StaffWithStatus[] | undefined): StaffPresenceStats {
+  const stats: StaffPresenceStats = {
     available: 0,
     busy: 0,
-    break: 0,
-    offline: 0,
+    disconnected: 0,
+    off_shift: 0,
     total: 0,
   }
 
@@ -258,8 +279,16 @@ export function useStaffStatusStats(staffList: StaffWithStatus[] | undefined) {
 
   staffList.forEach(staff => {
     stats.total++
-    stats[staff.status]++
+    switch (staff.presence_state) {
+      case 'on_shift_available': stats.available++; break
+      case 'on_shift_busy': stats.busy++; break
+      case 'on_shift_offline': stats.disconnected++; break
+      case 'shift_stale':
+      case 'not_on_shift':
+      default: stats.off_shift++; break
+    }
   })
 
   return stats
 }
+

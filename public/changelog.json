@@ -1,6 +1,17 @@
 {
-  "current": "1.0.40",
+  "current": "1.0.41",
   "versions": [
+    {
+      "version": "1.0.41",
+      "releaseDate": "2026-05-21",
+      "title": "Đồng bộ chấm on/off ở trang Quản lý nhân sự",
+      "changes": [
+        { "type": "fix", "text": "Chấm trạng thái cạnh tên nhân viên (trang /staff) nay phản ánh đúng thực tế: chỉ xanh khi đang trong ca và còn heartbeat — không còn chấm xanh cho người đã offline cả tháng" },
+        { "type": "improvement", "text": "Thẻ thống kê đổi sang 4 nhóm: Sẵn sàng / Đang bận / Mất kết nối / Ngoài ca, dùng chung định nghĩa với dropdown giao việc" },
+        { "type": "improvement", "text": "Badge 'Đang trong ca' tự đổi thành 'Trong ca · mất kết nối' khi heartbeat quá 30 phút, và 'Ca treo' khi ca mở quá 16 giờ" }
+      ]
+    },
+
     {
       "version": "1.0.40",
       "releaseDate": "2026-05-20",
