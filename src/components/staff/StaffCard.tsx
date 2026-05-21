@@ -99,10 +99,23 @@ export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
         {/* Row 1: Name + Status + Buttons */}
         <div className="flex items-center gap-2">
           <p className="font-medium text-sm truncate">{staff.full_name}</p>
-          <StaffStatusBadge status={staff.status} size="sm" showLabel={false} />
-          {isOnShift && (
+          <span
+            className={cn('h-2 w-2 rounded-full flex-shrink-0', PRESENCE_DOT_COLOR[presence])}
+            title={PRESENCE_LABEL[presence]}
+          />
+          {isOnShift && presence !== 'on_shift_offline' && (
             <Badge variant="outline" className="text-green-600 border-green-600 text-[10px] px-1.5 py-0">
-              {t('shift.onShiftBadge', 'Đang trong ca')}
+              Đang trong ca
+            </Badge>
+          )}
+          {presence === 'on_shift_offline' && (
+            <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30 text-[10px] px-1.5 py-0">
+              Trong ca · mất kết nối
+            </Badge>
+          )}
+          {isStale && (
+            <Badge variant="outline" className="text-red-600 border-red-600 text-[10px] px-1.5 py-0" title="Ca mở quá 16 giờ — sẽ tự đóng">
+              Ca treo
             </Badge>
           )}
           
