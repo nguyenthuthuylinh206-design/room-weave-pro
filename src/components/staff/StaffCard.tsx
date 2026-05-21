@@ -2,7 +2,6 @@ import { Phone, MapPin, Clock, Send } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { StaffStatusBadge } from './StaffStatusBadge'
 import type { StaffWithStatus } from '@/hooks/useStaffStatus'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
@@ -10,7 +9,19 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useNavigate } from 'react-router-dom'
 import { getTelegramPhoneLink, formatPhoneForTelegram, openTelegramWithFallback, getTelegramDownloadLink } from '@/lib/phone-utils'
-import { useTranslation } from 'react-i18next'
+import { PRESENCE_DOT_COLOR, PRESENCE_LABEL } from '@/lib/staffPresence'
+
+interface StaffCardProps {
+  staff: StaffWithStatus
+  onViewDetail?: (staff: StaffWithStatus) => void
+}
+
+export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
+  const navigate = useNavigate()
+
+  const presence = staff.presence_state
+  const isOnShift = presence === 'on_shift_available' || presence === 'on_shift_busy' || presence === 'on_shift_offline'
+  const isStale = presence === 'shift_stale'
 
 interface StaffCardProps {
   staff: StaffWithStatus
