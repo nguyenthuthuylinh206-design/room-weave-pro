@@ -41,6 +41,23 @@ export function shouldEnablePWA(): boolean {
 }
 
 /**
+ * App đang chạy ở chế độ standalone (đã "Add to Home Screen" / cài PWA).
+ * Dùng để bật auto-login: chỉ máy cá nhân đã cài app mới tự đăng nhập.
+ */
+export function isStandalonePWA(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const mql = window.matchMedia?.('(display-mode: standalone)');
+    if (mql?.matches) return true;
+  } catch {
+    // ignore
+  }
+  // iOS Safari
+  if ((window.navigator as any).standalone === true) return true;
+  return false;
+}
+
+/**
  * Gỡ bỏ mọi Service Worker + Cache Storage còn sót. Dùng trên preview/iframe
  * để đảm bảo bản code mới luôn được fetch tươi.
  */

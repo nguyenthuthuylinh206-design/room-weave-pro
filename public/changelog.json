@@ -1,6 +1,16 @@
 {
-  "current": "1.0.41",
+  "current": "1.0.42",
   "versions": [
+    {
+      "version": "1.0.42",
+      "releaseDate": "2026-05-21",
+      "title": "Tự động đăng nhập trên PWA đã cài",
+      "changes": [
+        { "type": "feature", "text": "PWA đã cài (Add to Home Screen) nay tự đăng nhập sau lần đầu — không cần gõ lại email/mật khẩu mỗi lần mở app" },
+        { "type": "improvement", "text": "Có nút 'Hủy' khi đang tự đăng nhập để chuyển sang tài khoản khác; bấm Đăng xuất thủ công sẽ chặn auto-login cho đến lần đăng nhập tay kế tiếp" },
+        { "type": "improvement", "text": "Trình duyệt thường và môi trường preview vẫn giữ nguyên hành vi cũ — chỉ kích hoạt khi app chạy ở chế độ standalone" }
+      ]
+    },
     {
       "version": "1.0.41",
       "releaseDate": "2026-05-21",

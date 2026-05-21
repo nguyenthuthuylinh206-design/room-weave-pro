@@ -6,6 +6,7 @@ declare global {
 }
 
 const STORAGE_KEY = 'app_saved_credential_v1';
+const LOGGED_OUT_FLAG = 'app_user_logged_out_v1';
 
 /**
  * Simple XOR-based obfuscation. NOT cryptographically secure — just prevents
@@ -46,6 +47,8 @@ export async function storeCredential(email: string, password: string): Promise<
   try {
     const payload = JSON.stringify({ email, password, savedAt: Date.now() });
     localStorage.setItem(STORAGE_KEY, obfuscate(payload));
+    // User vừa đăng nhập thành công → xoá cờ logged-out để auto-login PWA hoạt động
+    localStorage.removeItem(LOGGED_OUT_FLAG);
     console.log('[Credential] Saved to local storage');
   } catch (error) {
     console.warn('[Credential] Failed to save to local storage:', error);
@@ -94,8 +97,22 @@ export function getLocalCredential(): { email: string; password: string } | null
 export function clearLocalCredential(): void {
   try {
     localStorage.removeItem(STORAGE_KEY);
+    // Đánh dấu user đã logout chủ động → PWA không auto-login lại
+    localStorage.setItem(LOGGED_OUT_FLAG, '1');
   } catch {
     // ignore
+  }
+}
+
+/**
+ * User đã chủ động đăng xuất trong lần dùng app gần nhất?
+ * Dùng để chặn auto-login PWA cho đến khi đăng nhập tay 1 lần nữa.
+ */
+export function wasExplicitlyLoggedOut(): boolean {
+  try {
+    return localStorage.getItem(LOGGED_OUT_FLAG) === '1';
+  } catch {
+    return false;
   }
 }
 

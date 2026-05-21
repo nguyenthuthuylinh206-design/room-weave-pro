@@ -1,57 +1,71 @@
-## Vấn đề
-
-Ở trang `/staff` (StaffCard), chấm xanh / xám cạnh tên đang lấy **trực tiếp từ cột `staff_status.status`** (`available | busy | break | offline`) qua `<StaffStatusBadge status={staff.status} />`. Cột này chỉ đổi khi nhân viên (hoặc app) **chủ động ghi** — không tự reset khi mất heartbeat, không tự reset khi ca treo, không sync với `last_seen_at`.
-
-Hệ quả thấy trong ảnh user gửi:
-- "NV Linh" — chấm xanh nhưng dòng dưới ghi "Hoạt động khoảng 1 tháng trước" → thực tế offline lâu, vẫn xanh.
-- "Quản Lý 2", "oboto", "Nhân Viên Buồng Tâm" — tất cả xanh dù có thể chưa vào ca hoặc đã offline.
-- Badge "Đang trong ca" ở `StaffCard` cũng dùng logic cũ riêng (`shift_start_at` + `shift_end_at`), **không** áp `MAX_SHIFT_HOURS = 16`, lệch với `staffPresence.ts` đã chuẩn hoá ở các dropdown giao việc và `/staff-management`.
-
-Tức là: hai nơi (dropdown giao việc đã chuẩn hoá ở sprint trước **vs** trang `/staff` này) đang dùng **2 định nghĩa khác nhau** cho cùng khái niệm "đang on / trong ca".
-
 ## Mục tiêu
+Khi user đã đăng nhập 1 lần thành công trên **PWA đã cài (standalone)**, các lần mở app sau đó **tự động đăng nhập** mà không cần nhập email/mật khẩu, cũng không cần ấn nút "Tiếp tục" như màn `QuickReLogin` hiện tại.
 
-Trang `/staff` (StaffCard, StaffList, StaffStatsCards, StaffDetailSheet) dùng **cùng** `getPresenceState()` / `isOnShift()` từ `src/lib/staffPresence.ts` — single source of truth duy nhất với mọi nơi khác. Không thêm logic mới, chỉ replace.
+## Bối cảnh đã có (reuse)
+- `src/lib/credential-manager.ts` — đã lưu email + password vào `localStorage` (XOR obfuscation) + native `PasswordCredential` API. Hàm `getLocalCredential()` đọc lại được.
+- `src/components/auth/QuickReLogin.tsx` — đã có UI nhập lại password cho lần đăng nhập sau, đã gọi `storeCredential()` khi thành công.
+- `src/components/auth/LoginForm.tsx` — đã có checkbox "Ghi nhớ đăng nhập" + lưu `storeCredential()` khi `rememberMe = true`.
+- `src/lib/pwa-environment.ts` — hàm `isPreviewOrIframe()` đã phân biệt preview vs production. Sẽ thêm `isStandalonePWA()`.
+- `src/pages/auth/Login.tsx` — entry point quyết định render `QuickReLogin` hay `LoginForm`.
 
-## Thay đổi
+## Thiết kế
 
-### A. Logic / dữ liệu
-1. `useStaffStatus.ts`: bổ sung trường tính sẵn `presence_state: StaffPresenceState` cho mỗi `StaffWithStatus`, derive từ `getPresenceState({ shift_start_at, shift_end_at, status, last_seen_at })`. Không đổi schema, không migration.
-2. `useStaffStatusStats`: đếm theo `presence_state` thay vì `status` thô — 4 nhóm hiển thị: **Sẵn sàng** (on_shift_available), **Đang bận** (on_shift_busy), **Mất kết nối** (on_shift_offline), **Ngoài ca** (shift_stale + not_on_shift gộp). Giữ tổng `total`.
+### A. Logic nghiệp vụ
+Thêm 1 chế độ **"Auto-login PWA"**:
+- **Điều kiện kích hoạt** (tất cả phải đúng):
+  1. App đang chạy ở chế độ standalone PWA (`display-mode: standalone` hoặc `navigator.standalone`).
+  2. Có `getLocalCredential()` hợp lệ (email + password).
+  3. User chưa logout chủ động (xem cờ ở mục C).
+  4. Không phải preview/iframe (`shouldEnablePWA()` = true) → để dev không bị tự đăng nhập.
+- **Hành vi**: Khi vào `/auth/login` mà đủ điều kiện → bỏ qua mọi UI, gọi `signIn(email, password)` ngầm với spinner "Đang đăng nhập…", thành công thì điều hướng `/auth/callback`.
+- **Fallback**: Nếu `signIn` lỗi (password đổi, account khóa…) → `clearLocalCredential()`, hiển thị `LoginForm` bình thường + toast "Phiên đã hết hạn, vui lòng đăng nhập lại".
+- **Trên trình duyệt thường (không phải PWA)**: giữ nguyên hành vi cũ — `QuickReLogin` (vẫn phải gõ password). An toàn cho máy dùng chung.
 
-### B. UI
-1. **`StaffCard.tsx`**:
-   - Bỏ tính `isOnShift` local; dùng `isOnShift(staff)` từ `@/lib/staffPresence`.
-   - Chấm cạnh tên: thay `<StaffStatusBadge status={staff.status} />` → chấm 2x2 với màu lấy từ `PRESENCE_DOT_COLOR[staff.presence_state]`, tooltip = `PRESENCE_LABEL[...]`.
-   - Badge "Đang trong ca" chỉ hiện khi `presence_state ∈ {available, busy}`; nếu `on_shift_offline` thì badge đổi label "Trong ca · mất kết nối" màu xám.
-   - Dòng "Hoạt động X trước" hiện khi `presence_state ∈ {on_shift_offline, not_on_shift, shift_stale}` và có `last_seen_at` — không chỉ riêng `status==='offline'` như hiện tại (đây là nguyên nhân chính khiến NV Linh sai).
-   - `shift_stale` thêm cảnh báo nhỏ "Ca quá 16 giờ — sẽ tự đóng" (chỉ Manager/Owner thấy — đã có `canManageTasks` ở page cha, truyền xuống làm prop optional).
-2. **`StaffList.tsx`**: sort theo `PRESENCE_SORT_ORDER` (available → busy → offline-heartbeat → stale → not_on_shift), không sort theo `status` thô nữa. Filter cards click cũng map sang presence_state tương ứng.
-3. **`StaffStatsCards.tsx`**: 4 ô = Sẵn sàng / Đang bận / Mất kết nối / Ngoài ca. Click filter set `filterPresenceState` (đổi prop `filterStatus` → `filterPresenceState` ở `StaffList`).
-4. **`StaffDetailSheet.tsx`**: dùng cùng badge/label từ `staffPresence.ts`, hiển thị thêm dòng `last_seen_at` tương đối và `shift_start_at` (đã bao lâu).
+### B. UI / Component
+1. **`src/lib/pwa-environment.ts`**
+   - Thêm `isStandalonePWA(): boolean` — kiểm tra `window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true`.
 
-### C. Compat
-- Giữ `StaffStatusBadge` cho nơi nào còn dùng raw status (vd UI cho chính nhân viên chọn trạng thái của mình). Không xóa file.
-- Không đổi schema, không migration, không edge function.
+2. **`src/lib/credential-manager.ts`**
+   - Thêm cờ `app_user_logged_out` (localStorage). `clearLocalCredential()` set cờ này = `'1'`. `storeCredential()` xóa cờ. Hàm mới `wasExplicitlyLoggedOut(): boolean`.
 
-### D. Test
-- Unit `useStaffStatusStats.test.ts`: 6 case — available + heartbeat tốt; available + heartbeat 1h; busy đang ca; shift quá 16h; chưa vào ca; status='offline'.
-- Snapshot `StaffCard.test.tsx`: render đúng dot + badge cho 4 presence state.
+3. **`src/components/auth/AutoLoginGate.tsx` (mới)**
+   - Component bọc trong `Login.tsx`. Khi mount:
+     - Check `isStandalonePWA() && !wasExplicitlyLoggedOut() && getLocalCredential() && !isPreviewOrIframe()`.
+     - Nếu đủ → setState `autoLoggingIn = true`, gọi `signIn`. Render full-screen spinner + dòng "Đang đăng nhập với <email>… [Hủy]".
+     - Nút "Hủy" → set cờ logged-out, render `LoginForm`.
+     - Lỗi → clear credential, render `LoginForm` + toast.
+   - Nếu không đủ điều kiện → render `children` (giữ logic `QuickReLogin` / `LoginForm` cũ).
 
-### E. Rollout
-1. Sửa hook + 4 component, không ảnh hưởng dropdown giao việc (đã dùng `staffPresence.ts` từ sprint trước).
-2. Bump `APP_VERSION` + entry changelog "Đồng bộ chấm trạng thái nhân sự ở trang Quản lý nhân sự".
-3. Không cần migration / không cần thông báo người dùng.
+4. **`src/pages/auth/Login.tsx`**
+   - Wrap nội dung Card hiện tại bằng `<AutoLoginGate>`.
 
-## Files dự kiến sửa
-- `src/hooks/useStaffStatus.ts` (thêm `presence_state`, đổi `useStaffStatusStats`)
-- `src/components/staff/StaffCard.tsx`
-- `src/components/staff/StaffList.tsx`
-- `src/components/staff/StaffStatsCards.tsx`
-- `src/components/staff/StaffDetailSheet.tsx`
-- `src/lib/app-version.ts`, `public/changelog.json`
-- Mới: `src/components/staff/StaffCard.test.tsx`, `src/hooks/useStaffStatus.test.ts`
+5. **`src/contexts/AuthContext.tsx`** (logout flow — cần xem để chắc chắn)
+   - Trong hàm `signOut`, sau khi `supabase.auth.signOut()` → gọi `clearLocalCredential()` (đảm bảo lần sau PWA không tự đăng nhập lại tài khoản vừa logout).
 
-## Rủi ro
-- Một số nhân viên đang được nhìn thấy "xanh" sẽ chuyển "xám/mất kết nối" sau khi deploy → đúng nghiệp vụ nhưng có thể gây bất ngờ. Đã có dòng "Hoạt động X trước" giải thích.
-- Không có rủi ro dữ liệu (chỉ thay cách hiển thị).
+### C. Bảo mật / UX
+- Vẫn dùng XOR obfuscation đã có. Bổ sung note trong UI Settings (tuỳ chọn, không thuộc scope này): "Bật trên thiết bị cá nhân".
+- Trong `LoginForm`, đổi label checkbox thành "Ghi nhớ đăng nhập trên thiết bị này" (tiếng Việt rõ hơn, optional).
+- Trong `QuickReLogin` thêm dòng nhỏ "Lần sau khi mở app sẽ tự đăng nhập" (chỉ hiển thị nếu `isStandalonePWA()`).
+- Khi user bấm Logout từ menu → chắc chắn không auto-login lại cho đến khi đăng nhập tay 1 lần nữa.
+
+### D. Phạm vi không động đến
+- Không đổi schema DB, không thêm migration, không sửa edge function.
+- Không thay đổi flow auth của trình duyệt thường (vẫn `QuickReLogin`).
+- Không thay đổi PWA service worker config.
+
+## Files sẽ tạo/sửa
+- **Tạo**: `src/components/auth/AutoLoginGate.tsx`
+- **Sửa**: `src/lib/pwa-environment.ts` (thêm `isStandalonePWA`), `src/lib/credential-manager.ts` (thêm logged-out flag), `src/pages/auth/Login.tsx` (bọc gate), `src/contexts/AuthContext.tsx` (clear credential khi signOut), `src/lib/app-version.ts` + `public/changelog.json` (bump version).
+- **Optional**: tinh chỉnh label tiếng Việt ở `LoginForm` / `QuickReLogin`.
+
+## Test cases
+1. Lần đầu đăng nhập (PWA installed) với "Ghi nhớ" bật → đóng app → mở lại → tự vào dashboard, không thấy form.
+2. Bấm Logout → mở lại PWA → thấy `LoginForm` (không auto-login).
+3. Đổi mật khẩu phía admin → mở PWA → auto-login fail → fallback `LoginForm` + toast.
+4. Mở app trên trình duyệt thường (không cài) → vẫn thấy `QuickReLogin` như cũ.
+5. Mở app trong Lovable preview/iframe → KHÔNG auto-login (an toàn cho dev).
+6. Bấm "Hủy" lúc đang spinner auto-login → về `LoginForm`, không bị loop.
+
+## Rollout
+- Bump `APP_VERSION` → `1.0.42`, thêm changelog entry "Tự động đăng nhập trên PWA đã cài".
+- Không cần migration. Không breaking change cho user web thường.
