@@ -41,6 +41,8 @@ export interface StaffWithStatus {
   telegram_chat_id: string | null
   shift_start_at: string | null
   shift_end_at: string | null
+  /** Derived unified presence (single source of truth) */
+  presence_state: StaffPresenceState
 }
 
 export function useStaffStatus() {
