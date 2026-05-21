@@ -6,6 +6,7 @@ declare global {
 }
 
 const STORAGE_KEY = 'app_saved_credential_v1';
+const LOGGED_OUT_FLAG = 'app_user_logged_out_v1';
 
 /**
  * Simple XOR-based obfuscation. NOT cryptographically secure — just prevents
