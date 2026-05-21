@@ -7,14 +7,15 @@ import { StaffDetailSheet } from '@/components/staff/StaffDetailSheet'
 import { StaffActivityTimeline } from '@/components/staff/StaffActivityTimeline'
 import { ManagerTasksTab } from '@/components/staff/ManagerTasksTab'
 import { ShiftHistoryTab } from '@/components/staff/ShiftHistoryTab'
-import { useStaffStatus, useStaffStatusStats, type StaffWithStatus, type StaffStatusType } from '@/hooks/useStaffStatus'
+import { useStaffStatus, useStaffStatusStats, type StaffWithStatus } from '@/hooks/useStaffStatus'
 import { useRecentStaffActivities } from '@/hooks/useStaffActivity'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useUser } from '@/hooks/useUser'
 import { canCreateHousekeepingTask } from '@/lib/userAccess'
+import type { PresenceFilterKey } from '@/components/staff/StaffStatsCards'
 
 export default function StaffManagementPage() {
-  const [selectedStatus, setSelectedStatus] = useState<StaffStatusType | null>(null)
+  const [selectedStatus, setSelectedStatus] = useState<PresenceFilterKey | null>(null)
   const [selectedStaff, setSelectedStaff] = useState<StaffWithStatus | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
 
