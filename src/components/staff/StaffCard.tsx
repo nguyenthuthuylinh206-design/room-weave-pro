@@ -178,8 +178,8 @@ export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
           </div>
         )}
 
-        {/* Last seen for offline users */}
-        {staff.status === 'offline' && lastSeenText && (
+        {/* Last seen for users không sẵn sàng (mất kết nối / ngoài ca / ca treo) */}
+        {(presence === 'on_shift_offline' || presence === 'not_on_shift' || presence === 'shift_stale') && lastSeenText && (
           <p className="mt-1 text-xs text-muted-foreground">
             Hoạt động {lastSeenText}
           </p>
