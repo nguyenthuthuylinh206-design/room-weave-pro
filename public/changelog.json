@@ -1,6 +1,17 @@
 {
-  "current": "1.0.42",
+  "current": "1.0.43",
   "versions": [
+    {
+      "version": "1.0.43",
+      "releaseDate": "2026-05-21",
+      "title": "Báo cáo theo chức vụ — chỉ thấy báo cáo liên quan",
+      "changes": [
+        { "type": "feature", "text": "Trang /reports tổ chức lại theo nhóm bộ phận: Tài chính, Vận hành, Buồng phòng, Kho & Mua hàng, Giặt là, Bảo trì" },
+        { "type": "feature", "text": "Trưởng bộ phận chỉ thấy báo cáo của bộ phận mình (ví dụ Trưởng kho chỉ thấy Tồn kho, Kiểm kê, Xuất kho), tránh nhiễu thông tin" },
+        { "type": "improvement", "text": "Owner và Quản lý khách sạn vẫn thấy đầy đủ; hiển thị nhãn vai trò dưới tiêu đề để biết đang xem ở góc nhìn nào" },
+        { "type": "improvement", "text": "Mobile dashboard /reports cũng áp dụng cùng quy tắc nhóm + lọc" }
+      ]
+    },
     {
       "version": "1.0.42",
       "releaseDate": "2026-05-21",
