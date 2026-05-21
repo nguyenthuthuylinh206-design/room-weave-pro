@@ -1,71 +1,184 @@
-## Mục tiêu
-Khi user đã đăng nhập 1 lần thành công trên **PWA đã cài (standalone)**, các lần mở app sau đó **tự động đăng nhập** mà không cần nhập email/mật khẩu, cũng không cần ấn nút "Tiếp tục" như màn `QuickReLogin` hiện tại.
 
-## Bối cảnh đã có (reuse)
-- `src/lib/credential-manager.ts` — đã lưu email + password vào `localStorage` (XOR obfuscation) + native `PasswordCredential` API. Hàm `getLocalCredential()` đọc lại được.
-- `src/components/auth/QuickReLogin.tsx` — đã có UI nhập lại password cho lần đăng nhập sau, đã gọi `storeCredential()` khi thành công.
-- `src/components/auth/LoginForm.tsx` — đã có checkbox "Ghi nhớ đăng nhập" + lưu `storeCredential()` khi `rememberMe = true`.
-- `src/lib/pwa-environment.ts` — hàm `isPreviewOrIframe()` đã phân biệt preview vs production. Sẽ thêm `isStandalonePWA()`.
-- `src/pages/auth/Login.tsx` — entry point quyết định render `QuickReLogin` hay `LoginForm`.
+# Ma trận Báo cáo × Chức vụ × Bộ phận
 
-## Thiết kế
+> Tài liệu phân tích — chưa code. Sau khi bạn duyệt, tôi sẽ tách thành các plan build nhỏ (per role / per report).
 
-### A. Logic nghiệp vụ
-Thêm 1 chế độ **"Auto-login PWA"**:
-- **Điều kiện kích hoạt** (tất cả phải đúng):
-  1. App đang chạy ở chế độ standalone PWA (`display-mode: standalone` hoặc `navigator.standalone`).
-  2. Có `getLocalCredential()` hợp lệ (email + password).
-  3. User chưa logout chủ động (xem cờ ở mục C).
-  4. Không phải preview/iframe (`shouldEnablePWA()` = true) → để dev không bị tự đăng nhập.
-- **Hành vi**: Khi vào `/auth/login` mà đủ điều kiện → bỏ qua mọi UI, gọi `signIn(email, password)` ngầm với spinner "Đang đăng nhập…", thành công thì điều hướng `/auth/callback`.
-- **Fallback**: Nếu `signIn` lỗi (password đổi, account khóa…) → `clearLocalCredential()`, hiển thị `LoginForm` bình thường + toast "Phiên đã hết hạn, vui lòng đăng nhập lại".
-- **Trên trình duyệt thường (không phải PWA)**: giữ nguyên hành vi cũ — `QuickReLogin` (vẫn phải gõ password). An toàn cho máy dùng chung.
+---
 
-### B. UI / Component
-1. **`src/lib/pwa-environment.ts`**
-   - Thêm `isStandalonePWA(): boolean` — kiểm tra `window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true`.
+## 1. Hiện trạng (11 báo cáo đã có)
 
-2. **`src/lib/credential-manager.ts`**
-   - Thêm cờ `app_user_logged_out` (localStorage). `clearLocalCredential()` set cờ này = `'1'`. `storeCredential()` xóa cờ. Hàm mới `wasExplicitlyLoggedOut(): boolean`.
+| # | Báo cáo | Route | Dành cho hiện tại |
+|---|---|---|---|
+| 1 | Reports Dashboard | `/reports` | Owner / Hotel Manager |
+| 2 | Revenue Analytics | `/reports/revenue` | Owner |
+| 3 | Financial | `/reports/financial` | Owner / Kế toán |
+| 4 | Rooms | `/reports/rooms` | Hotel Manager |
+| 5 | Operations KPI | `/reports/operations` | Hotel Manager |
+| 6 | Inventory | `/reports/inventory` | Trưởng kho |
+| 7 | Stock Audit | `/reports/stock-audit` | Trưởng kho |
+| 8 | Laundry | `/reports/laundry` | Trưởng giặt là |
+| 9 | Maintenance | `/reports/maintenance` | Trưởng bảo trì |
+| 10 | Outbound Goods | `/reports/outbound` | Trưởng kho |
+| 11 | Damages | `/reports/damages` | Hotel Manager |
 
-3. **`src/components/auth/AutoLoginGate.tsx` (mới)**
-   - Component bọc trong `Login.tsx`. Khi mount:
-     - Check `isStandalonePWA() && !wasExplicitlyLoggedOut() && getLocalCredential() && !isPreviewOrIframe()`.
-     - Nếu đủ → setState `autoLoggingIn = true`, gọi `signIn`. Render full-screen spinner + dòng "Đang đăng nhập với <email>… [Hủy]".
-     - Nút "Hủy" → set cờ logged-out, render `LoginForm`.
-     - Lỗi → clear credential, render `LoginForm` + toast.
-   - Nếu không đủ điều kiện → render `children` (giữ logic `QuickReLogin` / `LoginForm` cũ).
+**Vấn đề:**
+- Tất cả gom vào 1 hub, không lọc theo role → Trưởng bộ phận thấy báo cáo không liên quan.
+- Thiếu báo cáo **Lễ tân (Front Office)**, **Buồng phòng (Housekeeping/QC theo người)**, **CRM khách hàng**, **Nhân sự / Chấm công**.
+- Thiếu **Chain view** (so sánh đa khách sạn cho Owner).
+- Không có báo cáo "của tôi" cho Staff (năng suất cá nhân).
 
-4. **`src/pages/auth/Login.tsx`**
-   - Wrap nội dung Card hiện tại bằng `<AutoLoginGate>`.
+---
 
-5. **`src/contexts/AuthContext.tsx`** (logout flow — cần xem để chắc chắn)
-   - Trong hàm `signOut`, sau khi `supabase.auth.signOut()` → gọi `clearLocalCredential()` (đảm bảo lần sau PWA không tự đăng nhập lại tài khoản vừa logout).
+## 2. Ma trận đề xuất (Báo cáo × Chức vụ)
 
-### C. Bảo mật / UX
-- Vẫn dùng XOR obfuscation đã có. Bổ sung note trong UI Settings (tuỳ chọn, không thuộc scope này): "Bật trên thiết bị cá nhân".
-- Trong `LoginForm`, đổi label checkbox thành "Ghi nhớ đăng nhập trên thiết bị này" (tiếng Việt rõ hơn, optional).
-- Trong `QuickReLogin` thêm dòng nhỏ "Lần sau khi mở app sẽ tự đăng nhập" (chỉ hiển thị nếu `isStandalonePWA()`).
-- Khi user bấm Logout từ menu → chắc chắn không auto-login lại cho đến khi đăng nhập tay 1 lần nữa.
+Legend: ● = bắt buộc · ○ = tham khảo (read-only, giới hạn phạm vi) · — = không thấy
 
-### D. Phạm vi không động đến
-- Không đổi schema DB, không thêm migration, không sửa edge function.
-- Không thay đổi flow auth của trình duyệt thường (vẫn `QuickReLogin`).
-- Không thay đổi PWA service worker config.
+| Báo cáo | Owner / HQ | Hotel Mgr | Trưởng FO | Trưởng HK | Trưởng Kho | Trưởng Laundry | Trưởng MX | Staff |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| **Chain Overview** (mới) | ● | — | — | — | — | — | — | — |
+| Hotel Dashboard | ● | ● | ○ | ○ | ○ | ○ | ○ | — |
+| Revenue Analytics | ● | ● | ○ | — | — | — | — | — |
+| Financial / P&L | ● | ● | — | — | — | — | — | — |
+| **Front Office Report** (mới) | ● | ● | ● | — | — | — | — | — |
+| **Guest CRM Report** (mới) | ● | ● | ● | — | — | — | — | — |
+| Rooms Performance | ● | ● | ○ | ● | — | — | — | — |
+| **Housekeeping Productivity** (mới) | ● | ● | — | ● | — | — | — | ○ "của tôi" |
+| **QC Quality Report** (mới) | ● | ● | — | ● | — | — | — | — |
+| Inventory | ● | ● | — | ○ | ● | — | — | — |
+| Stock Audit | ● | ● | — | — | ● | — | — | — |
+| Outbound Goods | ● | ● | — | ○ | ● | — | — | — |
+| **Purchase Order Report** (mới) | ● | ● | — | — | ● | — | — | — |
+| Laundry | ● | ● | — | ○ | — | ● | — | — |
+| Maintenance | ● | ● | — | — | — | — | ● | — |
+| Damages | ● | ● | — | ○ | ○ | ○ | ○ | — |
+| Operations KPI | ● | ● | ○ | ○ | ○ | ○ | ○ | — |
+| **Staff Performance** (mới) | ● | ● | ● | ● | ● | ● | ● | ○ "của tôi" |
+| **Shift / Attendance** (mới) | ● | ● | ● | ● | ● | ● | ● | ○ "của tôi" |
+| **My Tasks Report** (mới) | — | — | — | — | — | — | — | ● |
+| Subscription / Billing | ● | — | — | — | — | — | — | — |
 
-## Files sẽ tạo/sửa
-- **Tạo**: `src/components/auth/AutoLoginGate.tsx`
-- **Sửa**: `src/lib/pwa-environment.ts` (thêm `isStandalonePWA`), `src/lib/credential-manager.ts` (thêm logged-out flag), `src/pages/auth/Login.tsx` (bọc gate), `src/contexts/AuthContext.tsx` (clear credential khi signOut), `src/lib/app-version.ts` + `public/changelog.json` (bump version).
-- **Optional**: tinh chỉnh label tiếng Việt ở `LoginForm` / `QuickReLogin`.
+---
 
-## Test cases
-1. Lần đầu đăng nhập (PWA installed) với "Ghi nhớ" bật → đóng app → mở lại → tự vào dashboard, không thấy form.
-2. Bấm Logout → mở lại PWA → thấy `LoginForm` (không auto-login).
-3. Đổi mật khẩu phía admin → mở PWA → auto-login fail → fallback `LoginForm` + toast.
-4. Mở app trên trình duyệt thường (không cài) → vẫn thấy `QuickReLogin` như cũ.
-5. Mở app trong Lovable preview/iframe → KHÔNG auto-login (an toàn cho dev).
-6. Bấm "Hủy" lúc đang spinner auto-login → về `LoginForm`, không bị loop.
+## 3. Báo cáo cần thêm mới (gap analysis)
 
-## Rollout
-- Bump `APP_VERSION` → `1.0.42`, thêm changelog entry "Tự động đăng nhập trên PWA đã cài".
-- Không cần migration. Không breaking change cho user web thường.
+### 3.1 Chain Overview (Owner đa khách sạn)
+- KPI: Tổng revenue, ADR, RevPAR, Occupancy theo từng hotel — bảng ranking + sparkline.
+- So sánh kỳ trước, drill-down vào từng hotel.
+- Cảnh báo bất thường (revenue giảm >20% WoW, occupancy <40%…).
+
+### 3.2 Front Office Report (Lễ tân)
+- Booking funnel: tạo / huỷ / no-show / walk-in theo kênh (OTA / Direct / Phone).
+- Check-in/out đúng giờ vs trễ giờ; thời gian xử lý trung bình.
+- Công nợ chưa thu (unpaid debt) theo booking & theo khách.
+- Deposit đã thu vs đã hoàn.
+- Surcharge: early check-in / late checkout / extra services.
+
+### 3.3 Guest CRM Report
+- Top khách theo doanh số, tần suất lưu trú.
+- Nguồn khách (OTA / Direct / Walk-in / Corporate).
+- Phân loại VIP / Blacklist; sinh nhật trong tháng (upsell).
+- Khách quay lại (repeat rate) — chỉ số trung thành.
+
+### 3.4 Housekeeping Productivity
+- Số phòng clean / người / ca; thời gian trung bình / phòng.
+- Phân bổ task: assigned / completed / overdue.
+- Heatmap giờ cao điểm.
+- So sánh nhân viên (leaderboard).
+
+### 3.5 QC Quality Report (mở rộng `/housekeeping/qc` hiện có)
+- Pass rate, reject rate theo nhân viên / loại phòng / loại check (lean/quick/checkin/checkout).
+- Top issue: damaged, missing, lost, consumed_chargeable.
+- Thời gian từ submit → QC pass.
+
+### 3.6 Purchase Order Report
+- PO theo trạng thái, theo vendor.
+- Lead time trung bình, on-time delivery rate.
+- Chi phí mua hàng theo category / vendor / hotel.
+- So sánh giá vendor (price benchmark).
+
+### 3.7 Staff Performance & Shift / Attendance
+- Số giờ làm thực tế vs ca đăng ký.
+- Late/overtime/early-leave.
+- Năng suất theo bộ phận (số task / giờ).
+- Bảng lương ước tính (nếu có rate).
+
+### 3.8 My Tasks Report (cá nhân — Staff)
+- Tổng task đã làm tuần này / tháng này.
+- Tỷ lệ on-time, pass QC.
+- Phòng / khu vực phụ trách.
+- Đơn giản, chỉ xem dữ liệu của chính mình (RLS).
+
+---
+
+## 4. Đề xuất kiến trúc Reports Hub mới
+
+### 4.1 Reorganize `/reports` theo role-first navigation
+```text
+/reports
+├── (Tab) Tổng quan                ← role hiện tại quyết định nội dung mặc định
+├── (Section) Vận hành             ← Operations, Rooms, Front Office
+├── (Section) Tài chính            ← Revenue, Financial, Subscription
+├── (Section) Buồng phòng & QC     ← HK Productivity, QC Quality, Damages
+├── (Section) Kho & Mua hàng       ← Inventory, Stock Audit, Outbound, PO
+├── (Section) Giặt là & Bảo trì    ← Laundry, Maintenance
+├── (Section) Nhân sự              ← Staff Performance, Shift/Attendance
+└── (Section) Khách hàng           ← Guest CRM
+```
+
+- Mỗi section dùng `PermissionGate` để ẩn nếu role không có quyền.
+- Owner thấy thêm tab **Chain** ở đầu khi `availableHotels > 1` hoặc đang ở **All Hotels mode**.
+- Staff/Trưởng bộ phận thấy section "Của tôi" / "Bộ phận của tôi" được pin lên đầu.
+
+### 4.2 Permission mapping (mở rộng matrix hiện tại)
+
+Thêm action mới cho module `reports`:
+| Action | Mô tả | Role |
+|---|---|---|
+| `view_chain` | Xem báo cáo đa hotel | super_admin, owner |
+| `view_hotel` | Xem báo cáo toàn hotel | + hotel_manager |
+| `view_department` | Xem báo cáo bộ phận của mình | + department_manager (theo `department` của user) |
+| `view_self` | Xem báo cáo cá nhân | + staff |
+| `export` | Xuất PDF/Excel | owner, hotel_manager (department_mgr tuỳ cấu hình) |
+
+Tại RLS / RPC: filter thêm `department` từ `users.department` khi role = `department_manager`; filter `assigned_to = auth.uid()` khi role = `staff`.
+
+### 4.3 Mobile-first cho Trưởng bộ phận
+Trưởng HK / Laundry / MX / Kho thường dùng mobile → ưu tiên các `Mobile*ReportPage` đã có và bổ sung mobile cho 4 báo cáo mới.
+
+---
+
+## 5. Roadmap đề xuất (chia 4 sprint)
+
+**Sprint A — Reports Hub Role-based (foundation)**
+- Reorganize `/reports` theo section + permission filter.
+- Thêm action permission `view_chain/hotel/department/self`.
+- Quick wins: ẩn báo cáo không liên quan với từng role.
+
+**Sprint B — Buồng phòng & QC (ưu tiên theo roadmap chính)**
+- Housekeeping Productivity Report (mới).
+- QC Quality Report (mở rộng `/housekeeping/qc`).
+- "My Tasks Report" cho Staff HK.
+
+**Sprint C — Lễ tân & CRM**
+- Front Office Report (mới).
+- Guest CRM Report (mới).
+- Bổ sung Revenue drill-down theo kênh OTA.
+
+**Sprint D — Chain view + Nhân sự**
+- Chain Overview cho Owner (multi-hotel).
+- Staff Performance + Shift/Attendance Report.
+- Purchase Order Report.
+
+---
+
+## 6. Câu hỏi cần bạn chốt trước khi build
+
+1. **Định nghĩa "department"** trong `users.department` đã đủ 4 giá trị (housekeeping / laundry / inventory / maintenance) chưa? Có cần thêm `front_office`?
+2. **Lễ tân** hiện đang được map vào role nào (hotel_manager hay department_manager với department mới)? → ảnh hưởng permission Front Office Report.
+3. **Staff có được xem báo cáo cá nhân không**, hay chỉ Trưởng bộ phận xem thay?
+4. **Export quyền**: chỉ Owner/Hotel Manager, hay cho cả Trưởng bộ phận export báo cáo bộ phận của mình?
+5. **Chain Overview**: ngoài Owner, có cho phép Hotel Manager được gán nhiều hotel xem dạng "mini-chain" không?
+
+---
+
+Sau khi bạn trả lời 5 câu trên + chọn sprint nào làm trước, tôi sẽ tạo plan build chi tiết (schema, RPC, hooks, UI, RLS, test) cho từng báo cáo mới.
