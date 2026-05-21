@@ -260,6 +260,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       // Clear React Query cache
       queryClient.clear()
+
+      // Xoá credential đã lưu + đánh dấu logged-out để PWA không auto-login lại
+      try {
+        const { clearLocalCredential } = await import('@/lib/credential-manager')
+        clearLocalCredential()
+      } catch (e) {
+        console.warn('[SignOut] Clear credential failed:', e)
+      }
       
       // Then call API (may fail if session already expired - that's ok)
       const { error } = await supabase.auth.signOut()
