@@ -23,20 +23,7 @@ export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
   const isOnShift = presence === 'on_shift_available' || presence === 'on_shift_busy' || presence === 'on_shift_offline'
   const isStale = presence === 'shift_stale'
 
-interface StaffCardProps {
-  staff: StaffWithStatus
-  onViewDetail?: (staff: StaffWithStatus) => void
-}
-
-export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
-  const navigate = useNavigate()
-  const { t } = useTranslation('common')
   
-  // Check if staff is currently on shift
-  const isOnShift = staff.shift_start_at && (
-    !staff.shift_end_at || 
-    new Date(staff.shift_start_at) > new Date(staff.shift_end_at)
-  )
   
   const initials = staff.full_name
     .split(' ')
