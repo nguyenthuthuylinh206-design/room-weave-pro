@@ -121,6 +121,12 @@ export function useStaffStatus() {
           telegram_chat_id: activeTelegramConnection?.chat_id || null,
           shift_start_at: status?.shift_start_at || null,
           shift_end_at: status?.shift_end_at || null,
+          presence_state: getPresenceState({
+            shift_start_at: status?.shift_start_at,
+            shift_end_at: status?.shift_end_at,
+            status: status?.status,
+            last_seen_at: status?.last_seen_at,
+          }),
         }
       })
 
