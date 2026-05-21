@@ -1,83 +1,57 @@
 ## Vấn đề
 
-Logic "đang trong ca" (`isCurrentlyOnShift`) hiện tại **chỉ dựa vào `shift_start_at` / `shift_end_at`** trong bảng `staff_status`, dẫn đến hai loại sai lệch đã thấy ngay trong dữ liệu thực:
+Ở trang `/staff` (StaffCard), chấm xanh / xám cạnh tên đang lấy **trực tiếp từ cột `staff_status.status`** (`available | busy | break | offline`) qua `<StaffStatusBadge status={staff.status} />`. Cột này chỉ đổi khi nhân viên (hoặc app) **chủ động ghi** — không tự reset khi mất heartbeat, không tự reset khi ca treo, không sync với `last_seen_at`.
 
-1. **Ca treo (false positive)** — Có user `shift_start_at = 2026-02-05` nhưng `shift_end_at = null` → vẫn được coi là "đang trong ca" suốt 3,5 tháng. Người này có thể đã nghỉ từ lâu nhưng vẫn xuất hiện ở dropdown giao việc kiểm tra phòng, giao task housekeeping, distribution, group checkout…
-2. **Đang làm nhưng không thấy (false negative)** — User `last_seen_at` hôm nay nhưng chưa bấm "Vào ca" (`shift_start_at = null`) → bị loại khỏi dropdown dù đang online.
-3. **Trường `status` (available / busy / break / offline) bị bỏ qua hoàn toàn** ở dropdown giao việc, nhưng lại được hiển thị ở trang Quản lý nhân sự. Hai nơi không cùng định nghĩa "đang trong ca".
+Hệ quả thấy trong ảnh user gửi:
+- "NV Linh" — chấm xanh nhưng dòng dưới ghi "Hoạt động khoảng 1 tháng trước" → thực tế offline lâu, vẫn xanh.
+- "Quản Lý 2", "oboto", "Nhân Viên Buồng Tâm" — tất cả xanh dù có thể chưa vào ca hoặc đã offline.
+- Badge "Đang trong ca" ở `StaffCard` cũng dùng logic cũ riêng (`shift_start_at` + `shift_end_at`), **không** áp `MAX_SHIFT_HOURS = 16`, lệch với `staffPresence.ts` đã chuẩn hoá ở các dropdown giao việc và `/staff-management`.
+
+Tức là: hai nơi (dropdown giao việc đã chuẩn hoá ở sprint trước **vs** trang `/staff` này) đang dùng **2 định nghĩa khác nhau** cho cùng khái niệm "đang on / trong ca".
 
 ## Mục tiêu
 
-Một **định nghĩa "đang trong ca" duy nhất**, dùng chung cho:
-- Dropdown giao việc (CheckoutInspectionSection, AssignTaskDialog, BulkCreateTaskDialog, DistributionForm, GroupCheckoutDialog, ApproveSupplementDialog, InspectionStatusCard, CleaningRequestBanner, GroupCheckoutRoomCard…)
-- Trang Quản lý nhân sự (`/staff-management`, `OnShiftStaffPanel`, `ShiftStatusBanner`).
-- Cron tự đóng ca treo.
+Trang `/staff` (StaffCard, StaffList, StaffStatsCards, StaffDetailSheet) dùng **cùng** `getPresenceState()` / `isOnShift()` từ `src/lib/staffPresence.ts` — single source of truth duy nhất với mọi nơi khác. Không thêm logic mới, chỉ replace.
 
-## A. Logic nghiệp vụ thống nhất
+## Thay đổi
 
-Một nhân viên được coi là **"đang trong ca"** khi **tất cả** đúng:
+### A. Logic / dữ liệu
+1. `useStaffStatus.ts`: bổ sung trường tính sẵn `presence_state: StaffPresenceState` cho mỗi `StaffWithStatus`, derive từ `getPresenceState({ shift_start_at, shift_end_at, status, last_seen_at })`. Không đổi schema, không migration.
+2. `useStaffStatusStats`: đếm theo `presence_state` thay vì `status` thô — 4 nhóm hiển thị: **Sẵn sàng** (on_shift_available), **Đang bận** (on_shift_busy), **Mất kết nối** (on_shift_offline), **Ngoài ca** (shift_stale + not_on_shift gộp). Giữ tổng `total`.
 
-1. `shift_start_at` không null **và** (`shift_end_at` null hoặc `shift_end_at < shift_start_at`).
-2. `shift_start_at` **trong vòng ≤ 16 giờ** (max ca làm) — quá 16h coi như ca treo, không tính.
-3. `status` ≠ `'offline'`.
-4. Tuỳ chọn (mặc định bật): `last_seen_at` trong vòng ≤ 30 phút — nếu không thì là "ngoại tuyến" (đã đăng ký ca nhưng mất kết nối lâu).
+### B. UI
+1. **`StaffCard.tsx`**:
+   - Bỏ tính `isOnShift` local; dùng `isOnShift(staff)` từ `@/lib/staffPresence`.
+   - Chấm cạnh tên: thay `<StaffStatusBadge status={staff.status} />` → chấm 2x2 với màu lấy từ `PRESENCE_DOT_COLOR[staff.presence_state]`, tooltip = `PRESENCE_LABEL[...]`.
+   - Badge "Đang trong ca" chỉ hiện khi `presence_state ∈ {available, busy}`; nếu `on_shift_offline` thì badge đổi label "Trong ca · mất kết nối" màu xám.
+   - Dòng "Hoạt động X trước" hiện khi `presence_state ∈ {on_shift_offline, not_on_shift, shift_stale}` và có `last_seen_at` — không chỉ riêng `status==='offline'` như hiện tại (đây là nguyên nhân chính khiến NV Linh sai).
+   - `shift_stale` thêm cảnh báo nhỏ "Ca quá 16 giờ — sẽ tự đóng" (chỉ Manager/Owner thấy — đã có `canManageTasks` ở page cha, truyền xuống làm prop optional).
+2. **`StaffList.tsx`**: sort theo `PRESENCE_SORT_ORDER` (available → busy → offline-heartbeat → stale → not_on_shift), không sort theo `status` thô nữa. Filter cards click cũng map sang presence_state tương ứng.
+3. **`StaffStatsCards.tsx`**: 4 ô = Sẵn sàng / Đang bận / Mất kết nối / Ngoài ca. Click filter set `filterPresenceState` (đổi prop `filterStatus` → `filterPresenceState` ở `StaffList`).
+4. **`StaffDetailSheet.tsx`**: dùng cùng badge/label từ `staffPresence.ts`, hiển thị thêm dòng `last_seen_at` tương đối và `shift_start_at` (đã bao lâu).
 
-Trạng thái hiển thị ở dropdown chia 3 nhóm rõ ràng (cùng định nghĩa với trang Quản lý nhân sự):
+### C. Compat
+- Giữ `StaffStatusBadge` cho nơi nào còn dùng raw status (vd UI cho chính nhân viên chọn trạng thái của mình). Không xóa file.
+- Không đổi schema, không migration, không edge function.
 
-- **Sẵn sàng** — đủ 4 điều kiện trên, `status = 'available'`.
-- **Đang bận / nghỉ giải lao** — đủ 1-3, `status ∈ {'busy','break'}` → vẫn chọn được, có badge cảnh báo.
-- **Ngoại tuyến (heartbeat quá hạn)** — đủ 1-3 nhưng `last_seen_at` quá 30 phút → disable hoặc tách nhóm cuối.
+### D. Test
+- Unit `useStaffStatusStats.test.ts`: 6 case — available + heartbeat tốt; available + heartbeat 1h; busy đang ca; shift quá 16h; chưa vào ca; status='offline'.
+- Snapshot `StaffCard.test.tsx`: render đúng dot + badge cho 4 presence state.
 
-Người không thoả điều kiện 1-2 (ca treo / chưa vào ca) **không xuất hiện**.
+### E. Rollout
+1. Sửa hook + 4 component, không ảnh hưởng dropdown giao việc (đã dùng `staffPresence.ts` từ sprint trước).
+2. Bump `APP_VERSION` + entry changelog "Đồng bộ chấm trạng thái nhân sự ở trang Quản lý nhân sự".
+3. Không cần migration / không cần thông báo người dùng.
 
-## B. Schema / migration
-
-1. **Cron tự đóng ca treo**: bổ sung cron `auto_close_stale_shifts` chạy mỗi giờ — set `shift_end_at = now()`, `status = 'offline'` cho mọi `staff_status` có `shift_start_at < now() - interval '16 hours'` và `shift_end_at` null. Ghi vào `audit_log` với reason `'auto_close_stale_shift'`.
-2. Không thay đổi cấu trúc bảng. Không cột mới.
-
-## C. Code dùng chung
-
-1. **`src/lib/staffPresence.ts`** (mới) — single source of truth:
-   - Hằng số `MAX_SHIFT_HOURS = 16`, `OFFLINE_THRESHOLD_MIN = 30`.
-   - `getPresenceState(status): 'on_shift_available' | 'on_shift_busy' | 'on_shift_offline' | 'shift_stale' | 'not_on_shift'`.
-   - `isOnShift(status)` (bao gồm điều kiện 1+2+3), `isAvailableNow(status)` (đủ 4).
-   - Label tiếng Việt + màu semantic cho từng state.
-2. **`src/hooks/useShiftManagement.ts`**:
-   - Thay `isCurrentlyOnShift` → re-export từ `staffPresence.ts` (compat layer, không breaking).
-3. **`src/hooks/useOnShiftStaffList.ts` + `useOnShiftStaffListAll.ts`**:
-   - Dùng `isOnShift` mới (loại ca treo, loại offline status).
-   - Trả về thêm `presence_state` cho mỗi staff để UI render badge.
-   - Sort: available → busy/break → offline-heartbeat.
-
-## D. UI
-
-1. **`CheckoutInspectionSection.tsx`** (chỗ user đang chọn):
-   - Group dropdown theo nhóm: "Sẵn sàng", "Đang bận", "Ngoại tuyến (>30 phút)".
-   - Badge nhỏ bên cạnh tên: chấm xanh / vàng / xám.
-   - Đổi label `(đang trong ca)` → `(đang trong ca, đã loại ca treo & ngoại tuyến lâu)` tooltip; label chính giữ ngắn.
-   - Hiển thị `last_seen_at` tương đối ("vừa xong", "5 phút trước") khi không phải available.
-2. **Tất cả dialog giao việc khác** (AssignTaskDialog, BulkCreateTaskDialog, DistributionForm, GroupCheckoutDialog, ApproveSupplementDialog, InspectionStatusCard, CleaningRequestBanner, GroupCheckoutRoomCard): áp cùng component `<StaffPicker>` mới → tái sử dụng nhóm + badge.
-3. **Trang `/staff-management` (`OnShiftStaffPanel`, `ShiftStatusBanner`)**: dùng cùng `getPresenceState`, hiển thị thêm cảnh báo "Ca quá 16 giờ — sẽ tự đóng" để Manager biết.
-
-## E. Permission
-
-Không thay đổi. Vẫn dùng `useHotelStaffList`/`useOnShiftStaffList` đã tôn trọng `user_hotels` + RLS theo `tenant_id`.
-
-## F. Test
-
-- Unit `staffPresence.test.ts`: 8 case (chưa vào ca / vừa vào ca / ca 17h / shift_end_at < start / status offline / status busy / heartbeat quá 30' / available healthy).
-- Component test `CheckoutInspectionSection`: render đúng group, disable đúng item ngoại tuyến.
-- SQL test cron `auto_close_stale_shifts`: insert row 20h trước → chạy cron → assert đã đóng + audit log.
-
-## G. Rollout
-
-1. Bật migration cron (không phá dữ liệu — chỉ đóng ca treo).
-2. Chạy 1 lần thủ công để dọn ngay dữ liệu sai hiện tại (4 user có ca treo > 16h).
-3. Deploy code: hook + UI cùng release; vì compat layer giữ tên `isCurrentlyOnShift`, không component nào vỡ.
-4. Bump `APP_VERSION` + thêm entry changelog.
-5. Theo dõi audit log `auto_close_stale_shift` 1 tuần.
+## Files dự kiến sửa
+- `src/hooks/useStaffStatus.ts` (thêm `presence_state`, đổi `useStaffStatusStats`)
+- `src/components/staff/StaffCard.tsx`
+- `src/components/staff/StaffList.tsx`
+- `src/components/staff/StaffStatsCards.tsx`
+- `src/components/staff/StaffDetailSheet.tsx`
+- `src/lib/app-version.ts`, `public/changelog.json`
+- Mới: `src/components/staff/StaffCard.test.tsx`, `src/hooks/useStaffStatus.test.ts`
 
 ## Rủi ro
-
-- Nhân viên đang dùng app nhưng quên bấm "Vào ca" sẽ vẫn không hiện → cần thêm banner nhắc ở `ShiftStatusBanner` (đã có) và đảm bảo flow "Vào ca" rõ ràng. Không thay đổi flow trong phạm vi này.
-- Threshold 16h / 30 phút là giả định hợp lý cho khách sạn 2–4 sao VN; cho phép Owner chỉnh sau qua `tenants.settings.shift` (mở rộng tương lai, không build trong sprint này).
+- Một số nhân viên đang được nhìn thấy "xanh" sẽ chuyển "xám/mất kết nối" sau khi deploy → đúng nghiệp vụ nhưng có thể gây bất ngờ. Đã có dòng "Hoạt động X trước" giải thích.
+- Không có rủi ro dữ liệu (chỉ thay cách hiển thị).
