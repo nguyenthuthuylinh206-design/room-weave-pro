@@ -50,7 +50,7 @@ export default function StaffManagementPage() {
         <StaffStatsCards 
           stats={stats} 
           selectedStatus={selectedStatus}
-          onStatusClick={(status) => setSelectedStatus(status as StaffStatusType | null)}
+          onStatusClick={(status) => setSelectedStatus(status)}
         />
       </div>
 
