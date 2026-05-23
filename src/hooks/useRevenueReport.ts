@@ -91,9 +91,7 @@ export interface RevenueBookingRow {
   damage_charges: number | null
   service_charges: number | null
   extra_charges: number | null
-  discount_amount?: number | null
   vat_amount?: number | null
-  vat_inclusive?: boolean | null
   room_id?: string | null
   room?: { room_number?: string; room_type?: string } | null
 }
@@ -143,17 +141,14 @@ export function computeRevenueData(filtered: RevenueBookingRow[]): RevenueData {
   const totalRevenue = paidRevenue + pendingRevenue
   const paidBookings = nonRefunded.filter(b => b.payment_status === 'paid')
   const otaCommission = filtered.reduce((s, b) => s + (b.ota_commission_amount || 0), 0)
-  const discountAmount = filtered.reduce((s, b) => s + (b.discount_amount || 0), 0)
+  const discountAmount = 0 // room_bookings không có cột discount; chờ schema mở rộng
   const vatAmount = filtered.reduce((s, b) => s + (b.vat_amount || 0), 0)
 
-  // Net revenue: ưu tiên DB. Fallback theo công thức chuẩn.
+  // Net revenue: ưu tiên DB.net_revenue (đã trừ commission). Fallback: gross − commission.
+  // Lưu ý: chưa trừ VAT vì chưa có flag vat_inclusive ở booking — tránh double-discount.
   const netRevenue = filtered.reduce((s, b) => {
     if (b.net_revenue != null) return s + (b.net_revenue || 0)
-    const gross = b.total_amount || 0
-    const disc = b.discount_amount || 0
-    const comm = b.ota_commission_amount || 0
-    const vatPassthrough = b.vat_inclusive === false ? (b.vat_amount || 0) : 0
-    return s + (gross - disc - comm - vatPassthrough)
+    return s + ((b.total_amount || 0) - (b.ota_commission_amount || 0))
   }, 0)
 
   const earlyCheckin = filtered.reduce((s, b) => s + (b.early_checkin_charge || 0), 0)
@@ -274,9 +269,9 @@ export function useRevenueReport(period: ReportPeriod = 'month', customRange?: {
         }
       }
 
-      // Query bookings — bao gồm cả service_charges, extra_charges, discount, VAT
+      // Query bookings — bao gồm cả service_charges, extra_charges, VAT
       let query = supabase.from('room_bookings').select(
-        'check_out_date, total_amount, amount_paid, deposit_amount, payment_status, booking_type, booking_source, ota_commission_amount, net_revenue, early_checkin_charge, late_checkout_charge, damage_charges, service_charges, extra_charges, discount_amount, vat_amount, vat_inclusive, room_id, room:rooms!room_bookings_room_id_fkey(room_number, room_type)',
+        'check_out_date, total_amount, amount_paid, deposit_amount, payment_status, booking_type, booking_source, ota_commission_amount, net_revenue, early_checkin_charge, late_checkout_charge, damage_charges, service_charges, extra_charges, vat_amount, room_id, room:rooms!room_bookings_room_id_fkey(room_number, room_type)',
       )
         .eq('tenant_id', tenantId)
         .gte('check_out_date', fetchFromISO)
