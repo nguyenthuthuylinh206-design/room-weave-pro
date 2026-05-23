@@ -80,12 +80,12 @@ export function useOperationsInsights(dateRange: { start: Date; end: Date }) {
       dateRange.end.toISOString(),
       totalRooms,
       revenue.data?.currentPeriod.netRevenue,
-      financial.data?.summary.total_cost,
+      financial.data?.summary?.total_cost,
     ],
-    enabled: !!tenantId && !!revenue.data && !!financial.data && totalRooms > 0,
+    enabled: !!tenantId && !!revenue.data && !!financial.data?.summary && totalRooms > 0,
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<OperationsInsightsData> => {
-      if (!tenantId || !revenue.data || !financial.data) {
+      if (!tenantId || !revenue.data || !financial.data?.summary) {
         throw new Error('Thiếu dữ liệu nguồn')
       }
 
