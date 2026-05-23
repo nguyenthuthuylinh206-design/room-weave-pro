@@ -1,6 +1,20 @@
 {
-  "current": "1.0.43",
+  "current": "1.0.44",
   "versions": [
+    {
+      "version": "1.0.44",
+      "releaseDate": "2026-05-23",
+      "title": "Sửa công thức doanh thu — gộp phí dịch vụ, minibar và phụ thu phát sinh",
+      "changes": [
+        { "type": "fix", "text": "Báo cáo Doanh thu nay cộng đủ phí dịch vụ (spa, đưa đón…) và phí phát sinh (minibar, đồ tiêu hao) vào phần Phụ thu — trước đây bị bỏ sót khiến doanh thu thấp hơn thực tế" },
+        { "type": "feature", "text": "Thêm chọn khoảng thời gian tùy chọn (Tùy chọn…) ở Báo cáo Doanh thu — so sánh quý/năm bất kỳ thay vì chỉ preset tuần/tháng/quý/năm" },
+        { "type": "fix", "text": "Trang Báo cáo Tài chính khi đang tải hiển thị skeleton tiếng Việt thay vì chữ Loading… cứng" },
+        { "type": "improvement", "text": "Báo cáo Hỏng/Mất ghi log cảnh báo khi gặp dữ liệu legacy không đúng định dạng, giúp phát hiện bug âm thầm" },
+        { "type": "improvement", "text": "Thêm 7 unit test cho công thức doanh thu (paid/pending/refunded, fallback net revenue, phụ thu, VAT)" }
+      ]
+    },
+    {
+      "version": "1.0.43",
     {
       "version": "1.0.43",
       "releaseDate": "2026-05-21",
