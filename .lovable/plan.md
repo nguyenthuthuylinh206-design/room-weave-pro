@@ -1,184 +1,69 @@
+# QA toàn bộ Reports Hub — Phát hiện & đề xuất sửa
 
-# Ma trận Báo cáo × Chức vụ × Bộ phận
+Đã rà 10 báo cáo (Doanh thu, Tài chính, KPI Vận hành, Hỏng/Mất, Hiệu năng phòng, Tồn kho, Kiểm kê kho, Xuất kho, Giặt là, Bảo trì) và các hook tương ứng. **Tin tốt**: Doanh thu đã có sẵn ở `/reports/revenue`, tenant/hotel filter đúng chuẩn 3 lớp, các RPC `get_*_report` tồn tại trong DB, mobile view đầy đủ trừ Outbound. **Vấn đề** chia 3 nhóm:
 
-> Tài liệu phân tích — chưa code. Sau khi bạn duyệt, tôi sẽ tách thành các plan build nhỏ (per role / per report).
+## 🔴 P0 — Bug nghiêm trọng (sai số liệu / vỡ UX)
 
----
+1. **Doanh thu thiếu phụ thu dịch vụ & minibar** — `useRevenueReport.ts` chỉ cộng `early_checkin + late_checkout + damage_charges` vào surcharges. Cột `service_charges`, `extra_charges` (đã có trong `room_bookings`) **bị bỏ qua hoàn toàn**, dẫn đến tổng doanh thu thấp hơn thực tế.
+2. `**netRevenue` không trừ discount & VAT** — Memory `advanced-revenue-analytics-v1` quy định `net = gross − discount − commission − VAT passthrough`. Hook hiện chỉ `total − commission`. Sai khi hotel có khuyến mãi hoặc VAT exclusive.
+3. **Financial Report fallback xấu** — `FinancialReportPage.tsx:60` render plain `<div>Loading...</div>` (tiếng Anh, không skeleton, không Vietnamese) khi `reportData` chưa có. Vi phạm chuẩn Vietnamese-first + Enterprise SaaS.
+4. **Lệch giữa `booking_payments` (1,54 tỷ) và `room_bookings.amount_paid` (599 triệu)** trên tenant Phước Linh — cần xác định nguồn truth cho báo cáo. Hiện Revenue dùng `amount_paid` (có thể đang miss các khoản pay-on-checkout chưa rollup).
 
-## 1. Hiện trạng (11 báo cáo đã có)
+## 🟡 P1 — Thiếu sót chức năng
 
-| # | Báo cáo | Route | Dành cho hiện tại |
-|---|---|---|---|
-| 1 | Reports Dashboard | `/reports` | Owner / Hotel Manager |
-| 2 | Revenue Analytics | `/reports/revenue` | Owner |
-| 3 | Financial | `/reports/financial` | Owner / Kế toán |
-| 4 | Rooms | `/reports/rooms` | Hotel Manager |
-| 5 | Operations KPI | `/reports/operations` | Hotel Manager |
-| 6 | Inventory | `/reports/inventory` | Trưởng kho |
-| 7 | Stock Audit | `/reports/stock-audit` | Trưởng kho |
-| 8 | Laundry | `/reports/laundry` | Trưởng giặt là |
-| 9 | Maintenance | `/reports/maintenance` | Trưởng bảo trì |
-| 10 | Outbound Goods | `/reports/outbound` | Trưởng kho |
-| 11 | Damages | `/reports/damages` | Hotel Manager |
+5. **Outbound Report thiếu Mobile view** — 9/10 báo cáo có `Mobile*ReportPage.tsx`, riêng Outbound không có → trên mobile sẽ render desktop layout (chart Recharts vỡ).
+6. `**useRevenueReport` không lọc theo `dateRange` tùy chọn** — chỉ có period preset (today/week/month/...), trong khi Financial/Operations/Damages có `DateRangePicker`. Owner muốn so quý/năm cụ thể không làm được.
+7. **Damages Report parse legacy data** — có `normalizeDamageList` cho dạng `{itemId: qty}` cũ, nhưng không log cảnh báo khi gặp dữ liệu lạ → bug âm thầm.
 
-**Vấn đề:**
-- Tất cả gom vào 1 hub, không lọc theo role → Trưởng bộ phận thấy báo cáo không liên quan.
-- Thiếu báo cáo **Lễ tân (Front Office)**, **Buồng phòng (Housekeeping/QC theo người)**, **CRM khách hàng**, **Nhân sự / Chấm công**.
-- Thiếu **Chain view** (so sánh đa khách sạn cho Owner).
-- Không có báo cáo "của tôi" cho Staff (năng suất cá nhân).
+## 🟢 P2 — Đề xuất nâng cấp (theo Sprint B/C trong roadmap)
 
----
+8. **Card "Doanh thu" hiển thị đúng** cho Owner & Hotel Manager (xác nhận từ screenshot user gửi) — không phải bug, user đã thấy ở section **Tài chính** trên hub. Department Manager (housekeeping/laundry/inventory/maintenance) **cố ý không thấy** theo Sprint A.
+9. **Thiếu báo cáo Lễ tân** (booking funnel, check-in/out theo ca, công nợ chưa thu) — đã có trong roadmap Sprint C.
+10. **Thiếu báo cáo CRM khách (VIP, repeat rate)** — Sprint C.
+11. **Thiếu Chain Overview** (multi-hotel ranking) — Sprint D.
 
-## 2. Ma trận đề xuất (Báo cáo × Chức vụ)
+## Phạm vi đề xuất triển khai ngay (nếu duyệt)
 
-Legend: ● = bắt buộc · ○ = tham khảo (read-only, giới hạn phạm vi) · — = không thấy
+Focus **P0** trước, các P1/P2 chờ sprint sau:
 
-| Báo cáo | Owner / HQ | Hotel Mgr | Trưởng FO | Trưởng HK | Trưởng Kho | Trưởng Laundry | Trưởng MX | Staff |
-|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-| **Chain Overview** (mới) | ● | — | — | — | — | — | — | — |
-| Hotel Dashboard | ● | ● | ○ | ○ | ○ | ○ | ○ | — |
-| Revenue Analytics | ● | ● | ○ | — | — | — | — | — |
-| Financial / P&L | ● | ● | — | — | — | — | — | — |
-| **Front Office Report** (mới) | ● | ● | ● | — | — | — | — | — |
-| **Guest CRM Report** (mới) | ● | ● | ● | — | — | — | — | — |
-| Rooms Performance | ● | ● | ○ | ● | — | — | — | — |
-| **Housekeeping Productivity** (mới) | ● | ● | — | ● | — | — | — | ○ "của tôi" |
-| **QC Quality Report** (mới) | ● | ● | — | ● | — | — | — | — |
-| Inventory | ● | ● | — | ○ | ● | — | — | — |
-| Stock Audit | ● | ● | — | — | ● | — | — | — |
-| Outbound Goods | ● | ● | — | ○ | ● | — | — | — |
-| **Purchase Order Report** (mới) | ● | ● | — | — | ● | — | — | — |
-| Laundry | ● | ● | — | ○ | — | ● | — | — |
-| Maintenance | ● | ● | — | — | — | — | ● | — |
-| Damages | ● | ● | — | ○ | ○ | ○ | ○ | — |
-| Operations KPI | ● | ● | ○ | ○ | ○ | ○ | ○ | — |
-| **Staff Performance** (mới) | ● | ● | ● | ● | ● | ● | ● | ○ "của tôi" |
-| **Shift / Attendance** (mới) | ● | ● | ● | ● | ● | ● | ● | ○ "của tôi" |
-| **My Tasks Report** (mới) | — | — | — | — | — | — | — | ● |
-| Subscription / Billing | ● | — | — | — | — | — | — | — |
+### A. Logic nghiệp vụ
 
----
+- Bổ sung `service_charges` + `extra_charges` vào `RevenueData.surcharges` và `totalRevenue`.
+- Sửa `netRevenue` theo công thức chuẩn: ưu tiên cột `net_revenue` của DB; fallback `total − discount − commission − vat_passthrough`.
+- Thêm field `discount_amount`, `vat_amount`, `vat_inclusive` vào select của `useRevenueReport`.
 
-## 3. Báo cáo cần thêm mới (gap analysis)
+### B. Schema/Migration
 
-### 3.1 Chain Overview (Owner đa khách sạn)
-- KPI: Tổng revenue, ADR, RevPAR, Occupancy theo từng hotel — bảng ranking + sparkline.
-- So sánh kỳ trước, drill-down vào từng hotel.
-- Cảnh báo bất thường (revenue giảm >20% WoW, occupancy <40%…).
+- Không cần migration mới — các cột đã tồn tại.
+- **Đề xuất** thêm DB view `v_booking_revenue` (Tech debt F-DBT-04) gom logic tài chính, tránh tính client. Để Sprint B.
 
-### 3.2 Front Office Report (Lễ tân)
-- Booking funnel: tạo / huỷ / no-show / walk-in theo kênh (OTA / Direct / Phone).
-- Check-in/out đúng giờ vs trễ giờ; thời gian xử lý trung bình.
-- Công nợ chưa thu (unpaid debt) theo booking & theo khách.
-- Deposit đã thu vs đã hoàn.
-- Surcharge: early check-in / late checkout / extra services.
+### C. API/RPC
 
-### 3.3 Guest CRM Report
-- Top khách theo doanh số, tần suất lưu trú.
-- Nguồn khách (OTA / Direct / Walk-in / Corporate).
-- Phân loại VIP / Blacklist; sinh nhật trong tháng (upsell).
-- Khách quay lại (repeat rate) — chỉ số trung thành.
+- Không thay đổi RPC. Chỉ điều chỉnh client query.
 
-### 3.4 Housekeeping Productivity
-- Số phòng clean / người / ca; thời gian trung bình / phòng.
-- Phân bổ task: assigned / completed / overdue.
-- Heatmap giờ cao điểm.
-- So sánh nhân viên (leaderboard).
+### D. UI/UX
 
-### 3.5 QC Quality Report (mở rộng `/housekeeping/qc` hiện có)
-- Pass rate, reject rate theo nhân viên / loại phòng / loại check (lean/quick/checkin/checkout).
-- Top issue: damaged, missing, lost, consumed_chargeable.
-- Thời gian từ submit → QC pass.
+- `FinancialReportPage.tsx:60`: thay `<div>Loading...</div>` bằng skeleton tiếng Việt giống Operations/Revenue.
+- Thêm `DateRangePicker` cho Revenue (giữ preset hiện tại làm shortcut).
+- Tạo `MobileOutboundReportPage.tsx` mirror layout 9 mobile pages còn lại.
 
-### 3.6 Purchase Order Report
-- PO theo trạng thái, theo vendor.
-- Lead time trung bình, on-time delivery rate.
-- Chi phí mua hàng theo category / vendor / hotel.
-- So sánh giá vendor (price benchmark).
+### E. Permission
 
-### 3.7 Staff Performance & Shift / Attendance
-- Số giờ làm thực tế vs ca đăng ký.
-- Late/overtime/early-leave.
-- Năng suất theo bộ phận (số task / giờ).
-- Bảng lương ước tính (nếu có rate).
+- Không đổi. Catalog Sprint A đã chuẩn.
 
-### 3.8 My Tasks Report (cá nhân — Staff)
-- Tổng task đã làm tuần này / tháng này.
-- Tỷ lệ on-time, pass QC.
-- Phòng / khu vực phụ trách.
-- Đơn giản, chỉ xem dữ liệu của chính mình (RLS).
+### F. Test
 
----
+- Thêm `useRevenueReport.test.ts`: case (1) booking có service_charges, (2) có discount + VAT exclusive, (3) refunded loại khỏi paid.
+- Snapshot công thức `netRevenue` với 3 booking giả lập.
 
-## 4. Đề xuất kiến trúc Reports Hub mới
+### G. Rollout
 
-### 4.1 Reorganize `/reports` theo role-first navigation
-```text
-/reports
-├── (Tab) Tổng quan                ← role hiện tại quyết định nội dung mặc định
-├── (Section) Vận hành             ← Operations, Rooms, Front Office
-├── (Section) Tài chính            ← Revenue, Financial, Subscription
-├── (Section) Buồng phòng & QC     ← HK Productivity, QC Quality, Damages
-├── (Section) Kho & Mua hàng       ← Inventory, Stock Audit, Outbound, PO
-├── (Section) Giặt là & Bảo trì    ← Laundry, Maintenance
-├── (Section) Nhân sự              ← Staff Performance, Shift/Attendance
-└── (Section) Khách hàng           ← Guest CRM
-```
+- Bump `APP_VERSION` + `CURRENT_VERSION` + changelog entry "Sửa công thức doanh thu, thêm phụ thu dịch vụ/minibar, mobile outbound".
+- Invalidate `['revenue-report']` sau deploy để tránh cache cũ.
+- Rollback: revert hook + page; không có DB change.
 
-- Mỗi section dùng `PermissionGate` để ẩn nếu role không có quyền.
-- Owner thấy thêm tab **Chain** ở đầu khi `availableHotels > 1` hoặc đang ở **All Hotels mode**.
-- Staff/Trưởng bộ phận thấy section "Của tôi" / "Bộ phận của tôi" được pin lên đầu.
+## Câu hỏi cần xác nhận trước khi build
 
-### 4.2 Permission mapping (mở rộng matrix hiện tại)
-
-Thêm action mới cho module `reports`:
-| Action | Mô tả | Role |
-|---|---|---|
-| `view_chain` | Xem báo cáo đa hotel | super_admin, owner |
-| `view_hotel` | Xem báo cáo toàn hotel | + hotel_manager |
-| `view_department` | Xem báo cáo bộ phận của mình | + department_manager (theo `department` của user) |
-| `view_self` | Xem báo cáo cá nhân | + staff |
-| `export` | Xuất PDF/Excel | owner, hotel_manager (department_mgr tuỳ cấu hình) |
-
-Tại RLS / RPC: filter thêm `department` từ `users.department` khi role = `department_manager`; filter `assigned_to = auth.uid()` khi role = `staff`.
-
-### 4.3 Mobile-first cho Trưởng bộ phận
-Trưởng HK / Laundry / MX / Kho thường dùng mobile → ưu tiên các `Mobile*ReportPage` đã có và bổ sung mobile cho 4 báo cáo mới.
-
----
-
-## 5. Roadmap đề xuất (chia 4 sprint)
-
-**Sprint A — Reports Hub Role-based (foundation)**
-- Reorganize `/reports` theo section + permission filter.
-- Thêm action permission `view_chain/hotel/department/self`.
-- Quick wins: ẩn báo cáo không liên quan với từng role.
-
-**Sprint B — Buồng phòng & QC (ưu tiên theo roadmap chính)**
-- Housekeeping Productivity Report (mới).
-- QC Quality Report (mở rộng `/housekeeping/qc`).
-- "My Tasks Report" cho Staff HK.
-
-**Sprint C — Lễ tân & CRM**
-- Front Office Report (mới).
-- Guest CRM Report (mới).
-- Bổ sung Revenue drill-down theo kênh OTA.
-
-**Sprint D — Chain view + Nhân sự**
-- Chain Overview cho Owner (multi-hotel).
-- Staff Performance + Shift/Attendance Report.
-- Purchase Order Report.
-
----
-
-## 6. Câu hỏi cần bạn chốt trước khi build
-
-1. **Định nghĩa "department"** trong `users.department` đã đủ 4 giá trị (housekeeping / laundry / inventory / maintenance) chưa? Có cần thêm `front_office`?
-2. **Lễ tân** hiện đang được map vào role nào (hotel_manager hay department_manager với department mới)? → ảnh hưởng permission Front Office Report.
-3. **Staff có được xem báo cáo cá nhân không**, hay chỉ Trưởng bộ phận xem thay?
-4. **Export quyền**: chỉ Owner/Hotel Manager, hay cho cả Trưởng bộ phận export báo cáo bộ phận của mình?
-5. **Chain Overview**: ngoài Owner, có cho phép Hotel Manager được gán nhiều hotel xem dạng "mini-chain" không?
-
----
-
-Sau khi bạn trả lời 5 câu trên + chọn sprint nào làm trước, tôi sẽ tạo plan build chi tiết (schema, RPC, hooks, UI, RLS, test) cho từng báo cáo mới.
+1. **Nguồn truth doanh thu**: dùng `room_bookings.amount_paid`  tổng `booking_payments.amount where status='completed'` (chính xác hơn, nặng query)
+2. **Phạm vi sprint này**:  luôn P1 (5–7)
+3. **Date range tùy chọn cho Revenue**: cần ngay
