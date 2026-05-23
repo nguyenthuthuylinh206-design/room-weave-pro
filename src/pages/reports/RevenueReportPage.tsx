@@ -9,6 +9,7 @@ import { RevenueByTypeChart } from '@/components/reports/RevenueByTypeChart'
 import { RevenueBySourceTable } from '@/components/reports/RevenueBySourceTable'
 import { TopRoomsRevenueTable } from '@/components/reports/TopRoomsRevenueTable'
 import { useRevenueExport } from '@/components/reports/useRevenueExport'
+import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   DollarSign,
@@ -58,7 +59,12 @@ const formatCompact = (value: number) => {
 export function RevenueReportPage() {
   const { isMobile } = useBreakpoint()
   const [period, setPeriod] = useState<ReportPeriod>('month')
-  const { data: report, isLoading } = useRevenueReport(period)
+  const [customRange, setCustomRange] = useState<{ from: Date | null; to: Date | null }>({ from: null, to: null })
+  const customRangeReady = period === 'custom' && customRange.from && customRange.to
+  const { data: report, isLoading } = useRevenueReport(
+    period,
+    customRangeReady ? { start: customRange.from!, end: customRange.to! } : undefined,
+  )
   const { exportExcel, exportPDF } = useRevenueExport()
 
   if (isMobile) return <MobileRevenueReportPage />
@@ -109,8 +115,16 @@ export function RevenueReportPage() {
               <SelectItem value="month">Tháng này</SelectItem>
               <SelectItem value="quarter">Quý này</SelectItem>
               <SelectItem value="year">Năm nay</SelectItem>
+              <SelectItem value="custom">Tùy chọn…</SelectItem>
             </SelectContent>
           </Select>
+          {period === 'custom' && (
+            <DateRangePicker
+              value={customRange}
+              onChange={setCustomRange}
+              className="h-8 text-xs"
+            />
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-8">
@@ -251,12 +265,28 @@ export function RevenueReportPage() {
                     <span className="font-mono text-xs">{formatCurrency(report.currentPeriod.surcharges.lateCheckout)}</span>
                   </div>
                 )}
+                {report.currentPeriod.surcharges.serviceCharges > 0 && (
+                  <div className="p-3 flex justify-between text-sm">
+                    <span className="text-muted-foreground">Phí dịch vụ</span>
+                    <span className="font-mono text-xs">{formatCurrency(report.currentPeriod.surcharges.serviceCharges)}</span>
+                  </div>
+                )}
+                {report.currentPeriod.surcharges.extraCharges > 0 && (
+                  <div className="p-3 flex justify-between text-sm">
+                    <span className="text-muted-foreground">Phí phát sinh (minibar, tiêu hao)</span>
+                    <span className="font-mono text-xs">{formatCurrency(report.currentPeriod.surcharges.extraCharges)}</span>
+                  </div>
+                )}
                 {report.currentPeriod.surcharges.damageCharges > 0 && (
                   <div className="p-3 flex justify-between text-sm">
                     <span className="text-muted-foreground">Hư hỏng</span>
                     <span className="font-mono text-xs">{formatCurrency(report.currentPeriod.surcharges.damageCharges)}</span>
                   </div>
                 )}
+                <div className="p-3 flex justify-between text-sm bg-muted/30">
+                  <span className="font-medium">Tổng phụ thu</span>
+                  <span className="font-mono text-xs font-semibold">{formatCurrency(report.currentPeriod.surcharges.total)}</span>
+                </div>
               </div>
             </div>
           )}

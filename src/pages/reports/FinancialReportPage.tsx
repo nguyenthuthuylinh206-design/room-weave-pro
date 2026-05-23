@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import { HotelFilterCard } from '@/components/reports/HotelFilterCard'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   LineChart,
   Line,
@@ -57,7 +58,19 @@ export function FinancialReportPage() {
   }
   
   if (isLoading || !reportData) {
-    return <div>Loading...</div>
+    return (
+      <div className="space-y-4">
+        <PageHeader title="Báo cáo Tài chính" description="Phân tích chi phí và hiệu quả tài chính" />
+        <div className="grid grid-cols-4 gap-3">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-20" />)}
+        </div>
+        <Skeleton className="h-72" />
+        <div className="grid grid-cols-2 gap-3">
+          <Skeleton className="h-48" />
+          <Skeleton className="h-48" />
+        </div>
+      </div>
+    )
   }
   
   // Handle both old and new API response structure

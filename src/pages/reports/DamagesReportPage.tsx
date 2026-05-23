@@ -59,10 +59,16 @@ function normalizeDamageList(raw: unknown): DamageItem[] {
   if (!raw) return []
   if (Array.isArray(raw)) return raw as DamageItem[]
   if (typeof raw === 'object') {
+    if (import.meta.env.DEV) {
+      console.warn('[DamagesReport] Legacy object shape for items list, expected array:', raw)
+    }
     return Object.entries(raw as Record<string, unknown>).map(([itemId, val]) => ({
       item_id: itemId,
       quantity: typeof val === 'number' ? val : Number(val) || 1,
     }))
+  }
+  if (import.meta.env.DEV) {
+    console.warn('[DamagesReport] Unknown items list shape, falling back to empty:', raw)
   }
   return []
 }
