@@ -1,6 +1,18 @@
 {
-  "current": "1.0.44",
+  "current": "1.0.45",
   "versions": [
+    {
+      "version": "1.0.45",
+      "releaseDate": "2026-05-23",
+      "title": "Đánh giá vận hành — KPI, benchmark ngành và lời khuyên AI",
+      "changes": [
+        { "type": "feature", "text": "Thêm tab Đánh giá vận hành trong Báo cáo Tài chính: lợi nhuận thuần, biên lợi nhuận, RevPAR, tỷ lệ lấp đầy + so sánh kỳ trước" },
+        { "type": "feature", "text": "Benchmark ngành khách sạn 2-4 sao Việt Nam — hiển thị mức Yếu/Trung bình/Tốt/Xuất sắc cho từng KPI" },
+        { "type": "feature", "text": "Lời khuyên ưu tiên dùng Rule engine + AI tóm tắt tự nhiên, ước tính tác động VNĐ/tháng" },
+        { "type": "feature", "text": "Xuất PDF báo cáo đánh giá vận hành" }
+      ]
+    },
+    {
     {
       "version": "1.0.44",
       "releaseDate": "2026-05-23",
