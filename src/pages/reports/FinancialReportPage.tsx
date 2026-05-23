@@ -39,6 +39,7 @@ import { MobileFinancialReportPage } from '@/components/reports/MobileFinancialR
 import { formatCurrency } from '@/lib/utils'
 import { subDays } from 'date-fns'
 import { cn } from '@/lib/utils'
+import { OperationsInsightsTab } from './components/OperationsInsightsTab'
 
 export function FinancialReportPage() {
   const { isMobile } = useBreakpoint()
@@ -137,14 +138,17 @@ export function FinancialReportPage() {
         </CardContent>
       </Card>
       
-      <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs defaultValue="insights" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="overview">Tổng quan</TabsTrigger>
-          <TabsTrigger value="purchase">Mua sắm</TabsTrigger>
-          <TabsTrigger value="laundry">Giặt là</TabsTrigger>
-          <TabsTrigger value="maintenance">Bảo trì</TabsTrigger>
-          <TabsTrigger value="roi">ROI & Hiệu quả</TabsTrigger>
+          <TabsTrigger value="insights">Đánh giá vận hành</TabsTrigger>
+          <TabsTrigger value="overview">Chi phí</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="insights" className="space-y-6">
+          <OperationsInsightsTab dateRange={dateRange} />
+        </TabsContent>
+
+        
         
         {/* TAB 1: Overview */}
         <TabsContent value="overview" className="space-y-6">
