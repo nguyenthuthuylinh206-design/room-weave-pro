@@ -2,9 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from '@/hooks/useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
-import { startOfMonth, endOfMonth, subMonths, format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subWeeks, subQuarters, subYears } from 'date-fns'
+import { startOfMonth, endOfMonth, subMonths, format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subWeeks, subQuarters, subYears, differenceInDays } from 'date-fns'
 
-export type ReportPeriod = 'week' | 'month' | 'quarter' | 'year'
+export type ReportPeriod = 'week' | 'month' | 'quarter' | 'year' | 'custom'
 
 export interface RevenueData {
   totalRevenue: number
@@ -14,12 +14,19 @@ export interface RevenueData {
   bookingsCount: number
   paidBookingsCount: number
   averageBookingValue: number
+  /** = gross_total − discount − ota_commission − vat_passthrough (theo memory advanced-revenue-analytics-v1) */
   netRevenue: number
   otaCommission: number
+  discountAmount: number
+  vatAmount: number
   surcharges: {
     earlyCheckin: number
     lateCheckout: number
     damageCharges: number
+    /** Phí dịch vụ (spa, đưa đón, ăn uống...) */
+    serviceCharges: number
+    /** Phí phát sinh khác (minibar, đồ tiêu hao tính tiền...) */
+    extraCharges: number
     total: number
   }
 }
@@ -68,7 +75,30 @@ export interface RevenueReport {
   topRooms: RoomRevenue[]
 }
 
-function emptyRevenueData(): RevenueData {
+/** Shape booking dùng cho tính toán (rút gọn khỏi DB row). */
+export interface RevenueBookingRow {
+  check_out_date: string | Date | null
+  total_amount: number | null
+  amount_paid: number | null
+  deposit_amount: number | null
+  payment_status: string | null
+  booking_type: string | null
+  booking_source: string | null
+  ota_commission_amount: number | null
+  net_revenue: number | null
+  early_checkin_charge: number | null
+  late_checkout_charge: number | null
+  damage_charges: number | null
+  service_charges: number | null
+  extra_charges: number | null
+  discount_amount?: number | null
+  vat_amount?: number | null
+  vat_inclusive?: boolean | null
+  room_id?: string | null
+  room?: { room_number?: string; room_type?: string } | null
+}
+
+export function emptyRevenueData(): RevenueData {
   return {
     totalRevenue: 0,
     paidRevenue: 0,
@@ -79,11 +109,83 @@ function emptyRevenueData(): RevenueData {
     averageBookingValue: 0,
     netRevenue: 0,
     otaCommission: 0,
-    surcharges: { earlyCheckin: 0, lateCheckout: 0, damageCharges: 0, total: 0 },
+    discountAmount: 0,
+    vatAmount: 0,
+    surcharges: { earlyCheckin: 0, lateCheckout: 0, damageCharges: 0, serviceCharges: 0, extraCharges: 0, total: 0 },
   }
 }
 
-function getPeriodRange(period: ReportPeriod, today: Date) {
+/**
+ * Pure function: tính RevenueData từ tập booking đã lọc theo kỳ.
+ * Tách ra để dễ unit test.
+ *
+ * Quy ước:
+ * - `paidRevenue` = amount_paid + deposit_amount (cọc cũng là tiền đã thu).
+ * - `pendingRevenue` = max(0, total - paid - deposit).
+ * - `refundedRevenue` = total của booking có payment_status='refunded'.
+ * - `netRevenue` = ưu tiên cột DB `net_revenue`; fallback gross − discount − commission − vat_passthrough.
+ *   VAT passthrough chỉ áp dụng khi vat_inclusive = false (giá chưa gồm VAT, VAT là tiền chuyển nhà nước).
+ * - `surcharges` gộp 5 thành phần: check-in sớm, checkout trễ, hư hỏng, phí dịch vụ, phí phát sinh.
+ */
+export function computeRevenueData(filtered: RevenueBookingRow[]): RevenueData {
+  const refunded = filtered.filter(b => b.payment_status === 'refunded')
+  const nonRefunded = filtered.filter(b => b.payment_status !== 'refunded')
+
+  const paidRevenue = nonRefunded.reduce(
+    (s, b) => s + (b.amount_paid || 0) + (b.deposit_amount || 0),
+    0,
+  )
+  const pendingRevenue = nonRefunded.reduce(
+    (s, b) => s + Math.max(0, (b.total_amount || 0) - (b.amount_paid || 0) - (b.deposit_amount || 0)),
+    0,
+  )
+  const refundedRevenue = refunded.reduce((s, b) => s + (b.total_amount || 0), 0)
+  const totalRevenue = paidRevenue + pendingRevenue
+  const paidBookings = nonRefunded.filter(b => b.payment_status === 'paid')
+  const otaCommission = filtered.reduce((s, b) => s + (b.ota_commission_amount || 0), 0)
+  const discountAmount = filtered.reduce((s, b) => s + (b.discount_amount || 0), 0)
+  const vatAmount = filtered.reduce((s, b) => s + (b.vat_amount || 0), 0)
+
+  // Net revenue: ưu tiên DB. Fallback theo công thức chuẩn.
+  const netRevenue = filtered.reduce((s, b) => {
+    if (b.net_revenue != null) return s + (b.net_revenue || 0)
+    const gross = b.total_amount || 0
+    const disc = b.discount_amount || 0
+    const comm = b.ota_commission_amount || 0
+    const vatPassthrough = b.vat_inclusive === false ? (b.vat_amount || 0) : 0
+    return s + (gross - disc - comm - vatPassthrough)
+  }, 0)
+
+  const earlyCheckin = filtered.reduce((s, b) => s + (b.early_checkin_charge || 0), 0)
+  const lateCheckout = filtered.reduce((s, b) => s + (b.late_checkout_charge || 0), 0)
+  const damageCharges = filtered.reduce((s, b) => s + (b.damage_charges || 0), 0)
+  const serviceCharges = filtered.reduce((s, b) => s + (b.service_charges || 0), 0)
+  const extraCharges = filtered.reduce((s, b) => s + (b.extra_charges || 0), 0)
+
+  return {
+    totalRevenue,
+    paidRevenue,
+    pendingRevenue,
+    refundedRevenue,
+    bookingsCount: filtered.length,
+    paidBookingsCount: paidBookings.length,
+    averageBookingValue: filtered.length > 0 ? totalRevenue / filtered.length : 0,
+    netRevenue,
+    otaCommission,
+    discountAmount,
+    vatAmount,
+    surcharges: {
+      earlyCheckin,
+      lateCheckout,
+      damageCharges,
+      serviceCharges,
+      extraCharges,
+      total: earlyCheckin + lateCheckout + damageCharges + serviceCharges + extraCharges,
+    },
+  }
+}
+
+function getPeriodRange(period: ReportPeriod, today: Date, customRange?: { start: Date; end: Date }) {
   switch (period) {
     case 'week':
       return {
@@ -106,6 +208,19 @@ function getPeriodRange(period: ReportPeriod, today: Date) {
         previousStart: startOfYear(subYears(today, 1)),
         previousEnd: endOfYear(subYears(today, 1)),
       }
+    case 'custom': {
+      const start = customRange?.start ?? startOfMonth(today)
+      const end = customRange?.end ?? endOfMonth(today)
+      const days = Math.max(1, differenceInDays(end, start) + 1)
+      const prevEnd = new Date(start.getTime() - 1)
+      const prevStart = new Date(prevEnd.getTime() - (days - 1) * 24 * 60 * 60 * 1000)
+      return {
+        currentStart: startOfDay(start),
+        currentEnd: endOfDay(end),
+        previousStart: startOfDay(prevStart),
+        previousEnd: endOfDay(prevEnd),
+      }
+    }
     default:
       return {
         currentStart: startOfMonth(today),
@@ -122,21 +237,28 @@ const BOOKING_TYPE_LABELS: Record<string, string> = {
   monthly: 'Theo tháng',
 }
 
-export function useRevenueReport(period: ReportPeriod = 'month') {
+export function useRevenueReport(period: ReportPeriod = 'month', customRange?: { start: Date; end: Date }) {
   const { tenantId } = useUser()
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
 
+  const customKey = period === 'custom' && customRange
+    ? `${customRange.start.toISOString()}_${customRange.end.toISOString()}`
+    : ''
+
   return useQuery({
-    queryKey: ['revenue-report', tenantId, isAllHotelsMode ? 'all' : selectedHotel?.id, period],
+    queryKey: ['revenue-report', tenantId, isAllHotelsMode ? 'all' : selectedHotel?.id, period, customKey],
     queryFn: async (): Promise<RevenueReport> => {
       const today = new Date()
       const startOfTodayISO = startOfDay(today).toISOString()
       const endOfTodayISO = endOfDay(today).toISOString()
-      const { currentStart, currentEnd, previousStart, previousEnd } = getPeriodRange(period, today)
+      const { currentStart, currentEnd, previousStart, previousEnd } = getPeriodRange(period, today, customRange)
 
-      // Only fetch last 6 months of data (enough for monthly trends)
+      // Cover ≥6 tháng cho trends + đủ range custom nếu user chọn xa hơn
       const sixMonthsAgo = subMonths(today, 6)
-      const sixMonthsAgoISO = startOfDay(sixMonthsAgo).toISOString()
+      const fetchFrom = period === 'custom' && customRange && customRange.start < sixMonthsAgo
+        ? startOfDay(customRange.start)
+        : startOfDay(sixMonthsAgo)
+      const fetchFromISO = fetchFrom.toISOString()
 
       // CRITICAL: refuse to query without tenantId (avoid pulling all tenants)
       if (!tenantId) {
@@ -152,10 +274,12 @@ export function useRevenueReport(period: ReportPeriod = 'month') {
         }
       }
 
-      // Query bookings with only needed columns for revenue calculation
-      let query = supabase.from('room_bookings').select('check_out_date, total_amount, amount_paid, deposit_amount, payment_status, booking_type, booking_source, ota_commission_amount, net_revenue, early_checkin_charge, late_checkout_charge, damage_charges, room_id, room:rooms!room_bookings_room_id_fkey(room_number, room_type)')
+      // Query bookings — bao gồm cả service_charges, extra_charges, discount, VAT
+      let query = supabase.from('room_bookings').select(
+        'check_out_date, total_amount, amount_paid, deposit_amount, payment_status, booking_type, booking_source, ota_commission_amount, net_revenue, early_checkin_charge, late_checkout_charge, damage_charges, service_charges, extra_charges, discount_amount, vat_amount, vat_inclusive, room_id, room:rooms!room_bookings_room_id_fkey(room_number, room_type)',
+      )
         .eq('tenant_id', tenantId)
-        .gte('check_out_date', sixMonthsAgoISO)
+        .gte('check_out_date', fetchFromISO)
         .limit(10000)
 
       if (!isAllHotelsMode && selectedHotel?.id) query = query.eq('hotel_id', selectedHotel.id)
@@ -163,48 +287,11 @@ export function useRevenueReport(period: ReportPeriod = 'month') {
       const { data: allBookings, error } = await query
       if (error) throw error
 
-      const bookings = allBookings || []
-
-      const calculateRevenueData = (filtered: typeof bookings): RevenueData => {
-        const refunded = filtered.filter(b => b.payment_status === 'refunded')
-        const nonRefunded = filtered.filter(b => b.payment_status !== 'refunded')
-
-        // paidRevenue = tổng đã thu = amount_paid + deposit_amount (cọc cũng là tiền đã thu)
-        const paidRevenue = nonRefunded.reduce(
-          (s, b) => s + (b.amount_paid || 0) + (b.deposit_amount || 0),
-          0
-        )
-        // pendingRevenue = phần còn nợ
-        const pendingRevenue = nonRefunded.reduce(
-          (s, b) => s + Math.max(0, (b.total_amount || 0) - (b.amount_paid || 0) - (b.deposit_amount || 0)),
-          0
-        )
-        const refundedRevenue = refunded.reduce((s, b) => s + (b.total_amount || 0), 0)
-        const totalRevenue = paidRevenue + pendingRevenue
-        const paidBookings = nonRefunded.filter(b => b.payment_status === 'paid')
-        const otaCommission = filtered.reduce((s, b) => s + (b.ota_commission_amount || 0), 0)
-        // netRevenue: nếu DB có net_revenue (đã trừ commission) thì dùng,
-        // ngược lại dùng total_amount rồi tự trừ commission của riêng booking đó
-        const netRevenue = filtered.reduce((s, b) => {
-          if (b.net_revenue != null) return s + (b.net_revenue || 0)
-          return s + ((b.total_amount || 0) - (b.ota_commission_amount || 0))
-        }, 0)
-        const earlyCheckin = filtered.reduce((s, b) => s + (b.early_checkin_charge || 0), 0)
-        const lateCheckout = filtered.reduce((s, b) => s + (b.late_checkout_charge || 0), 0)
-        const damageCharges = filtered.reduce((s, b) => s + (b.damage_charges || 0), 0)
-
-        return {
-          totalRevenue, paidRevenue, pendingRevenue, refundedRevenue,
-          bookingsCount: filtered.length,
-          paidBookingsCount: paidBookings.length,
-          averageBookingValue: filtered.length > 0 ? totalRevenue / filtered.length : 0,
-          netRevenue, otaCommission,
-          surcharges: { earlyCheckin, lateCheckout, damageCharges, total: earlyCheckin + lateCheckout + damageCharges },
-        }
-      }
+      const bookings = (allBookings || []) as unknown as RevenueBookingRow[]
 
       const filterByDateRange = (start: Date, end: Date) =>
         bookings.filter(b => {
+          if (!b.check_out_date) return false
           const d = new Date(b.check_out_date)
           return d >= start && d <= end
         })
@@ -218,6 +305,7 @@ export function useRevenueReport(period: ReportPeriod = 'month') {
       for (let i = 5; i >= 0; i--) {
         const m = subMonths(today, i)
         const mBookings = bookings.filter(b => {
+          if (!b.check_out_date) return false
           const d = new Date(b.check_out_date)
           return d >= startOfMonth(m) && d <= endOfMonth(m) && b.payment_status !== 'refunded'
         })
@@ -229,7 +317,7 @@ export function useRevenueReport(period: ReportPeriod = 'month') {
       }
 
       // By booking type
-      const typeGroups: Record<string, typeof bookings> = {}
+      const typeGroups: Record<string, RevenueBookingRow[]> = {}
       currentPeriodBookings.forEach(b => {
         const t = b.booking_type || 'daily'
         if (!typeGroups[t]) typeGroups[t] = []
@@ -246,7 +334,7 @@ export function useRevenueReport(period: ReportPeriod = 'month') {
       })
 
       // By booking source
-      const sourceGroups: Record<string, typeof bookings> = {}
+      const sourceGroups: Record<string, RevenueBookingRow[]> = {}
       currentPeriodBookings.forEach(b => {
         const s = b.booking_source || 'direct'
         if (!sourceGroups[s]) sourceGroups[s] = []
@@ -262,11 +350,11 @@ export function useRevenueReport(period: ReportPeriod = 'month') {
         }
       })
 
-      // Top rooms
-      const roomGroups: Record<string, { bookings: typeof bookings; roomNumber: string; roomType: string }> = {}
+      // Top rooms — include service + extra charges trong surcharges
+      const roomGroups: Record<string, { bookings: RevenueBookingRow[]; roomNumber: string; roomType: string }> = {}
       currentPeriodBookings.forEach(b => {
-        const rid = b.room_id
-        const room = b.room as any
+        const rid = b.room_id || 'unknown'
+        const room = b.room as { room_number?: string; room_type?: string } | null
         if (!roomGroups[rid]) {
           roomGroups[rid] = { bookings: [], roomNumber: room?.room_number || '?', roomType: room?.room_type || '' }
         }
@@ -275,20 +363,29 @@ export function useRevenueReport(period: ReportPeriod = 'month') {
       const topRooms: RoomRevenue[] = Object.entries(roomGroups)
         .map(([roomId, { bookings: items, roomNumber, roomType }]) => {
           const revenue = items.reduce((s, b) => s + (b.total_amount || 0), 0)
-          const surcharges = items.reduce((s, b) => s + (b.early_checkin_charge || 0) + (b.late_checkout_charge || 0) + (b.damage_charges || 0), 0)
+          const surcharges = items.reduce(
+            (s, b) =>
+              s +
+              (b.early_checkin_charge || 0) +
+              (b.late_checkout_charge || 0) +
+              (b.damage_charges || 0) +
+              (b.service_charges || 0) +
+              (b.extra_charges || 0),
+            0,
+          )
           return { roomId, roomNumber, roomType, bookings: items.length, revenue, surcharges, total: revenue + surcharges }
         })
         .sort((a, b) => b.total - a.total)
         .slice(0, 10)
 
-      const currentData = calculateRevenueData(currentPeriodBookings)
-      const previousData = calculateRevenueData(previousPeriodBookings)
+      const currentData = computeRevenueData(currentPeriodBookings)
+      const previousData = computeRevenueData(previousPeriodBookings)
       const revenueGrowth = previousData.paidRevenue > 0
         ? ((currentData.paidRevenue - previousData.paidRevenue) / previousData.paidRevenue) * 100
         : 0
 
       return {
-        today: calculateRevenueData(todayBookings),
+        today: computeRevenueData(todayBookings),
         currentPeriod: currentData,
         previousPeriod: previousData,
         monthlyTrends, revenueGrowth,
@@ -320,7 +417,6 @@ export function useOwnerAlerts() {
       if (!isAllHotelsMode && selectedHotel?.id) overdueQuery = overdueQuery.eq('hotel_id', selectedHotel.id)
       const { data: overdueCheckouts } = await overdueQuery
 
-      // Query checked_out bookings that are NOT fully paid, including deposit_amount
       let unpaidQuery = supabase
         .from('room_bookings')
         .select('id, guest_name, total_amount, amount_paid, deposit_amount, check_out_date, room:rooms(room_number)')
@@ -331,7 +427,6 @@ export function useOwnerAlerts() {
       if (!isAllHotelsMode && selectedHotel?.id) unpaidQuery = unpaidQuery.eq('hotel_id', selectedHotel.id)
       const { data: rawUnpaidBookings } = await unpaidQuery
 
-      // Filter: only keep bookings where remaining_balance > 0
       const unpaidBookings = (rawUnpaidBookings || []).filter(b => {
         const remaining = (b.total_amount || 0) - (b.amount_paid || 0) - (b.deposit_amount || 0)
         return remaining > 0
