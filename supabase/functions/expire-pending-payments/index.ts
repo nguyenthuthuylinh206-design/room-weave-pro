@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
     const { data: expiredTransactions, error: fetchError } = await supabase
       .from("payment_transactions")
       .select("id, invoice_id, created_at")
-      .eq("status", "pending")
+      .eq("payment_status", "pending")
       .lt("created_at", twentyFourHoursAgo.toISOString());
 
     if (fetchError) {
