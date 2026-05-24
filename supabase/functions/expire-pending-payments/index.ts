@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
     const { error: updateTransactionsError } = await supabase
       .from("payment_transactions")
       .update({ 
-        status: "expired",
+        payment_status: "expired",
         notes: "Tự động hết hạn sau 24 giờ không nhận được thanh toán"
       })
       .in("id", transactionIds);
