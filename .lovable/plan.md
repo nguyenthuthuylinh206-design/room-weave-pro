@@ -1,64 +1,69 @@
+# Kế hoạch: Tài liệu hướng dẫn sử dụng cho người mới (PDF)
 
-# Kế hoạch QA toàn diện (Option C)
+## Mục tiêu
 
-Chạy đủ 3 lớp test trên ~200 case của 17 file checklist, tự tạo tài khoản test, output 1 báo cáo PDF cuối cùng.
+Tạo file PDF tiếng Việt hướng dẫn người dùng mới (chủ khách sạn / quản lý / lễ tân / buồng phòng) thiết lập và sử dụng Hotel Asset Manager từ A→Z, kèm screenshot thật từ preview app.
 
-## Phạm vi
-- **17 file checklist** trong `/mnt/documents/qa-checklist/` (00-OVERVIEW → 14-super-admin + 99-regression-smoke)
-- **Môi trường**: Preview hiện tại (`id-preview--...lovable.app`) — KHÔNG đụng data tenant thật của bạn
-- **Thời lượng**: ~30-45 phút
+## Cách thực hiện
 
-## 3 lớp test
+1. **Đăng nhập preview bằng tài khoản test** (dùng tài khoản đã tạo ở QA Full trước, hoặc tạo mới nếu cần) và điều hướng qua các flow chính bằng `browser--navigate_to_sandbox` + `browser--screenshot`.
+2. **Chụp ~25–35 ảnh** ở 2 viewport: desktop (1366×768) cho phần thiết lập, mobile (390×844) cho phần vận hành hiện trường.
+3. **Viết nội dung Markdown** tiếng Việt → render sang PDF (pandoc + chromium headless, font Việt) lưu vào `/mnt/documents/user-guide/`.
+4. **QA**: convert từng trang PDF sang ảnh, kiểm tra layout/clipping/font Việt trước khi giao.
 
-### Lớp 1 — Static review (100% case, ~200 case)
-Trace từng case sang file/hook/RPC tương ứng. Output: Pass / Fail / Cần test thủ công, kèm `file:line`.
-- Verify RLS policies (98 bảng) khớp với case
-- Verify RPC signatures (`perform_checkin/checkout/submit_room_check_lean/transition_*`)
-- Verify trigger, audit log, validation Zod
-- Verify error mapping tiếng Việt
+## Cấu trúc tài liệu (dự kiến ~30–40 trang)
 
-### Lớp 2 — DB / RPC test (module lõi)
-Dùng `supabase--read_query` + `supabase--insert` + `curl_edge_functions` để verify thực tế trên DB:
-- **Auth**: signup/login/OTP reset/role guard
-- **Permissions**: `has_user_permission` + tenant isolation cross-tenant
-- **Bookings**: tạo → check-in (`perform_checkin`) → checkout (`perform_checkout`) atomic
-- **Room Check Lean**: `submit_room_check_lean` 2-pass fan-out, audit log, undo
-- **Payment**: simulate webhook SePay → match ref + tolerance 1000đ → side effects
-- **State machines**: transition_room_status / booking / task — verify revoke UPDATE
-- **Cron**: expire-pending-payments, lift-expired-dnd-oos (đang lỗi `payment_transactions.status does not exist` — sẽ report)
+**Phần 1 – Bắt đầu (cho Owner)**
 
-**Data cleanup**: mọi insert dùng prefix `[QA-TEST]` + tenant test riêng, cleanup cuối session.
+- 1.1 Đăng ký tài khoản & xác minh email
+- 1.2 Đăng nhập lần đầu, chọn gói, thanh toán VietQR
+- 1.3 Onboarding: tạo khách sạn, cấu hình cơ bản
 
-### Lớp 3 — Browser smoke (chạy thật trên preview)
-Tạo tài khoản test mới qua UI register → onboarding → tạo tenant test → chạy `99-regression-smoke.md`:
-- Login email + Google fallback
-- Tạo hotel, room, item, booking
-- Walk-in check-in → room check lean (Quick Path + Issue) → checkout
-- QR payment simulate (webhook trigger từ DB)
-- Mobile viewport 390x844 — verify bottom nav, back behavior, touch target
-- Capture screenshot mỗi step quan trọng
+**Phần 2 – Thiết lập hệ thống (Owner / Manager)**
 
-**Không test**: VietQR thật, camera OCR thật, push notification thật, email thật vào inbox, PWA install vật lý.
+- 2.1 Quản lý khách sạn & nhân sự (mời Manager/Staff, phân quyền)
+- 2.2 Thiết lập phòng & loại phòng, giá phòng
+- 2.3 Thiết lập kho: kho, nhà cung cấp, vật tư, minibar
+- 2.4 Thiết lập dịch vụ phụ, VietQR, email domain
+- 2.5 Cấu hình Room Check (Lean / Full, hạng mục kiểm tra)
 
-## Deliverable
+**Phần 3 – Vận hành Lễ tân (mobile)**
 
-1. **`QA-Report-Full.pdf`** (`/mnt/documents/qa-checklist/`):
-   - Cover + executive summary (Pass / Fail / Warning / Manual)
-   - Bảng tổng hợp theo module (17 chương)
-   - Chi tiết từng case Fail với: case ID, mô tả, evidence (file:line / SQL output / screenshot), severity, đề xuất fix
-   - Phụ lục: SQL log, screenshot mobile/desktop
-2. **`QA-Report-Full.md`** (source)
-3. **Issue list** tổng hợp các bug đã phát hiện được, sort theo severity (đã thấy 1 bug cron `expire-pending-payments` ngay từ log)
+- 3.1 Nhận đặt phòng (walk-in / theo lịch / nhóm)
+- 3.2 Check-in: quét CCCD, OCR, ký số
+- 3.3 Trong lưu trú: đổi phòng, thêm dịch vụ, minibar
+- 3.4 Check-out: thanh toán, in hóa đơn, gửi email
 
-## Quy ước
+**Phần 4 – Vận hành Buồng phòng (mobile)**
 
-- KHÔNG sửa code production trong loop này — chỉ test + report
-- Nếu phát hiện bug critical (data leak, RLS bypass): dừng, báo ngay
-- Tất cả test data có prefix `[QA-TEST]` + xóa sạch cuối session
-- Browser test chạy ở viewport mobile 390x844 (memory `room-check-mobile-ui-standards-v2`)
+- 4.1 Danh sách việc cần làm
+- 4.2 Room Check Lean: Quick Path "Phòng OK", báo sự cố
+- 4.3 Giặt ủi: tạo batch, nhận về kho
+- 4.4 Bảo trì & Lost & Found
 
-## Bước tiếp theo
-Khi bạn approve plan này, tôi sẽ:
-1. Switch sang build mode
-2. Chạy tuần tự Lớp 1 → 2 → 3, stream progress
-3. Render PDF cuối cùng và liệt kê file thay đổi (nếu có)
+**Phần 5 – Quản lý & Báo cáo**
+
+- 5.1 Dashboard chủ khách sạn
+- 5.2 Báo cáo doanh thu, công suất, hiệu suất nhân viên
+- 5.3 QC Dashboard, audit log
+- 5.4 Gia hạn gói, thêm phòng
+
+**Phần 6 – Phụ lục**
+
+- Bảng phím tắt / mẹo dùng PWA (cài lên màn hình chính iOS/Android)
+- Xử lý sự cố thường gặp (SePay không nhận, OCR sai, offline)
+- Liên hệ hỗ trợ
+
+## Output
+
+- `/mnt/documents/user-guide/Huong-Dan-Su-Dung_v1.pdf` (file chính, A4, có mục lục, header/footer, số trang)
+- `/mnt/documents/user-guide/screenshots/` (ảnh nguồn, để có thể chỉnh sửa lại sau)
+- `/mnt/documents/user-guide/Huong-Dan-Su-Dung_v1.md` (nguồn Markdown để bạn chỉnh tay sau)
+
+## Câu hỏi cần xác nhận trước khi làm
+
+1. **Đối tượng đọc**: chỉ làm 1 file tổng hợp cho mọi vai trò, hay tách 4 file riêng (Owner / Manager / Lễ tân / Buồng phòng)? → Mặc định: **1 file tổng hợp có đánh dấu vai trò ở đầu mỗi phần**.
+2. **Tài khoản chụp ảnh**: dùng tài khoản test đã có (dữ liệu trống), hay bạn muốn tôi tự seed vài phòng/booking mẫu để screenshot trông đầy đặn hơn? → Mặc định: **seed dữ liệu mẫu tối thiểu** để ảnh không trống.
+3. **Branding**:  RoomQC trên bìa
+
+Nếu bạn không trả lời, tôi sẽ chạy theo mặc định ở trên.
