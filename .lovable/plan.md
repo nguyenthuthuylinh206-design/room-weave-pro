@@ -1,204 +1,125 @@
-
-# Đánh giá tổng quan vận hành (Operations Insights)
-
 ## Mục tiêu
-Thêm tab **"Đánh giá vận hành"** vào `/reports/financial` giúp chủ khách sạn 2–4 sao trả lời 3 câu hỏi:
-1. **Tháng này lời/lỗ bao nhiêu?** (Lợi nhuận thuần, biên lợi nhuận)
-2. **Hiệu quả tốt hơn hay kém hơn kỳ trước & ngành?**
-3. **Cần làm gì để cải thiện?** (Lời khuyên ưu tiên)
 
----
+Tạo bộ checklist QA thủ công toàn diện để bạn (hoặc team) tự click qua từng chức năng theo thứ tự, đánh dấu Pass/Fail, ghi chú lỗi. Không thay đổi code app, chỉ sinh tài liệu.
 
-## A. Logic nghiệp vụ
+## Phạm vi checklist
 
-### Bộ KPI "dễ hiểu" (4 chỉ số chính + 4 phụ)
+Bao phủ 14 module chính theo roadmap dự án:
 
-**4 chỉ số chính (card lớn):**
-| KPI | Công thức | Ý nghĩa |
-|---|---|---|
-| 💰 Lợi nhuận thuần | `Doanh thu thuần − Tổng chi phí` | "Tháng này lãi bao nhiêu" |
-| 📊 Biên lợi nhuận | `Lợi nhuận / Doanh thu × 100%` | "Cứ 100đ thu được lãi bao nhiêu" |
-| 🛏️ Doanh thu / phòng / ngày | `Doanh thu / (số phòng × số ngày)` | RevPAR — chuẩn ngành KS |
-| 📈 Tỷ lệ lấp đầy | `Đêm bán / (số phòng × số ngày)` | Occupancy rate |
+1. **Auth & Onboarding** — đăng ký, đăng nhập, quên mật khẩu (OTP), Google OAuth, onboarding tenant/hotel, suspended access
+2. **Phân quyền & Đa hotel** — Super Admin / Owner / Hotel Manager / Department Manager / Staff; chuyển hotel, All Hotels mode
+3. **Rooms** — CRUD phòng, state machine 11 trạng thái, DND/OOS auto-lift, room status transitions
+4. **Bookings** — walk-in, booking thường, group booking, hourly/daily/monthly, OTA, availability conflict, early check-in surcharge
+5. **Check-in / Check-out** — `perform_checkin` RPC, group checkout thủ công, inspection prerequisite, deposit logic
+6. **Housekeeping & Room Check Lean** — Quick Path, Lean flow (Overview → Inspection → Review → Success), draft resume, undo, edit, QC reject, reopen
+7. **Laundry** — batch FSM (delivered → ready → received → stocked), partially_received, compensation, vendor, photo
+8. **Inventory** — warehouse, items, categories, asset_group, distribution orders (3-bucket), stock adjustment, minibar billing, dead stock, reorder
+9. **Maintenance** — request lifecycle (waiting → pending → in_progress → completed), priority, recurring issues
+10. **Payment & VietQR** — tạo invoice, QR SePay webhook, tolerance ±1.000đ, realtime update, group payment distribution
+11. **Subscription** — gói theo phòng, gia hạn (extend), mua thêm phòng, grace period, suspended, renewal warnings
+12. **Reports** — Revenue, Financial, Operations Insights (KPI + benchmark + AI advice + PDF export), role-based catalog
+13. **Notifications & Email** — welcome notification, reminder cron, email domain, push, multi-channel
+14. **Super Admin** — tenant management, announcements, version updates, platform settings, reminder automation
 
-**4 chỉ số phụ (compact row):**
-- Giá phòng TB (ADR): `Doanh thu phòng / đêm bán`
-- Chi phí / phòng / ngày
-- Doanh thu dịch vụ thêm (% trên tổng)
-- Khách quay lại (% từ guest_stats)
+Mỗi module gồm:
+- **Tiền điều kiện** (data cần seed, role cần test)
+- **Test cases** đánh số (TC-XXX) với: thao tác → kết quả mong đợi → ô Pass/Fail/Notes
+- **Edge cases** (offline, multi-tenant leak, concurrent, permission denied)
+- **Mobile** (iPhone SE portrait, tap target, thumb zone)
 
-### So sánh kỳ
-- Mỗi KPI hiển thị: giá trị hiện tại + delta % so kỳ trước (cùng độ dài) + arrow ↑↓ semantic color.
-- Range chọn được: tuần này / tháng này / quý này / tùy chọn.
+## Cấu trúc file deliverable
 
-### Benchmark ngành (hardcoded VN 2–4 sao)
-Lưu trong `src/lib/industryBenchmarks.ts`:
-```ts
-{
-  occupancy: { poor: 40, fair: 55, good: 70, excellent: 80 }, // %
-  profitMargin: { poor: 10, fair: 20, good: 30, excellent: 40 },
-  revpar: { poor: 300_000, fair: 500_000, good: 800_000, excellent: 1_200_000 }, // VND
-  adr: { poor: 400_000, fair: 700_000, good: 1_000_000, excellent: 1_500_000 },
-  extraRevenueShare: { poor: 5, fair: 10, good: 15, excellent: 25 }, // %
-}
 ```
-Hiển thị badge: 🔴 Yếu / 🟡 Trung bình / 🟢 Tốt / 🟢 Xuất sắc.
-
-### Lời khuyên (Hybrid)
-**Bước 1 — Rule engine** (`src/lib/operationsAdvisor.ts`): sinh ~15 rule, mỗi rule trả `{severity, category, finding, suggestion, impactVnd?}`. Ví dụ:
-- `occupancy < 50%` → "Lấp đầy thấp" + gợi ý KM
-- `laundryCostPerRoom > 50k` → "Chi phí giặt cao" + so vendor
-- `extraRevenueShare < 5%` → "Bỏ lỡ doanh thu minibar/dịch vụ"
-- `lateCheckoutCount > 10` → "Nhiều check-out muộn" + thu phụ phí
-- `damageCost trending up` → cảnh báo hư hỏng tăng
-- `roomTypeProfitGap > 30%` → "Phòng X hiệu quả thấp"
-- v.v.
-
-**Bước 2 — AI tóm tắt** (edge function `operations-advisor`):
-- Input: KPI snapshot + danh sách findings rule-based (top 8) + benchmark deltas.
-- Model: `google/gemini-3-flash-preview` (mặc định).
-- Output: 3–5 lời khuyên Việt tự nhiên, **xếp theo tác động VNĐ ước tính**, mỗi lời khuyên gồm: tiêu đề, mô tả 1–2 câu, action gợi ý cụ thể, mức độ ưu tiên (cao/vừa/thấp).
-- Fallback: nếu AI fail (402/429/timeout), hiển thị danh sách rule-based thô — không vỡ trang.
-
-### Export PDF
-- Reuse `src/lib/invoiceHelpers.ts` pattern + `jspdf` (đã có).
-- 1 trang A4: header KS + kỳ báo cáo, 4 KPI chính, bảng benchmark, top 5 lời khuyên, biểu đồ trend 6 tháng.
-
----
-
-## B. Schema / migration
-
-**Không cần migration mới.** Tất cả data đã có:
-- `room_bookings` (doanh thu, occupancy)
-- `booking_payments` (cashflow)
-- `service_charges` + `extra_charges`
-- `laundry_batches` + `purchase_orders` + `maintenance_requests` (chi phí)
-- `rooms` (capacity)
-- `guest_stats` (khách quay lại)
-
-**Optional (đề xuất, không bắt buộc Sprint này):** DB view `v_operations_kpi_daily` để cache. Sprint sau.
-
----
-
-## C. API / RPC
-
-### Edge function mới: `supabase/functions/operations-advisor/index.ts`
-- Input: `{ tenantId, hotelId, period, kpiSnapshot, ruleFindings }`
-- Validate JWT, verify tenant ownership.
-- Gọi Lovable AI Gateway với system prompt tiếng Việt, tool calling để cấu trúc output.
-- Xử lý 429/402 → return graceful error.
-
-### Client hook: `src/hooks/useOperationsInsights.ts`
-- Gom data từ `useRevenueReport` + `useFinancialReport` + thêm query cho occupancy, ADR, guest stats.
-- Tính KPI ở client (pure function `computeKpiSnapshot`).
-- Chạy `runOperationsAdvisor()` rule engine.
-- Gọi edge function `operations-advisor` (React Query, staleTime 10 phút).
-
----
-
-## D. UI / Components
-
-### Files mới
-- `src/pages/reports/components/OperationsInsightsTab.tsx` — container tab.
-- `src/components/reports/insights/KpiHeroCard.tsx` — card KPI lớn với delta + benchmark badge.
-- `src/components/reports/insights/BenchmarkBadge.tsx` — badge 4 mức.
-- `src/components/reports/insights/AdviceCard.tsx` — card lời khuyên (priority + action).
-- `src/components/reports/insights/InsightsTrendChart.tsx` — Recharts line 6 tháng.
-- `src/components/reports/insights/ExportInsightsPdfButton.tsx`.
-- `src/lib/industryBenchmarks.ts`
-- `src/lib/operationsAdvisor.ts` (rule engine + tests)
-- `src/lib/operationsAdvisor.test.ts`
-- `src/hooks/useOperationsInsights.ts`
-
-### File sửa
-- `src/pages/reports/FinancialReportPage.tsx` — thêm `<Tabs>` với 2 tab: "Chi phí" (hiện tại) + "Đánh giá vận hành" (mới, default).
-- `src/lib/app-version.ts` + `public/changelog.json` — bump 1.0.45.
-
-### UX
-- Mobile-first portrait, card stack vertical.
-- Semantic text colors (Enterprise SaaS minimalist, **không** background màu cho status).
-- Loading: skeleton từng KPI card + skeleton AI advice riêng (AI chậm hơn).
-- Empty state: "Chưa đủ dữ liệu để đánh giá. Cần ít nhất 7 ngày vận hành."
-
----
-
-## E. Permission
-
-- Hiển thị tab cho: `super_admin`, `owner`, `hotel_manager` (giống quyền hiện tại của Financial Report).
-- `department_manager` & `staff`: không thấy tab này (Financial vốn đã ẩn).
-- All Hotels mode: hỗ trợ — KPI tổng hợp toàn chuỗi, advice gắn nhãn hotel cụ thể.
-
----
-
-## F. Test cases
-
-**Unit (vitest):**
-- `operationsAdvisor.test.ts`:
-  - Rule low occupancy fires khi <50%
-  - Rule không fire nếu thiếu data
-  - Sắp xếp theo severity + impactVnd desc
-  - Edge: divide-by-zero (0 phòng), period 0 ngày
-- `industryBenchmarks.test.ts`: classify đúng 4 mức
-- `useOperationsInsights.test.ts` (mock): KPI snapshot đúng công thức
-
-**Integration:**
-- Edge function `operations-advisor` smoke test với mock KPI → trả về JSON hợp lệ.
-- Fallback khi `LOVABLE_API_KEY` 429 → vẫn render rule-based.
-
----
-
-## G. Rollout
-
-1. Migration: không.
-2. Deploy edge function `operations-advisor` (auto).
-3. Feature flag implicit: tab chỉ hiện khi `useOperationsInsights` không throw → an toàn.
-4. Bump APP_VERSION 1.0.45 + changelog "Thêm Đánh giá vận hành với AI gợi ý".
-5. QA checklist:
-   - [ ] iPhone SE portrait không vỡ layout
-   - [ ] All Hotels mode hiển thị đúng
-   - [ ] AI fallback hoạt động (test bằng cách invalidate key tạm)
-   - [ ] PDF export render đúng tiếng Việt có dấu
-   - [ ] Tenant isolation: 2 tenant khác nhau không thấy data của nhau
-6. Rollback: revert tab → fallback về Financial cũ (zero schema change).
-
----
-
-## Cấu trúc tab UI
-
-```text
-┌────────────────────────────────────────┐
-│ [Chi phí] [Đánh giá vận hành ●]        │  ← Tabs
-├────────────────────────────────────────┤
-│ Kỳ: [Tháng này ▾]  [Xuất PDF]          │
-├────────────────────────────────────────┤
-│ ┌────────┐ ┌────────┐                   │
-│ │Lợi nhuận│ │Biên LN │  ← 4 KPI Hero    │
-│ │ 45M ↑12%│ │ 28% 🟢 │                  │
-│ └────────┘ └────────┘                   │
-│ ┌────────┐ ┌────────┐                   │
-│ │RevPAR  │ │Occupancy│                  │
-│ │ 680k 🟡│ │ 62% 🟢 │                  │
-│ └────────┘ └────────┘                   │
-├────────────────────────────────────────┤
-│ KPI phụ (compact row)                   │
-├────────────────────────────────────────┤
-│ 📈 Xu hướng 6 tháng (chart)             │
-├────────────────────────────────────────┤
-│ 💡 Lời khuyên ưu tiên                   │
-│ ┌────────────────────────────────────┐ │
-│ │ 🔴 CAO • Lấp đầy phòng Deluxe thấp│ │
-│ │ Chỉ 35% so trung bình ngành 55%   │ │
-│ │ → Tác động: ~12M/tháng            │ │
-│ │ [Tạo khuyến mãi]                  │ │
-│ └────────────────────────────────────┘ │
-│ ... (3-5 cards)                         │
-└────────────────────────────────────────┘
+/mnt/documents/qa-checklist/
+├── 00-OVERVIEW.md              ← Hướng dẫn cách dùng + test data cần chuẩn bị
+├── 01-auth-onboarding.md
+├── 02-permissions-multi-hotel.md
+├── 03-rooms.md
+├── 04-bookings.md
+├── 05-checkin-checkout.md
+├── 06-housekeeping-room-check.md
+├── 07-laundry.md
+├── 08-inventory.md
+├── 09-maintenance.md
+├── 10-payment-vietqr.md
+├── 11-subscription.md
+├── 12-reports.md
+├── 13-notifications-email.md
+├── 14-super-admin.md
+├── 99-regression-smoke.md      ← Smoke test 15 phút mỗi lần publish
+└── QA-Checklist-Full.pdf       ← Bản tổng hợp 1 file PDF in được
 ```
 
----
+## Format mỗi test case (mẫu)
 
-## Phần còn thiếu / Sprint sau
-- DB view `v_operations_kpi_daily` để cache (tech debt F-DBT-04).
-- Báo cáo so sánh giữa các hotel trong chain (Sprint D — Chain Overview).
-- Lưu lịch sử insight đã đọc để track "đã làm gì sau lời khuyên".
-- Cron weekly: tự động sinh + email insight cho Owner.
+```markdown
+### TC-RC-012: Room Check Lean — Quick Path "Phòng OK hoàn toàn"
+
+**Role:** Staff (Housekeeping)  
+**Tiền điều kiện:** Phòng 101 status = `cleaning`, có booking đã checkout, daily check chưa làm hôm nay  
+**Device:** iPhone SE portrait (375px)
+
+| # | Bước | Kết quả mong đợi | Pass | Fail | Notes |
+|---|------|------------------|------|------|-------|
+| 1 | Vào /rooms/101/check | Redirect /check-lean (router auto) | ☐ | ☐ | |
+| 2 | Tap "Phòng OK hoàn toàn" | Hiện QuickPathConfirmSheet | ☐ | ☐ | |
+| 3 | Confirm | Toast success, phòng → `available`, audit log có `quick_submit` | ☐ | ☐ | |
+| 4 | Vào lại /check-lean | Thấy nút "Hoàn tác" (undo) | ☐ | ☐ | |
+
+**Edge:** Nếu là check-in/check-out (không phải daily/periodic) → Quick Path PHẢI ẩn.
+```
+
+## Test data seed (gợi ý phần OVERVIEW)
+
+Liệt kê data tối thiểu cần có trước khi test:
+- 1 tenant + 2 hotels (test multi-hotel + All Hotels mode)
+- 5 users đủ 5 role
+- 20 phòng × 2 hotels
+- 30 items, 5 categories, 3 warehouses
+- 5 bookings (walk-in, OTA, group 3 phòng, hourly, monthly)
+- 3 laundry vendors, 2 batches đang chạy
+- 5 maintenance requests
+- 1 subscription active sắp hết hạn (test renewal warning)
+
+(Tôi sẽ chỉ liệt kê dữ liệu cần seed — không tự seed vào DB. Nếu sau này cần script seed, làm sprint riêng.)
+
+## Smoke test 15 phút (`99-regression-smoke.md`)
+
+15 test case quan trọng nhất phải Pass mỗi lần publish:
+1. Login Owner → Dashboard load < 2s
+2. Tạo booking walk-in → check-in atomic
+3. Room Check Lean → Quick Path
+4. Room Check Lean → báo 1 issue damaged
+5. Checkout 1 booking → thanh toán cash
+6. Group checkout 3 phòng → VietQR
+7. Distribution order: tạo → approve → giao
+8. Laundry batch: tạo → received → stocked
+9. Maintenance: tạo → assign → complete
+10. Reports → Operations Insights load + PDF export
+11. Đổi hotel → data filter đúng
+12. Staff login → bottom nav chỉ thấy quyền của mình
+13. Suspended tenant → bị chặn
+14. Mobile iPhone SE → tất cả flow chính tap được
+15. Multi-tenant: Owner A KHÔNG thấy data tenant B
+
+## Cách tôi sẽ build
+
+1. Đọc nhanh `docs/architecture/01-modules/*.md` (đã có sẵn 15 module specs) + memory files relevant để liệt kê đúng nghiệp vụ thực tế trong app
+2. Viết 16 file Markdown theo cấu trúc trên (~150-250 test cases tổng)
+3. Dùng `pandoc` merge → 1 file PDF A4 in được (`QA-Checklist-Full.pdf`)
+4. Output `<presentation-artifact>` cho cả `.md` chính và `.pdf` để bạn tải về
+
+## Phần CÒN THIẾU sau plan này
+
+- Không tự động hoá (cần Sprint riêng cho Playwright nếu muốn)
+- Không seed data thật (cần Sprint riêng cho Seed Demo Data button)
+- Không sinh report kết quả test (bạn tự fill Pass/Fail trong file Markdown, hoặc in PDF tick tay)
+
+## Ước tính
+
+- Thời gian build: 1 lượt agent
+- Số file tạo: 17 (16 .md + 1 .pdf)
+- Số test case: ~200
+- Vị trí: `/mnt/documents/qa-checklist/`
+
+Bạn approve plan này tôi sẽ build luôn.
