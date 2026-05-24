@@ -1,69 +1,60 @@
-# Kế hoạch: Tài liệu hướng dẫn sử dụng cho người mới (PDF)
+# Plan: Tối ưu QR Scanner trên điện thoại
 
-## Mục tiêu
+## Vấn đề hiện tại (`src/components/bookings/QRScannerDialog.tsx`)
 
-Tạo file PDF tiếng Việt hướng dẫn người dùng mới (chủ khách sạn / quản lý / lễ tân / buồng phòng) thiết lập và sử dụng Hotel Asset Manager từ A→Z, kèm screenshot thật từ preview app.
+1. **Resolution quá cao**: yêu cầu `width: 4096, height: 2160` → nhiều điện thoại trung cấp trả stream lớn, FPS thấp, mỗi frame phải resize → chậm.
+2. **Scan toàn bộ frame 1280×720**: `qr-scanner-wechat` chạy WASM ~150–400ms/frame trên điện thoại tầm trung → throttle 200ms trở nên vô nghĩa, mỗi lần scan thực tế cách nhau 0.4–0.8s → cảm giác "không nhạy".
+3. **Không dùng `BarcodeDetector` native**: Android Chrome có sẵn API native cực nhanh (<30ms/frame), bị bỏ qua hoàn toàn.
+4. **Throttle 200ms cố định**: ngay cả khi máy mạnh cũng không scan nhanh hơn được.
+5. **Auto-zoom 2x sau 15 frame fail**: với throttle hiện tại ~ 3s mới zoom → người dùng đã bỏ cuộc.
 
-## Cách thực hiện
+## Hướng sửa
 
-1. **Đăng nhập preview bằng tài khoản test** (dùng tài khoản đã tạo ở QA Full trước, hoặc tạo mới nếu cần) và điều hướng qua các flow chính bằng `browser--navigate_to_sandbox` + `browser--screenshot`.
-2. **Chụp ~25–35 ảnh** ở 2 viewport: desktop (1366×768) cho phần thiết lập, mobile (390×844) cho phần vận hành hiện trường.
-3. **Viết nội dung Markdown** tiếng Việt → render sang PDF (pandoc + chromium headless, font Việt) lưu vào `/mnt/documents/user-guide/`.
-4. **QA**: convert từng trang PDF sang ảnh, kiểm tra layout/clipping/font Việt trước khi giao.
+### A. Logic scan
+- **Ưu tiên `window.BarcodeDetector`** nếu có (`['qr_code']`). Detect trực tiếp trên `<video>` element, không cần canvas.
+- Fallback `qr-scanner-wechat` nếu trình duyệt không hỗ trợ (iOS Safari, Firefox).
+- Giảm `SCAN_INTERVAL_MS` từ 200 → 100ms với BarcodeDetector; giữ 250ms với WeChat WASM (vì nó vốn chậm).
 
-## Cấu trúc tài liệu (dự kiến ~30–40 trang)
+### B. Crop vùng scan
+- Chỉ scan **vùng giữa khung 56vmin** thay vì toàn bộ frame:
+  - Tính tỉ lệ crop từ video size → vẽ chỉ vùng QR box vào canvas 640×640.
+  - Giảm ~70% pixel cần xử lý → WeChat scan nhanh hơn 3–4 lần.
 
-**Phần 1 – Bắt đầu (cho Owner)**
+### C. Resolution camera
+- Hạ `ideal` xuống `1920×1080` (đủ đọc QR cách 30cm). Giữ `4096×2160` chỉ làm `max` để máy iPhone Pro tận dụng được nếu muốn.
+- Thêm `frameRate: { ideal: 30 }` để đảm bảo FPS.
 
-- 1.1 Đăng ký tài khoản & xác minh email
-- 1.2 Đăng nhập lần đầu, chọn gói, thanh toán VietQR
-- 1.3 Onboarding: tạo khách sạn, cấu hình cơ bản
+### D. Auto-zoom thông minh
+- Giảm `FRAMES_BEFORE_ZOOM` 15 → 8 (zoom sớm hơn ~1s sau khi không tìm thấy).
+- Khi đã zoom mà vẫn fail 8 frame → reset zoom (giữ logic cũ nhưng nhanh hơn).
 
-**Phần 2 – Thiết lập hệ thống (Owner / Manager)**
+### E. UI feedback
+- Hiển thị badge "Đang quét..." nhấp nháy nhẹ ở góc để người dùng biết scanner đang chạy (hiện tại không có dấu hiệu nào).
+- Thêm toast hint sau 8s không tìm thấy: "Đưa QR vào giữa khung, giữ cách 20–30cm, bật đèn pin nếu thiếu sáng".
 
-- 2.1 Quản lý khách sạn & nhân sự (mời Manager/Staff, phân quyền)
-- 2.2 Thiết lập phòng & loại phòng, giá phòng
-- 2.3 Thiết lập kho: kho, nhà cung cấp, vật tư, minibar
-- 2.4 Thiết lập dịch vụ phụ, VietQR, email domain
-- 2.5 Cấu hình Room Check (Lean / Full, hạng mục kiểm tra)
+### F. Bonus: cải thiện cảm nhận
+- `playsInline` + `autoPlay` ✓ đã có. Thêm `disablePictureInPicture` để tránh popup PiP trên iOS.
+- Vibrate 50ms khi scan thành công (`navigator.vibrate?.(50)`) → feedback xúc giác.
 
-**Phần 3 – Vận hành Lễ tân (mobile)**
+## File thay đổi
 
-- 3.1 Nhận đặt phòng (walk-in / theo lịch / nhóm)
-- 3.2 Check-in: quét CCCD, OCR, ký số
-- 3.3 Trong lưu trú: đổi phòng, thêm dịch vụ, minibar
-- 3.4 Check-out: thanh toán, in hóa đơn, gửi email
+- `src/components/bookings/QRScannerDialog.tsx` — viết lại logic scan loop, thêm BarcodeDetector path, crop region, hint timeout.
 
-**Phần 4 – Vận hành Buồng phòng (mobile)**
+## Test cases
 
-- 4.1 Danh sách việc cần làm
-- 4.2 Room Check Lean: Quick Path "Phòng OK", báo sự cố
-- 4.3 Giặt ủi: tạo batch, nhận về kho
-- 4.4 Bảo trì & Lost & Found
+1. **Android Chrome (BarcodeDetector path)**: scan QR CCCD ở khoảng cách 10/20/30/40 cm — phải bắt được < 500ms ở 20cm.
+2. **iOS Safari (WeChat WASM path)**: scan tương tự — < 1.5s ở 20cm.
+3. **Thiếu sáng**: bật đèn flash → vẫn scan được.
+4. **QR không phải CCCD**: hiển thị toast "QR không phải định dạng CCCD" và tiếp tục quét (không đóng dialog).
+5. **Auto-zoom**: khi QR nhỏ ở xa → tự zoom 2x sau ~1s.
 
-**Phần 5 – Quản lý & Báo cáo**
+## Rollout / Rollback
 
-- 5.1 Dashboard chủ khách sạn
-- 5.2 Báo cáo doanh thu, công suất, hiệu suất nhân viên
-- 5.3 QC Dashboard, audit log
-- 5.4 Gia hạn gói, thêm phòng
+- Thay đổi chỉ ở 1 file UI, không động schema/RPC → rollback bằng revert commit.
+- Không feature flag (cải thiện thuần UX, không breaking).
 
-**Phần 6 – Phụ lục**
+## Phần KHÔNG đụng
 
-- Bảng phím tắt / mẹo dùng PWA (cài lên màn hình chính iOS/Android)
-- Xử lý sự cố thường gặp (SePay không nhận, OCR sai, offline)
-- Liên hệ hỗ trợ
-
-## Output
-
-- `/mnt/documents/user-guide/Huong-Dan-Su-Dung_v1.pdf` (file chính, A4, có mục lục, header/footer, số trang)
-- `/mnt/documents/user-guide/screenshots/` (ảnh nguồn, để có thể chỉnh sửa lại sau)
-- `/mnt/documents/user-guide/Huong-Dan-Su-Dung_v1.md` (nguồn Markdown để bạn chỉnh tay sau)
-
-## Câu hỏi cần xác nhận trước khi làm
-
-1. **Đối tượng đọc**: chỉ làm 1 file tổng hợp cho mọi vai trò, hay tách 4 file riêng (Owner / Manager / Lễ tân / Buồng phòng)? → Mặc định: **1 file tổng hợp có đánh dấu vai trò ở đầu mỗi phần**.
-2. **Tài khoản chụp ảnh**: dùng tài khoản test đã có (dữ liệu trống), hay bạn muốn tôi tự seed vài phòng/booking mẫu để screenshot trông đầy đặn hơn? → Mặc định: **seed dữ liệu mẫu tối thiểu** để ảnh không trống.
-3. **Branding**:  RoomQC trên bìa
-
-Nếu bạn không trả lời, tôi sẽ chạy theo mặc định ở trên.
+- `parseCCCDQR.ts` giữ nguyên.
+- `DocumentScanner.tsx` (entry point) giữ nguyên.
+- Remote scan flow (mobile-scan-upload) không liên quan.
