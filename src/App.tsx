@@ -533,6 +533,7 @@ const router = createBrowserRouter([
   },
 
   // Catch all
+  { path: "/dashboard", element: <Navigate to="/" replace />, errorElement: <RouteErrorBoundary /> },
   { path: "*", element: <NotFound />, errorElement: <RouteErrorBoundary /> },
 ]);
 
