@@ -83,6 +83,11 @@ export function FinancialReportPage() {
   }
   const monthly_trend = reportData.monthly_trend || []
   const cost_by_category = (reportData as any).cost_by_category || []
+  const revenue_summary = (reportData as any).revenue_summary || {
+    gross_revenue: 0, paid_revenue: 0, pending_revenue: 0,
+    ota_commission: 0, vat_amount: 0, net_revenue: 0,
+  }
+  const profit_summary = (reportData as any).profit_summary || { net_profit: 0, profit_margin: 0 }
   
   // Calculate percentages safely
   const totalCost = summary.total_cost || 0
