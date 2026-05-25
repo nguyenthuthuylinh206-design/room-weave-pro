@@ -1,60 +1,92 @@
-# Plan: Tối ưu QR Scanner trên điện thoại
+# Tinh gọn Báo cáo — từ 10 trang rời rạc → 4 trang theo vai trò
 
-## Vấn đề hiện tại (`src/components/bookings/QRScannerDialog.tsx`)
+## Vấn đề hiện tại
 
-1. **Resolution quá cao**: yêu cầu `width: 4096, height: 2160` → nhiều điện thoại trung cấp trả stream lớn, FPS thấp, mỗi frame phải resize → chậm.
-2. **Scan toàn bộ frame 1280×720**: `qr-scanner-wechat` chạy WASM ~150–400ms/frame trên điện thoại tầm trung → throttle 200ms trở nên vô nghĩa, mỗi lần scan thực tế cách nhau 0.4–0.8s → cảm giác "không nhạy".
-3. **Không dùng `BarcodeDetector` native**: Android Chrome có sẵn API native cực nhanh (<30ms/frame), bị bỏ qua hoàn toàn.
-4. **Throttle 200ms cố định**: ngay cả khi máy mạnh cũng không scan nhanh hơn được.
-5. **Auto-zoom 2x sau 15 frame fail**: với throttle hiện tại ~ 3s mới zoom → người dùng đã bỏ cuộc.
+10 báo cáo (Doanh thu / Tài chính / KPI Vận hành / Hỏng-Mất / Hiệu năng phòng / Tồn kho / Kiểm kê / Xuất kho / Giặt là / Bảo trì) — nội dung chồng chéo, mỗi trang quá nhiều số, không trả lời được câu hỏi "tình hình hôm nay/tháng này tốt hay xấu?".
 
-## Hướng sửa
+## Định hướng mới
 
-### A. Logic scan
-- **Ưu tiên `window.BarcodeDetector`** nếu có (`['qr_code']`). Detect trực tiếp trên `<video>` element, không cần canvas.
-- Fallback `qr-scanner-wechat` nếu trình duyệt không hỗ trợ (iOS Safari, Firefox).
-- Giảm `SCAN_INTERVAL_MS` từ 200 → 100ms với BarcodeDetector; giữ 250ms với WeChat WASM (vì nó vốn chậm).
+**Mỗi báo cáo phải trả lời được 1 câu hỏi vận hành cụ thể trong < 10 giây.**
 
-### B. Crop vùng scan
-- Chỉ scan **vùng giữa khung 56vmin** thay vì toàn bộ frame:
-  - Tính tỉ lệ crop từ video size → vẽ chỉ vùng QR box vào canvas 640×640.
-  - Giảm ~70% pixel cần xử lý → WeChat scan nhanh hơn 3–4 lần.
+Gộp về **4 báo cáo** + **1 trang Tổng quan** chung. Trang nào cũng mở đầu bằng "Bảng điểm 5 chỉ số" (status + xu hướng so kỳ trước) — chi tiết drill-down phía dưới.
 
-### C. Resolution camera
-- Hạ `ideal` xuống `1920×1080` (đủ đọc QR cách 30cm). Giữ `4096×2160` chỉ làm `max` để máy iPhone Pro tận dụng được nếu muốn.
-- Thêm `frameRate: { ideal: 30 }` để đảm bảo FPS.
+---
 
-### D. Auto-zoom thông minh
-- Giảm `FRAMES_BEFORE_ZOOM` 15 → 8 (zoom sớm hơn ~1s sau khi không tìm thấy).
-- Khi đã zoom mà vẫn fail 8 frame → reset zoom (giữ logic cũ nhưng nhanh hơn).
+## Cấu trúc mới
 
-### E. UI feedback
-- Hiển thị badge "Đang quét..." nhấp nháy nhẹ ở góc để người dùng biết scanner đang chạy (hiện tại không có dấu hiệu nào).
-- Thêm toast hint sau 8s không tìm thấy: "Đưa QR vào giữa khung, giữ cách 20–30cm, bật đèn pin nếu thiếu sáng".
+### 0. `/reports` — **Tổng quan điều hành** (mặc định khi vào)
+Một màn hình cho Chủ/Quản lý. Không tab, không cuộn dài.
+- 6 KPI tile (so kỳ trước): Doanh thu thuần • Lợi nhuận • Công suất phòng • RevPAR • Chi phí vận hành • Khoản còn nợ
+- 1 biểu đồ kết hợp: Doanh thu vs Chi phí 30 ngày
+- "Cần chú ý" — danh sách 3-5 cảnh báo (booking quá hạn, kho sắp hết, ticket bảo trì gấp, lô giặt trễ)
 
-### F. Bonus: cải thiện cảm nhận
-- `playsInline` + `autoPlay` ✓ đã có. Thêm `disablePictureInPicture` để tránh popup PiP trên iOS.
-- Vibrate 50ms khi scan thành công (`navigator.vibrate?.(50)`) → feedback xúc giác.
+### 1. `/reports/finance` — **Tài chính** (gộp Doanh thu + Tài chính)
+Câu hỏi: *"Tháng này lời/lỗ bao nhiêu? Tiền đi đâu?"*
+- Bảng điểm: Doanh thu thuần • Lợi nhuận thuần • Biên LN • Chi phí • Công nợ • Tăng trưởng MoM
+- Tab "Doanh thu" (theo kênh/loại phòng/top phòng) — kế thừa từ Revenue
+- Tab "Chi phí & Lợi nhuận" — kế thừa từ Financial
+- Xoá: 2 trang riêng `/reports/revenue` và `/reports/financial` (redirect)
 
-## File thay đổi
+### 2. `/reports/operations` — **Vận hành phòng** (gộp KPI Vận hành + Hiệu năng phòng + Hỏng-Mất)
+Câu hỏi: *"Phòng đang chạy ổn không? Có gì hỏng/mất không?"*
+- Bảng điểm: Công suất • ADR • RevPAR • Số đêm phòng • Phòng cần chú ý (DND/OOS/maintenance) • Tổn thất kỳ này
+- Tab "Hiệu năng phòng" (utilization theo loại phòng, top phòng doanh thu)
+- Tab "Tổn thất" (hỏng/mất theo bộ phận, top item bị hỏng)
+- Xoá: `/reports/rooms`, `/reports/damages` (redirect)
 
-- `src/components/bookings/QRScannerDialog.tsx` — viết lại logic scan loop, thêm BarcodeDetector path, crop region, hint timeout.
+### 3. `/reports/housekeeping` — **Buồng phòng & Giặt là** (gộp Giặt là + thêm QC từ housekeeping)
+Câu hỏi: *"Đội buồng phòng & giặt là chạy có hiệu quả không?"*
+- Bảng điểm: Tasks hoàn thành • Tỷ lệ QC pass • Thời gian dọn TB • Lô giặt đang xử lý • Chi phí giặt/đêm • Vendor chậm trễ
+- Tab "Buồng phòng" (task throughput, QC reject rate — dữ liệu từ `housekeeping_tasks`)
+- Tab "Giặt là" (kế thừa Laundry: vendor, monthly trend, status breakdown)
+- Xoá: `/reports/laundry` (redirect)
 
-## Test cases
+### 4. `/reports/inventory` — **Kho & Bảo trì** (gộp Tồn kho + Xuất kho + Kiểm kê + Bảo trì)
+Câu hỏi: *"Kho có đủ không? Tài sản có được bảo trì không?"*
+- Bảng điểm: Giá trị tồn • Item sắp hết • Vòng quay TB • Chênh lệch kiểm kê • Ticket bảo trì mở • Chi phí bảo trì
+- Tab "Tồn kho" (ABC, low stock, status distribution)
+- Tab "Xuất / Kiểm kê" (gộp Outbound + Stock Audit)
+- Tab "Bảo trì" (ticket throughput, chi phí, MTTR)
+- Xoá: `/reports/stock-audit`, `/reports/outbound`, `/reports/maintenance` (redirect)
 
-1. **Android Chrome (BarcodeDetector path)**: scan QR CCCD ở khoảng cách 10/20/30/40 cm — phải bắt được < 500ms ở 20cm.
-2. **iOS Safari (WeChat WASM path)**: scan tương tự — < 1.5s ở 20cm.
-3. **Thiếu sáng**: bật đèn flash → vẫn scan được.
-4. **QR không phải CCCD**: hiển thị toast "QR không phải định dạng CCCD" và tiếp tục quét (không đóng dialog).
-5. **Auto-zoom**: khi QR nhỏ ở xa → tự zoom 2x sau ~1s.
+---
 
-## Rollout / Rollback
+## Component dùng chung (mới)
 
-- Thay đổi chỉ ở 1 file UI, không động schema/RPC → rollback bằng revert commit.
-- Không feature flag (cải thiện thuần UX, không breaking).
+- **`<KpiScorecard>`** — 1 tile chuẩn: nhãn • giá trị lớn • delta vs kỳ trước (mũi tên + %) • màu semantic (xanh tốt / đỏ xấu / xám trung tính). Đây là "ngôn ngữ" đánh giá nhanh chung cho mọi báo cáo.
+- **`<ReportPageShell>`** — wrapper: header + DateRangePicker + HotelFilter + slot Scorecard + slot Tabs + Export.
+- **`<AlertList>`** — danh sách "Cần chú ý" cho trang Tổng quan.
 
-## Phần KHÔNG đụng
+## Catalog & navigation
 
-- `parseCCCDQR.ts` giữ nguyên.
-- `DocumentScanner.tsx` (entry point) giữ nguyên.
-- Remote scan flow (mobile-scan-upload) không liên quan.
+- `reportsCatalog.ts`: rút từ 10 → 5 entries (tổng quan + 4 báo cáo).
+- Sidebar Báo cáo: hiển thị 5 mục thay vì 10.
+- Department manager:
+  - Housekeeping/Laundry → chỉ `/reports/housekeeping`
+  - Inventory/Maintenance → chỉ `/reports/inventory`
+  - Không thấy Tài chính / Tổng quan.
+
+## Migration & compatibility
+
+- Các URL cũ (`/reports/revenue`, `/reports/damages`, v.v.) → **redirect 302** sang trang gộp tương ứng kèm `?tab=` đúng.
+- Hooks RPC (`useRevenueReport`, `useFinancialReport`, `useLaundryReport`, ...) **giữ nguyên** — chỉ thay đổi UI lắp ráp lại. Không cần migration DB.
+- Bookmark/email cũ vẫn chạy.
+
+## Rollout
+
+1. Build component dùng chung (`KpiScorecard`, `ReportPageShell`, `AlertList`).
+2. Build trang `/reports` Tổng quan mới.
+3. Build 4 trang gộp (mỗi trang reuse các tab/section sẵn có làm `<TabsContent>`).
+4. Thêm redirect từ URL cũ.
+5. Cập nhật `reportsCatalog.ts` + sidebar.
+6. Bump version 1.0.48, ghi changelog.
+7. Giữ file page cũ trong codebase 1 release để rollback dễ; release sau xoá hẳn.
+
+## Không thuộc phạm vi lần này
+
+- Đánh giá vận hành / Benchmark ngành (`OperationsInsightsTab`) — giữ nguyên trong tab Tài chính.
+- Báo cáo Super Admin (chain HQ) — không đụng.
+
+---
+
+**Bạn duyệt cấu trúc 4 trang này không, hay muốn gộp khác đi (ví dụ tách Bảo trì ra riêng / giữ Giặt là độc lập)?**

@@ -191,11 +191,10 @@ const navigation: NavItem[] = [
     minMode: 'standard',
     children: [
       { titleKey: 'reportsDashboard', href: '/reports', icon: LayoutDashboard },
+      { titleKey: 'financeReport', href: '/reports/finance', icon: TrendingUp },
+      { titleKey: 'operationsReport', href: '/reports/operations', icon: Hotel },
+      { titleKey: 'housekeepingReport', href: '/reports/housekeeping', icon: Wind },
       { titleKey: 'inventoryReport', href: '/reports/inventory', icon: Warehouse },
-      { titleKey: 'roomsReport', href: '/reports/rooms', icon: Hotel },
-      { titleKey: 'laundryReport', href: '/reports/laundry', icon: Wind },
-      { titleKey: 'maintenanceReport', href: '/reports/maintenance', icon: Wrench },
-      { titleKey: 'operationsReport', href: '/reports/operations', icon: TrendingUp },
     ],
   },
   {
