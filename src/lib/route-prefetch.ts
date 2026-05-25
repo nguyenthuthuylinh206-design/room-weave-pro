@@ -75,12 +75,11 @@ const loaders: Record<string, () => Promise<unknown>> = {
   '/staff/shift-handover': () => import('@/pages/staff/ShiftHandoverPage'),
   '/staff': () => import('@/pages/staff/StaffManagementPage'),
 
-  // Reports
-  '/reports/inventory': () => import('@/pages/reports/InventoryReportPage'),
-  '/reports/rooms': () => import('@/pages/reports/RoomsReportPage'),
-  '/reports/laundry': () => import('@/pages/reports/LaundryReportPage'),
-  '/reports/maintenance': () => import('@/pages/reports/MaintenanceReportPage'),
-  '/reports/operations': () => import('@/pages/reports/OperationsReportPage'),
+  // Reports (consolidated hubs)
+  '/reports/finance': () => import('@/pages/reports/hub/FinanceHubPage'),
+  '/reports/operations': () => import('@/pages/reports/hub/OperationsHubPage'),
+  '/reports/housekeeping': () => import('@/pages/reports/hub/HousekeepingHubPage'),
+  '/reports/inventory': () => import('@/pages/reports/hub/InventoryHubPage'),
   '/reports': () => import('@/pages/reports/ReportsDashboardPage'),
 
   // Settings
