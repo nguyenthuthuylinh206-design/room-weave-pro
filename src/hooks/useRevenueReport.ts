@@ -270,10 +270,13 @@ export function useRevenueReport(period: ReportPeriod = 'month', customRange?: {
       }
 
       // Query bookings — bao gồm cả service_charges, extra_charges, VAT
+      // P0 FIX: chỉ tính doanh thu từ booking đã hoàn tất (checked_out).
+      // Loại pending/cancelled/no_show để tránh overstate.
       let query = supabase.from('room_bookings').select(
         'check_out_date, total_amount, amount_paid, deposit_amount, payment_status, booking_type, booking_source, ota_commission_amount, net_revenue, early_checkin_charge, late_checkout_charge, damage_charges, service_charges, extra_charges, vat_amount, room_id, room:rooms!room_bookings_room_id_fkey(room_number, room_type)',
       )
         .eq('tenant_id', tenantId)
+        .eq('status', 'checked_out')
         .gte('check_out_date', fetchFromISO)
         .limit(10000)
 
