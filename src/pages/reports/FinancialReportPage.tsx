@@ -83,6 +83,11 @@ export function FinancialReportPage() {
   }
   const monthly_trend = reportData.monthly_trend || []
   const cost_by_category = (reportData as any).cost_by_category || []
+  const revenue_summary = (reportData as any).revenue_summary || {
+    gross_revenue: 0, paid_revenue: 0, pending_revenue: 0,
+    ota_commission: 0, vat_amount: 0, net_revenue: 0,
+  }
+  const profit_summary = (reportData as any).profit_summary || { net_profit: 0, profit_margin: 0 }
   
   // Calculate percentages safely
   const totalCost = summary.total_cost || 0
@@ -152,6 +157,40 @@ export function FinancialReportPage() {
         
         {/* TAB 1: Overview */}
         <TabsContent value="overview" className="space-y-6">
+          {/* Revenue & Profit (P1) */}
+          <div className="grid gap-4 md:grid-cols-4">
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-sm text-muted-foreground">Doanh thu thuần</p>
+                <p className="text-2xl font-bold text-green-600">{formatCurrency(revenue_summary.net_revenue)}</p>
+                <p className="text-xs text-muted-foreground mt-1">Tổng: {formatCurrency(revenue_summary.gross_revenue)}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-sm text-muted-foreground">Đã thu</p>
+                <p className="text-2xl font-bold">{formatCurrency(revenue_summary.paid_revenue)}</p>
+                <p className="text-xs text-amber-600 mt-1">Còn nợ: {formatCurrency(revenue_summary.pending_revenue)}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-sm text-muted-foreground">Lợi nhuận thuần</p>
+                <p className={`text-2xl font-bold ${profit_summary.net_profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(profit_summary.net_profit)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">Biên LN: {profit_summary.profit_margin}%</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-sm text-muted-foreground">Hoa hồng OTA + VAT</p>
+                <p className="text-2xl font-bold">{formatCurrency((revenue_summary.ota_commission || 0) + (revenue_summary.vat_amount || 0))}</p>
+                <p className="text-xs text-muted-foreground mt-1">OTA: {formatCurrency(revenue_summary.ota_commission)}</p>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Total Costs */}
           <div className="grid gap-4 md:grid-cols-4">
             <Card>

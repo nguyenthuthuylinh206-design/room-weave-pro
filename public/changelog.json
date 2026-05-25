@@ -1,6 +1,16 @@
 {
-  "current": "1.0.46",
+  "current": "1.0.47",
   "versions": [
+    {
+      "version": "1.0.47",
+      "releaseDate": "2026-05-25",
+      "title": "Mở rộng báo cáo tài chính & giặt là (P1)",
+      "changes": [
+        { "type": "feature", "text": "Báo cáo Tài chính: thêm doanh thu thuần, đã thu, còn nợ, lợi nhuận thuần và biên lợi nhuận" },
+        { "type": "feature", "text": "Xu hướng tháng có thêm đường doanh thu và lợi nhuận" },
+        { "type": "fix", "text": "Báo cáo Giặt là: tính cả lô đang xử lý (delivered/washing/ready), chi phí fallback estimated_cost khi chưa có actual_cost" }
+      ]
+    },
     {
       "version": "1.0.46",
       "releaseDate": "2026-05-25",
