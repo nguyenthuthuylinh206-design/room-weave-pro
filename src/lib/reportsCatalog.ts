@@ -54,113 +54,48 @@ export interface ReportSection {
 }
 
 export const REPORT_SECTIONS: ReportSection[] = [
-  { id: 'finance', title: 'Tài chính', description: 'Doanh thu, chi phí, P&L' },
-  { id: 'operations', title: 'Vận hành', description: 'Phòng, KPI tổng hợp, tổn thất' },
-  { id: 'housekeeping', title: 'Buồng phòng', description: 'Hiệu năng buồng phòng và chất lượng' },
-  { id: 'inventory', title: 'Kho & Mua hàng', description: 'Tồn kho, xuất kho, kiểm kê' },
-  { id: 'laundry', title: 'Giặt là', description: 'Batch giặt, vendor, chi phí' },
-  { id: 'maintenance', title: 'Bảo trì', description: 'Ticket, chi phí, thời gian xử lý' },
+  { id: 'finance', title: 'Tài chính', description: 'Doanh thu, chi phí, lợi nhuận' },
+  { id: 'operations', title: 'Vận hành phòng', description: 'Hiệu năng, tổn thất, KPI' },
+  { id: 'housekeeping', title: 'Buồng phòng & Giặt là', description: 'QC, giặt là, hiệu suất bộ phận' },
+  { id: 'inventory', title: 'Kho & Bảo trì', description: 'Tồn kho, xuất kho, kiểm kê, bảo trì' },
 ]
 
 const ALL_PRIVILEGED: AppRole[] = ['super_admin', 'owner', 'hotel_manager']
 
 export const REPORTS_CATALOG: ReportDefinition[] = [
-  // --- Tài chính ---
   {
-    id: 'revenue',
-    title: 'Doanh thu',
-    description: 'Phân tích doanh thu theo thời gian, kênh và loại phòng',
-    path: '/reports/revenue',
-    section: 'finance',
-    roles: ['super_admin', 'owner', 'hotel_manager'],
-  },
-  {
-    id: 'financial',
+    id: 'finance',
     title: 'Tài chính',
-    description: 'Chi phí vận hành, giá trị tài sản, ROI',
-    path: '/reports/financial',
+    description: 'Tháng này lời/lỗ bao nhiêu? Tiền đi đâu?',
+    path: '/reports/finance',
     section: 'finance',
-    roles: ['super_admin', 'owner', 'hotel_manager'],
+    roles: ALL_PRIVILEGED,
   },
-
-  // --- Vận hành ---
   {
     id: 'operations',
-    title: 'KPI Vận hành',
-    description: 'Giao dịch nhập/xuất, kiểm kê, lịch sử hoạt động',
+    title: 'Vận hành phòng',
+    description: 'Phòng đang chạy ổn không? Có hỏng/mất gì không?',
     path: '/reports/operations',
     section: 'operations',
     roles: ALL_PRIVILEGED,
   },
   {
-    id: 'damages',
-    title: 'Hỏng / Mất',
-    description: 'Thống kê tổn thất tài sản theo bộ phận',
-    path: '/reports/damages',
-    section: 'operations',
-    roles: ALL_PRIVILEGED,
-  },
-
-  // --- Buồng phòng ---
-  {
-    id: 'rooms',
-    title: 'Hiệu năng phòng',
-    description: 'Sử dụng phòng, doanh thu, lịch sử kiểm tra',
-    path: '/reports/rooms',
+    id: 'housekeeping',
+    title: 'Buồng phòng & Giặt là',
+    description: 'Đội buồng phòng & giặt là chạy hiệu quả không?',
+    path: '/reports/housekeeping',
     section: 'housekeeping',
     roles: [...ALL_PRIVILEGED, 'department_manager'],
-    departments: ['housekeeping'],
+    departments: ['housekeeping', 'laundry'],
   },
-
-  // --- Kho & Mua hàng ---
   {
     id: 'inventory',
-    title: 'Tồn kho',
-    description: 'Trạng thái kho, vòng quay, phân tích ABC',
+    title: 'Kho & Bảo trì',
+    description: 'Kho có đủ không? Tài sản có được bảo trì không?',
     path: '/reports/inventory',
     section: 'inventory',
     roles: [...ALL_PRIVILEGED, 'department_manager'],
-    departments: ['inventory'],
-  },
-  {
-    id: 'stock-audit',
-    title: 'Kiểm kê kho',
-    description: 'Kết quả kiểm kê định kỳ, chênh lệch và điều tra',
-    path: '/reports/stock-audit',
-    section: 'inventory',
-    roles: [...ALL_PRIVILEGED, 'department_manager'],
-    departments: ['inventory'],
-  },
-  {
-    id: 'outbound',
-    title: 'Xuất kho',
-    description: 'Phân tích chi tiết xuất kho theo loại',
-    path: '/reports/outbound',
-    section: 'inventory',
-    roles: [...ALL_PRIVILEGED, 'department_manager'],
-    departments: ['inventory'],
-  },
-
-  // --- Giặt là ---
-  {
-    id: 'laundry',
-    title: 'Giặt là',
-    description: 'Chi phí giặt, hiệu quả, đánh giá vendor',
-    path: '/reports/laundry',
-    section: 'laundry',
-    roles: [...ALL_PRIVILEGED, 'department_manager'],
-    departments: ['laundry'],
-  },
-
-  // --- Bảo trì ---
-  {
-    id: 'maintenance',
-    title: 'Bảo trì',
-    description: 'Yêu cầu sửa chữa, chi phí, thời gian xử lý',
-    path: '/reports/maintenance',
-    section: 'maintenance',
-    roles: [...ALL_PRIVILEGED, 'department_manager'],
-    departments: ['maintenance'],
+    departments: ['inventory', 'maintenance'],
   },
 ]
 
