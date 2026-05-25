@@ -131,6 +131,10 @@ const OutboundReportPage = lazyNamed(() => import("./pages/reports/OutboundRepor
 const RevenueReportPage = lazyNamed(() => import("./pages/reports/RevenueReportPage"), "RevenueReportPage");
 const DamagesReportPage = lazyNamed(() => import("./pages/reports/DamagesReportPage"), "DamagesReportPage");
 const StockAuditReportPage = lazyNamed(() => import("./pages/reports/StockAuditReportPage"), "StockAuditReportPage");
+const FinanceHubPage = lazyNamed(() => import("./pages/reports/hub/FinanceHubPage"), "FinanceHubPage");
+const OperationsHubPage = lazyNamed(() => import("./pages/reports/hub/OperationsHubPage"), "OperationsHubPage");
+const HousekeepingHubPage = lazyNamed(() => import("./pages/reports/hub/HousekeepingHubPage"), "HousekeepingHubPage");
+const InventoryHubPage = lazyNamed(() => import("./pages/reports/hub/InventoryHubPage"), "InventoryHubPage");
 
 // Hotels & Vendors
 const HotelsPage = lazyNamed(() => import("./pages/hotels/HotelsPage"), "HotelsPage");
@@ -490,18 +494,22 @@ const router = createBrowserRouter([
       { path: "help", element: <HelpPage /> },
       { path: "whats-new", element: <WhatsNewPage /> },
 
-      // Reports
+      // Reports — consolidated hubs (4 trang chính + 1 dashboard)
       { path: "reports", element: <PermissionRoute module="reports"><ReportsDashboardPage /></PermissionRoute> },
-      { path: "reports/inventory", element: <PermissionRoute module="reports"><InventoryReportPage /></PermissionRoute> },
-      { path: "reports/financial", element: <PermissionRoute module="reports"><FinancialReportPage /></PermissionRoute> },
-      { path: "reports/laundry", element: <PermissionRoute module="reports"><LaundryReportPage /></PermissionRoute> },
-      { path: "reports/stock-audit", element: <PermissionRoute module="reports"><StockAuditReportPage /></PermissionRoute> },
-      { path: "reports/operations", element: <PermissionRoute module="reports"><OperationsReportPage /></PermissionRoute> },
-      { path: "reports/rooms", element: <PermissionRoute module="reports"><RoomsReportPage /></PermissionRoute> },
-      { path: "reports/maintenance", element: <PermissionRoute module="reports"><MaintenanceReportPage /></PermissionRoute> },
-      { path: "reports/outbound", element: <PermissionRoute module="reports"><OutboundReportPage /></PermissionRoute> },
-      { path: "reports/revenue", element: <PermissionRoute module="reports"><RevenueReportPage /></PermissionRoute> },
-      { path: "reports/damages", element: <PermissionRoute module="reports"><DamagesReportPage /></PermissionRoute> },
+      { path: "reports/finance", element: <PermissionRoute module="reports"><FinanceHubPage /></PermissionRoute> },
+      { path: "reports/operations", element: <PermissionRoute module="reports"><OperationsHubPage /></PermissionRoute> },
+      { path: "reports/housekeeping", element: <PermissionRoute module="reports"><HousekeepingHubPage /></PermissionRoute> },
+      { path: "reports/inventory", element: <PermissionRoute module="reports"><InventoryHubPage /></PermissionRoute> },
+
+      // Legacy report URLs → redirect vào hub mới với ?tab=
+      { path: "reports/revenue", element: <Navigate to="/reports/finance?tab=revenue" replace /> },
+      { path: "reports/financial", element: <Navigate to="/reports/finance?tab=costs" replace /> },
+      { path: "reports/rooms", element: <Navigate to="/reports/operations?tab=rooms" replace /> },
+      { path: "reports/damages", element: <Navigate to="/reports/operations?tab=damages" replace /> },
+      { path: "reports/laundry", element: <Navigate to="/reports/housekeeping?tab=laundry" replace /> },
+      { path: "reports/outbound", element: <Navigate to="/reports/inventory?tab=outbound" replace /> },
+      { path: "reports/stock-audit", element: <Navigate to="/reports/inventory?tab=audit" replace /> },
+      { path: "reports/maintenance", element: <Navigate to="/reports/inventory?tab=maintenance" replace /> },
 
       // Vendors
       { path: "vendors", element: <PermissionRoute module="vendors"><VendorManagementListPage /></PermissionRoute> },
