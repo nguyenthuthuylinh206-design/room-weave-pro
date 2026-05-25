@@ -1,6 +1,15 @@
 {
-  "current": "1.0.45",
+  "current": "1.0.46",
   "versions": [
+    {
+      "version": "1.0.46",
+      "releaseDate": "2026-05-25",
+      "title": "Sửa lỗi báo cáo doanh thu & công suất phòng (P0)",
+      "changes": [
+        { "type": "fix", "text": "Báo cáo Doanh thu: chỉ tính booking đã trả phòng (checked_out), loại pending/cancelled để không thổi phồng doanh thu" },
+        { "type": "fix", "text": "Báo cáo Phòng: công suất và doanh thu theo loại phòng chỉ tính booking thực sự lưu trú (checked_in/checked_out)" }
+      ]
+    },
     {
       "version": "1.0.45",
       "releaseDate": "2026-05-23",
