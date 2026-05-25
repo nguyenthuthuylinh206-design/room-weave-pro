@@ -1,6 +1,20 @@
 {
-  "current": "1.0.47",
+  "current": "1.0.48",
   "versions": [
+    {
+      "version": "1.0.48",
+      "releaseDate": "2026-05-25",
+      "title": "Tinh gọn Báo cáo: từ 10 trang → 4 hub theo vai trò",
+      "changes": [
+        { "type": "feature", "text": "Gộp Doanh thu + Tài chính → /reports/finance (Tài chính)" },
+        { "type": "feature", "text": "Gộp KPI Vận hành + Hiệu năng phòng + Hỏng/Mất → /reports/operations (Vận hành phòng)" },
+        { "type": "feature", "text": "Gộp Giặt là (+ Buồng phòng) → /reports/housekeeping (Buồng phòng & Giặt là)" },
+        { "type": "feature", "text": "Gộp Tồn kho + Xuất kho + Kiểm kê + Bảo trì → /reports/inventory (Kho & Bảo trì)" },
+        { "type": "feature", "text": "Sidebar Báo cáo rút gọn từ 6 mục xuống 5 mục, mỗi báo cáo trả lời 1 câu hỏi vận hành cụ thể" },
+        { "type": "fix", "text": "Mọi URL báo cáo cũ tự redirect sang hub mới kèm ?tab= tương ứng (bookmark vẫn chạy)" }
+      ]
+    },
+    {
     {
       "version": "1.0.47",
       "releaseDate": "2026-05-25",
