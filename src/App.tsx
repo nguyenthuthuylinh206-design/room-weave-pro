@@ -496,7 +496,8 @@ const router = createBrowserRouter([
       { path: "whats-new", element: <WhatsNewPage /> },
 
       // Reports — consolidated hubs (4 trang chính + 1 dashboard)
-      { path: "reports", element: <PermissionRoute module="reports"><ReportsDashboardPage /></PermissionRoute> },
+      { path: "reports", element: <PermissionRoute module="reports"><OverviewHubPage /></PermissionRoute> },
+      { path: "reports/legacy", element: <PermissionRoute module="reports"><ReportsDashboardPage /></PermissionRoute> },
       { path: "reports/finance", element: <PermissionRoute module="reports"><FinanceHubPage /></PermissionRoute> },
       { path: "reports/operations", element: <PermissionRoute module="reports"><OperationsHubPage /></PermissionRoute> },
       { path: "reports/housekeeping", element: <PermissionRoute module="reports"><HousekeepingHubPage /></PermissionRoute> },
