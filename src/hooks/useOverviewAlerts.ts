@@ -92,7 +92,7 @@ export function useOverviewAlerts() {
           tone: 'danger',
           source: 'booking_overdue',
           title: `Phòng ${room} đã quá hạn trả`,
-          description: `${b.guest_name ?? 'Khách'} • mã ${b.booking_code ?? b.id.slice(0, 8)}`,
+          description: `${b.guest_name ?? 'Khách'} • ${b.id.slice(0, 8)}`,
           href: `/bookings/${b.id}`,
         })
       }
