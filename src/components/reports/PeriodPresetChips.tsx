@@ -15,7 +15,7 @@ export function PeriodPresetChips({ value, onChange, className }: Props) {
   return (
     <div
       className={cn(
-        'flex gap-1 overflow-x-auto snap-x snap-mandatory -mx-1 px-1 scrollbar-none',
+        'flex gap-1 overflow-x-auto snap-x snap-mandatory -mx-1 px-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]',
         className,
       )}
       role="tablist"
