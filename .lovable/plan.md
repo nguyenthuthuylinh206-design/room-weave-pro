@@ -1,84 +1,102 @@
-# Báo cáo — Khoảng cách còn lại so với mục tiêu
+# Sprint B2 — Trang `/reports` Tổng quan điều hành
 
-Mục tiêu đã cam kết: **mỗi trang trả lời 1 câu hỏi trong < 10 giây**, mở đầu bằng "Bảng điểm" + có "Cần chú ý". Sprint trước mới **gom URL & tab**, chưa làm phần "đánh giá nhanh". Đây là việc còn thiếu, chia theo P0 → P2.
-
----
-
-## P0 — Bắt buộc, vì đây là lý do user vẫn thấy "không đánh giá được gì"
-
-### 1. Component `<KpiScorecard>` chuẩn + dải KPI ở đầu mỗi hub
-Hiện 4 hub chỉ là tab gộp — vào trang vẫn thấy ngay bảng số dày đặc của page cũ. Cần:
-- 1 component tile: nhãn nhỏ • số lớn • delta vs kỳ trước (▲/▼ %) • màu semantic (xanh tốt / đỏ xấu / xám trung tính) • 1 dòng diễn giải ngắn ("Tốt hơn tháng trước", "Dưới ngưỡng ngành").
-- Strip 6 tile ở đầu mỗi hub (Finance / Operations / Housekeeping / Inventory), **luôn hiển thị ở MỌI tab** (không nằm trong từng tab).
-- Skeleton + empty state riêng.
-
-### 2. Trang `/reports` Tổng quan điều hành (chưa tồn tại)
-Plan có nhưng **chưa build**. Hiện vào `/reports` rớt vào hub-list cũ. Cần:
-- 6 KPI tile tổng (Doanh thu thuần • Lợi nhuận • Công suất • RevPAR • Chi phí • Công nợ).
-- 1 biểu đồ kết hợp Doanh thu vs Chi phí 30 ngày.
-- `<AlertList>` "Cần chú ý" (3–5 dòng) gom từ: booking quá hạn checkout, kho dưới min, ticket bảo trì urgent đang mở, lô giặt trễ hẹn, QC reject rate cao.
-
-### 3. So sánh kỳ trước (period-over-period)
-KPI hiện chỉ là con số tuyệt đối — không có "tốt hay xấu". Cần:
-- Hook `usePeriodComparison(dateRange)` tự tính kỳ trước cùng độ dài, gọi lại RPC, trả `{current, previous, deltaPct}`.
-- Áp dụng cho cả 4 hub.
-
-### 4. Period preset chuẩn
-DateRangePicker hiện cho chọn tay → user lười. Thêm chip preset cố định ở header hub: **Hôm nay • 7 ngày • Tháng này • Tháng trước • 90 ngày • Năm nay**. Mặc định "Tháng này".
+Mục tiêu: thay trang `/reports` hiện tại (danh sách section + QuickReport) bằng **một màn hình chủ/quản lý nhìn 10 giây biết tình hình**, theo plan B đã duyệt.
 
 ---
 
-## P1 — Cần để báo cáo "có nghĩa", không chỉ "có số"
+## Thành phẩm
 
-### 5. Benchmark inline trên KPI
-Đã có `industryBenchmarks.ts` + `classifyBenchmark()` — đang chỉ dùng ở tab Đánh giá vận hành. Đưa kết quả `excellent/good/average/poor` thành **badge nhỏ** trên KPI tile (Occupancy, RevPAR, ADR, Profit Margin, Extra Revenue Share, Laundry Cost/Room).
+### A. Layout trang `/reports` mới (`OverviewHubPage`)
 
-### 6. Tab "Buồng phòng" trong Housekeeping Hub
-Plan ghi rõ nhưng comment trong code: *"Sprint 1: chỉ gom Giặt là. Tab Buồng phòng bổ sung sau."* → vẫn còn nợ.
-- Tasks completed / on-time rate
-- QC pass rate + top reason reject
-- Avg cleaning time / phòng
-- Top staff by throughput
-Reuse data từ `housekeeping_tasks` + `qc_*` (đã có Dashboard `/housekeeping/qc`).
+Một trang, không tab, gồm 4 khối xếp dọc:
 
-### 7. RPC `get_operations_kpi` thực sự (Operations Hub)
-Hiện Operations Hub gom 3 trang cũ rời, mỗi trang gọi RPC riêng → mở trang là 3 spinner. Cần 1 RPC duy nhất trả KPI strip (occupancy, ADR, RevPAR, room nights, rooms needing attention, period loss) để strip load < 500ms.
+1. **Header rút gọn** + `<PeriodPresetChips>` (mặc định "Tháng này").
+2. **Dải 6 KPI tổng** (dùng `<KpiScorecardStrip>` đã có ở B1):
+   - Doanh thu thuần • Lợi nhuận • Công suất phòng • RevPAR • Chi phí vận hành • Còn nợ
+   - Mỗi tile có Δ% so kỳ trước (logic giống Finance Hub).
+   - Click tile → drilldown sang hub liên quan kèm `?period=` được preserve (ví dụ Doanh thu → `/reports/finance?tab=revenue&period=this_month`).
+3. **`<RevenueVsCostChart>`** — biểu đồ kết hợp Doanh thu (cột) vs Chi phí (line) 30 ngày gần nhất. Reuse data có sẵn từ `useRevenueReport` monthly trends + `useFinancialReport` monthly_trend (đã có sau B1 Sprint trước).
+4. **`<AlertList>` "Cần chú ý"** — 3–8 dòng cảnh báo gom từ 4 nguồn dưới. Mỗi dòng: icon dot semantic • mô tả 1 dòng • link "Xem ngay" sang trang xử lý.
 
-### 8. Loại bỏ duplicate UI trong tab
-Khi nhúng `RevenueReportPage` vào FinanceHub, mỗi tab vẫn render lại `PageHeader + DateRangePicker + HotelFilter` của page cũ → 2 lớp header chồng nhau. Cần:
-- Refactor 8 page cũ thành **dumb section component** (không header/filter/dateRange — nhận props từ hub).
-- Hub giữ DUY NHẤT 1 bộ filter, truyền xuống.
+Phía dưới (mặc định **thu gọn**, mobile ẩn) giữ lại **section grid 4 hub** để user vẫn navigate được — nhưng đóng vai trò phụ, không phải nội dung chính. Quyền lọc cho department_manager giữ nguyên (reuse `useAccessibleReports`).
+
+### B. Component mới
+
+- `src/components/reports/AlertList.tsx` — list compact, mỗi item: `tone (warning|danger|info)` • title • description • CTA. Empty state: "Mọi thứ ổn ✓".
+- `src/components/reports/RevenueVsCostChart.tsx` — Recharts ComposedChart 30 ngày. Theme tokens, height 220, có legend rút gọn.
+- `src/components/reports/OverviewKpiStrip.tsx` — strip 6 KPI tổng (tách khỏi FinanceKpiStrip vì mix nguồn data).
+
+### C. Hook gom alert
+
+`src/hooks/useOverviewAlerts.ts` — 1 hook duy nhất chạy 4 query song song, return mảng `Alert[]`:
+
+| Nguồn | Điều kiện | Severity |
+|---|---|---|
+| `room_bookings` | `status='checked_in'` AND `check_out_date < now()` | danger |
+| `get_low_stock_items` RPC | `quantity_in_stock <= reorder_point` | warning |
+| `maintenance_requests` | `priority='urgent'` AND `status IN ('waiting','pending','in_progress')` | danger |
+| `laundry_batches` | `expected_return_date < now()` AND `status NOT IN ('stocked','received')` | warning |
+
+Mỗi query `.eq('tenant_id', tenantId)`, filter theo `selectedHotel` nếu không All-Hotels. Cap mỗi nguồn ở 3 item; tổng strip cap ở 8.
+
+### D. Hook gom KPI tổng
+
+`src/hooks/useOverviewKpiStrip.ts` — gom data từ:
+- `useRevenueReport('custom', {start,end})` → netRevenue + paidRevenue (đã có previous trong hook).
+- `useFinancialReport({start,end})` current + previous → totalCost.
+- Lợi nhuận = netRevenue − totalCost; delta tự tính.
+- Công suất + RevPAR + room nights: tạm tính client-side từ `room_bookings` đã checked_out trong kỳ ÷ (`rooms.count` × `days`) — KHÔNG tạo RPC mới ở sprint này (RPC `get_operations_kpi` để B3 làm gọn).
+- Còn nợ: từ `currentPeriod.pendingRevenue` (đã có ở useRevenueReport).
+
+### E. Routing
+
+- `path: "reports"` → trỏ sang `OverviewHubPage` mới (thay vì `ReportsDashboardPage` cũ).
+- Giữ `ReportsDashboardPage` cũ tạm thời ở `/reports/legacy` (tham chiếu rollback 1 release).
+
+### F. Bump version
+
+- `APP_VERSION` → 1.0.50
+- changelog entry "Tổng quan điều hành: 6 KPI + biểu đồ doanh thu vs chi phí + danh sách Cần chú ý".
 
 ---
 
-## P2 — Đánh bóng
+## Files dự kiến
 
-### 9. Export thống nhất
-Mỗi hub có 1 nút **"Xuất báo cáo"** ở header (PDF cho ban giám đốc + Excel cho kế toán), gộp tất cả tab thay vì xuất rời.
+**Tạo mới:**
+- `src/pages/reports/hub/OverviewHubPage.tsx`
+- `src/components/reports/AlertList.tsx`
+- `src/components/reports/RevenueVsCostChart.tsx`
+- `src/components/reports/OverviewKpiStrip.tsx`
+- `src/hooks/useOverviewAlerts.ts`
+- `src/hooks/useOverviewKpiStrip.ts`
 
-### 10. Drilldown từ Tổng quan
-Click KPI ở `/reports` → mở đúng hub + tab tương ứng có sẵn dateRange.
+**Sửa:**
+- `src/App.tsx` — route `/reports` trỏ sang OverviewHubPage; thêm `/reports/legacy` (giữ trang cũ).
+- `src/lib/app-version.ts` + `public/changelog.json`.
 
-### 11. Mobile (414px)
-Strip 6 KPI hiện sẽ tràn ngang. Cần grid responsive: 2 cột mobile / 3 cột tablet / 6 cột desktop, và tab strip dùng horizontal scroll + snap.
-
-### 12. Cleanup
-- Xoá 8 page route cũ sau khi xác nhận redirect ổn.
-- Xoá entry catalog cũ khỏi i18n.
-- Bump version 1.0.49.
-
----
-
-## Đề xuất thứ tự sprint kế tiếp
-
-**Sprint B1 (1 lượt build)**: P0 #1 + #3 + #4 — `<KpiScorecard>` + comparison hook + preset chip. Áp vào Finance Hub trước làm mẫu.
-
-**Sprint B2**: P0 #2 — Trang `/reports` Tổng quan + `<AlertList>`.
-
-**Sprint B3**: P1 #6 + #7 — Tab Buồng phòng + RPC operations KPI gộp.
-
-**Sprint B4**: P1 #8 + P2 #9–12 — refactor section, export, mobile, cleanup.
+**Không đụng:**
+- 4 hub đã có (B1) — giữ nguyên.
+- Hook + RPC hiện tại — không sửa.
 
 ---
 
-**Bạn duyệt thứ tự B1 → B4 này không? Hay muốn ưu tiên Tổng quan (B2) trước Scorecard (B1)?**
+## Không thuộc B2 (để B3/B4)
+
+- Áp KpiStrip cho Operations/Housekeeping/Inventory Hub.
+- RPC `get_operations_kpi` gộp (sprint này tạm tính client).
+- Drilldown preserve `?period=` ở mọi hub (làm ở B4 khi refactor section).
+- Mobile polish riêng cho OverviewHubPage — sprint này responsive cơ bản (2 cột mobile, 6 cột desktop) là đủ.
+- Xoá hẳn `ReportsDashboardPage` cũ — chờ 1 release để rollback an toàn.
+
+---
+
+## QA checklist sau khi build
+
+- [ ] `/reports` mở thấy 6 KPI có Δ% so kỳ trước.
+- [ ] Đổi chip kỳ → cả 6 KPI + chart + alert refetch đúng.
+- [ ] Click KPI Doanh thu → sang `/reports/finance?tab=revenue`.
+- [ ] AlertList rỗng khi không có cảnh báo (hiển thị "Mọi thứ ổn").
+- [ ] Department manager vẫn vào được `/reports` nhưng chỉ thấy section hub được cấp.
+- [ ] Mobile 414px: KPI 2 cột, chart cuộn ngang ổn.
+
+**OK bắt đầu build B2?**
