@@ -107,8 +107,8 @@ export function useOverviewKpiStrip(period: PeriodRangeWithPrevious): OverviewKp
   const netRevenue = rev?.netRevenue ?? 0
   const netRevenuePrev = revPrev?.netRevenue ?? 0
 
-  const cost = finCurQ.data?.summary.total_cost ?? 0
-  const costPrev = finPrevQ.data?.summary.total_cost ?? 0
+  const cost = finCurQ.data?.summary?.total_cost ?? 0
+  const costPrev = finPrevQ.data?.summary?.total_cost ?? 0
   const profit = netRevenue - cost
   const profitPrev = netRevenuePrev - costPrev
 
