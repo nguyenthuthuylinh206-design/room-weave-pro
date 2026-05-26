@@ -135,6 +135,7 @@ const FinanceHubPage = lazyNamed(() => import("./pages/reports/hub/FinanceHubPag
 const OperationsHubPage = lazyNamed(() => import("./pages/reports/hub/OperationsHubPage"), "OperationsHubPage");
 const HousekeepingHubPage = lazyNamed(() => import("./pages/reports/hub/HousekeepingHubPage"), "HousekeepingHubPage");
 const InventoryHubPage = lazyNamed(() => import("./pages/reports/hub/InventoryHubPage"), "InventoryHubPage");
+const OverviewHubPage = lazyNamed(() => import("./pages/reports/hub/OverviewHubPage"), "OverviewHubPage");
 
 // Hotels & Vendors
 const HotelsPage = lazyNamed(() => import("./pages/hotels/HotelsPage"), "HotelsPage");
