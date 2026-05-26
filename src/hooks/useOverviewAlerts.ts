@@ -39,7 +39,7 @@ export function useOverviewAlerts() {
       // 1. Booking quá hạn checkout
       let bookingQ = supabase
         .from('room_bookings')
-        .select('id, booking_code, guest_name, check_out_date, room:rooms!room_bookings_room_id_fkey(room_number)')
+        .select('id, guest_name, check_out_date, room:rooms!room_bookings_room_id_fkey(room_number)')
         .eq('tenant_id', tenantId)
         .eq('status', 'checked_in')
         .lt('check_out_date', nowIso)
