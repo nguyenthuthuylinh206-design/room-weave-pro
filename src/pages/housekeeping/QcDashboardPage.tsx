@@ -36,7 +36,7 @@ const RANGE_OPTIONS = [
  * Dashboard QC — tổng quan chất lượng buồng phòng.
  * Cho phép chọn range 7/30/90 ngày, click nhân viên xem chi tiết task rework.
  */
-export default function QcDashboardPage() {
+export default function QcDashboardPage({ embedded }: { embedded?: boolean } = {}) {
   const [days, setDays] = useState<number>(30)
   const [drillUserId, setDrillUserId] = useState<string | null>(null)
   const [drillUserName, setDrillUserName] = useState<string>('')
@@ -108,15 +108,17 @@ export default function QcDashboardPage() {
   }
 
   return (
-    <div className="p-4 space-y-6 max-w-6xl mx-auto">
+    <div className={embedded ? 'space-y-6' : 'p-4 space-y-6 max-w-6xl mx-auto'}>
       <header className="flex items-start justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-xl font-semibold">Dashboard QC</h1>
-          <p className="text-xs text-muted-foreground mt-1">
-            Chất lượng dọn phòng {days} ngày gần nhất
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+        {!embedded && (
+          <div>
+            <h1 className="text-xl font-semibold">Dashboard QC</h1>
+            <p className="text-xs text-muted-foreground mt-1">
+              Chất lượng dọn phòng {days} ngày gần nhất
+            </p>
+          </div>
+        )}
+        <div className={`flex items-center gap-2 ${embedded ? 'ml-auto' : ''}`}>
           <Select value={String(days)} onValueChange={(v) => setDays(Number(v))}>
             <SelectTrigger className="h-9 w-28 text-sm">
               <SelectValue />
