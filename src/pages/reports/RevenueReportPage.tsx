@@ -257,28 +257,20 @@ export function RevenueReportPage({ period: embeddedPeriod, embedded }: Props = 
       )}
 
       {/* Section: Doanh thu theo loại hình */}
-      <div className="border rounded-lg">
-        <div className="p-3 border-b">
-          <h3 className="text-sm font-medium">Doanh thu theo loại hình</h3>
-        </div>
-        <div className="p-4">
-          <RevenueByTypeChart data={report.byType} />
-        </div>
+      <div>
+        <h3 className="text-sm font-medium mb-2">Doanh thu theo loại hình</h3>
+        <RevenueByTypeChart data={report.byType} />
       </div>
 
       {/* Section: Doanh thu theo nguồn */}
-      <div className="border rounded-lg">
-        <div className="p-3 border-b">
-          <h3 className="text-sm font-medium">Doanh thu theo nguồn</h3>
-        </div>
+      <div>
+        <h3 className="text-sm font-medium mb-2">Doanh thu theo nguồn</h3>
         <RevenueBySourceTable data={report.bySource} />
       </div>
 
       {/* Section: Top phòng */}
-      <div className="border rounded-lg">
-        <div className="p-3 border-b">
-          <h3 className="text-sm font-medium">Top phòng theo doanh thu</h3>
-        </div>
+      <div>
+        <h3 className="text-sm font-medium mb-2">Top phòng theo doanh thu</h3>
         <TopRoomsRevenueTable data={report.topRooms} />
       </div>
     </div>
