@@ -1,7 +1,19 @@
 {
-  "current": "1.0.54",
+  "current": "1.0.56",
   "versions": [
     {
+      "version": "1.0.56",
+      "releaseDate": "2026-05-27",
+      "title": "Chat nội bộ: thông báo realtime + nav",
+      "changes": [
+        { "type": "feature", "text": "Edge function notify-new-message: fan-out in-app notification + Web Push khi có tin nhắn mới, loại trừ người gửi và kênh muted, dedupe 30s" },
+        { "type": "feature", "text": "Trigger DB tự động gọi notify-new-message qua pg_net sau mỗi tin nhắn mới" },
+        { "type": "feature", "text": "Bổ sung mục 'Tin nhắn' (/chat) vào sidebar desktop" },
+        { "type": "improvement", "text": "Storage bucket chat-attachments private sẵn sàng cho phần đính kèm ở phiên bản tiếp theo" }
+      ]
+    },
+    {
+
       "version": "1.0.54",
       "releaseDate": "2026-05-27",
       "title": "Hợp nhất & dọn dẹp menu Báo cáo",
