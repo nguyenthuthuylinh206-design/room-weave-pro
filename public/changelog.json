@@ -1,6 +1,20 @@
 {
-  "current": "1.0.58",
+  "current": "1.0.59",
   "versions": [
+    {
+      "version": "1.0.59",
+      "releaseDate": "2026-05-27",
+      "title": "Chat: gọn hơn, chọn người gửi dễ hơn",
+      "changes": [
+        { "type": "improvement", "text": "Bubble tin nhắn compact (text 13px, padding nhỏ), bo góc kiểu chat, gộp các tin liên tiếp cùng người gửi trong 3 phút thành 1 cụm, chỉ tin cuối hiện thời gian" },
+        { "type": "improvement", "text": "Avatar 7px ở mỗi cụm tin của người khác; header hội thoại gọn lại, hiển thị chip 'Nhóm/1-1'" },
+        { "type": "improvement", "text": "Composer rút gọn: input bo tròn, nút Gửi đổi sang icon mũi tên, safe-area cho iOS" },
+        { "type": "improvement", "text": "Sidebar: avatar + ô tìm hội thoại + tab Tất cả/Chưa đọc; row gọn, badge unread dạng chấm số" },
+        { "type": "feature", "text": "Dialog 'Hội thoại mới': ô tìm theo tên/email (không dấu), phân nhóm Quản lý / Nhân viên có sticky header, chip 'Đã chọn' xoá nhanh, lọc đúng theo hotel đang chọn (qua user_hotels)" },
+        { "type": "improvement", "text": "Khung chat dùng 100dvh để không bị 'hộp vuông nhỏ trong trang'" }
+      ]
+    },
+
     {
       "version": "1.0.58",
       "releaseDate": "2026-05-27",
