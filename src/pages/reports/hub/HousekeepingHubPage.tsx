@@ -1,5 +1,6 @@
 import { ReportHubShell } from './ReportHubShell'
 import { LaundryReportPage } from '../LaundryReportPage'
+import QcDashboardPage from '@/pages/housekeeping/QcDashboardPage'
 
 export function HousekeepingHubPage() {
   return (
@@ -7,10 +8,10 @@ export function HousekeepingHubPage() {
       title="Buồng phòng & Giặt là"
       question="Đội buồng phòng & giặt là chạy có hiệu quả không?"
       tabs={[
-        // Sprint 1: chỉ gom Giặt là. Tab "Buồng phòng" (QC/throughput) bổ sung sau.
+        { id: 'qc', label: 'Chất lượng (QC)', render: () => <QcDashboardPage embedded /> },
         { id: 'laundry', label: 'Giặt là', Component: LaundryReportPage },
       ]}
-      defaultTab="laundry"
+      defaultTab="qc"
     />
   )
 }
