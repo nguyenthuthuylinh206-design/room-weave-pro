@@ -828,7 +828,7 @@ export default function ChatPage() {
   }, [conversations, search, filter])
 
   return (
-    <div className="h-[100dvh] md:h-[calc(100dvh-9rem)] md:border md:rounded-lg overflow-hidden flex bg-background">
+    <div className="h-[calc(100dvh-6rem)] md:h-[calc(100dvh-9rem)] md:border md:rounded-lg overflow-hidden flex bg-background">
       {/* Sidebar */}
       <div
         className={cn(
