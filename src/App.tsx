@@ -32,6 +32,7 @@ const CacheBuster = lazy(() =>
 
 // === Lazy routes — code-split per page ===
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const ChatPage = lazy(() => import("./pages/ChatPage"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const RootRoute = lazy(() => import("./components/layout/RootRoute"));
 const DocsLayout = lazy(() => import("./pages/docs/DocsLayout"));
@@ -322,6 +323,8 @@ const router = createBrowserRouter([
         )
       },
       { path: "more", element: <MorePage /> },
+      { path: "chat", element: <ChatPage /> },
+      { path: "chat/:conversationId", element: <ChatPage /> },
       
       // Super Admin Dashboard
       {

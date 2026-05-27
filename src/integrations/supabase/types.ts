@@ -1340,6 +1340,102 @@ export type Database = {
           },
         ]
       }
+      conversation_members: {
+        Row: {
+          conversation_id: string
+          joined_at: string
+          last_read_at: string | null
+          last_read_message_id: string | null
+          left_at: string | null
+          muted_until: string | null
+          role: Database["public"]["Enums"]["conversation_member_role"]
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          joined_at?: string
+          last_read_at?: string | null
+          last_read_message_id?: string | null
+          left_at?: string | null
+          muted_until?: string | null
+          role?: Database["public"]["Enums"]["conversation_member_role"]
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          joined_at?: string
+          last_read_at?: string | null
+          last_read_message_id?: string | null
+          left_at?: string | null
+          muted_until?: string | null
+          role?: Database["public"]["Enums"]["conversation_member_role"]
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_members_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_members_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          created_at: string
+          created_by: string
+          direct_key: string | null
+          hotel_id: string
+          id: string
+          last_message_at: string | null
+          last_message_preview: string | null
+          last_sender_id: string | null
+          name: string | null
+          tenant_id: string
+          type: Database["public"]["Enums"]["conversation_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          direct_key?: string | null
+          hotel_id: string
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          last_sender_id?: string | null
+          name?: string | null
+          tenant_id: string
+          type: Database["public"]["Enums"]["conversation_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          direct_key?: string | null
+          hotel_id?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          last_sender_id?: string | null
+          name?: string | null
+          tenant_id?: string
+          type?: Database["public"]["Enums"]["conversation_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       custom_field_values: {
         Row: {
           entity_id: string
@@ -5197,6 +5293,184 @@ export type Database = {
             columns: ["promotional_code_id"]
             isOneToOne: false
             referencedRelation: "promotional_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_attachments: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          file_name: string | null
+          height: number | null
+          id: string
+          message_id: string
+          mime_type: string | null
+          size_bytes: number | null
+          storage_path: string
+          tenant_id: string
+          width: number | null
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          file_name?: string | null
+          height?: number | null
+          id?: string
+          message_id: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          storage_path: string
+          tenant_id: string
+          width?: number | null
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          file_name?: string | null
+          height?: number | null
+          id?: string
+          message_id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          storage_path?: string
+          tenant_id?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_reactions: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          emoji: string
+          message_id: string
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          emoji: string
+          message_id: string
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          emoji?: string
+          message_id?: string
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_reads: {
+        Row: {
+          conversation_id: string
+          message_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          message_id: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          message_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_reads_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          body: string | null
+          client_msg_id: string | null
+          conversation_id: string
+          created_at: string
+          deleted_at: string | null
+          edited_at: string | null
+          id: string
+          mentioned_user_ids: string[]
+          parent_message_id: string | null
+          sender_id: string
+          tenant_id: string
+        }
+        Insert: {
+          body?: string | null
+          client_msg_id?: string | null
+          conversation_id: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          mentioned_user_ids?: string[]
+          parent_message_id?: string | null
+          sender_id: string
+          tenant_id: string
+        }
+        Update: {
+          body?: string | null
+          client_msg_id?: string | null
+          conversation_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          mentioned_user_ids?: string[]
+          parent_message_id?: string | null
+          sender_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_parent_message_id_fkey"
+            columns: ["parent_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
             referencedColumns: ["id"]
           },
         ]
@@ -10754,6 +11028,23 @@ export type Database = {
           },
         ]
       }
+      v_user_conversations: {
+        Row: {
+          hotel_id: string | null
+          id: string | null
+          last_message_at: string | null
+          last_message_preview: string | null
+          last_read_message_id: string | null
+          last_sender_id: string | null
+          muted_until: string | null
+          name: string | null
+          tenant_id: string | null
+          type: Database["public"]["Enums"]["conversation_type"] | null
+          unread_count: number | null
+          viewer_id: string | null
+        }
+        Relationships: []
+      }
       v_user_effective_roles: {
         Row: {
           hotel_id: string | null
@@ -10791,6 +11082,10 @@ export type Database = {
       }
     }
     Functions: {
+      add_conversation_members: {
+        Args: { _conversation_id: string; _user_ids: string[] }
+        Returns: undefined
+      }
       add_laundry_to_draft_batch: {
         Args: {
           p_hotel_id: string
@@ -11103,6 +11398,10 @@ export type Database = {
         Args: { p_hotel_id: string; p_tenant_id: string }
         Returns: string
       }
+      create_direct_conversation: {
+        Args: { _hotel_id: string; _peer_user_id: string }
+        Returns: string
+      }
       create_distribution_order:
         | {
             Args: {
@@ -11128,6 +11427,10 @@ export type Database = {
             }
             Returns: Json
           }
+      create_group_conversation: {
+        Args: { _hotel_id: string; _member_ids: string[]; _name: string }
+        Returns: string
+      }
       create_inbound_transaction:
         | {
             Args: {
@@ -11331,6 +11634,7 @@ export type Database = {
         }
         Returns: string
       }
+      delete_chat_message: { Args: { _message_id: string }; Returns: undefined }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -11465,6 +11769,8 @@ export type Database = {
           qty_out: number
         }[]
       }
+      get_conversation_hotel: { Args: { _conv_id: string }; Returns: string }
+      get_conversation_tenant: { Args: { _conv_id: string }; Returns: string }
       get_current_room_booking: {
         Args: { p_room_id: string }
         Returns: {
@@ -12490,6 +12796,14 @@ export type Database = {
         }
         Returns: number
       }
+      is_conversation_admin: {
+        Args: { _conv_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_conversation_member: {
+        Args: { _conv_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_distribution_leader: { Args: { _user_id: string }; Returns: boolean }
       is_level_higher_or_equal: {
         Args: { _min_level_code: string; _user_id: string }
@@ -12507,6 +12821,10 @@ export type Database = {
       is_super_admin: { Args: { p_user_id: string }; Returns: boolean }
       is_tenant_owner: { Args: never; Returns: boolean }
       is_tenant_read_only: { Args: { p_tenant_id: string }; Returns: boolean }
+      leave_or_remove_conversation_member: {
+        Args: { _conversation_id: string; _user_id: string }
+        Returns: undefined
+      }
       lift_expired_dnd_oos: { Args: never; Returns: Json }
       log_activity: {
         Args: {
@@ -12642,6 +12960,10 @@ export type Database = {
           p_room_order_id: string
         }
         Returns: Json
+      }
+      mark_conversation_read: {
+        Args: { _conversation_id: string; _up_to_message_id?: string }
+        Returns: undefined
       }
       mark_vat_claim_issued: {
         Args: {
@@ -12817,6 +13139,10 @@ export type Database = {
         Args: { p_admin_id: string; p_reason: string; p_tenant_id: string }
         Returns: Json
       }
+      rename_chat_group: {
+        Args: { _conversation_id: string; _name: string }
+        Returns: undefined
+      }
       reopen_room_check: {
         Args: { _check_id: string; _reason?: string }
         Returns: Json
@@ -12936,6 +13262,17 @@ export type Database = {
       }
       run_auto_reorder_daily: { Args: never; Returns: Json }
       schedule_renewal_reminders: { Args: never; Returns: undefined }
+      send_chat_message: {
+        Args: {
+          _attachments?: Json
+          _body: string
+          _client_msg_id?: string
+          _conversation_id: string
+          _mentioned_user_ids?: string[]
+          _parent_message_id?: string
+        }
+        Returns: string
+      }
       send_draft_batch: {
         Args: {
           p_batch_id: string
@@ -12947,6 +13284,10 @@ export type Database = {
           p_vendor_id: string
         }
         Returns: Json
+      }
+      set_conversation_mute: {
+        Args: { _conversation_id: string; _muted_until: string }
+        Returns: undefined
       }
       set_tenant_read_only: {
         Args: { p_reason: string; p_tenant_id: string }
@@ -13034,6 +13375,10 @@ export type Database = {
       sync_categories_for_hotel: {
         Args: { p_hotel_id: string; p_tenant_id: string }
         Returns: Json
+      }
+      toggle_message_reaction: {
+        Args: { _emoji: string; _message_id: string }
+        Returns: boolean
       }
       transition_booking_status: {
         Args: {
@@ -13303,6 +13648,8 @@ export type Database = {
         | "fo_rejected"
         | "chargeable_confirmed"
         | "chargeable_rejected"
+      conversation_member_role: "admin" | "member"
+      conversation_type: "direct" | "group"
       hk_qc_mode: "self" | "peer" | "strict"
       issue_role: "primary_issue" | "derived_action"
       item_type: "linen" | "consumable" | "equipment" | "furniture"
@@ -13483,6 +13830,8 @@ export const Constants = {
         "chargeable_confirmed",
         "chargeable_rejected",
       ],
+      conversation_member_role: ["admin", "member"],
+      conversation_type: ["direct", "group"],
       hk_qc_mode: ["self", "peer", "strict"],
       issue_role: ["primary_issue", "derived_action"],
       item_type: ["linen", "consumable", "equipment", "furniture"],
