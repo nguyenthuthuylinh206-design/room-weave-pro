@@ -322,22 +322,47 @@ export function useCreateGroupConversation() {
   })
 }
 
+export interface HotelMember {
+  id: string
+  full_name: string | null
+  avatar_url: string | null
+  email: string | null
+  role: string | null
+}
+
 export function useHotelMembers() {
   const { user } = useUser()
   const { selectedHotel } = useHotelContext()
   return useQuery({
     queryKey: ['chat-hotel-members', selectedHotel?.id, user?.tenant_id],
-    enabled: !!selectedHotel?.id && !!user?.tenant_id,
-    queryFn: async () => {
-      const { data, error } = await supabase
+    enabled: !!user?.tenant_id,
+    queryFn: async (): Promise<HotelMember[]> => {
+      // Lấy danh sách user_id thuộc hotel hiện tại (nếu có chọn hotel)
+      let userIds: string[] | null = null
+      if (selectedHotel?.id) {
+        const { data: assigns } = await supabase
+          .from('user_hotels')
+          .select('user_id')
+          .eq('hotel_id', selectedHotel.id)
+        userIds = (assigns || []).map((a: any) => a.user_id)
+      }
+
+      let q = supabase
         .from('users')
-        .select('id, full_name, avatar_url, email')
+        .select('id, full_name, avatar_url, email, role')
         .eq('tenant_id', user!.tenant_id)
         .neq('id', user!.id)
         .order('full_name')
-        .limit(200)
+        .limit(300)
+
+      // Owner luôn thấy mọi user trong tenant; user thường lọc theo hotel assignment
+      if (userIds && userIds.length > 0 && user?.role !== 'owner') {
+        q = q.in('id', userIds)
+      }
+
+      const { data, error } = await q
       if (error) throw error
-      return data || []
+      return (data || []) as HotelMember[]
     },
   })
 }
