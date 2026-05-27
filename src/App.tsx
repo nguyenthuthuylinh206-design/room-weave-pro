@@ -322,6 +322,8 @@ const router = createBrowserRouter([
         )
       },
       { path: "more", element: <MorePage /> },
+      { path: "chat", element: <ChatPage /> },
+      { path: "chat/:conversationId", element: <ChatPage /> },
       
       // Super Admin Dashboard
       {
