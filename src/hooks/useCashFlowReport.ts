@@ -390,9 +390,9 @@ export function useCashFlowReport(period: PeriodRangeWithPrevious) {
       const laundriesPrev = (laundryPrevRes.data || []) as { actual_cost: number | null; estimated_cost: number | null }[]
       const maints = (maintRes.data || []) as RawMaintenance[]
       const maintsPrev = (maintPrevRes.data || []) as { actual_cost: number | null }[]
-      const debts = (debtRes.data || []) as RawBookingDebt[]
-      const upPos = (upPoRes.data || []) as RawPO[]
-      const upMaints = (upMaintRes.data || []) as RawMaintenance[]
+      const debts = (debtRes.data || []) as unknown as RawBookingDebt[]
+      const upPos = (upPoRes.data || []) as unknown as RawPO[]
+      const upMaints = (upMaintRes.data || []) as unknown as RawMaintenance[]
 
       // ---------- Build daily series ----------
       const dayMap = buildDayMap(period.current.start, period.current.end)
@@ -454,11 +454,13 @@ export function useCashFlowReport(period: PeriodRangeWithPrevious) {
         0,
       )
       const maintTotal = maints.reduce((s, m) => s + Number(m.actual_cost ?? 0), 0)
-      const cashOutByGroup: CashOutBreakdownItem[] = [
-        { key: 'purchase', label: 'Mua hàng (PO)', amount: poTotal, count: pos.length },
-        { key: 'laundry', label: 'Giặt là', amount: laundryTotal, count: laundries.length },
-        { key: 'maintenance', label: 'Bảo trì', amount: maintTotal, count: maints.length },
-      ]
+      const cashOutByGroup: CashOutBreakdownItem[] = (
+        [
+          { key: 'purchase', label: 'Mua hàng (PO)', amount: poTotal, count: pos.length },
+          { key: 'laundry', label: 'Giặt là', amount: laundryTotal, count: laundries.length },
+          { key: 'maintenance', label: 'Bảo trì', amount: maintTotal, count: maints.length },
+        ] as CashOutBreakdownItem[]
+      )
         .filter((x) => x.amount > 0 || x.count > 0)
         .sort((a, b) => b.amount - a.amount)
 
