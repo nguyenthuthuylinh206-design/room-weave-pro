@@ -19,6 +19,17 @@ export interface ConversationListItem {
   peer?: { id: string; full_name: string | null; avatar_url: string | null } | null
 }
 
+export interface ChatAttachment {
+  id: string
+  message_id: string
+  storage_path: string
+  file_name: string | null
+  mime_type: string | null
+  size_bytes: number | null
+  width: number | null
+  height: number | null
+}
+
 export interface ChatMessage {
   id: string
   conversation_id: string
@@ -30,6 +41,7 @@ export interface ChatMessage {
   deleted_at: string | null
   created_at: string
   sender?: { id: string; full_name: string | null; avatar_url: string | null }
+  attachments?: ChatAttachment[]
 }
 
 export function useConversations() {
@@ -152,6 +164,20 @@ export function useMessages(conversationId: string | undefined) {
         const map = new Map((users || []).map((u: any) => [u.id, u]))
         msgs.forEach((m) => (m.sender = map.get(m.sender_id)))
       }
+      const msgIds = msgs.map((m) => m.id)
+      if (msgIds.length > 0) {
+        const { data: atts } = await supabase
+          .from('message_attachments')
+          .select('*')
+          .in('message_id', msgIds)
+        const byMsg = new Map<string, any[]>()
+        for (const a of atts || []) {
+          const list = byMsg.get(a.message_id) || []
+          list.push(a)
+          byMsg.set(a.message_id, list)
+        }
+        msgs.forEach((m) => (m.attachments = byMsg.get(m.id) || []))
+      }
       return msgs
     },
   })
@@ -179,19 +205,28 @@ export function useMessages(conversationId: string | undefined) {
   return query
 }
 
+export interface UploadedChatAttachment {
+  storage_path: string
+  file_name: string
+  mime_type: string
+  size_bytes: number
+  width?: number
+  height?: number
+}
+
 export function useSendMessage(conversationId: string | undefined) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (body: string) => {
+    mutationFn: async (args: { body: string; attachments?: UploadedChatAttachment[] }) => {
       if (!conversationId) throw new Error('missing conversation')
       const clientMsgId = crypto.randomUUID()
       const { data, error } = await supabase.rpc('send_chat_message', {
         _conversation_id: conversationId,
-        _body: body,
+        _body: args.body,
         _parent_message_id: null,
         _client_msg_id: clientMsgId,
         _mentioned_user_ids: [],
-        _attachments: [],
+        _attachments: (args.attachments || []) as any,
       })
       if (error) throw error
       return data
@@ -200,6 +235,42 @@ export function useSendMessage(conversationId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['chat-messages', conversationId] })
     },
   })
+}
+
+/** Upload a file to chat-attachments bucket under {conversationId}/ */
+export async function uploadChatAttachment(
+  conversationId: string,
+  file: File
+): Promise<UploadedChatAttachment> {
+  const ext = file.name.includes('.') ? file.name.split('.').pop() : ''
+  const safeBase = file.name.replace(/[^\w.\-]/g, '_').slice(0, 80)
+  const path = `${conversationId}/${Date.now()}-${crypto.randomUUID()}-${safeBase}`
+  const { error } = await supabase.storage
+    .from('chat-attachments')
+    .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type })
+  if (error) throw error
+  let width: number | undefined
+  let height: number | undefined
+  if (file.type.startsWith('image/')) {
+    try {
+      const dim = await new Promise<{ w: number; h: number }>((resolve, reject) => {
+        const img = new Image()
+        img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight })
+        img.onerror = reject
+        img.src = URL.createObjectURL(file)
+      })
+      width = dim.w
+      height = dim.h
+    } catch {}
+  }
+  return {
+    storage_path: path,
+    file_name: file.name,
+    mime_type: file.type || 'application/octet-stream',
+    size_bytes: file.size,
+    width,
+    height,
+  }
 }
 
 export function useMarkConversationRead() {
