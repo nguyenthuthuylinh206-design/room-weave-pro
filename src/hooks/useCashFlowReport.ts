@@ -382,13 +382,13 @@ export function useCashFlowReport(period: PeriodRangeWithPrevious) {
         upMaintQ,
       ])
 
-      const payments = (payRes.data || []) as RawPayment[]
+      const payments = (payRes.data || []) as unknown as RawPayment[]
       const paymentsPrev = (payPrevRes.data || []) as { amount: number }[]
-      const pos = (poRes.data || []) as RawPO[]
+      const pos = (poRes.data || []) as unknown as RawPO[]
       const posPrev = (poPrevRes.data || []) as { total_amount: number }[]
-      const laundries = (laundryRes.data || []) as RawLaundry[]
+      const laundries = (laundryRes.data || []) as unknown as RawLaundry[]
       const laundriesPrev = (laundryPrevRes.data || []) as { actual_cost: number | null; estimated_cost: number | null }[]
-      const maints = (maintRes.data || []) as RawMaintenance[]
+      const maints = (maintRes.data || []) as unknown as RawMaintenance[]
       const maintsPrev = (maintPrevRes.data || []) as { actual_cost: number | null }[]
       const debts = (debtRes.data || []) as unknown as RawBookingDebt[]
       const upPos = (upPoRes.data || []) as unknown as RawPO[]
