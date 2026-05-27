@@ -496,23 +496,33 @@ function ConversationView({ conversationId }: { conversationId: string }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const lastMarkedRef = useRef<string | null>(null)
+  const lastMsgIdRef = useRef<string | null>(null)
 
+  const lastMsgId = messages.length > 0 ? messages[messages.length - 1].id : null
+
+  // Chỉ auto-scroll khi: mở hội thoại lần đầu, hoặc có tin mới ở cuối
   useEffect(() => {
-    if (scrollRef.current) {
+    if (!scrollRef.current) return
+    if (lastMsgIdRef.current !== lastMsgId) {
+      lastMsgIdRef.current = lastMsgId
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [messages.length, pending.length])
+  }, [lastMsgId, conversationId])
+
+  // Reset khi đổi hội thoại
+  useEffect(() => {
+    lastMsgIdRef.current = null
+  }, [conversationId])
 
   // mark read only when last message id changes
   useEffect(() => {
-    if (!conversationId || messages.length === 0) return
-    const lastId = messages[messages.length - 1].id
-    const key = `${conversationId}:${lastId}`
+    if (!conversationId || !lastMsgId) return
+    const key = `${conversationId}:${lastMsgId}`
     if (lastMarkedRef.current === key) return
     lastMarkedRef.current = key
     markRead.mutate(conversationId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversationId, messages.length > 0 ? messages[messages.length - 1].id : null])
+  }, [conversationId, lastMsgId])
 
   useEffect(() => {
     return () => {
@@ -818,7 +828,7 @@ export default function ChatPage() {
   }, [conversations, search, filter])
 
   return (
-    <div className="h-[calc(100dvh-8rem)] md:h-[calc(100dvh-9rem)] border rounded-lg overflow-hidden flex bg-background">
+    <div className="h-[calc(100dvh-6rem)] md:h-[calc(100dvh-9rem)] md:border md:rounded-lg overflow-hidden flex bg-background">
       {/* Sidebar */}
       <div
         className={cn(
