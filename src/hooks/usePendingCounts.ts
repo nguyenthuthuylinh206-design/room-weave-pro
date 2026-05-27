@@ -24,6 +24,29 @@ export function usePendingCounts() {
   const { user, tenantId } = useUser()
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const isStaffUser = isStaff(user)
+  const queryClient = useQueryClient()
+
+  // Realtime: tin nhắn mới -> invalidate counts
+  useEffect(() => {
+    if (!tenantId || !user?.id) return
+    const channel = supabase
+      .channel(`pending-counts-chat-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `tenant_id=eq.${tenantId}` },
+        () => queryClient.invalidateQueries({ queryKey: ['pending-counts-all'] })
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'conversation_members', filter: `user_id=eq.${user.id}` },
+        () => queryClient.invalidateQueries({ queryKey: ['pending-counts-all'] })
+      )
+      .subscribe()
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [tenantId, user?.id, queryClient])
+
 
   return useQuery({
     queryKey: ['pending-counts-all', tenantId, selectedHotel?.id, isAllHotelsMode, user?.id, isStaffUser],
