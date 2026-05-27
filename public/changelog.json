@@ -1,6 +1,18 @@
 {
-  "current": "1.0.53",
+  "current": "1.0.54",
   "versions": [
+    {
+      "version": "1.0.54",
+      "releaseDate": "2026-05-27",
+      "title": "Hợp nhất & dọn dẹp menu Báo cáo",
+      "changes": [
+        { "type": "improvement", "text": "Finance Hub gộp 3 tab: Doanh thu phòng (mặc định) · Dòng tiền · Chi phí & Lợi nhuận — bỏ tab Doanh thu trùng" },
+        { "type": "improvement", "text": "Housekeeping Hub thêm tab Chất lượng (QC) — embed dashboard /housekeeping/qc, đặt làm tab mặc định" },
+        { "type": "improvement", "text": "Tab 'Hỏng / Mất' chuyển từ Operations Hub sang Inventory Hub (gom đúng nhóm tài sản kho)" },
+        { "type": "improvement", "text": "Bỏ trang Reports Dashboard cũ; các URL /reports/room-revenue, /reports/cash-flow, /reports/damages tự redirect vào tab tương ứng" },
+        { "type": "improvement", "text": "Menu báo cáo gọn còn 4 mục: Tài chính · Vận hành phòng · Buồng phòng & Giặt là · Kho & Bảo trì" }
+      ]
+    },
     {
       "version": "1.0.53",
       "releaseDate": "2026-05-27",
