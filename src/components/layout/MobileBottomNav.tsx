@@ -79,14 +79,23 @@ export const MobileBottomNav = () => {
     .filter((tab) => tab.alwaysShow || hasModuleAccess(tab.modules))
     .map((tab) => (tab.id === 'tasks' ? { ...tab, path: tasksPath } : tab))
 
-  // Tách Home (đầu) + More (cuối) + module tabs ở giữa
+  // Tách Home (đầu) + Chat + More (cuối) + module tabs ở giữa
   const homeTab = accessibleTabs.find((t) => t.id === 'home')!
   const moreTab = accessibleTabs.find((t) => t.id === 'more')!
-  const moduleTabs = accessibleTabs.filter((t) => t.id !== 'home' && t.id !== 'more')
+  const chatTab = accessibleTabs.find((t) => t.id === 'chat')
+  const moduleTabs = accessibleTabs.filter(
+    (t) => t.id !== 'home' && t.id !== 'more' && t.id !== 'chat'
+  )
 
-  // Lấy tối đa (MAX_TABS - 2) module tabs để chừa slot Home + More
-  const visibleModuleTabs = moduleTabs.slice(0, MAX_TABS - 2)
-  const effectiveNavItems: NavItem[] = [homeTab, ...visibleModuleTabs, moreTab]
+  // Slot: Home + (modules) + Chat + More — chat luôn hiện
+  const reservedForChat = chatTab ? 1 : 0
+  const visibleModuleTabs = moduleTabs.slice(0, MAX_TABS - 2 - reservedForChat)
+  const effectiveNavItems: NavItem[] = [
+    homeTab,
+    ...visibleModuleTabs,
+    ...(chatTab ? [chatTab] : []),
+    moreTab,
+  ]
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/'
