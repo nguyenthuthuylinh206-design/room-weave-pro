@@ -1,5 +1,5 @@
 /// <reference lib="webworker" />
-import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL } from 'workbox-precaching';
+import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 import { registerRoute, NavigationRoute } from 'workbox-routing';
 import { NetworkFirst, CacheFirst, NetworkOnly } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
@@ -7,14 +7,35 @@ import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 
 declare let self: ServiceWorkerGlobalScope;
 
-// Workbox precaching - inject manifest from vite-plugin-pwa
-precacheAndRoute(self.__WB_MANIFEST);
+// Precache build assets (JS/CSS hashed) — KHÔNG bao gồm index.html.
+// Lọc thêm ở runtime để dù manifest có lọt index.html / changelog.json
+// thì cũng không được đưa vào precache (gây stuck app shell cũ trên PWA).
+const manifest = (self.__WB_MANIFEST || []).filter((entry) => {
+  const url = typeof entry === 'string' ? entry : entry.url;
+  if (!url) return false;
+  if (/(^|\/)index\.html$/i.test(url)) return false;
+  if (/changelog\.json$/i.test(url)) return false;
+  return true;
+});
+precacheAndRoute(manifest);
 cleanupOutdatedCaches();
 
-// SPA fallback - serve index.html for all navigation requests
-const navigationRoute = new NavigationRoute(createHandlerBoundToURL('index.html'), {
-  denylist: [/^\/~oauth/],
-});
+// Navigation requests (HTML shell): LUÔN ưu tiên network để PWA nhận
+// index.html mới (tham chiếu chunk JS mới) ngay khi có deploy mới.
+// Chỉ fallback cache khi offline thật sự.
+const navigationRoute = new NavigationRoute(
+  new NetworkFirst({
+    cacheName: 'html-shell-cache',
+    networkTimeoutSeconds: 3,
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 4, maxAgeSeconds: 60 * 60 * 24 * 7 }),
+      new CacheableResponsePlugin({ statuses: [200] }),
+    ],
+  }),
+  {
+    denylist: [/^\/~oauth/, /^\/assets\//, /\.[a-z0-9]+$/i],
+  }
+);
 registerRoute(navigationRoute);
 
 // Always fetch changelog.json fresh — never cache (so users see latest release notes)
@@ -22,6 +43,7 @@ registerRoute(
   /\/changelog\.json/,
   new NetworkOnly()
 );
+
 
 // Runtime caching for Supabase REST API — ONLY GET/HEAD on /rest/v1/ (not /rpc/)
 // IMPORTANT: Do NOT cache auth, realtime (websocket), RPC, mutations, or storage —
