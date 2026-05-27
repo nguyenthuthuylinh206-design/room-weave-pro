@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from '@/hooks/useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
@@ -12,6 +13,7 @@ export interface PendingCounts {
   adjustments: number
   tasks: number
   reorderSuggestions: number
+  chatUnread: number
   // Aggregated counts for parent menus
   inventoryTotal: number
   laundryTotal: number
