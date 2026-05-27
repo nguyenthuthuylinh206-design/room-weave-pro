@@ -64,6 +64,15 @@ const ALL_PRIVILEGED: AppRole[] = ['super_admin', 'owner', 'hotel_manager']
 
 export const REPORTS_CATALOG: ReportDefinition[] = [
   {
+    id: 'room-revenue',
+    title: 'Doanh thu phòng',
+    description: 'Hôm nay thu bao nhiêu? Công suất, ADR, RevPAR.',
+    path: '/reports/room-revenue',
+    section: 'finance',
+    roles: ALL_PRIVILEGED,
+    isNew: true,
+  },
+  {
     id: 'finance',
     title: 'Tài chính',
     description: 'Tháng này lời/lỗ bao nhiêu? Tiền đi đâu?',
