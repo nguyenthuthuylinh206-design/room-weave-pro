@@ -70,6 +70,14 @@ export const REPORTS_CATALOG: ReportDefinition[] = [
     path: '/reports/room-revenue',
     section: 'finance',
     roles: ALL_PRIVILEGED,
+  },
+  {
+    id: 'cash-flow',
+    title: 'Dòng tiền',
+    description: 'Tiền vào, tiền ra, công nợ, OTA giữ và khoản sắp phải trả.',
+    path: '/reports/cash-flow',
+    section: 'finance',
+    roles: ALL_PRIVILEGED,
     isNew: true,
   },
   {
