@@ -164,6 +164,20 @@ export function useMessages(conversationId: string | undefined) {
         const map = new Map((users || []).map((u: any) => [u.id, u]))
         msgs.forEach((m) => (m.sender = map.get(m.sender_id)))
       }
+      const msgIds = msgs.map((m) => m.id)
+      if (msgIds.length > 0) {
+        const { data: atts } = await supabase
+          .from('message_attachments')
+          .select('*')
+          .in('message_id', msgIds)
+        const byMsg = new Map<string, any[]>()
+        for (const a of atts || []) {
+          const list = byMsg.get(a.message_id) || []
+          list.push(a)
+          byMsg.set(a.message_id, list)
+        }
+        msgs.forEach((m) => (m.attachments = byMsg.get(m.id) || []))
+      }
       return msgs
     },
   })
