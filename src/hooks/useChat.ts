@@ -155,14 +155,24 @@ export function useMessages(conversationId: string | undefined) {
     queryKey: ['chat-messages', conversationId],
     enabled: !!conversationId,
     queryFn: async (): Promise<ChatMessage[]> => {
+      // Lấy 50 tin mới nhất (DESC) rồi đảo lại để hiển thị từ cũ đến mới
       const { data, error } = await supabase
         .from('messages')
         .select('*')
         .eq('conversation_id', conversationId!)
-        .order('created_at', { ascending: true })
-        .limit(200)
+        .order('created_at', { ascending: false })
+        .limit(50)
       if (error) throw error
-      const msgs = (data || []) as any[]
+      // Dedupe theo id để tránh trùng khi realtime + refetch chồng
+      const seen = new Set<string>()
+      const msgs = ((data || []) as any[])
+        .filter((m) => {
+          if (seen.has(m.id)) return false
+          seen.add(m.id)
+          return true
+        })
+        .reverse()
+
       const senderIds = Array.from(new Set(msgs.map((m) => m.sender_id)))
       if (senderIds.length > 0) {
         const { data: users } = await supabase
@@ -179,7 +189,10 @@ export function useMessages(conversationId: string | undefined) {
           .select('*')
           .in('message_id', msgIds)
         const byMsg = new Map<string, any[]>()
+        const seenAtt = new Set<string>()
         for (const a of atts || []) {
+          if (seenAtt.has(a.id)) continue
+          seenAtt.add(a.id)
           const list = byMsg.get(a.message_id) || []
           list.push(a)
           byMsg.set(a.message_id, list)
