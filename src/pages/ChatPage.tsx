@@ -8,9 +8,13 @@ import {
   useCreateDirectConversation,
   useCreateGroupConversation,
   useHotelMembers,
+  uploadChatAttachment,
   type ConversationListItem,
+  type ChatAttachment,
+  type UploadedChatAttachment,
 } from '@/hooks/useChat'
 import { useUser } from '@/hooks/useUser'
+import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -27,6 +31,7 @@ import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { toast } from 'sonner'
+import { Paperclip, X, FileText, Loader2, Download } from 'lucide-react'
 
 function ConversationRow({
   conv,
