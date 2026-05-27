@@ -1,6 +1,17 @@
 {
-  "current": "1.0.59",
+  "current": "1.0.60",
   "versions": [
+    {
+      "version": "1.0.60",
+      "releaseDate": "2026-05-27",
+      "title": "Chat: sửa lỗi danh sách trùng & badge sai",
+      "changes": [
+        { "type": "fix", "text": "Danh sách hội thoại không còn bị nhân đôi/nhân ba (lọc viewer_id = me khi đọc v_user_conversations)" },
+        { "type": "fix", "text": "Badge 'Tin nhắn' ở Sidebar/MobileBottomNav đếm đúng, chỉ cộng unread của chính mình" },
+        { "type": "fix", "text": "Hết cảnh báo React duplicate key trong khung chat" }
+      ]
+    },
+
     {
       "version": "1.0.59",
       "releaseDate": "2026-05-27",
