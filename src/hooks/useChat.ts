@@ -19,6 +19,17 @@ export interface ConversationListItem {
   peer?: { id: string; full_name: string | null; avatar_url: string | null } | null
 }
 
+export interface ChatAttachment {
+  id: string
+  message_id: string
+  storage_path: string
+  file_name: string | null
+  mime_type: string | null
+  size_bytes: number | null
+  width: number | null
+  height: number | null
+}
+
 export interface ChatMessage {
   id: string
   conversation_id: string
@@ -30,6 +41,7 @@ export interface ChatMessage {
   deleted_at: string | null
   created_at: string
   sender?: { id: string; full_name: string | null; avatar_url: string | null }
+  attachments?: ChatAttachment[]
 }
 
 export function useConversations() {
