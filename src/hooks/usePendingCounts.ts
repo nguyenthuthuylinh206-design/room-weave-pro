@@ -127,6 +127,13 @@ export function usePendingCounts() {
         .eq('status', 'pending')
       if (hotelId) reorderQuery = reorderQuery.eq('hotel_id', hotelId)
 
+      // Chat unread: lấy từ view v_user_conversations đã tự lọc theo viewer_id qua RLS
+      let chatQuery = supabase
+        .from('v_user_conversations')
+        .select('unread_count')
+        .eq('tenant_id', tenantId)
+      if (hotelId) chatQuery = chatQuery.eq('hotel_id', hotelId)
+
       const [
         supplementsRes,
         laundryRequestsRes,
@@ -135,6 +142,7 @@ export function usePendingCounts() {
         adjustmentsRes,
         tasksRes,
         reorderRes,
+        chatRes,
       ] = await Promise.all([
         supplementsQuery,
         laundryRequestsQuery,
@@ -143,6 +151,7 @@ export function usePendingCounts() {
         adjustmentsQuery,
         tasksQuery,
         reorderQuery,
+        chatQuery,
       ])
 
       const supplements = supplementsRes.count || 0
@@ -152,6 +161,10 @@ export function usePendingCounts() {
       const adjustments = adjustmentsRes.count || 0
       const tasks = tasksRes.count || 0
       const reorderSuggestions = reorderRes.count || 0
+      const chatUnread = (chatRes.data || []).reduce(
+        (s: number, r: any) => s + (r.unread_count || 0),
+        0
+      )
 
       return {
         supplements,
@@ -161,6 +174,7 @@ export function usePendingCounts() {
         adjustments,
         tasks,
         reorderSuggestions,
+        chatUnread,
         // Aggregated totals for parent menus
         inventoryTotal: supplements + distributions + adjustments + reorderSuggestions,
         laundryTotal: laundryRequests,
