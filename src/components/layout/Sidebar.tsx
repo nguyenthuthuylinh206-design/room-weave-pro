@@ -80,6 +80,14 @@ const navigation: NavItem[] = [
     minMode: 'homestay',
   },
   {
+    titleKey: 'chat',
+    href: '/chat',
+    icon: MessageCircle,
+    badgeKey: 'chatUnread' as PendingCountKey,
+    roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
+    minMode: 'homestay',
+  },
+  {
     titleKey: 'superAdmin',
     icon: Shield,
     roles: ['super_admin'],
