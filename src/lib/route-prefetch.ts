@@ -80,7 +80,7 @@ const loaders: Record<string, () => Promise<unknown>> = {
   '/reports/operations': () => import('@/pages/reports/hub/OperationsHubPage'),
   '/reports/housekeeping': () => import('@/pages/reports/hub/HousekeepingHubPage'),
   '/reports/inventory': () => import('@/pages/reports/hub/InventoryHubPage'),
-  '/reports': () => import('@/pages/reports/ReportsDashboardPage'),
+  '/reports': () => import('@/pages/reports/hub/OverviewHubPage'),
 
   // Settings
   '/settings/general': () => import('@/pages/settings/GeneralSettingsPage'),

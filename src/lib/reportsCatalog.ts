@@ -1,16 +1,11 @@
 /**
  * Reports Catalog — Single source of truth cho toàn bộ báo cáo
- * Sprint A: Reports Hub role-based foundation.
+ * Sau hợp nhất: chỉ còn 4 Hub (finance / operations / housekeeping / inventory).
  *
  * Quy tắc lọc:
- * - super_admin / owner: thấy mọi section.
- * - hotel_manager: thấy mọi section (giới hạn theo hotel được gán — đã xử lý ở HotelContext).
- * - department_manager: chỉ thấy section trùng `departments` của họ (positions.department).
- * - staff: không vào /reports (đã chặn ở route).
- *
- * Export quyền:
- * - owner / hotel_manager: export mọi báo cáo trong scope.
- * - department_manager: export báo cáo bộ phận của mình.
+ * - super_admin / owner / hotel_manager: thấy mọi section.
+ * - department_manager: chỉ thấy section trùng `departments` của họ.
+ * - staff: không vào /reports.
  */
 
 import type { AppRole } from '@/types/database.types'
@@ -20,8 +15,6 @@ export type ReportSectionId =
   | 'operations'
   | 'housekeeping'
   | 'inventory'
-  | 'laundry'
-  | 'maintenance'
 
 export type DepartmentCode =
   | 'housekeeping'
@@ -31,19 +24,12 @@ export type DepartmentCode =
 
 export interface ReportDefinition {
   id: string
-  /** i18n-friendly title (đã Việt hoá; không cần t() vì hub Việt-first). */
   title: string
   description: string
   path: string
   section: ReportSectionId
-  /** Các role legacy được phép xem. */
   roles: AppRole[]
-  /**
-   * Nếu set, department_manager phải thuộc 1 trong các department này mới thấy.
-   * Bỏ qua khi role là owner/super_admin/hotel_manager.
-   */
   departments?: DepartmentCode[]
-  /** Hiển thị nhãn "Mới" trên card. */
   isNew?: boolean
 }
 
@@ -54,36 +40,19 @@ export interface ReportSection {
 }
 
 export const REPORT_SECTIONS: ReportSection[] = [
-  { id: 'finance', title: 'Tài chính', description: 'Doanh thu, chi phí, lợi nhuận' },
-  { id: 'operations', title: 'Vận hành phòng', description: 'Hiệu năng, tổn thất, KPI' },
-  { id: 'housekeeping', title: 'Buồng phòng & Giặt là', description: 'QC, giặt là, hiệu suất bộ phận' },
-  { id: 'inventory', title: 'Kho & Bảo trì', description: 'Tồn kho, xuất kho, kiểm kê, bảo trì' },
+  { id: 'finance', title: 'Tài chính', description: 'Doanh thu phòng, dòng tiền, lời/lỗ' },
+  { id: 'operations', title: 'Vận hành phòng', description: 'KPI vận hành, hiệu năng phòng' },
+  { id: 'housekeeping', title: 'Buồng phòng & Giặt là', description: 'QC, giặt là' },
+  { id: 'inventory', title: 'Kho & Bảo trì', description: 'Tồn kho, xuất kho, kiểm kê, hỏng/mất, bảo trì' },
 ]
 
 const ALL_PRIVILEGED: AppRole[] = ['super_admin', 'owner', 'hotel_manager']
 
 export const REPORTS_CATALOG: ReportDefinition[] = [
   {
-    id: 'room-revenue',
-    title: 'Doanh thu phòng',
-    description: 'Hôm nay thu bao nhiêu? Công suất, ADR, RevPAR.',
-    path: '/reports/room-revenue',
-    section: 'finance',
-    roles: ALL_PRIVILEGED,
-  },
-  {
-    id: 'cash-flow',
-    title: 'Dòng tiền',
-    description: 'Tiền vào, tiền ra, công nợ, OTA giữ và khoản sắp phải trả.',
-    path: '/reports/cash-flow',
-    section: 'finance',
-    roles: ALL_PRIVILEGED,
-    isNew: true,
-  },
-  {
     id: 'finance',
     title: 'Tài chính',
-    description: 'Tháng này lời/lỗ bao nhiêu? Tiền đi đâu?',
+    description: 'Doanh thu phòng, dòng tiền, chi phí & lợi nhuận.',
     path: '/reports/finance',
     section: 'finance',
     roles: ALL_PRIVILEGED,
@@ -91,7 +60,7 @@ export const REPORTS_CATALOG: ReportDefinition[] = [
   {
     id: 'operations',
     title: 'Vận hành phòng',
-    description: 'Phòng đang chạy ổn không? Có hỏng/mất gì không?',
+    description: 'KPI vận hành và hiệu năng từng phòng.',
     path: '/reports/operations',
     section: 'operations',
     roles: ALL_PRIVILEGED,
@@ -99,7 +68,7 @@ export const REPORTS_CATALOG: ReportDefinition[] = [
   {
     id: 'housekeeping',
     title: 'Buồng phòng & Giặt là',
-    description: 'Đội buồng phòng & giặt là chạy hiệu quả không?',
+    description: 'Chất lượng dọn phòng (QC) & giặt là.',
     path: '/reports/housekeeping',
     section: 'housekeeping',
     roles: [...ALL_PRIVILEGED, 'department_manager'],
@@ -108,7 +77,7 @@ export const REPORTS_CATALOG: ReportDefinition[] = [
   {
     id: 'inventory',
     title: 'Kho & Bảo trì',
-    description: 'Kho có đủ không? Tài sản có được bảo trì không?',
+    description: 'Tồn kho, xuất kho, kiểm kê, hỏng/mất, bảo trì.',
     path: '/reports/inventory',
     section: 'inventory',
     roles: [...ALL_PRIVILEGED, 'department_manager'],
@@ -121,10 +90,6 @@ export interface ReportAccessContext {
   department?: DepartmentCode | string | null
 }
 
-/**
- * Lọc catalog theo role + department hiện tại.
- * Trả về danh sách báo cáo user được phép xem.
- */
 export function filterReportsForUser(
   catalog: ReportDefinition[],
   ctx: ReportAccessContext,
@@ -135,7 +100,6 @@ export function filterReportsForUser(
   return catalog.filter((r) => {
     if (!r.roles.includes(role)) return false
 
-    // department_manager phải khớp department
     if (role === 'department_manager') {
       if (!r.departments || r.departments.length === 0) return false
       if (!department) return false
@@ -146,9 +110,6 @@ export function filterReportsForUser(
   })
 }
 
-/**
- * Trả về các section còn báo cáo sau khi lọc, theo đúng thứ tự REPORT_SECTIONS.
- */
 export function groupReportsBySection(reports: ReportDefinition[]): Array<{
   section: ReportSection
   reports: ReportDefinition[]
@@ -161,10 +122,6 @@ export function groupReportsBySection(reports: ReportDefinition[]): Array<{
     .filter((g) => g.reports.length > 0)
 }
 
-/**
- * Quyền export: owner / hotel_manager export mọi báo cáo trong scope;
- * department_manager export báo cáo thuộc bộ phận mình.
- */
 export function canExportReport(
   report: ReportDefinition,
   ctx: ReportAccessContext,
