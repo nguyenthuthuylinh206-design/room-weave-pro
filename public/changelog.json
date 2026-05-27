@@ -1,6 +1,17 @@
 {
-  "current": "1.0.62",
+  "current": "1.0.63",
   "versions": [
+    {
+      "version": "1.0.63",
+      "releaseDate": "2026-05-27",
+      "title": "Sửa PWA mobile: không còn màn 'Unexpected Application Error'",
+      "changes": [
+        { "type": "fix", "text": "PricingSection: chuẩn hoá dữ liệu features (array/string/object) — không còn lỗi '.map is not a function' trên bundle cũ" },
+        { "type": "fix", "text": "Service worker: bỏ precache index.html, navigation dùng NetworkFirst — PWA luôn nhận shell mới khi có deploy, không kẹt bản cũ" },
+        { "type": "improvement", "text": "Bọc Landing trong RootRoute bằng SectionErrorBoundary — section lỗi không còn làm sập cả trang" }
+      ]
+    },
+
     {
       "version": "1.0.62",
       "releaseDate": "2026-05-27",
