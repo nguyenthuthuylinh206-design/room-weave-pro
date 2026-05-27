@@ -100,7 +100,7 @@ export function MobileOwnerDashboard({ dateRange, datePreset, onDatePresetChange
 
   const quickLinks = [
     { label: 'Báo cáo', icon: BarChart3, href: '/reports', color: 'text-chart-1' },
-    { label: 'Tài chính', icon: FileText, href: '/reports/financial', color: 'text-chart-2' },
+    { label: 'Tài chính', icon: FileText, href: '/reports/finance', color: 'text-chart-2' },
     { label: 'Khách sạn', icon: Building2, href: '/settings/hotels', color: 'text-chart-3' },
     { label: 'Nhân sự', icon: Users, href: '/settings/users', color: 'text-chart-4' },
   ]

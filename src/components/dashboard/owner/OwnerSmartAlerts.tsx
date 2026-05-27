@@ -74,7 +74,7 @@ export function OwnerSmartAlerts() {
       color: 'text-orange-600',
       bgColor: 'bg-orange-50 dark:bg-orange-950/30',
       borderColor: 'border-orange-200 dark:border-orange-800',
-      link: '/reports/damages',
+      link: '/reports/inventory?tab=damages',
       description: 'Chưa xử lý',
       show: (ownerAlerts?.unresolvedDamages.length || 0) > 0,
     },

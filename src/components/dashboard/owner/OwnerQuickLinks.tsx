@@ -12,9 +12,9 @@ const quickLinks = [
   },
   {
     label: 'Báo cáo tài chính',
-    description: 'Chi phí & ngân sách',
+    description: 'Doanh thu, dòng tiền, chi phí',
     icon: FileText,
-    href: '/reports/financial',
+    href: '/reports/finance',
     color: 'text-chart-2',
   },
   {
