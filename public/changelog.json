@@ -1,6 +1,17 @@
 {
-  "current": "1.0.60",
+  "current": "1.0.61",
   "versions": [
+    {
+      "version": "1.0.61",
+      "releaseDate": "2026-05-27",
+      "title": "Chống crash toàn trang & cứu PWA kẹt bundle cũ",
+      "changes": [
+        { "type": "fix", "text": "Mọi route public (/landing, /auth/*, /payment-qr, /i/:token, /scan-document, /onboarding, /docs) có errorElement riêng — không còn màn 'Unexpected Application Error' mặc định" },
+        { "type": "fix", "text": "Landing Page bọc từng section bằng SectionErrorBoundary — 1 section lỗi (ví dụ Pricing trên bundle PWA cũ) không làm chết toàn trang" },
+        { "type": "feature", "text": "Màn lỗi route mới có CTA 'Xoá cache & tải lại' — dọn caches + unregister Service Worker để khách PWA tự thoát bản cũ" }
+      ]
+    },
+
     {
       "version": "1.0.60",
       "releaseDate": "2026-05-27",
