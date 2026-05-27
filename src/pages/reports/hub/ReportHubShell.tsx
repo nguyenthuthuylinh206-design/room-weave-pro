@@ -7,7 +7,9 @@ import { useBreakpoint } from '@/lib/breakpoints'
 export interface HubTab {
   id: string
   label: string
-  Component: ComponentType
+  /** Provide either a Component (no props) or a render function. */
+  Component?: ComponentType
+  render?: () => ReactNode
 }
 
 interface Props {
@@ -76,7 +78,7 @@ export function ReportHubShell({
           const C = t.Component
           return (
             <TabsContent key={t.id} value={t.id} className="mt-0">
-              <C />
+              {t.render ? t.render() : C ? <C /> : null}
             </TabsContent>
           )
         })}

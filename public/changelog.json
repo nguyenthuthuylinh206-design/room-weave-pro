@@ -1,6 +1,19 @@
 {
-  "current": "1.0.50",
+  "current": "1.0.51",
   "versions": [
+    {
+      "version": "1.0.51",
+      "releaseDate": "2026-05-27",
+      "title": "Dọn dẹp Báo cáo Tài chính (Sprint F1)",
+      "changes": [
+        { "type": "improvement", "text": "Bỏ trùng lặp KPI: 4+4 ô doanh thu/chi phí trong tab Chi phí đã có ở dải KPI Hub — không hiển thị 2 lần nữa" },
+        { "type": "improvement", "text": "1 bộ filter kỳ duy nhất cho cả tab Doanh thu và Chi phí — không còn 2 chọn kỳ lệch nhau" },
+        { "type": "improvement", "text": "Bỏ tabs lồng nhau trong Doanh thu (Tổng quan/Theo loại/Theo nguồn/Phòng) → cuộn dọc thành 6 section dễ đọc" },
+        { "type": "improvement", "text": "Bỏ tab ROI hardcode (số liệu không thật) — sẽ thay bằng chỉ số thật ở sprint sau" },
+        { "type": "improvement", "text": "Refactor Tài chính về chuẩn Minimalist: bỏ Card/icon/emoji/màu hex cứng, dùng border + token màu" }
+      ]
+    },
+
     {
       "version": "1.0.50",
       "releaseDate": "2026-05-26",

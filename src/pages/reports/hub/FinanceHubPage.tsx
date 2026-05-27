@@ -15,8 +15,16 @@ export function FinanceHubPage() {
       title="Báo cáo Tài chính"
       question="Tháng này lời hay lỗ? Tiền đi đâu?"
       tabs={[
-        { id: 'revenue', label: 'Doanh thu', Component: RevenueReportPage },
-        { id: 'costs', label: 'Chi phí & Lợi nhuận', Component: FinancialReportPage },
+        {
+          id: 'revenue',
+          label: 'Doanh thu',
+          render: () => <RevenueReportPage period={period} embedded />,
+        },
+        {
+          id: 'costs',
+          label: 'Chi phí & Lợi nhuận',
+          render: () => <FinancialReportPage period={period} embedded />,
+        },
       ]}
       defaultTab="revenue"
       scorecard={
