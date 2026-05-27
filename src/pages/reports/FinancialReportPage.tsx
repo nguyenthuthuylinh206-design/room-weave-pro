@@ -1,21 +1,17 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Download, FileText, TrendingUp, TrendingDown } from 'lucide-react'
+import { ArrowLeft, Download, FileText } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import { HotelFilterCard } from '@/components/reports/HotelFilterCard'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   LineChart,
   Line,
   AreaChart,
   Area,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -23,14 +19,6 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { Progress } from '@/components/ui/progress'
 import { useFinancialReport } from '@/hooks/useReports'
 import { useReportExport } from '@/hooks/useReportExport'
@@ -38,33 +26,37 @@ import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileFinancialReportPage } from '@/components/reports/MobileFinancialReportPage'
 import { formatCurrency } from '@/lib/utils'
 import { subDays } from 'date-fns'
-import { cn } from '@/lib/utils'
 import { OperationsInsightsTab } from './components/OperationsInsightsTab'
+import type { PeriodRangeWithPrevious } from '@/lib/reportPeriods'
 
-export function FinancialReportPage() {
+interface Props {
+  /** Khi render trong Hub: nhận period từ chip. Standalone: undefined → tự quản. */
+  period?: PeriodRangeWithPrevious
+  /** Hub đã có PageHeader & Export riêng → ẩn của trang. */
+  embedded?: boolean
+}
+
+export function FinancialReportPage({ period: embeddedPeriod, embedded }: Props = {}) {
   const { isMobile } = useBreakpoint()
   const navigate = useNavigate()
-  const chartRefs = useRef<HTMLElement[]>([])
-  
-  const [dateRange, setDateRange] = useState({
+
+  const [standaloneRange, setStandaloneRange] = useState({
     start: subDays(new Date(), 30),
     end: new Date(),
   })
-  
+  const dateRange = embeddedPeriod
+    ? { start: embeddedPeriod.current.start, end: embeddedPeriod.current.end }
+    : standaloneRange
+
   const { data: reportData, isLoading } = useFinancialReport(dateRange)
   const { exportToPDF, exportToExcel, isExporting } = useReportExport()
 
-  if (isMobile) {
-    return <MobileFinancialReportPage />
-  }
-  
+  if (isMobile && !embedded) return <MobileFinancialReportPage />
+
   if (isLoading || !reportData) {
     return (
       <div className="space-y-4">
-        <PageHeader title="Báo cáo Tài chính" description="Phân tích chi phí và hiệu quả tài chính" />
-        <div className="grid grid-cols-4 gap-3">
-          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-20" />)}
-        </div>
+        {!embedded && <PageHeader title="Báo cáo Tài chính" description="Phân tích chi phí và hiệu quả tài chính" />}
         <Skeleton className="h-72" />
         <div className="grid grid-cols-2 gap-3">
           <Skeleton className="h-48" />
@@ -73,519 +65,189 @@ export function FinancialReportPage() {
       </div>
     )
   }
-  
-  // Handle both old and new API response structure
+
   const summary = (reportData as any).cost_summary || (reportData as any).summary || {
     total_cost: 0,
     purchase_cost: 0,
     laundry_cost: 0,
-    maintenance_cost: 0
+    maintenance_cost: 0,
   }
   const monthly_trend = reportData.monthly_trend || []
-  const cost_by_category = (reportData as any).cost_by_category || []
-  const revenue_summary = (reportData as any).revenue_summary || {
-    gross_revenue: 0, paid_revenue: 0, pending_revenue: 0,
-    ota_commission: 0, vat_amount: 0, net_revenue: 0,
-  }
-  const profit_summary = (reportData as any).profit_summary || { net_profit: 0, profit_margin: 0 }
-  
-  // Calculate percentages safely
+
   const totalCost = summary.total_cost || 0
   const purchasePercent = totalCost > 0 ? (summary.purchase_cost / totalCost) * 100 : 0
   const laundryPercent = totalCost > 0 ? (summary.laundry_cost / totalCost) * 100 : 0
   const maintenancePercent = totalCost > 0 ? (summary.maintenance_cost / totalCost) * 100 : 0
-  
+
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Báo cáo Tài chính"
-        description="Phân tích chi phí và hiệu quả tài chính"
-      >
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate('/reports')}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Quay lại
-          </Button>
-          <Button variant="outline" onClick={() => exportToPDF({
-            title: 'Báo cáo Tài chính',
-            dateRange: `${dateRange.start.toLocaleDateString('vi-VN')} - ${dateRange.end.toLocaleDateString('vi-VN')}`,
-            summary,
-          }, 'financial')} disabled={isExporting}>
-            <FileText className="mr-2 h-4 w-4" />
-            Xuất PDF
-          </Button>
-          <Button variant="outline" onClick={() => exportToExcel({
-            title: 'Báo cáo Tài chính',
-            dateRange: `${dateRange.start.toLocaleDateString('vi-VN')} - ${dateRange.end.toLocaleDateString('vi-VN')}`,
-            summary,
-          }, 'financial')} disabled={isExporting}>
-            <Download className="mr-2 h-4 w-4" />
-            Xuất Excel
-          </Button>
-        </div>
-      </PageHeader>
-      
-      {/* Hotel Filter */}
-      <HotelFilterCard />
-      
-      {/* Date Range */}
-      <Card>
-        <CardContent className="pt-6">
-          <DateRangePicker
-            value={{ from: dateRange.start, to: dateRange.end }}
-            onChange={(range) => 
-              setDateRange({
-                start: range.from || new Date(),
-                end: range.to || new Date(),
-              })
-            }
-          />
-        </CardContent>
-      </Card>
-      
+      {!embedded && (
+        <PageHeader title="Báo cáo Tài chính" description="Phân tích chi phí và hiệu quả tài chính">
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate('/reports')}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Quay lại
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                exportToPDF(
+                  {
+                    title: 'Báo cáo Tài chính',
+                    dateRange: `${dateRange.start.toLocaleDateString('vi-VN')} - ${dateRange.end.toLocaleDateString('vi-VN')}`,
+                    summary,
+                  },
+                  'financial',
+                )
+              }
+              disabled={isExporting}
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Xuất PDF
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                exportToExcel(
+                  {
+                    title: 'Báo cáo Tài chính',
+                    dateRange: `${dateRange.start.toLocaleDateString('vi-VN')} - ${dateRange.end.toLocaleDateString('vi-VN')}`,
+                    summary,
+                  },
+                  'financial',
+                )
+              }
+              disabled={isExporting}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Xuất Excel
+            </Button>
+          </div>
+        </PageHeader>
+      )}
+
+      {!embedded && (
+        <>
+          <HotelFilterCard />
+          <div className="border rounded-lg p-4">
+            <DateRangePicker
+              value={{ from: dateRange.start, to: dateRange.end }}
+              onChange={(range) =>
+                setStandaloneRange({
+                  start: range.from || new Date(),
+                  end: range.to || new Date(),
+                })
+              }
+            />
+          </div>
+        </>
+      )}
+
       <Tabs defaultValue="insights" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="insights">Đánh giá vận hành</TabsTrigger>
-          <TabsTrigger value="overview">Chi phí</TabsTrigger>
+        <TabsList className="h-9">
+          <TabsTrigger value="insights" className="text-xs">
+            Đánh giá vận hành
+          </TabsTrigger>
+          <TabsTrigger value="overview" className="text-xs">
+            Cơ cấu chi phí
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="insights" className="space-y-6">
           <OperationsInsightsTab dateRange={dateRange} />
         </TabsContent>
 
-        
-        
-        {/* TAB 1: Overview */}
-        <TabsContent value="overview" className="space-y-6">
-          {/* Revenue & Profit (P1) */}
-          <div className="grid gap-4 md:grid-cols-4">
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Doanh thu thuần</p>
-                <p className="text-2xl font-bold text-green-600">{formatCurrency(revenue_summary.net_revenue)}</p>
-                <p className="text-xs text-muted-foreground mt-1">Tổng: {formatCurrency(revenue_summary.gross_revenue)}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Đã thu</p>
-                <p className="text-2xl font-bold">{formatCurrency(revenue_summary.paid_revenue)}</p>
-                <p className="text-xs text-amber-600 mt-1">Còn nợ: {formatCurrency(revenue_summary.pending_revenue)}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Lợi nhuận thuần</p>
-                <p className={`text-2xl font-bold ${profit_summary.net_profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(profit_summary.net_profit)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">Biên LN: {profit_summary.profit_margin}%</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Hoa hồng OTA + VAT</p>
-                <p className="text-2xl font-bold">{formatCurrency((revenue_summary.ota_commission || 0) + (revenue_summary.vat_amount || 0))}</p>
-                <p className="text-xs text-muted-foreground mt-1">OTA: {formatCurrency(revenue_summary.ota_commission)}</p>
-              </CardContent>
-            </Card>
+        <TabsContent value="overview" className="space-y-4">
+          {/* Cơ cấu chi phí theo nhóm — KPI tổng đã có ở strip Hub */}
+          <div className="border rounded-lg">
+            <div className="p-3 border-b">
+              <h3 className="text-sm font-medium">Cơ cấu chi phí kỳ này</h3>
+            </div>
+            <div className="divide-y">
+              <CostRow label="Chi phí mua sắm" value={summary.purchase_cost} percent={purchasePercent} />
+              <CostRow label="Chi phí giặt là" value={summary.laundry_cost} percent={laundryPercent} />
+              <CostRow label="Chi phí bảo trì" value={summary.maintenance_cost} percent={maintenancePercent} />
+              <div className="p-3 flex items-center justify-between bg-muted/30">
+                <span className="text-sm font-medium">Tổng chi phí</span>
+                <span className="text-sm font-semibold font-mono">{formatCurrency(totalCost)}</span>
+              </div>
+            </div>
           </div>
 
-          {/* Total Costs */}
-          <div className="grid gap-4 md:grid-cols-4">
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Tổng chi phí</p>
-                <p className="text-3xl font-bold">{formatCurrency(summary.total_cost)}</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Chi phí mua sắm</p>
-                <p className="text-2xl font-bold">{formatCurrency(summary.purchase_cost)}</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <Progress value={purchasePercent} className="h-2" />
-                  <span className="text-xs text-muted-foreground">{purchasePercent.toFixed(1)}%</span>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Chi phí giặt là</p>
-                <p className="text-2xl font-bold">{formatCurrency(summary.laundry_cost)}</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <Progress value={laundryPercent} className="h-2" />
-                  <span className="text-xs text-muted-foreground">{laundryPercent.toFixed(1)}%</span>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Chi phí bảo trì</p>
-                <p className="text-2xl font-bold">{formatCurrency(summary.maintenance_cost)}</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <Progress value={maintenancePercent} className="h-2" />
-                  <span className="text-xs text-muted-foreground">{maintenancePercent.toFixed(1)}%</span>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Xu hướng chi phí */}
+          <div className="border rounded-lg p-4">
+            <h3 className="text-sm font-medium mb-3">Xu hướng chi phí theo tháng</h3>
+            <ResponsiveContainer width="100%" height={320}>
+              <LineChart data={monthly_trend}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="month" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                <YAxis
+                  className="text-xs"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
+                />
+                <Tooltip
+                  formatter={(value: number) => formatCurrency(value)}
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                  }}
+                />
+                <Legend />
+                <Line type="monotone" dataKey="purchase" name="Mua sắm" stroke="hsl(var(--chart-1))" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="laundry" name="Giặt là" stroke="hsl(var(--chart-2))" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="maintenance" name="Bảo trì" stroke="hsl(var(--chart-3))" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
-          
-          {/* Cost Trend */}
-          <Card ref={(el) => el && (chartRefs.current[0] = el)}>
-            <CardHeader>
-              <CardTitle>Xu hướng chi phí</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={monthly_trend}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    dataKey="month" 
-                    className="text-xs"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                  />
-                  <YAxis 
-                    className="text-xs"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                    tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
-                  />
-                  <Tooltip
-                    formatter={(value: number) => formatCurrency(value)}
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                    }}
-                  />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="purchase" 
-                    name="Mua sắm"
-                    stroke="#10b981" 
-                    strokeWidth={2}
-                    dot={{ fill: '#10b981', r: 4 }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="laundry" 
-                    name="Giặt là"
-                    stroke="#3b82f6" 
-                    strokeWidth={2}
-                    dot={{ fill: '#3b82f6', r: 4 }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="maintenance" 
-                    name="Bảo trì"
-                    stroke="#f97316" 
-                    strokeWidth={2}
-                    dot={{ fill: '#f97316', r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-          
-          {/* Cost Breakdown by Category */}
-          <Card ref={(el) => el && (chartRefs.current[1] = el)}>
-            <CardHeader>
-              <CardTitle>Chi phí theo danh mục</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
-                <AreaChart data={monthly_trend}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    dataKey="month" 
-                    className="text-xs"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                  />
-                  <YAxis 
-                    className="text-xs"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                    tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
-                  />
-                  <Tooltip
-                    formatter={(value: number) => formatCurrency(value)}
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                    }}
-                  />
-                  <Legend />
-                  <Area 
-                    type="monotone" 
-                    dataKey="purchase" 
-                    name="Mua sắm"
-                    stackId="1"
-                    stroke="#10b981" 
-                    fill="#10b981"
-                    fillOpacity={0.6}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="laundry" 
-                    name="Giặt là"
-                    stackId="1"
-                    stroke="#3b82f6" 
-                    fill="#3b82f6"
-                    fillOpacity={0.6}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="maintenance" 
-                    name="Bảo trì"
-                    stackId="1"
-                    stroke="#f97316" 
-                    fill="#f97316"
-                    fillOpacity={0.6}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-          
-        </TabsContent>
-        
-        {/* TAB 2: ROI & Efficiency */}
-        <TabsContent value="roi" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Chỉ số hiệu quả hoạt động (KPIs)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">Inventory Turnover Ratio</p>
-                    <Badge variant="secondary">8.1x</Badge>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Hiện tại</span>
-                      <span className="font-medium">8.1x</span>
-                    </div>
-                    <Progress value={67.5} className="h-2" />
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Benchmark</span>
-                      <span className="font-medium">10-12x</span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-orange-600">
-                    🟡 Dưới trung bình ngành
-                  </p>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">Chi phí/Phòng/Tháng</p>
-                    <Badge variant="default">450k ₫</Badge>
-                  </div>
-                  <div className="text-center py-4">
-                    <p className="text-3xl font-bold">450,000 ₫</p>
-                  </div>
-                  <div className="space-y-1 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Mua sắm:</span>
-                      <span>180k</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Giặt là:</span>
-                      <span>200k</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Bảo trì:</span>
-                      <span>70k</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">Chi phí/Đêm khách</p>
-                    <Badge variant="default">150k ₫</Badge>
-                  </div>
-                  <div className="text-center py-4">
-                    <p className="text-3xl font-bold">150,000 ₫</p>
-                  </div>
-                  <div className="flex items-center gap-1 text-xs justify-center">
-                    <TrendingDown className="h-3 w-3 text-green-600" />
-                    <span className="text-green-600">-5% vs tháng trước</span>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">Chi phí vải/Phòng/Tháng</p>
-                    <Badge variant="default">180k ₫</Badge>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Hiện tại</span>
-                      <span className="font-medium">180k</span>
-                    </div>
-                    <Progress value={90} className="h-2" />
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Benchmark</span>
-                      <span className="font-medium">150-200k</span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-green-600">
-                    ✓ Trong khoảng chuẩn
-                  </p>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">Tỷ lệ chi phí bảo trì</p>
-                    <Badge variant="default">2.5%</Badge>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Hiện tại</span>
-                      <span className="font-medium">2.5%</span>
-                    </div>
-                    <Progress value={83} className="h-2" />
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Benchmark</span>
-                      <span className="font-medium">2-3%</span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-green-600">
-                    ✓ Trong kiểm soát
-                  </p>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">Par Level Efficiency</p>
-                    <Badge variant="default">92%</Badge>
-                  </div>
-                  <div className="text-center py-4">
-                    <p className="text-3xl font-bold">92%</p>
-                  </div>
-                  <p className="text-xs text-green-600 text-center">
-                    ✓ Hiệu quả tốt
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card className="border-green-200">
-              <CardHeader>
-                <CardTitle className="text-green-600">✓ Điểm mạnh</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600">•</span>
-                    <span>Chi phí bảo trì trong mức kiểm soát (2.5%)</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600">•</span>
-                    <span>Tỷ lệ sử dụng tốt (68%)</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600">•</span>
-                    <span>On-time delivery từ vendors: 92%</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600">•</span>
-                    <span>Chi phí/đêm khách giảm 5%</span>
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-orange-200">
-              <CardHeader>
-                <CardTitle className="text-orange-600">⚠️ Cần cải thiện</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3 text-sm">
-                  <li className="space-y-1">
-                    <div className="flex items-start gap-2">
-                      <span className="text-orange-600">•</span>
-                      <span className="font-medium">
-                        Vòng quay kho thấp hơn benchmark (8.1 vs 10-12)
-                      </span>
-                    </div>
-                    <p className="ml-4 text-xs text-muted-foreground">
-                      → Đề xuất: Giảm tồn kho slow-moving items
-                    </p>
-                  </li>
-                  <li className="space-y-1">
-                    <div className="flex items-start gap-2">
-                      <span className="text-orange-600">•</span>
-                      <span className="font-medium">
-                        Chi phí giặt là cao (+20% vs budget)
-                      </span>
-                    </div>
-                    <p className="ml-4 text-xs text-muted-foreground">
-                      → Đề xuất: Đàm phán lại giá hoặc xem xét in-house laundry
-                    </p>
-                  </li>
-                  <li className="space-y-1">
-                    <div className="flex items-start gap-2">
-                      <span className="text-orange-600">•</span>
-                      <span className="font-medium">
-                        12 items overstock
-                      </span>
-                    </div>
-                    <p className="ml-4 text-xs text-muted-foreground">
-                      → Đề xuất: Tạm dừng order, sử dụng hết tồn
-                    </p>
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
+
+          {/* Stack chi phí theo danh mục */}
+          <div className="border rounded-lg p-4">
+            <h3 className="text-sm font-medium mb-3">Chi phí cộng dồn theo danh mục</h3>
+            <ResponsiveContainer width="100%" height={320}>
+              <AreaChart data={monthly_trend}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="month" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                <YAxis
+                  className="text-xs"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
+                />
+                <Tooltip
+                  formatter={(value: number) => formatCurrency(value)}
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                  }}
+                />
+                <Legend />
+                <Area type="monotone" dataKey="purchase" name="Mua sắm" stackId="1" stroke="hsl(var(--chart-1))" fill="hsl(var(--chart-1))" fillOpacity={0.4} />
+                <Area type="monotone" dataKey="laundry" name="Giặt là" stackId="1" stroke="hsl(var(--chart-2))" fill="hsl(var(--chart-2))" fillOpacity={0.4} />
+                <Area type="monotone" dataKey="maintenance" name="Bảo trì" stackId="1" stroke="hsl(var(--chart-3))" fill="hsl(var(--chart-3))" fillOpacity={0.4} />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
-          
-          <Card className="border-blue-200">
-            <CardHeader>
-              <CardTitle className="text-blue-600">🎯 Mục tiêu 3 tháng tới</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Tăng vòng quay kho lên 10x</p>
-                    <p className="text-xs text-muted-foreground">Hiện tại: 8.1x</p>
-                  </div>
-                  <Badge>+23%</Badge>
-                </div>
-                <Progress value={81} className="h-2" />
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Giảm chi phí giặt 10%</p>
-                    <p className="text-xs text-muted-foreground">Tiết kiệm: 1.2M/tháng</p>
-                  </div>
-                  <Badge>-10%</Badge>
-                </div>
-                <Progress value={0} className="h-2" />
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Giảm tồn kho chậm luân chuyển 30%</p>
-                    <p className="text-xs text-muted-foreground">12 items → 8 items</p>
-                  </div>
-                  <Badge>-30%</Badge>
-                </div>
-                <Progress value={0} className="h-2" />
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>
   )
 }
+
+function CostRow({ label, value, percent }: { label: string; value: number; percent: number }) {
+  return (
+    <div className="p-3 flex items-center gap-4">
+      <div className="w-40 text-sm text-muted-foreground">{label}</div>
+      <div className="flex-1">
+        <Progress value={percent} className="h-2" />
+      </div>
+      <div className="w-12 text-right text-xs text-muted-foreground tabular-nums">{percent.toFixed(1)}%</div>
+      <div className="w-32 text-right text-sm font-mono tabular-nums">{formatCurrency(value)}</div>
+    </div>
+  )
+}
+
+export default FinancialReportPage
