@@ -1,6 +1,19 @@
 {
-  "current": "1.0.57",
+  "current": "1.0.58",
   "versions": [
+    {
+      "version": "1.0.58",
+      "releaseDate": "2026-05-27",
+      "title": "Chat: badge chưa đọc ở Sidebar & Bottom Nav",
+      "changes": [
+        { "type": "feature", "text": "usePendingCounts thêm chatUnread — tổng unread_count từ v_user_conversations, lọc theo tenant + hotel đang chọn (All Hotels bao toàn bộ)" },
+        { "type": "feature", "text": "Realtime: INSERT messages hoặc UPDATE conversation_members tự invalidate pending-counts-all để badge cập nhật tức thời" },
+        { "type": "feature", "text": "MobileBottomNav: pin tab 'Tin nhắn' (luôn hiện trước More) kèm badge số chưa đọc" },
+        { "type": "improvement", "text": "Sidebar item Chat tự hiển thị badge nhờ badgeKey='chatUnread' đã có sẵn" }
+      ]
+    },
+    {
+
     {
       "version": "1.0.57",
       "releaseDate": "2026-05-27",
