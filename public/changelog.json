@@ -1,6 +1,19 @@
 {
-  "current": "1.0.56",
+  "current": "1.0.57",
   "versions": [
+    {
+      "version": "1.0.57",
+      "releaseDate": "2026-05-27",
+      "title": "Chat: gửi ảnh & tệp đính kèm",
+      "changes": [
+        { "type": "feature", "text": "Nút đính kèm trong composer: chọn nhiều ảnh/tệp (tối đa 6 / tin nhắn, 20MB/tệp), upload song song lên bucket chat-attachments theo path {conversationId}/" },
+        { "type": "feature", "text": "Preview thumbnail trước khi gửi, có nút xoá; chặn gửi khi đang upload" },
+        { "type": "feature", "text": "Hiển thị ảnh inline trong bong bóng tin nhắn (signed URL 1h, cache client) và file dạng card có tên + dung lượng + tải xuống" },
+        { "type": "improvement", "text": "useMessages tự fetch message_attachments theo lô; tin chỉ-attachment vẫn render đúng" }
+      ]
+    },
+    {
+
     {
       "version": "1.0.56",
       "releaseDate": "2026-05-27",
