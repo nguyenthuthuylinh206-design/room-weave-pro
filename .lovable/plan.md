@@ -1,102 +1,99 @@
-# Sprint B2 — Trang `/reports` Tổng quan điều hành
+# Đánh giá `/reports/finance` từ góc nhìn chủ khách sạn
 
-Mục tiêu: thay trang `/reports` hiện tại (danh sách section + QuickReport) bằng **một màn hình chủ/quản lý nhìn 10 giây biết tình hình**, theo plan B đã duyệt.
+## 1. Vấn đề hiện tại
 
----
+### A. Trùng lặp & rối thông tin
+- KPI strip trên cùng (FinanceKpiStrip: 6 tile) **trùng** với khối 4 card "Doanh thu thuần / Đã thu / LN / OTA+VAT" và 4 card "Tổng CP / Mua sắm / Giặt là / Bảo trì" trong tab **Chi phí** → cùng 1 số xuất hiện 2–3 lần.
+- Tab **Doanh thu** có riêng bộ filter kỳ + 4 stat tile + tabs phụ (Tổng quan / Theo loại / Theo nguồn / Phòng) → **2 lớp tabs** lồng nhau, mỗi tab có filter riêng không đồng bộ với chip kỳ ở Hub.
+- Tab **Chi phí & Lợi nhuận** có thêm `HotelFilterCard`, `DateRangePicker` riêng → 3 bộ filter trên cùng 1 trang.
 
-## Thành phẩm
+### B. Sai chuẩn UI dự án
+- `FinancialReportPage` còn dùng `<Card>`, icon-heavy, badge màu, emoji 🟡, hardcode hex (`#10b981`, `#3b82f6`, `#f97316`) — vi phạm Enterprise SaaS Minimalist + design token.
+- Tab "ROI" hiển thị **số hardcode** ("8.1x", "450k", "150k", "-5% vs tháng trước") — không phải data thật, gây hiểu lầm cho chủ khách sạn.
+- Nút "Quay lại", "Xuất PDF", "Xuất Excel" của FinancialReportPage lặp với header Hub.
 
-### A. Layout trang `/reports` mới (`OverviewHubPage`)
+### C. Thiếu thông tin chủ khách sạn cần
+Chủ KS cần trả lời 5 câu trong 10 giây:
+1. **Tháng này lời/lỗ bao nhiêu?** → có (Lợi nhuận) nhưng chôn dưới
+2. **Tiền đi đâu?** → có (breakdown) nhưng chỉ 3 nhóm purchase/laundry/maintenance, **thiếu**: OTA commission, VAT, hoàn tiền, phụ thu âm
+3. **Ai còn nợ tôi?** → chỉ có số tổng "Còn nợ", **không** drill-down danh sách booking nợ
+4. **Dòng tiền hôm nay/tuần này?** → có "Hôm nay" trong tab Doanh thu nhưng **thiếu cash-in vs cash-out theo ngày**
+5. **So với tháng trước/năm trước thế nào?** → có Δ% trên KPI nhưng **thiếu chart YoY/MoM cho profit**
 
-Một trang, không tab, gồm 4 khối xếp dọc:
-
-1. **Header rút gọn** + `<PeriodPresetChips>` (mặc định "Tháng này").
-2. **Dải 6 KPI tổng** (dùng `<KpiScorecardStrip>` đã có ở B1):
-   - Doanh thu thuần • Lợi nhuận • Công suất phòng • RevPAR • Chi phí vận hành • Còn nợ
-   - Mỗi tile có Δ% so kỳ trước (logic giống Finance Hub).
-   - Click tile → drilldown sang hub liên quan kèm `?period=` được preserve (ví dụ Doanh thu → `/reports/finance?tab=revenue&period=this_month`).
-3. **`<RevenueVsCostChart>`** — biểu đồ kết hợp Doanh thu (cột) vs Chi phí (line) 30 ngày gần nhất. Reuse data có sẵn từ `useRevenueReport` monthly trends + `useFinancialReport` monthly_trend (đã có sau B1 Sprint trước).
-4. **`<AlertList>` "Cần chú ý"** — 3–8 dòng cảnh báo gom từ 4 nguồn dưới. Mỗi dòng: icon dot semantic • mô tả 1 dòng • link "Xem ngay" sang trang xử lý.
-
-Phía dưới (mặc định **thu gọn**, mobile ẩn) giữ lại **section grid 4 hub** để user vẫn navigate được — nhưng đóng vai trò phụ, không phải nội dung chính. Quyền lọc cho department_manager giữ nguyên (reuse `useAccessibleReports`).
-
-### B. Component mới
-
-- `src/components/reports/AlertList.tsx` — list compact, mỗi item: `tone (warning|danger|info)` • title • description • CTA. Empty state: "Mọi thứ ổn ✓".
-- `src/components/reports/RevenueVsCostChart.tsx` — Recharts ComposedChart 30 ngày. Theme tokens, height 220, có legend rút gọn.
-- `src/components/reports/OverviewKpiStrip.tsx` — strip 6 KPI tổng (tách khỏi FinanceKpiStrip vì mix nguồn data).
-
-### C. Hook gom alert
-
-`src/hooks/useOverviewAlerts.ts` — 1 hook duy nhất chạy 4 query song song, return mảng `Alert[]`:
-
-| Nguồn | Điều kiện | Severity |
-|---|---|---|
-| `room_bookings` | `status='checked_in'` AND `check_out_date < now()` | danger |
-| `get_low_stock_items` RPC | `quantity_in_stock <= reorder_point` | warning |
-| `maintenance_requests` | `priority='urgent'` AND `status IN ('waiting','pending','in_progress')` | danger |
-| `laundry_batches` | `expected_return_date < now()` AND `status NOT IN ('stocked','received')` | warning |
-
-Mỗi query `.eq('tenant_id', tenantId)`, filter theo `selectedHotel` nếu không All-Hotels. Cap mỗi nguồn ở 3 item; tổng strip cap ở 8.
-
-### D. Hook gom KPI tổng
-
-`src/hooks/useOverviewKpiStrip.ts` — gom data từ:
-- `useRevenueReport('custom', {start,end})` → netRevenue + paidRevenue (đã có previous trong hook).
-- `useFinancialReport({start,end})` current + previous → totalCost.
-- Lợi nhuận = netRevenue − totalCost; delta tự tính.
-- Công suất + RevPAR + room nights: tạm tính client-side từ `room_bookings` đã checked_out trong kỳ ÷ (`rooms.count` × `days`) — KHÔNG tạo RPC mới ở sprint này (RPC `get_operations_kpi` để B3 làm gọn).
-- Còn nợ: từ `currentPeriod.pendingRevenue` (đã có ở useRevenueReport).
-
-### E. Routing
-
-- `path: "reports"` → trỏ sang `OverviewHubPage` mới (thay vì `ReportsDashboardPage` cũ).
-- Giữ `ReportsDashboardPage` cũ tạm thời ở `/reports/legacy` (tham chiếu rollback 1 release).
-
-### F. Bump version
-
-- `APP_VERSION` → 1.0.50
-- changelog entry "Tổng quan điều hành: 6 KPI + biểu đồ doanh thu vs chi phí + danh sách Cần chú ý".
+### D. Vấn đề chức năng
+- 2 filter kỳ độc lập (chip ở Hub + DateRangePicker trong từng tab) — đổi 1 cái cái kia không sync → KPI strip nói "tháng này", chart bên dưới có thể là "30 ngày qua".
+- Export PDF/Excel chỉ export tab Chi phí, không export Doanh thu cùng kỳ.
+- Mobile: `FinancialReportPage` redirect sang `MobileFinancialReportPage`, nhưng Hub shell vẫn render KPI strip → 2 lớp UI chồng.
+- `revenue_summary` lấy từ `get_financial_report` RPC có thể lệch với `useRevenueReport` (2 nguồn khác nhau cho cùng 1 số).
 
 ---
 
-## Files dự kiến
+## 2. Đề xuất nâng cấp (3 sprint)
 
-**Tạo mới:**
-- `src/pages/reports/hub/OverviewHubPage.tsx`
-- `src/components/reports/AlertList.tsx`
-- `src/components/reports/RevenueVsCostChart.tsx`
-- `src/components/reports/OverviewKpiStrip.tsx`
-- `src/hooks/useOverviewAlerts.ts`
-- `src/hooks/useOverviewKpiStrip.ts`
+### Sprint F1 — Dọn dẹp & thống nhất (ưu tiên cao nhất)
+**Mục tiêu:** 1 nguồn dữ liệu, 1 bộ filter, không trùng lặp.
 
-**Sửa:**
-- `src/App.tsx` — route `/reports` trỏ sang OverviewHubPage; thêm `/reports/legacy` (giữ trang cũ).
-- `src/lib/app-version.ts` + `public/changelog.json`.
+- **Bỏ** khối 4 card "Doanh thu/Đã thu/LN/OTA" và 4 card "Tổng CP/Mua/Giặt/Bảo trì" trong `FinancialReportPage` (đã có trong KPI strip Hub).
+- **Bỏ** `DateRangePicker` và `HotelFilterCard` trong `FinancialReportPage` & `RevenueReportPage` → dùng chung `period` + `HotelContext` từ Hub (truyền qua props hoặc context).
+- **Bỏ** nested tabs trong `RevenueReportPage` → chuyển 4 sub-tab (Tổng quan/Theo loại/Theo nguồn/Phòng) thành 4 section cuộn dọc.
+- **Bỏ** tab "ROI" (hardcoded data) hoặc thay bằng số thật từ `get_financial_report`.
+- **Bỏ** nút Quay lại / Export trong từng page → đưa 1 nút Export duy nhất lên Hub header, export gộp cả Doanh thu + Chi phí cùng kỳ.
+- Refactor `FinancialReportPage` về chuẩn Minimalist: `<div className="border rounded-lg">` thay Card, bỏ icon/emoji, dùng token màu semantic.
 
-**Không đụng:**
-- 4 hub đã có (B1) — giữ nguyên.
-- Hook + RPC hiện tại — không sửa.
+### Sprint F2 — Bổ sung thông tin chủ KS thực sự cần
+- **Khối "Lời/Lỗ kỳ này"** (section đầu tiên sau KPI): card lớn hiển thị
+  - Lợi nhuận ròng (số to, màu xanh/đỏ) + Δ% kỳ trước + Δ% cùng kỳ năm trước (YoY)
+  - Mini-chart 12 tháng profit để thấy xu hướng
+- **Khối "Dòng tiền"** (cash flow):
+  - Bar chart kép theo ngày trong kỳ: Cash-in (xanh) vs Cash-out (đỏ) → trả lời "hôm nay/tuần này tôi nhận/chi bao nhiêu"
+  - Số dư ròng cuối kỳ
+- **Khối "Công nợ"** (replace số "Còn nợ" trống):
+  - Top 10 booking/khách còn nợ + ngày trễ hạn + link đến trang booking
+  - Tổng nợ chia theo độ tuổi (0–7 ngày / 8–30 / >30) — aging report
+- **Khối "Cơ cấu chi phí mở rộng"**: thêm OTA commission, VAT phải nộp, hoàn tiền, voucher — không chỉ purchase/laundry/maintenance.
+- **Section "So sánh"**: bảng MoM + YoY cho 6 chỉ số (Revenue / Cost / Profit / Margin / Occupancy / RevPAR).
+
+### Sprint F3 — Hành động & insight (cho owner ra quyết định)
+- **AlertList tài chính** (tương tự AlertList Overview):
+  - "5 booking quá hạn thanh toán > 7 ngày — XX triệu"
+  - "Chi phí giặt là tháng này tăng 32% vs tháng trước"
+  - "Biên lợi nhuận giảm dưới 15% — cảnh báo"
+  - "VAT kỳ này XX triệu — nhớ kê khai trước ngày 20"
+- **Drill-down**: click bất kỳ KPI/cột chart → mở slide-over chi tiết các giao dịch tạo nên số đó.
+- **Preset kỳ "Cùng kỳ năm trước"** trong PeriodPresetChips.
+- **Export 1 file PDF "Báo cáo tài chính tháng"** layout chuẩn cho chủ KS in/gửi kế toán.
 
 ---
 
-## Không thuộc B2 (để B3/B4)
+## 3. Files dự kiến đụng
 
-- Áp KpiStrip cho Operations/Housekeeping/Inventory Hub.
-- RPC `get_operations_kpi` gộp (sprint này tạm tính client).
-- Drilldown preserve `?period=` ở mọi hub (làm ở B4 khi refactor section).
-- Mobile polish riêng cho OverviewHubPage — sprint này responsive cơ bản (2 cột mobile, 6 cột desktop) là đủ.
-- Xoá hẳn `ReportsDashboardPage` cũ — chờ 1 release để rollback an toàn.
+**Sprint F1 (bắt buộc làm trước):**
+- `src/pages/reports/RevenueReportPage.tsx` — bỏ filter+nested tabs, nhận period qua props
+- `src/pages/reports/FinancialReportPage.tsx` — bỏ KPI cards trùng, bỏ filter, bỏ tab ROI hardcoded, refactor về minimalist
+- `src/pages/reports/hub/FinanceHubPage.tsx` — truyền period xuống children, thêm nút Export gộp ở header
+- `src/pages/reports/hub/ReportHubShell.tsx` — hỗ trợ truyền props vào tab Component
+- Xóa import `Card`/`HotelFilterCard` không dùng
+
+**Sprint F2:**
+- new: `src/components/reports/finance/ProfitHeadlineCard.tsx`
+- new: `src/components/reports/finance/CashFlowChart.tsx` + hook `useCashFlow.ts`
+- new: `src/components/reports/finance/DebtAgingPanel.tsx` + hook `useDebtAging.ts` (query `room_bookings` + `invoices` với `tenant_id` filter)
+- new: `src/components/reports/finance/MoMYoYTable.tsx`
+
+**Sprint F3:**
+- new: `src/components/reports/finance/FinanceAlertList.tsx` + `useFinanceAlerts.ts`
+- new: `src/components/reports/finance/ExportFinancePdf.ts` (gộp doanh thu + chi phí + công nợ)
+- Cập nhật `PeriodPresetChips` thêm preset "same_period_last_year"
+
+**Version bump:** 1.0.51 (F1) → 1.0.52 (F2) → 1.0.53 (F3)
 
 ---
 
-## QA checklist sau khi build
+## 4. Câu hỏi cần xác nhận
 
-- [ ] `/reports` mở thấy 6 KPI có Δ% so kỳ trước.
-- [ ] Đổi chip kỳ → cả 6 KPI + chart + alert refetch đúng.
-- [ ] Click KPI Doanh thu → sang `/reports/finance?tab=revenue`.
-- [ ] AlertList rỗng khi không có cảnh báo (hiển thị "Mọi thứ ổn").
-- [ ] Department manager vẫn vào được `/reports` nhưng chỉ thấy section hub được cấp.
-- [ ] Mobile 414px: KPI 2 cột, chart cuộn ngang ổn.
+1. **Ưu tiên sprint nào trước?** F1 (dọn dẹp) là tiên quyết. Sau đó F2 hay F3 trước?
+2. **Tab "ROI" hardcoded** — xóa luôn hay giữ và thay số thật (cần thêm RPC tính turnover/chi phí trên phòng)?
+3. **"Dòng tiền" theo ngày** — lấy từ `payment_transactions` (cash-in) + `inventory_transactions/laundry_batches/maintenance_requests` (cash-out) đúng không, hay khách sạn có sổ kế toán riêng?
+4. **Aging công nợ** — dùng `created_at` của booking hay `check_out_date` làm mốc tính tuổi nợ?
 
-**OK bắt đầu build B2?**
+Sau khi bạn chốt, tôi sẽ vào build-mode và làm F1 trước (ước lượng 1 lượt).
