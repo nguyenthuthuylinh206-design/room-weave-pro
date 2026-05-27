@@ -60,6 +60,7 @@ export function usePendingCounts() {
           adjustments: 0,
           tasks: 0,
           reorderSuggestions: 0,
+          chatUnread: 0,
           inventoryTotal: 0,
           laundryTotal: 0,
           maintenanceTotal: 0,
