@@ -112,7 +112,7 @@ export function OwnerProfitOverview() {
             {Math.abs(report.revenueGrowth).toFixed(1)}%
           </div>
           <Button variant="ghost" size="sm" asChild>
-            <Link to="/reports/revenue">Chi tiết</Link>
+            <Link to="/reports/finance?tab=room-revenue">Chi tiết</Link>
           </Button>
         </div>
       </CardHeader>

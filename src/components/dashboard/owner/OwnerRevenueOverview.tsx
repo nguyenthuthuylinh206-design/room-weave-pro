@@ -152,7 +152,7 @@ export function OwnerRevenueOverview() {
 
         {/* Link to Reports */}
         <Link
-          to="/reports/financial"
+          to="/reports/finance?tab=costs"
           className="flex items-center justify-between p-3 rounded-lg border border-border bg-primary/5 hover:bg-primary/10 transition-colors"
         >
           <span className="text-sm font-medium">Xem báo cáo tài chính chi tiết</span>

@@ -19,7 +19,8 @@ import {
   List,
   Download,
   CheckCircle,
-  CalendarDays
+  CalendarDays,
+  FileText
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -107,9 +108,10 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
       title: 'Báo cáo & Thống kê',
       items: [
         { title: 'Tổng hợp', icon: TrendingUp, path: '/reports', minMode: 'standard' },
-        { title: 'Báo cáo kho', icon: Package, path: '/reports/inventory', minMode: 'standard' },
-        { title: 'Báo cáo phòng', icon: DoorOpen, path: '/reports/rooms', minMode: 'standard' },
-        { title: 'Báo cáo vận hành', icon: LayoutDashboard, path: '/reports/operations', minMode: 'standard' },
+        { title: 'Tài chính', icon: FileText, path: '/reports/finance', minMode: 'standard' },
+        { title: 'Vận hành phòng', icon: LayoutDashboard, path: '/reports/operations', minMode: 'standard' },
+        { title: 'Buồng & Giặt là', icon: DoorOpen, path: '/reports/housekeeping', minMode: 'standard' },
+        { title: 'Kho & Bảo trì', icon: Package, path: '/reports/inventory', minMode: 'standard' },
       ]
     },
     {
