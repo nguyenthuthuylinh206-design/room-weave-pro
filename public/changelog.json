@@ -1,6 +1,20 @@
 {
-  "current": "1.0.52",
+  "current": "1.0.53",
   "versions": [
+    {
+      "version": "1.0.53",
+      "releaseDate": "2026-05-27",
+      "title": "Báo cáo Dòng tiền (Cash Flow)",
+      "changes": [
+        { "type": "feature", "text": "Trang mới /reports/cash-flow: 4 KPI lớn — Tiền vào, Tiền ra, Net cash, Công nợ phải thu — kèm Δ% so kỳ trước" },
+        { "type": "feature", "text": "Biểu đồ kép theo ngày: cột Tiền vào / Tiền ra + đường Net cash dồn" },
+        { "type": "feature", "text": "Breakdown Tiền vào theo kênh (Tiền mặt, Chuyển khoản, Booking.com, Agoda...) và Tiền ra theo nhóm (Mua hàng, Giặt là, Bảo trì)" },
+        { "type": "feature", "text": "Công nợ phải thu theo Aging (0-7N / 8-30N / 31-60N / >60N) + Top 10 booking nợ nhiều nhất" },
+        { "type": "feature", "text": "OTA chưa thanh toán theo kênh — gross, hoa hồng, đã trả, còn giữ" },
+        { "type": "feature", "text": "Khoản sắp phải trả 30N tới: PO chờ nhận + bảo trì đang xử lý" },
+        { "type": "feature", "text": "Cảnh báo dòng tiền tự sinh: âm net cash, công nợ cũ tích tụ, OTA giữ tiền nhiều, khoản phải trả tuần tới lớn hơn tiền vào" }
+      ]
+    },
     {
       "version": "1.0.52",
       "releaseDate": "2026-05-27",
