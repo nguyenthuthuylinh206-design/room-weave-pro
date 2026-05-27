@@ -1,6 +1,18 @@
 {
-  "current": "1.0.51",
+  "current": "1.0.52",
   "versions": [
+    {
+      "version": "1.0.52",
+      "releaseDate": "2026-05-27",
+      "title": "Báo cáo Doanh thu phòng (Occupancy • ADR • RevPAR)",
+      "changes": [
+        { "type": "feature", "text": "Trang mới /reports/room-revenue: 4 KPI lớn — Doanh thu phòng, Công suất, ADR (giá TB/đêm), RevPAR — kèm Δ% so kỳ trước và badge so chuẩn ngành" },
+        { "type": "feature", "text": "Biểu đồ kép theo ngày: Công suất % (bar) + Doanh thu/ngày (line) — xem nhanh xu hướng" },
+        { "type": "feature", "text": "Bảng Phòng bán tốt nhất (top 10) + Phòng bán chậm (bottom 5) — gợi ý kiểm tra QC khi <30% trung bình" },
+        { "type": "feature", "text": "Phân tích doanh thu theo kênh (Walk-in, Direct, Booking.com, Agoda...) — kèm phí hoa hồng OTA và bar visual" },
+        { "type": "feature", "text": "Gợi ý hành động tự sinh: OTA >60% cảnh báo, ADR thấp dưới chuẩn, công suất xuất sắc → cân nhắc tăng giá, RevPAR giảm mạnh" }
+      ]
+    },
     {
       "version": "1.0.51",
       "releaseDate": "2026-05-27",
