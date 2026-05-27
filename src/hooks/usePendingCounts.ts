@@ -127,12 +127,14 @@ export function usePendingCounts() {
         .eq('status', 'pending')
       if (hotelId) reorderQuery = reorderQuery.eq('hotel_id', hotelId)
 
-      // Chat unread: lấy từ view v_user_conversations đã tự lọc theo viewer_id qua RLS
+      // Chat unread: phải filter viewer_id = me (view trả 1 row/member/conversation)
       let chatQuery = supabase
         .from('v_user_conversations')
         .select('unread_count')
         .eq('tenant_id', tenantId)
+      if (user?.id) chatQuery = chatQuery.eq('viewer_id', user.id)
       if (hotelId) chatQuery = chatQuery.eq('hotel_id', hotelId)
+
 
       const [
         supplementsRes,

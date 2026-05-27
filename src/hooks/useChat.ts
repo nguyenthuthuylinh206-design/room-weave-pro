@@ -59,11 +59,19 @@ export function useConversations() {
         .from('v_user_conversations')
         .select('*')
         .eq('tenant_id', tenantId!)
+        .eq('viewer_id', user!.id)
         .order('last_message_at', { ascending: false, nullsFirst: false })
       if (hotelId) q = q.eq('hotel_id', hotelId)
       const { data, error } = await q
       if (error) throw error
-      const convs = (data || []) as any[]
+      // Dedupe phòng hờ theo conversation id
+      const seen = new Set<string>()
+      const convs = ((data || []) as any[]).filter((c) => {
+        if (seen.has(c.id)) return false
+        seen.add(c.id)
+        return true
+      })
+
 
       // Lấy peer cho DM
       const dmConvs = convs.filter((c) => c.type === 'direct')
