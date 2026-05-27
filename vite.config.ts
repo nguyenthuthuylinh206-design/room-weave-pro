@@ -45,15 +45,18 @@ export default defineConfig(({ mode }) => ({
         ]
       },
       injectManifest: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
         globIgnores: [
           '**/wasm-*.js',
           '**/*.wasm',
           '**/changelog.json',
           '**/vendor-*.js',
+          '**/index.html',
+          '**/*.html',
         ],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
       },
+
       devOptions: {
         enabled: false,
         type: 'module',

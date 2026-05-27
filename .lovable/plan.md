@@ -1,78 +1,73 @@
-## Mục tiêu
-Sửa màn hình `/chat` theo hướng ổn định cho PWA/mobile thực tế: danh sách hội thoại gọn, mở đúng 1 hội thoại, không tự “sổ” quá nhiều tin nhắn ra màn hình, không làm layout mobile bị loạn sau khi gửi/quay lại.
+## Vấn đề xác định
 
-## Những gì có thể reuse
-- Reuse `ChatPage.tsx`: đã có sidebar, conversation pane, bubble grouping, composer và attachment.
-- Reuse `useChat.ts`: đã có hook `useConversations`, `useMessages`, `useSendMessage`, realtime invalidate.
-- Reuse bảng/view hiện tại: `v_user_conversations`, `messages`, `conversation_members`, RPC `mark_conversation_read`, `send_chat_message`.
+Ảnh chụp cho thấy PWA production đang crash ở `PricingSection` với lỗi:
 
-## Những gì cần refactor
-1. **Mobile layout của ChatPage**
-   - Tách trạng thái list/conversation rõ hơn trên mobile.
-   - Đổi chiều cao container từ công thức cố định `h-[calc(100dvh-8rem)]` sang layout an toàn hơn theo viewport mobile để tránh bị kẹp trong PWA.
-   - Header/list row giữ compact, không để nội dung làm giãn khung.
+```text
+.map is not a function
+/assets/PricingSection...
+```
 
-2. **Tối ưu phần tin nhắn**
-   - Không render “bung” 200 tin ngay trong khung nhỏ.
-   - Giảm số tin ban đầu còn khoảng 50 tin mới nhất, vẫn sắp xếp đúng từ cũ đến mới trong cửa sổ hiển thị.
-   - Sau này nếu cần lịch sử đầy đủ sẽ thêm nút “Tải tin cũ hơn”, nhưng lượt này ưu tiên dọn lỗi đang rối.
+Có 2 nguyên nhân cần xử lý cùng lúc:
 
-3. **Chống trùng/loạn realtime trong UI**
-   - Dedupe tin nhắn theo `id` trong `useMessages` trước khi render để tránh realtime/refetch tạo duplicate tạm thời.
-   - Dedupe attachment theo `id` trong mỗi message.
-   - Query key giữ theo `conversationId`, không tự kéo message của hội thoại khác.
+1. `PricingSection` vẫn có đường render phụ thuộc dữ liệu dịch `features` là array; nếu i18n trả về string/object trong bundle cũ hoặc cache lệch, `.map` làm sập route.
+2. Service worker hiện tại precache cả app shell/chunk và dùng SPA fallback từ precache `index.html`, nên PWA đã cài có thể tiếp tục chạy bundle cũ dù web đã publish bản mới. `CacheBuster` lại chạy sau khi React render nên không cứu được crash xảy ra sớm.
 
-4. **Cải thiện scroll behavior**
-   - Chỉ auto-scroll xuống cuối khi mở hội thoại hoặc có tin mới ở cuối.
-   - Tránh mỗi refetch làm giật vị trí đọc.
-   - Khi gửi tin xong mới kéo xuống cuối.
+## Kế hoạch sửa
 
-## Những gì cần thêm mới
-- Không thêm màn hình mới.
-- Có thể thêm helper nhỏ trong `ChatPage.tsx`/`useChat.ts` để normalize/dedupe dữ liệu chat.
-- Bump release theo convention: `APP_VERSION` và `public/changelog.json` lên bản mới.
+### 1. Chặn crash ngay tại `PricingSection`
+- Thêm parser an toàn cho `pricing.*.features`:
+  - array -> dùng trực tiếp
+  - string -> tách theo dòng/dấu phân cách hợp lý
+  - object/undefined -> trả `[]`
+- Không để bất kỳ giá trị i18n nào gọi `.map` trực tiếp nếu chưa chuẩn hóa.
+- Đây là fix trực tiếp cho lỗi trong ảnh.
 
-## Rủi ro migration
-- Không cần migration trong lượt sửa này vì lỗi đang nằm ở cách query/render/layout.
-- Nếu sau khi kiểm tra vẫn còn duplicate từ database thật, bước tiếp theo mới cần migration cleanup unique constraint cho DM/member. Hiện chưa nên đụng DB để tránh rủi ro production.
+### 2. Bọc root landing bằng error boundary đúng tầng
+- Route `/` render landing qua `RootRoute`, hiện chưa bọc `SectionErrorBoundary` ở tầng `Suspense` của landing.
+- Thêm boundary quanh landing ở `RootRoute` để nếu landing section lỗi, người dùng không rơi vào màn `Unexpected Application Error` mặc định.
 
-## Kiến trúc / logic nghiệp vụ
-- `/chat` là list-first trên mobile: chưa chọn hội thoại thì chỉ hiện danh sách; đã chọn thì chỉ hiện khung chat.
-- Mỗi hội thoại chỉ được render 1 lần theo `conversation.id`.
-- Mỗi tin nhắn chỉ render 1 lần theo `message.id`.
-- Tin mới nhất nằm cuối khung chat; không đẩy toàn bộ lịch sử ra làm rối giao diện.
+### 3. Sửa chiến lược service worker để không giữ app shell cũ
+- Trong `src/sw.ts`:
+  - Không precache `index.html` và các chunk route động dễ lệch phiên bản.
+  - Đổi navigation fallback sang `NetworkFirst` cho HTML navigation thay vì luôn lấy `index.html` từ precache.
+  - Giữ push notification và cache tài nguyên tĩnh cần thiết.
+- Trong `vite.config.ts`:
+  - Loại `html` khỏi `globPatterns` hoặc thêm ignore rõ ràng cho `index.html`.
+  - Không precache quá rộng toàn bộ `assets/*.js` route chunks.
 
-## Schema / migration
+### 4. Đưa PWA update/cleanup lên trước render
+- Hiện `usePWAUpdate` chỉ nằm trong `MainLayout`, nên guest landing hoặc crash trước layout không có cơ chế update.
+- Tạo component/hook nhỏ chạy ở root app trước `RouterProvider` để:
+  - đăng ký SW ở production,
+  - bắt update mới sớm,
+  - reload khi controller đổi,
+  - không phụ thuộc vào `MainLayout`.
+- Giữ `PWAUpdatePrompt` trong layout nếu vẫn muốn hiển thị thông báo cho user đã đăng nhập.
+
+### 5. Nâng fallback production, không để hiện stack trace thô
+- Cập nhật `ChunkErrorBoundary`/`RouteErrorBoundary` để lỗi render thường trên production hiển thị tiếng Việt với nút:
+  - Tải lại
+  - Xoá cache & tải lại
+  - Về trang chủ
+- Tránh để người dùng cuối thấy màn `Unexpected Application Error`/stack trace như ảnh.
+
+### 6. Version và changelog
+- Bump `APP_VERSION` lên `1.0.63`.
+- Thêm entry `public/changelog.json` mô tả fix PWA mobile production.
+
+## Không thay đổi
+
 - Không thêm migration.
+- Không đổi nghiệp vụ chat/booking/room check.
+- Không sửa database/RPC.
 
-## API / RPC / server actions
-- Không đổi RPC hiện tại.
-- Chỉ chỉnh client query `messages`: lấy giới hạn mới nhất, normalize lại thứ tự hiển thị.
+## QA sau khi implement
 
-## UI screens / components
-- Sửa `src/pages/ChatPage.tsx`:
-  - Container mobile ổn định hơn trong PWA.
-  - List và conversation pane không chen nhau.
-  - Message area compact, không render quá nhiều dòng ban đầu.
-  - Back button mobile rõ, quay về list không làm mất trạng thái.
+- Kiểm tra `/` và `/landing` ở viewport mobile 390px không crash khi `pricing.*.features` là array/string/object/undefined.
+- Kiểm tra service worker production config không precache `index.html` theo kiểu app shell cũ.
+- Kiểm tra route fallback hiển thị tiếng Việt, không còn màn `Unexpected Application Error` mặc định.
+- Kiểm tra PWA update hook chạy ở root, không phụ thuộc đăng nhập/MainLayout.
 
-- Sửa `src/hooks/useChat.ts`:
-  - Limit tin nhắn ban đầu thấp hơn.
-  - Dedupe message/attachment.
-  - Đảm bảo query vẫn filter đúng conversation.
+## Rollout note
 
-## Permission / role rules
-- Không đổi quyền.
-- Vẫn dựa trên RLS/RPC hiện tại.
-
-## Test cases
-- Mobile 390px `/chat`: chỉ hiện danh sách khi chưa chọn hội thoại.
-- Chọn hội thoại: chỉ hiện đúng hội thoại đó, không hiện list bên cạnh.
-- Gửi 2 tin liên tiếp: không duplicate, không bung toàn bộ lịch sử.
-- Bấm back: quay về list, không reset/loạn layout.
-- Desktop: sidebar + pane vẫn hoạt động bình thường.
-
-## Rollout notes
-- Đây là hotfix UI/client, ít rủi ro hơn migration.
-- Sau khi publish cần PWA cache bump theo version để người dùng nhận bundle mới.
-- Nếu user PWA vẫn kẹt bản cũ, dùng nút “Xoá cache & tải lại” đã thêm ở bản trước.
+Bản này cần publish để thiết bị PWA thực tế nhận service worker mới. Với thiết bị đã kẹt cache quá cũ, lần mở đầu có thể vẫn cần đóng/mở lại app hoặc bấm “Xoá cache & tải lại”; sau release này cơ chế update sẽ không còn để app shell cũ giữ lỗi lâu như hiện tại.
