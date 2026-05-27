@@ -224,43 +224,46 @@ const RouteFallback = () => (
 
 const router = createBrowserRouter([
   // Landing page - public
-  { path: "/landing", element: <LandingPage /> },
+  { path: "/landing", element: <LandingPage />, errorElement: <RouteErrorBoundary /> },
 
   // Public routes
-  { path: "/auth/login", element: <Login /> },
-  { path: "/auth/register", element: <Register /> },
-  { path: "/auth/forgot-password", element: <ForgotPassword /> },
-  { 
-    path: "/auth/change-password", 
+  { path: "/auth/login", element: <Login />, errorElement: <RouteErrorBoundary /> },
+  { path: "/auth/register", element: <Register />, errorElement: <RouteErrorBoundary /> },
+  { path: "/auth/forgot-password", element: <ForgotPassword />, errorElement: <RouteErrorBoundary /> },
+  {
+    path: "/auth/change-password",
     element: (
       <AuthGuard>
         <AuthChangePasswordPage />
       </AuthGuard>
-    ) 
+    ),
+    errorElement: <RouteErrorBoundary />,
   },
-  
-  { path: "/auth/callback", element: <AuthCallback /> },
-  { path: "/unauthorized", element: <Unauthorized /> },
-  
+
+  { path: "/auth/callback", element: <AuthCallback />, errorElement: <RouteErrorBoundary /> },
+  { path: "/unauthorized", element: <Unauthorized />, errorElement: <RouteErrorBoundary /> },
+
   // Payment QR Page - Public route (no auth required)
   {
     path: "/payment-qr/:paymentId",
     element: <PaymentQRPage />,
+    errorElement: <RouteErrorBoundary />,
   },
 
   // VAT e-invoice claim — public, khách quét QR trên bill nhiệt
   {
     path: "/i/:token",
     element: <InvoiceVatClaimPage />,
+    errorElement: <RouteErrorBoundary />,
   },
 
-  
   // Document Scan Page - Public route (mobile capture)
   {
     path: "/scan-document/:sessionId",
     element: <ScanDocumentPage />,
+    errorElement: <RouteErrorBoundary />,
   },
-  
+
   // Onboarding - requires authentication but not tenant setup
   {
     path: "/onboarding",
@@ -269,6 +272,7 @@ const router = createBrowserRouter([
         <Onboarding />
       </AuthGuard>
     ),
+    errorElement: <RouteErrorBoundary />,
   },
 
   // Docs Viewer (Super Admin only) — đọc docs/architecture/*.md trực tiếp
@@ -279,11 +283,13 @@ const router = createBrowserRouter([
         <DocsLayout />
       </RoleGuard>
     ),
+    errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: <DocsIndex /> },
       { path: "*", element: <DocsViewer /> },
     ],
   },
+
 
   // Super Admin Routes
   {
