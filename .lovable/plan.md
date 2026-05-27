@@ -1,133 +1,124 @@
+# Báo cáo Dòng tiền (Cash Flow)
 
-# Báo cáo Doanh thu Phòng
-
-Trang báo cáo "số 1" cho chủ khách sạn: trả lời 5 câu trong 10 giây — hôm nay thu bao nhiêu, lấp đầy bao nhiêu %, giá bán trung bình, phòng nào bán tốt, kênh nào mang khách.
+Trang trả lời 5 câu chủ khách sạn hỏi mỗi sáng: tiền vào bao nhiêu, sắp phải trả ai, ai còn nợ mình, OTA giữ bao nhiêu, tuần tới cần chuẩn bị bao nhiêu tiền mặt.
 
 ## 1. Vị trí & điều hướng
+- Route mới: `/reports/cash-flow` (standalone), thêm vào `reportsCatalog.ts` section **Tài chính**, đánh dấu `isNew: true`.
+- Roles: `super_admin`, `owner`, `hotel_manager` (Manager chỉ thấy hotel được gán qua HotelContext).
+- Permission: `view_reports`.
 
-- Route mới: `/reports/room-revenue` (gắn vào `reportsCatalog.ts`, section "Doanh thu", icon Bed).
-- Là trang đầu tiên trong nhóm "Doanh thu" của Reports Hub. Pin lên đầu sidebar reports cho role Owner/Manager.
-- Mobile: layout dọc 1 cột, KPI strip cuộn ngang; Desktop: 12-col grid.
-
-## 2. Bố cục trang (4 vùng)
+## 2. Bố cục trang
 
 ```text
-┌──────────────────────────────────────────────────┐
-│  Period chips: Hôm nay | 7N | Tháng | Tuỳ chỉnh  │
-│  Hotel selector (nếu Owner / chain)              │
-├──────────────────────────────────────────────────┤
-│  KPI Headline (4 ô lớn)                           │
-│  Doanh thu | Occupancy | ADR | RevPAR             │
-│  Δ% vs kỳ trước  •  Δ% YoY  •  Benchmark badge    │
-├──────────────────────────────────────────────────┤
-│  Mini-chart kỳ này (Occupancy & RevPAR theo ngày)│
-│  Bar/Line kết hợp, hover xem số                  │
-├──────────────────────────────────────────────────┤
-│  Top Phòng bán tốt   │  Phòng bán chậm           │
-│  (top 10: số đêm,    │  (bottom 5: <30% kỳ,      │
-│   revenue, ADR/phòng)│   gợi ý: kiểm tra QC)     │
-├──────────────────────────────────────────────────┤
-│  Doanh thu theo kênh (OTA / Walk-in / Direct...) │
-│  Stacked bar + bảng: bookings, gross, commission,│
-│  net, %                                          │
-├──────────────────────────────────────────────────┤
-│  Gợi ý hành động (Insight cards)                 │
-│  - "Cuối tuần ADR 1.2tr, tuần 800k → cân nhắc    │
-│     tăng 10% giá Sat/Sun"                        │
-│  - "Phòng 305 bán <20% trong 30N — kiểm tra QC"  │
-│  - "OTA chiếm 65% — cân nhắc đẩy direct"         │
-└──────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│ Period chips: Hôm nay | 7N | Tháng | Tuỳ chỉnh          │
+│ Hotel selector                                         │
+├────────────────────────────────────────────────────────┤
+│ 4 KPI Headline                                         │
+│ Tiền vào kỳ | Tiền ra kỳ | Net cash | Số dư công nợ    │
+│ (mỗi ô có Δ% vs kỳ trước)                              │
+├────────────────────────────────────────────────────────┤
+│ Biểu đồ dòng tiền theo ngày                            │
+│ ComposedChart: cột Tiền vào (xanh) / Tiền ra (đỏ),     │
+│ line Net cash dồn                                      │
+├────────────────────────────────────────────────────────┤
+│ Tiền vào theo kênh           │ Tiền ra theo nhóm        │
+│ Cash | Bank | OTA payout     │ Mua hàng (PO)           │
+│ | Deposit | Khác             │ Giặt là                 │
+│                              │ Bảo trì                  │
+│                              │ Lương/khác (manual)      │
+├────────────────────────────────────────────────────────┤
+│ Công nợ phải thu (Aging)                               │
+│ 0-7N | 8-30N | 31-60N | >60N + danh sách top 10        │
+├────────────────────────────────────────────────────────┤
+│ OTA chưa thanh toán                                    │
+│ Theo kênh (Booking.com/Agoda/Traveloka...): số booking,│
+│ doanh thu, hoa hồng, net OTA giữ                       │
+├────────────────────────────────────────────────────────┤
+│ Sắp phải trả (Upcoming payables) 30N tới               │
+│ PO sắp đến hạn + maintenance pending + laundry chưa trả│
+├────────────────────────────────────────────────────────┤
+│ Cảnh báo dòng tiền (Insight cards)                     │
+└────────────────────────────────────────────────────────┘
 ```
 
-## 3. Chỉ số & công thức
+## 3. Công thức & nguồn dữ liệu
 
-| Chỉ số | Công thức | Nguồn |
+| Khối | Công thức | Bảng nguồn |
 |---|---|---|
-| Doanh thu kỳ | `SUM(net_revenue)` từ booking đã checkout trong kỳ | `useRevenueReport` |
-| Occupancy % | `room_nights_sold / available_room_nights` | room_bookings × rooms |
-| ADR | `room_revenue / room_nights_sold` (chỉ tiền phòng, loại surcharge) | room_bookings |
-| RevPAR | `room_revenue / available_room_nights` = ADR × Occupancy | derived |
-| ALOS | `SUM(nights) / bookings` | room_bookings |
-| Top rooms | order by revenue desc, có ADR riêng | room_bookings group by room_id |
-| By channel | group by booking_source (ota_*, walk_in, direct, phone, web) | room_bookings |
+| Tiền vào | `SUM(amount)` `booking_payments.payment_status='completed'` trong kỳ theo `paid_at` | `booking_payments` |
+| Tiền vào theo kênh | group by `payment_method` (cash/bank_transfer) + tách OTA từ `room_bookings.booking_source` LIKE 'ota_%' | `booking_payments` + `room_bookings` |
+| Tiền ra — Mua hàng | `SUM(total_amount)` `purchase_orders` `status IN ('received','paid')` theo `received_at`/`paid_at` | `purchase_orders` |
+| Tiền ra — Giặt là | `SUM(actual_cost ?? estimated_cost)` `laundry_batches` đã stocked trong kỳ | `laundry_batches` |
+| Tiền ra — Bảo trì | `SUM(actual_cost)` `maintenance_requests` `status='completed'` trong kỳ | `maintenance_requests` |
+| Tiền ra — Tổn thất kho | `SUM(total_value)` `inventory_transactions` type `damage`/`loss` | `inventory_transactions` |
+| Net cash | Tiền vào − Tiền ra | derived |
+| Công nợ phải thu | `room_bookings`: `total_amount − (amount_paid + deposit_amount) > 0` AND `payment_status != 'paid'` | `room_bookings` |
+| Aging | Theo `check_out_date` (fallback `created_at`) so với hôm nay | derived |
+| OTA chưa thanh toán | `room_bookings` `booking_source LIKE 'ota_%'` AND chưa có `booking_payments.completed` đối ứng | `room_bookings` + `booking_payments` |
+| Upcoming payables | `purchase_orders` `status='received' AND payment_status!='paid'` + `maintenance_requests` `status IN ('in_progress','completed') AND actual_cost > 0 AND chưa đánh dấu paid` | nhiều bảng |
 
-Benchmark badges (đã có `industryBenchmarks.ts` + `BenchmarkBadge`): áp cho Occupancy, ADR, RevPAR — màu xanh/vàng/đỏ.
+Tenant isolation: tất cả query `.eq('tenant_id', tenantId)` + lọc `hotel_id` qua HotelContext.
 
 ## 4. Reuse / Refactor / Mới
 
-**Reuse:**
-- `useRevenueReport.ts` — đã có `topRooms`, `bySource`, surcharges. Chỉ cần thêm trường `roomNights`, `adr` per room.
-- `useRoomsReportData.ts` — đã có `occupancy_stats`, `occupancyTrend`. Reuse.
-- `PeriodPresetChips`, `resolvePeriod`, `KpiScorecard`, `BenchmarkBadge`, `AlertList`.
-- `ReportHubShell` không cần — đây là trang standalone trong catalog (đơn giản hơn Hub gộp).
+**Reuse**
+- `PeriodPresetChips`, `resolvePeriod` (reportPeriods.ts).
+- `KpiScorecard` cho 4 KPI lớn, `AlertList` cho insight.
+- `useRevenueReport` để lấy OTA commission (đã có `ota_commission_amount`, `bySource`).
+- `useMonthlyExpenses` không đủ vì chỉ trả tổng theo tháng — viết riêng theo ngày.
+- `formatCurrency`, ChartContainer recharts.
 
-**Refactor nhỏ:**
-- `useRevenueReport`: thêm `room_nights` + `adr` vào `RoomRevenue` (đã có `bookings`, `revenue` — bổ sung `nights` từ booking_dates).
-- `reportPeriods.ts`: thêm preset `today` và `last_7_days` nếu chưa có.
+**Refactor nhỏ**
+- `reportsCatalog.ts`: thêm entry `cash-flow` section `finance`.
 
-**Mới:**
-- `src/pages/reports/RoomRevenueReportPage.tsx` — page chính.
-- `src/components/reports/room-revenue/RoomRevenueKpiHeadline.tsx` — 4 ô KPI lớn (Revenue/Occ/ADR/RevPAR).
-- `src/components/reports/room-revenue/OccupancyRevparChart.tsx` — line/bar kép theo ngày (recharts ComposedChart).
-- `src/components/reports/room-revenue/TopRoomsTable.tsx` — top/bottom rooms.
-- `src/components/reports/room-revenue/ChannelMixPanel.tsx` — stacked bar + bảng kênh.
-- `src/components/reports/room-revenue/RoomRevenueInsights.tsx` — sinh insight client-side từ data (weekend vs weekday ADR, low-occupancy rooms, OTA share).
-- `src/hooks/useRoomRevenueMetrics.ts` — gộp Revenue + Occupancy, tính ADR/RevPAR derived, weekend split.
-- Catalog entry trong `src/lib/reportsCatalog.ts` (role: owner + manager, permission: `view_reports`).
+**Mới**
+- `src/pages/reports/CashFlowReportPage.tsx`
+- `src/components/reports/cash-flow/CashFlowKpiHeadline.tsx`
+- `src/components/reports/cash-flow/CashInOutChart.tsx` (ComposedChart theo ngày)
+- `src/components/reports/cash-flow/CashInBreakdown.tsx` (tiền vào theo kênh + bảng)
+- `src/components/reports/cash-flow/CashOutBreakdown.tsx` (tiền ra theo nhóm + bảng)
+- `src/components/reports/cash-flow/ReceivablesAgingPanel.tsx` (aging bucket + top 10 booking)
+- `src/components/reports/cash-flow/OtaPendingPanel.tsx`
+- `src/components/reports/cash-flow/UpcomingPayablesPanel.tsx`
+- `src/components/reports/cash-flow/CashFlowInsights.tsx` (rule-based: net âm, OTA giữ >X%, aging >30N chiếm cao, payable 7N tới > tiền vào dự kiến)
+- `src/hooks/useCashFlowMetrics.ts` (gộp 4 nguồn tiền vào/ra theo ngày + bucket)
+- `src/hooks/useReceivablesAging.ts`
+- `src/hooks/useOtaPending.ts`
+- `src/hooks/useUpcomingPayables.ts`
+- Route trong `App.tsx`.
 
-## 5. Data flow
+Tất cả hook dùng `react-query`, `staleTime: 5 phút`, query key gồm `tenantId + hotelId + period`. All Hotels mode hỗ trợ (hotelId null).
 
-```text
-useRoomRevenueMetrics(period, hotelId)
-  ├── useRevenueReport (gross, net, surcharges, topRooms, bySource)
-  ├── useRoomsReportData (occupancy_stats, occupancyTrend, totalRooms)
-  └── derive:
-       • adr = roomRevenue / roomNightsSold
-       • revpar = roomRevenue / (totalRooms * days)
-       • weekendAdr vs weekdayAdr
-       • previousPeriod, yoy → Δ%
-```
+## 5. UI/UX
+- Theo chuẩn Enterprise SaaS Minimalist (border, không icon nặng).
+- KPI tile: số to `text-3xl font-mono`, Δ% nhỏ semantic color.
+- Mobile portrait: KPI cuộn ngang snap, các panel xếp dọc full-width.
+- Empty state riêng từng panel ("Chưa có giao dịch trong kỳ").
+- Loading: Skeleton từng vùng (không block full page).
+- Format tiền: `1.700.000 ₫` (dấu chấm thousands).
 
-Tenant isolation: cả 2 hook đều đã `.eq('tenant_id', tenantId)` + `HotelContext`.
-
-## 6. UI/UX
-
-- Theo chuẩn Enterprise SaaS Minimalist: `border rounded-lg`, không icon nặng, semantic color cho Δ% (green/red/amber), font-mono cho số tiền.
-- KPI tile: số to (`text-3xl font-semibold`), label `text-xs uppercase tracking-wide text-muted-foreground`, Δ% nhỏ + benchmark badge.
-- Mobile portrait: 4 KPI cuộn ngang (snap), chart full-width, bảng top rooms compact 3 cột (Phòng / Đêm / Doanh thu).
-- Empty state: "Chưa có booking trong kỳ này" + nút đổi kỳ.
-- Loading: Skeleton cho từng vùng.
-
-## 7. Permissions
-
+## 6. Permissions
 - `view_reports` bắt buộc.
-- Owner: full + All Hotels mode.
-- Manager: chỉ hotel được gán (HotelContext lọc sẵn).
+- Owner/Super Admin: All Hotels mode.
+- Hotel Manager: chỉ hotel đã gán.
 - Staff: ẩn route khỏi catalog (đã có cơ chế `useAccessibleReports`).
 
-## 8. Version & rollout
+## 7. Version & rollout
+- Bump `APP_VERSION` + `CURRENT_VERSION` → `1.0.53`.
+- Thêm changelog `public/changelog.json`.
+- Không migration DB (đọc dữ liệu sẵn có).
+- QA checklist: kỳ rỗng → empty; tổng tiền vào khớp manual 1 ngày; aging bucket tính đúng mốc 7/30/60; All Hotels mode tổng đúng; mobile iPhone SE không tràn.
+- Rollback: xoá route + catalog entry.
 
-- Bump `APP_VERSION` và `CURRENT_VERSION` → `1.0.52`.
-- Thêm changelog entry.
-- Feature flag: không cần (page mới, không đụng flow cũ).
-- QA checklist: 
-  1. Hotel có 0 booking → empty state đúng.
-  2. ADR/RevPAR khớp tay tính trên 1 ngày mẫu.
-  3. Δ% vs kỳ trước đúng khi đổi preset.
-  4. Mobile iPhone SE: KPI cuộn snap, chart không tràn.
-  5. All Hotels mode: tổng cộng đúng.
-- Rollback: xoá route + catalog entry, không có migration.
+## 8. Out of scope (sprint sau)
+- Forecast dòng tiền 30N tới bằng booking pace.
+- Reconciliation OTA payout (cần import statement Booking.com/Agoda).
+- Xuất PDF/Excel riêng cho cash flow (sẽ gộp vào Export tổng Finance Hub).
+- Module ghi nhận chi lương/điện nước thủ công (cần bảng `manual_expenses` — tách sprint riêng).
 
-## 9. Out of scope (sprint sau)
-
-- Pricing recommendation engine thật (chỉ có insight rule-based ở bản này).
-- Forecast (ML) — sẽ tính sau khi đủ 90N data.
-- Export PDF riêng cho báo cáo phòng — gộp vào Export tổng của Finance Hub ở sprint sau.
-
-## 10. Câu hỏi chốt trước khi build
-
-1. **ADR tính chỉ tiền phòng** (loại surcharge/extra) hay **gộp tất cả thu trên đêm phòng**? (Chuẩn quốc tế: chỉ tiền phòng — tôi default theo chuẩn này nếu bạn không yêu cầu khác.)
-2. **Available room nights** có trừ phòng đang `maintenance/OOS` không? (Default: có trừ — đúng chuẩn RevPAR.)
-3. **Insight cards**: bật ngay hay để sprint sau sau khi có metrics ổn?
-
-Sau khi bạn ok → tôi vào build, làm hook + page + 5 component, bump version 1.0.52.
+## 9. Câu hỏi chốt
+1. **Định nghĩa "Tiền ra"**: bạn muốn ghi nhận theo ngày **received** (nhận hàng/hoàn tất dịch vụ) hay theo ngày **paid** (thực sự chuyển khoản)? Default đề xuất: theo `paid_at` khi có, fallback `received_at`/`completed_at`.
+2. **Tuổi nợ (Aging)**: tính từ `check_out_date` hay `created_at` của booking? Default: `check_out_date`.
+3. **OTA payout**: bạn có muốn coi toàn bộ booking OTA đã checkout nhưng chưa có `booking_payments completed` là "OTA giữ", hay chỉ tính khi `payment_status != 'paid'`? Default: cách 2 (an toàn hơn, không double-count).
+4. **Lương & chi phí cố định** (điện/nước/internet): có cần ô nhập tay tạm trong report này, hay chờ module `manual_expenses` riêng?
