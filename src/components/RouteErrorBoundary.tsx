@@ -97,23 +97,38 @@ export function RouteErrorBoundary() {
     (error as any)?.message ??
     (typeof error === 'string' ? error : 'Đã xảy ra lỗi không xác định');
 
+  if (typeof console !== 'undefined') {
+    console.error('[RouteErrorBoundary]', error);
+  }
+
+  const hardReset = async () => {
+    try {
+      sessionStorage.removeItem('__chunk_reload_attempted__');
+    } catch {
+      /* ignore */
+    }
+    await purgeCachesAndReload();
+  };
+
   return (
     <div className="flex min-h-dvh items-center justify-center bg-background p-4">
-      <div className="max-w-md w-full space-y-3 text-center">
-        <h2 className="text-base font-semibold text-destructive">Đã xảy ra lỗi</h2>
+      <div className="max-w-md w-full space-y-4 text-center">
+        <h2 className="text-base font-semibold text-destructive">Ứng dụng gặp lỗi tạm thời</h2>
         <p className="text-sm text-muted-foreground break-words">{message}</p>
-        <div className="flex gap-2 justify-center">
-          <Button
-            variant="outline"
-            className="h-9"
-            onClick={() => window.location.reload()}
-          >
-            Tải lại trang
+        <div className="flex flex-col gap-2">
+          <Button className="h-10 w-full" onClick={() => window.location.reload()}>
+            Tải lại
           </Button>
-          <Button className="h-9" onClick={() => navigate('/')}>
+          <Button variant="outline" className="h-10 w-full" onClick={hardReset}>
+            Xoá cache & tải lại
+          </Button>
+          <Button variant="ghost" className="h-9 w-full" onClick={() => navigate('/')}>
             Về trang chủ
           </Button>
         </div>
+        <p className="text-[11px] text-muted-foreground pt-2">
+          Nếu lỗi vẫn lặp lại sau khi xoá cache, vui lòng báo bộ phận kỹ thuật.
+        </p>
       </div>
     </div>
   );
