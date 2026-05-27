@@ -137,6 +137,7 @@ const HousekeepingHubPage = lazyNamed(() => import("./pages/reports/hub/Housekee
 const InventoryHubPage = lazyNamed(() => import("./pages/reports/hub/InventoryHubPage"), "InventoryHubPage");
 const OverviewHubPage = lazyNamed(() => import("./pages/reports/hub/OverviewHubPage"), "OverviewHubPage");
 const RoomRevenueReportPage = lazyNamed(() => import("./pages/reports/RoomRevenueReportPage"), "RoomRevenueReportPage");
+const CashFlowReportPage = lazyNamed(() => import("./pages/reports/CashFlowReportPage"), "CashFlowReportPage");
 
 // Hotels & Vendors
 const HotelsPage = lazyNamed(() => import("./pages/hotels/HotelsPage"), "HotelsPage");
@@ -501,6 +502,7 @@ const router = createBrowserRouter([
       { path: "reports/legacy", element: <PermissionRoute module="reports"><ReportsDashboardPage /></PermissionRoute> },
       { path: "reports/finance", element: <PermissionRoute module="reports"><FinanceHubPage /></PermissionRoute> },
       { path: "reports/room-revenue", element: <PermissionRoute module="reports"><RoomRevenueReportPage /></PermissionRoute> },
+      { path: "reports/cash-flow", element: <PermissionRoute module="reports"><CashFlowReportPage /></PermissionRoute> },
       { path: "reports/operations", element: <PermissionRoute module="reports"><OperationsHubPage /></PermissionRoute> },
       { path: "reports/housekeeping", element: <PermissionRoute module="reports"><HousekeepingHubPage /></PermissionRoute> },
       { path: "reports/inventory", element: <PermissionRoute module="reports"><InventoryHubPage /></PermissionRoute> },
