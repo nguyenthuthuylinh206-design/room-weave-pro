@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { PeriodPresetChips } from '@/components/reports/PeriodPresetChips'
-import { resolvePeriod, type PeriodPresetId } from '@/lib/reportPeriods'
+import { resolvePeriod, type PeriodPresetId, type PeriodRangeWithPrevious } from '@/lib/reportPeriods'
 import { useCashFlowReport } from '@/hooks/useCashFlowReport'
 import { CashFlowKpiHeadline } from '@/components/reports/cash-flow/CashFlowKpiHeadline'
 import { CashInOutChart } from '@/components/reports/cash-flow/CashInOutChart'
@@ -10,25 +10,32 @@ import { OtaPendingPanel } from '@/components/reports/cash-flow/OtaPendingPanel'
 import { UpcomingPayablesPanel } from '@/components/reports/cash-flow/UpcomingPayablesPanel'
 import { CashFlowInsights } from '@/components/reports/cash-flow/CashFlowInsights'
 
+interface Props {
+  period?: PeriodRangeWithPrevious
+  embedded?: boolean
+}
+
 /**
  * /reports/cash-flow — Báo cáo Dòng tiền cho chủ KS.
- * Trả lời 5 câu: tiền vào, tiền ra, ai còn nợ, OTA giữ bao nhiêu, sắp phải trả ai.
  */
-export function CashFlowReportPage() {
+export function CashFlowReportPage({ period: embeddedPeriod, embedded }: Props = {}) {
   const [presetId, setPresetId] = useState<PeriodPresetId>('this_month')
-  const period = resolvePeriod(presetId)
+  const period = embeddedPeriod ?? resolvePeriod(presetId)
   const m = useCashFlowReport(period)
 
   return (
-    <div className="space-y-4 p-3 sm:p-4 max-w-7xl mx-auto">
-      <header className="space-y-1">
-        <h1 className="text-xl font-semibold tracking-tight">Dòng tiền</h1>
-        <p className="text-sm text-muted-foreground">
-          Tiền vào, tiền ra, công nợ, OTA chưa thanh toán và khoản sắp phải trả.
-        </p>
-      </header>
-
-      <PeriodPresetChips value={presetId} onChange={setPresetId} />
+    <div className={embedded ? 'space-y-4' : 'space-y-4 p-3 sm:p-4 max-w-7xl mx-auto'}>
+      {!embedded && (
+        <>
+          <header className="space-y-1">
+            <h1 className="text-xl font-semibold tracking-tight">Dòng tiền</h1>
+            <p className="text-sm text-muted-foreground">
+              Tiền vào, tiền ra, công nợ, OTA chưa thanh toán và khoản sắp phải trả.
+            </p>
+          </header>
+          <PeriodPresetChips value={presetId} onChange={setPresetId} />
+        </>
+      )}
 
       <CashFlowKpiHeadline m={m} />
 

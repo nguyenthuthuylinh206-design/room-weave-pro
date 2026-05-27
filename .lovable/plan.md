@@ -1,124 +1,132 @@
-# Báo cáo Dòng tiền (Cash Flow)
 
-Trang trả lời 5 câu chủ khách sạn hỏi mỗi sáng: tiền vào bao nhiêu, sắp phải trả ai, ai còn nợ mình, OTA giữ bao nhiêu, tuần tới cần chuẩn bị bao nhiêu tiền mặt.
+# Kế hoạch hợp nhất & dọn dẹp báo cáo
 
-## 1. Vị trí & điều hướng
-- Route mới: `/reports/cash-flow` (standalone), thêm vào `reportsCatalog.ts` section **Tài chính**, đánh dấu `isNew: true`.
-- Roles: `super_admin`, `owner`, `hotel_manager` (Manager chỉ thấy hotel được gán qua HotelContext).
-- Permission: `view_reports`.
+Dựa trên phản hồi:
+1. **Xoá** tab `revenue` cũ trong Finance — gộp hẳn vào Room Revenue
+2. **Embed** dashboard `/housekeeping/qc` vào tab Housekeeping Hub
+3. **Xoá** `ReportsDashboardPage` cũ (không giữ legacy)
 
-## 2. Bố cục trang
+---
 
-```text
-┌────────────────────────────────────────────────────────┐
-│ Period chips: Hôm nay | 7N | Tháng | Tuỳ chỉnh          │
-│ Hotel selector                                         │
-├────────────────────────────────────────────────────────┤
-│ 4 KPI Headline                                         │
-│ Tiền vào kỳ | Tiền ra kỳ | Net cash | Số dư công nợ    │
-│ (mỗi ô có Δ% vs kỳ trước)                              │
-├────────────────────────────────────────────────────────┤
-│ Biểu đồ dòng tiền theo ngày                            │
-│ ComposedChart: cột Tiền vào (xanh) / Tiền ra (đỏ),     │
-│ line Net cash dồn                                      │
-├────────────────────────────────────────────────────────┤
-│ Tiền vào theo kênh           │ Tiền ra theo nhóm        │
-│ Cash | Bank | OTA payout     │ Mua hàng (PO)           │
-│ | Deposit | Khác             │ Giặt là                 │
-│                              │ Bảo trì                  │
-│                              │ Lương/khác (manual)      │
-├────────────────────────────────────────────────────────┤
-│ Công nợ phải thu (Aging)                               │
-│ 0-7N | 8-30N | 31-60N | >60N + danh sách top 10        │
-├────────────────────────────────────────────────────────┤
-│ OTA chưa thanh toán                                    │
-│ Theo kênh (Booking.com/Agoda/Traveloka...): số booking,│
-│ doanh thu, hoa hồng, net OTA giữ                       │
-├────────────────────────────────────────────────────────┤
-│ Sắp phải trả (Upcoming payables) 30N tới               │
-│ PO sắp đến hạn + maintenance pending + laundry chưa trả│
-├────────────────────────────────────────────────────────┤
-│ Cảnh báo dòng tiền (Insight cards)                     │
-└────────────────────────────────────────────────────────┘
+## A. Kiến trúc mới
+
+### Finance Hub (`/reports/finance`) — 3 tab
+```
+├── room-revenue  (default)  ← RoomRevenueReportPage embedded
+├── cash-flow                 ← CashFlowReportPage embedded
+└── costs                     ← FinancialReportPage (P&L) embedded
+```
+→ **Xoá** `RevenueReportPage` khỏi hub (logic doanh thu đã có trong Room Revenue).
+
+### Operations Hub (`/reports/operations`) — 2 tab
+```
+├── kpi      ← OperationsReportPage
+└── rooms    ← RoomsReportPage
+```
+→ **Xoá** tab `damages` (chuyển sang Inventory Hub).
+
+### Inventory Hub (`/reports/inventory-hub`) — 5 tab
+```
+├── stock        ← InventoryReportPage
+├── outbound     ← OutboundReportPage
+├── audit        ← StockAuditReportPage
+├── maintenance  ← MaintenanceReportPage
+└── damages      ← DamagesReportPage  (MỚI, chuyển từ Operations)
 ```
 
-## 3. Công thức & nguồn dữ liệu
+### Housekeeping Hub (`/reports/housekeeping`) — 2 tab
+```
+├── qc        ← QCDashboardPage embedded  (MỚI, default)
+└── laundry   ← LaundryReportPage
+```
 
-| Khối | Công thức | Bảng nguồn |
-|---|---|---|
-| Tiền vào | `SUM(amount)` `booking_payments.payment_status='completed'` trong kỳ theo `paid_at` | `booking_payments` |
-| Tiền vào theo kênh | group by `payment_method` (cash/bank_transfer) + tách OTA từ `room_bookings.booking_source` LIKE 'ota_%' | `booking_payments` + `room_bookings` |
-| Tiền ra — Mua hàng | `SUM(total_amount)` `purchase_orders` `status IN ('received','paid')` theo `received_at`/`paid_at` | `purchase_orders` |
-| Tiền ra — Giặt là | `SUM(actual_cost ?? estimated_cost)` `laundry_batches` đã stocked trong kỳ | `laundry_batches` |
-| Tiền ra — Bảo trì | `SUM(actual_cost)` `maintenance_requests` `status='completed'` trong kỳ | `maintenance_requests` |
-| Tiền ra — Tổn thất kho | `SUM(total_value)` `inventory_transactions` type `damage`/`loss` | `inventory_transactions` |
-| Net cash | Tiền vào − Tiền ra | derived |
-| Công nợ phải thu | `room_bookings`: `total_amount − (amount_paid + deposit_amount) > 0` AND `payment_status != 'paid'` | `room_bookings` |
-| Aging | Theo `check_out_date` (fallback `created_at`) so với hôm nay | derived |
-| OTA chưa thanh toán | `room_bookings` `booking_source LIKE 'ota_%'` AND chưa có `booking_payments.completed` đối ứng | `room_bookings` + `booking_payments` |
-| Upcoming payables | `purchase_orders` `status='received' AND payment_status!='paid'` + `maintenance_requests` `status IN ('in_progress','completed') AND actual_cost > 0 AND chưa đánh dấu paid` | nhiều bảng |
+---
 
-Tenant isolation: tất cả query `.eq('tenant_id', tenantId)` + lọc `hotel_id` qua HotelContext.
+## B. Routing & Redirects
 
-## 4. Reuse / Refactor / Mới
+`src/App.tsx`:
+- **Giữ** route tab-based: `/reports/finance`, `/reports/operations`, `/reports/inventory-hub`, `/reports/housekeeping`
+- **Redirect** các route standalone về tab tương ứng:
+  - `/reports/room-revenue` → `/reports/finance?tab=room-revenue`
+  - `/reports/cash-flow`    → `/reports/finance?tab=cash-flow`
+  - `/reports/revenue`      → `/reports/finance?tab=room-revenue` (xoá page cũ)
+  - `/reports/financial`    → `/reports/finance?tab=costs`
+  - `/reports/damages`      → `/reports/inventory-hub?tab=damages`
+- **Xoá** route `/reports` (ReportsDashboardPage) → redirect về `/reports/finance` (entry point mặc định cho Owner). MobileReportsDashboard giữ riêng cho mobile (vẫn cần landing list).
 
-**Reuse**
-- `PeriodPresetChips`, `resolvePeriod` (reportPeriods.ts).
-- `KpiScorecard` cho 4 KPI lớn, `AlertList` cho insight.
-- `useRevenueReport` để lấy OTA commission (đã có `ota_commission_amount`, `bySource`).
-- `useMonthlyExpenses` không đủ vì chỉ trả tổng theo tháng — viết riêng theo ngày.
-- `formatCurrency`, ChartContainer recharts.
+> Lưu ý: `ReportsDashboardPage` chỉ dùng cho desktop landing. Mobile dùng `MobileReportsDashboard` (giữ nguyên — vẫn là landing list trên mobile). Sẽ thay desktop landing bằng redirect tới Finance Hub.
 
-**Refactor nhỏ**
-- `reportsCatalog.ts`: thêm entry `cash-flow` section `finance`.
+---
 
-**Mới**
-- `src/pages/reports/CashFlowReportPage.tsx`
-- `src/components/reports/cash-flow/CashFlowKpiHeadline.tsx`
-- `src/components/reports/cash-flow/CashInOutChart.tsx` (ComposedChart theo ngày)
-- `src/components/reports/cash-flow/CashInBreakdown.tsx` (tiền vào theo kênh + bảng)
-- `src/components/reports/cash-flow/CashOutBreakdown.tsx` (tiền ra theo nhóm + bảng)
-- `src/components/reports/cash-flow/ReceivablesAgingPanel.tsx` (aging bucket + top 10 booking)
-- `src/components/reports/cash-flow/OtaPendingPanel.tsx`
-- `src/components/reports/cash-flow/UpcomingPayablesPanel.tsx`
-- `src/components/reports/cash-flow/CashFlowInsights.tsx` (rule-based: net âm, OTA giữ >X%, aging >30N chiếm cao, payable 7N tới > tiền vào dự kiến)
-- `src/hooks/useCashFlowMetrics.ts` (gộp 4 nguồn tiền vào/ra theo ngày + bucket)
-- `src/hooks/useReceivablesAging.ts`
-- `src/hooks/useOtaPending.ts`
-- `src/hooks/useUpcomingPayables.ts`
-- Route trong `App.tsx`.
+## C. Component changes
 
-Tất cả hook dùng `react-query`, `staleTime: 5 phút`, query key gồm `tenantId + hotelId + period`. All Hotels mode hỗ trợ (hotelId null).
+### Thêm prop `embedded` (ẩn PageHeader khi nằm trong tab)
+- `RoomRevenueReportPage.tsx` — thêm `embedded?: boolean`, ẩn `<header>` khi true
+- `CashFlowReportPage.tsx` — tương tự
+- `QCDashboardPage` (`src/pages/housekeeping/QCDashboardPage.tsx` hoặc tương đương) — thêm `embedded?: boolean`
 
-## 5. UI/UX
-- Theo chuẩn Enterprise SaaS Minimalist (border, không icon nặng).
-- KPI tile: số to `text-3xl font-mono`, Δ% nhỏ semantic color.
-- Mobile portrait: KPI cuộn ngang snap, các panel xếp dọc full-width.
-- Empty state riêng từng panel ("Chưa có giao dịch trong kỳ").
-- Loading: Skeleton từng vùng (không block full page).
-- Format tiền: `1.700.000 ₫` (dấu chấm thousands).
+### Cập nhật Hub files
+- `FinanceHubPage.tsx` — đổi tabs thành `[room-revenue, cash-flow, costs]`, dùng `render: () => <Component period embedded />`. Xoá `FinanceKpiStrip` (đã có KPI trong Room Revenue) — hoặc giữ nếu hữu ích.
+- `OperationsHubPage.tsx` — xoá tab `damages`
+- `InventoryHubPage.tsx` — thêm tab `damages`
+- `HousekeepingHubPage.tsx` — thêm tab `qc` (default)
 
-## 6. Permissions
-- `view_reports` bắt buộc.
-- Owner/Super Admin: All Hotels mode.
-- Hotel Manager: chỉ hotel đã gán.
-- Staff: ẩn route khỏi catalog (đã có cơ chế `useAccessibleReports`).
+### Xoá files
+- `src/pages/reports/ReportsDashboardPage.tsx` (desktop landing cũ)
+- `src/pages/reports/RevenueReportPage.tsx` — **KHÔNG xoá file** (vẫn export component dùng được nơi khác nếu có). Chỉ bỏ khỏi catalog & hub. *(Cần verify trước khi xoá.)*
 
-## 7. Version & rollout
-- Bump `APP_VERSION` + `CURRENT_VERSION` → `1.0.53`.
-- Thêm changelog `public/changelog.json`.
-- Không migration DB (đọc dữ liệu sẵn có).
-- QA checklist: kỳ rỗng → empty; tổng tiền vào khớp manual 1 ngày; aging bucket tính đúng mốc 7/30/60; All Hotels mode tổng đúng; mobile iPhone SE không tràn.
-- Rollback: xoá route + catalog entry.
+### `src/lib/reportsCatalog.ts`
+- Bỏ entry `room-revenue` & `cash-flow` standalone, hoặc đổi `path` về tab URL.
+- Bỏ entry `revenue` (cũ).
+- Đảm bảo Finance section chỉ có 1 entry: Finance Hub.
+- Đảm bảo `damages` nằm trong Inventory section.
 
-## 8. Out of scope (sprint sau)
-- Forecast dòng tiền 30N tới bằng booking pace.
-- Reconciliation OTA payout (cần import statement Booking.com/Agoda).
-- Xuất PDF/Excel riêng cho cash flow (sẽ gộp vào Export tổng Finance Hub).
-- Module ghi nhận chi lương/điện nước thủ công (cần bảng `manual_expenses` — tách sprint riêng).
+---
 
-## 9. Câu hỏi chốt
-1. **Định nghĩa "Tiền ra"**: bạn muốn ghi nhận theo ngày **received** (nhận hàng/hoàn tất dịch vụ) hay theo ngày **paid** (thực sự chuyển khoản)? Default đề xuất: theo `paid_at` khi có, fallback `received_at`/`completed_at`.
-2. **Tuổi nợ (Aging)**: tính từ `check_out_date` hay `created_at` của booking? Default: `check_out_date`.
-3. **OTA payout**: bạn có muốn coi toàn bộ booking OTA đã checkout nhưng chưa có `booking_payments completed` là "OTA giữ", hay chỉ tính khi `payment_status != 'paid'`? Default: cách 2 (an toàn hơn, không double-count).
-4. **Lương & chi phí cố định** (điện/nước/internet): có cần ô nhập tay tạm trong report này, hay chờ module `manual_expenses` riêng?
+## D. Permission
+Không đổi — tất cả vẫn dùng `view_reports`. Catalog filter theo role/department giữ nguyên.
+
+---
+
+## E. Test
+- Smoke: load 4 hub, switch tab, đảm bảo không lỗi.
+- Redirect: các URL cũ vẫn vào đúng tab.
+- `reportsCatalog.test.ts` — update assertions cho danh sách mới.
+
+---
+
+## F. Rollout
+1. Migration nhẹ: chỉ thay đổi FE, không đụng DB.
+2. Bump version `1.0.54` + entry `changelog.json`.
+3. QA checklist:
+   - [ ] `/reports/room-revenue` redirect đúng
+   - [ ] `/reports/cash-flow` redirect đúng
+   - [ ] `/reports/damages` redirect đúng
+   - [ ] Tab QC trong Housekeeping load đúng dashboard
+   - [ ] Catalog mobile không vỡ
+   - [ ] Sidebar nav vẫn trỏ đúng
+
+---
+
+## File dự kiến sửa/xoá
+
+**Sửa:**
+- `src/App.tsx` (routes + redirects)
+- `src/lib/reportsCatalog.ts`
+- `src/pages/reports/hub/FinanceHubPage.tsx`
+- `src/pages/reports/hub/OperationsHubPage.tsx`
+- `src/pages/reports/hub/InventoryHubPage.tsx`
+- `src/pages/reports/hub/HousekeepingHubPage.tsx`
+- `src/pages/reports/RoomRevenueReportPage.tsx` (thêm `embedded`)
+- `src/pages/reports/CashFlowReportPage.tsx` (thêm `embedded`)
+- QCDashboardPage (thêm `embedded`) — cần verify path
+- `src/lib/app-version.ts` → `1.0.54`
+- `public/changelog.json`
+- `src/lib/reportsCatalog.test.ts`
+
+**Xoá:**
+- `src/pages/reports/ReportsDashboardPage.tsx`
+
+**Phần còn thiếu / giả định:**
+- Giả định `QCDashboardPage` có sẵn ở `/housekeeping/qc` và export một component có thể embed. Sẽ verify khi build và refactor tách shell nếu cần.
+- `MobileReportsDashboard` giữ nguyên cho mobile landing — không bị ảnh hưởng.

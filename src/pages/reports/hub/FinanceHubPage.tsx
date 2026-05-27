@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ReportHubShell } from './ReportHubShell'
-import { RevenueReportPage } from '../RevenueReportPage'
+import { RoomRevenueReportPage } from '../RoomRevenueReportPage'
+import { CashFlowReportPage } from '../CashFlowReportPage'
 import { FinancialReportPage } from '../FinancialReportPage'
 import { FinanceKpiStrip } from '@/components/reports/FinanceKpiStrip'
 import { PeriodPresetChips } from '@/components/reports/PeriodPresetChips'
@@ -13,12 +14,17 @@ export function FinanceHubPage() {
   return (
     <ReportHubShell
       title="Báo cáo Tài chính"
-      question="Tháng này lời hay lỗ? Tiền đi đâu?"
+      question="Hôm nay thu bao nhiêu? Tháng này lời hay lỗ? Tiền đi đâu?"
       tabs={[
         {
-          id: 'revenue',
-          label: 'Doanh thu',
-          render: () => <RevenueReportPage period={period} embedded />,
+          id: 'room-revenue',
+          label: 'Doanh thu phòng',
+          render: () => <RoomRevenueReportPage period={period} embedded />,
+        },
+        {
+          id: 'cash-flow',
+          label: 'Dòng tiền',
+          render: () => <CashFlowReportPage period={period} embedded />,
         },
         {
           id: 'costs',
@@ -26,7 +32,7 @@ export function FinanceHubPage() {
           render: () => <FinancialReportPage period={period} embedded />,
         },
       ]}
-      defaultTab="revenue"
+      defaultTab="room-revenue"
       scorecard={
         <div className="space-y-3">
           <PeriodPresetChips value={periodId} onChange={setPeriodId} />

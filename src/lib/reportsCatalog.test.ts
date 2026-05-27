@@ -8,15 +8,15 @@ import {
 
 describe('reportsCatalog (consolidated hubs)', () => {
   describe('filterReportsForUser', () => {
-    it('owner thấy toàn bộ 4 báo cáo hub', () => {
+    it('owner thấy toàn bộ 4 hub', () => {
       const r = filterReportsForUser(REPORTS_CATALOG, { role: 'owner' })
-      expect(r.length).toBe(REPORTS_CATALOG.length)
       expect(r.length).toBe(4)
+      expect(r.map((x) => x.id).sort()).toEqual(['finance', 'housekeeping', 'inventory', 'operations'])
     })
 
-    it('hotel_manager thấy toàn bộ báo cáo', () => {
+    it('hotel_manager thấy toàn bộ hub', () => {
       const r = filterReportsForUser(REPORTS_CATALOG, { role: 'hotel_manager' })
-      expect(r.length).toBe(REPORTS_CATALOG.length)
+      expect(r.length).toBe(4)
     })
 
     it('department_manager housekeeping chỉ thấy hub housekeeping', () => {
@@ -24,11 +24,10 @@ describe('reportsCatalog (consolidated hubs)', () => {
         role: 'department_manager',
         department: 'housekeeping',
       })
-      const ids = r.map((x) => x.id)
-      expect(ids).toEqual(['housekeeping'])
+      expect(r.map((x) => x.id)).toEqual(['housekeeping'])
     })
 
-    it('department_manager laundry thấy hub housekeeping (gộp giặt là)', () => {
+    it('department_manager laundry vẫn thấy hub housekeeping (gộp giặt là)', () => {
       const r = filterReportsForUser(REPORTS_CATALOG, {
         role: 'department_manager',
         department: 'laundry',

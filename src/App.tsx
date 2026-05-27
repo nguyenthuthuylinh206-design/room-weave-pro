@@ -120,7 +120,7 @@ const AssetGroupMigrationPage = lazy(() => import("./pages/settings/AssetGroupMi
 const HotelPolicyPage = lazy(() => import("./pages/settings/HotelPolicyPage"));
 
 // Reports
-const ReportsDashboardPage = lazyNamed(() => import("./pages/reports/ReportsDashboardPage"), "ReportsDashboardPage");
+// ReportsDashboardPage đã loại bỏ — desktop landing redirect sang Finance Hub, mobile dùng MobileReportsDashboard riêng.
 const InventoryReportPage = lazyNamed(() => import("./pages/reports/InventoryReportPage"), "InventoryReportPage");
 const FinancialReportPage = lazyNamed(() => import("./pages/reports/FinancialReportPage"), "FinancialReportPage");
 const LaundryReportPage = lazyNamed(() => import("./pages/reports/LaundryReportPage"), "LaundryReportPage");
@@ -497,21 +497,21 @@ const router = createBrowserRouter([
       { path: "help", element: <HelpPage /> },
       { path: "whats-new", element: <WhatsNewPage /> },
 
-      // Reports — consolidated hubs (4 trang chính + 1 dashboard)
+      // Reports — consolidated hubs (4 trang chính + overview)
       { path: "reports", element: <PermissionRoute module="reports"><OverviewHubPage /></PermissionRoute> },
-      { path: "reports/legacy", element: <PermissionRoute module="reports"><ReportsDashboardPage /></PermissionRoute> },
       { path: "reports/finance", element: <PermissionRoute module="reports"><FinanceHubPage /></PermissionRoute> },
-      { path: "reports/room-revenue", element: <PermissionRoute module="reports"><RoomRevenueReportPage /></PermissionRoute> },
-      { path: "reports/cash-flow", element: <PermissionRoute module="reports"><CashFlowReportPage /></PermissionRoute> },
       { path: "reports/operations", element: <PermissionRoute module="reports"><OperationsHubPage /></PermissionRoute> },
       { path: "reports/housekeeping", element: <PermissionRoute module="reports"><HousekeepingHubPage /></PermissionRoute> },
       { path: "reports/inventory", element: <PermissionRoute module="reports"><InventoryHubPage /></PermissionRoute> },
 
-      // Legacy report URLs → redirect vào hub mới với ?tab=
-      { path: "reports/revenue", element: <Navigate to="/reports/finance?tab=revenue" replace /> },
+      // Legacy / standalone report URLs → redirect vào hub mới
+      { path: "reports/legacy", element: <Navigate to="/reports" replace /> },
+      { path: "reports/room-revenue", element: <Navigate to="/reports/finance?tab=room-revenue" replace /> },
+      { path: "reports/cash-flow", element: <Navigate to="/reports/finance?tab=cash-flow" replace /> },
+      { path: "reports/revenue", element: <Navigate to="/reports/finance?tab=room-revenue" replace /> },
       { path: "reports/financial", element: <Navigate to="/reports/finance?tab=costs" replace /> },
       { path: "reports/rooms", element: <Navigate to="/reports/operations?tab=rooms" replace /> },
-      { path: "reports/damages", element: <Navigate to="/reports/operations?tab=damages" replace /> },
+      { path: "reports/damages", element: <Navigate to="/reports/inventory?tab=damages" replace /> },
       { path: "reports/laundry", element: <Navigate to="/reports/housekeeping?tab=laundry" replace /> },
       { path: "reports/outbound", element: <Navigate to="/reports/inventory?tab=outbound" replace /> },
       { path: "reports/stock-audit", element: <Navigate to="/reports/inventory?tab=audit" replace /> },
