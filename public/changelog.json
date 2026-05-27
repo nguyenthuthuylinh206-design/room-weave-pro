@@ -1,6 +1,18 @@
 {
-  "current": "1.0.61",
+  "current": "1.0.62",
   "versions": [
+    {
+      "version": "1.0.62",
+      "releaseDate": "2026-05-27",
+      "title": "Chat: gọn lại trên mobile, không bung 200 tin",
+      "changes": [
+        { "type": "improvement", "text": "Khung chat mobile dùng chiều cao trừ bottom nav, không tràn xuống menu; bỏ viền trên mobile cho gọn" },
+        { "type": "improvement", "text": "Tin nhắn ban đầu chỉ tải 50 tin mới nhất (thay vì 200) và dedupe theo id để không bị trùng khi realtime + refetch" },
+        { "type": "fix", "text": "Auto-scroll chỉ chạy khi mở hội thoại hoặc có tin mới ở cuối — không còn bị giật mỗi lần refetch" },
+        { "type": "fix", "text": "Dedupe attachment theo id để không hiện 2 lần khi realtime trùng payload" }
+      ]
+    },
+
     {
       "version": "1.0.61",
       "releaseDate": "2026-05-27",
