@@ -28,7 +28,18 @@ export const PricingSection = () => {
           {plans.map((plan, i) => {
             const isPro = plan === 'professional'
             const featuresRaw = t(`pricing.${plan}.features`, { returnObjects: true, defaultValue: [] })
-            const features = Array.isArray(featuresRaw) ? (featuresRaw as string[]) : []
+            // i18n có thể trả về array (đúng), string (bundle cũ), hoặc object — chuẩn hoá an toàn
+            let features: string[] = []
+            if (Array.isArray(featuresRaw)) {
+              features = (featuresRaw as unknown[]).filter((v): v is string => typeof v === 'string')
+            } else if (typeof featuresRaw === 'string') {
+              features = featuresRaw.split(/\r?\n|;|\|/).map((s) => s.trim()).filter(Boolean)
+            } else if (featuresRaw && typeof featuresRaw === 'object') {
+              features = Object.values(featuresRaw as Record<string, unknown>)
+                .filter((v): v is string => typeof v === 'string')
+            }
+
+
 
             return (
               <motion.div
