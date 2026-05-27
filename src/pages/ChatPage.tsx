@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, FormEvent } from 'react'
+import { useState, useRef, useEffect, FormEvent, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   useConversations,
@@ -11,7 +11,9 @@ import {
   uploadChatAttachment,
   type ConversationListItem,
   type ChatAttachment,
+  type ChatMessage,
   type UploadedChatAttachment,
+  type HotelMember,
 } from '@/hooks/useChat'
 import { useUser } from '@/hooks/useUser'
 import { supabase } from '@/integrations/supabase/client'
@@ -27,11 +29,37 @@ import {
 } from '@/components/ui/dialog'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { toast } from 'sonner'
-import { Paperclip, X, FileText, Loader2, Download } from 'lucide-react'
+import { Paperclip, X, FileText, Loader2, Download, Send, Search } from 'lucide-react'
+
+/* -------------------- Helpers -------------------- */
+
+function initials(name?: string | null, fallback = '?') {
+  const s = (name || '').trim()
+  if (!s) return fallback
+  const parts = s.split(/\s+/).slice(-2)
+  return parts.map((p) => p[0]?.toUpperCase() || '').join('') || fallback
+}
+
+function removeDiacritics(s: string) {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+}
+
+const ROLE_LABEL: Record<string, string> = {
+  owner: 'Chủ',
+  hotel_manager: 'Quản lý KS',
+  department_manager: 'Trưởng bộ phận',
+  manager: 'Quản lý',
+  staff: 'Nhân viên',
+}
+
+const MANAGER_ROLES = new Set(['owner', 'hotel_manager', 'department_manager', 'manager'])
+
+/* -------------------- Conversation row (sidebar) -------------------- */
 
 function ConversationRow({
   conv,
@@ -52,32 +80,178 @@ function ConversationRow({
     conv.last_sender_id === meId
       ? `Bạn: ${conv.last_message_preview || ''}`
       : conv.last_message_preview || 'Chưa có tin nhắn'
+  const unread = conv.unread_count > 0
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        'w-full text-left px-3 py-2 border-b hover:bg-muted/40 transition-colors',
+        'w-full text-left px-2.5 py-1.5 border-b hover:bg-muted/50 transition-colors flex items-center gap-2',
         active && 'bg-muted'
       )}
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-medium truncate">{title}</span>
-        {conv.last_message_at && (
-          <span className="text-xs text-muted-foreground shrink-0">
-            {formatDistanceToNow(new Date(conv.last_message_at), { locale: vi, addSuffix: false })}
+      <Avatar className="h-9 w-9 shrink-0">
+        {conv.peer?.avatar_url && <AvatarImage src={conv.peer.avatar_url} alt={title} />}
+        <AvatarFallback className="text-[11px]">
+          {conv.type === 'group' ? 'GR' : initials(title)}
+        </AvatarFallback>
+      </Avatar>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <span className={cn('text-[13px] truncate', unread ? 'font-semibold' : 'font-medium')}>
+            {title}
           </span>
-        )}
-      </div>
-      <div className="flex items-center justify-between gap-2 mt-0.5">
-        <span className="text-xs text-muted-foreground truncate">{preview}</span>
-        {conv.unread_count > 0 && (
-          <span className="text-xs font-semibold text-red-600 shrink-0">
-            {conv.unread_count}
+          {conv.last_message_at && (
+            <span className="text-[10px] text-muted-foreground shrink-0">
+              {formatDistanceToNow(new Date(conv.last_message_at), { locale: vi, addSuffix: false })}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className={cn(
+              'text-xs truncate',
+              unread ? 'text-foreground' : 'text-muted-foreground'
+            )}
+          >
+            {preview}
           </span>
-        )}
+          {unread && (
+            <span className="ml-2 shrink-0 h-4 min-w-[16px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold flex items-center justify-center">
+              {conv.unread_count}
+            </span>
+          )}
+        </div>
       </div>
     </button>
+  )
+}
+
+/* -------------------- New conversation dialog -------------------- */
+
+function MemberPicker({
+  members,
+  selected,
+  onToggle,
+  multi,
+}: {
+  members: HotelMember[]
+  selected: string[]
+  onToggle: (id: string, checked: boolean) => void
+  multi: boolean
+}) {
+  const [query, setQuery] = useState('')
+
+  const filtered = useMemo(() => {
+    const q = removeDiacritics(query.trim())
+    if (!q) return members
+    return members.filter((m) => {
+      const n = removeDiacritics((m.full_name || '') + ' ' + (m.email || ''))
+      return n.includes(q)
+    })
+  }, [members, query])
+
+  const groups = useMemo(() => {
+    const managers: HotelMember[] = []
+    const staff: HotelMember[] = []
+    for (const m of filtered) {
+      if (MANAGER_ROLES.has((m.role || '').toLowerCase())) managers.push(m)
+      else staff.push(m)
+    }
+    return [
+      { label: 'Quản lý', items: managers },
+      { label: 'Nhân viên', items: staff },
+    ].filter((g) => g.items.length > 0)
+  }, [filtered])
+
+  const selectedMembers = useMemo(
+    () => members.filter((m) => selected.includes(m.id)),
+    [members, selected]
+  )
+
+  return (
+    <div className="space-y-2">
+      <div className="relative">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Tìm tên hoặc email..."
+          className="h-8 pl-8 text-sm"
+        />
+      </div>
+
+      {multi && selectedMembers.length > 0 && (
+        <div className="flex flex-wrap gap-1 border-b pb-2">
+          {selectedMembers.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => onToggle(m.id, false)}
+              className="inline-flex items-center gap-1 bg-muted hover:bg-muted/70 rounded-full pl-1 pr-1.5 py-0.5 text-[11px]"
+            >
+              <Avatar className="h-4 w-4">
+                {m.avatar_url && <AvatarImage src={m.avatar_url} alt="" />}
+                <AvatarFallback className="text-[8px]">{initials(m.full_name)}</AvatarFallback>
+              </Avatar>
+              <span className="max-w-[100px] truncate">{m.full_name || m.email}</span>
+              <X className="h-3 w-3 opacity-60" />
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="border rounded-md">
+        <ScrollArea className="h-72">
+          {filtered.length === 0 ? (
+            <div className="p-4 text-sm text-muted-foreground text-center">
+              Không tìm thấy thành viên
+            </div>
+          ) : (
+            groups.map((g) => (
+              <div key={g.label}>
+                <div className="sticky top-0 bg-muted/80 backdrop-blur px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border-b">
+                  {g.label} · {g.items.length}
+                </div>
+                {g.items.map((m) => {
+                  const checked = selected.includes(m.id)
+                  return (
+                    <label
+                      key={m.id}
+                      className="flex items-center gap-2 px-2.5 py-1.5 border-b cursor-pointer hover:bg-muted/40"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(c) => onToggle(m.id, !!c)}
+                      />
+                      <Avatar className="h-7 w-7 shrink-0">
+                        {m.avatar_url && <AvatarImage src={m.avatar_url} alt="" />}
+                        <AvatarFallback className="text-[10px]">{initials(m.full_name)}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] truncate leading-tight">
+                          {m.full_name || m.email}
+                        </div>
+                        {m.full_name && m.email && (
+                          <div className="text-[10px] text-muted-foreground truncate leading-tight">
+                            {m.email}
+                          </div>
+                        )}
+                      </div>
+                      {m.role && (
+                        <span className="text-[10px] text-muted-foreground shrink-0">
+                          {ROLE_LABEL[m.role] || m.role}
+                        </span>
+                      )}
+                    </label>
+                  )
+                })}
+              </div>
+            ))
+          )}
+        </ScrollArea>
+      </div>
+    </div>
   )
 }
 
@@ -94,6 +268,15 @@ function NewConversationDialog({ onCreated }: { onCreated: (id: string) => void 
     setGroupName('')
     setSelected([])
     setTab('dm')
+  }
+
+  const handleToggle = (id: string, checked: boolean) => {
+    if (!checked) {
+      setSelected((s) => s.filter((x) => x !== id))
+      return
+    }
+    if (tab === 'dm') setSelected([id])
+    else setSelected((s) => (s.includes(id) ? s : [...s, id]))
   }
 
   const handleCreate = async () => {
@@ -125,72 +308,60 @@ function NewConversationDialog({ onCreated }: { onCreated: (id: string) => void 
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o)
+        if (!o) reset()
+      }}
+    >
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline" className="h-8">
+        <Button size="sm" variant="outline" className="h-7 px-2 text-xs">
           + Mới
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Hội thoại mới</DialogTitle>
+          <DialogTitle className="text-base">Hội thoại mới</DialogTitle>
         </DialogHeader>
-        <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-          <TabsList className="grid grid-cols-2">
-            <TabsTrigger value="dm">Chat 1-1</TabsTrigger>
-            <TabsTrigger value="group">Tạo nhóm</TabsTrigger>
+        <Tabs
+          value={tab}
+          onValueChange={(v) => {
+            setTab(v as any)
+            if (v === 'dm' && selected.length > 1) setSelected([selected[0]])
+          }}
+        >
+          <TabsList className="grid grid-cols-2 h-8">
+            <TabsTrigger value="dm" className="text-xs">Chat 1-1</TabsTrigger>
+            <TabsTrigger value="group" className="text-xs">Tạo nhóm</TabsTrigger>
           </TabsList>
-          <TabsContent value="group" className="space-y-2 mt-3">
+          <TabsContent value="group" className="mt-2">
             <Input
               placeholder="Tên nhóm"
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
-              className="h-9"
+              className="h-8 text-sm"
             />
           </TabsContent>
-          <TabsContent value="dm" className="mt-3" />
+          <TabsContent value="dm" className="mt-2" />
         </Tabs>
-        <div className="border rounded-md">
-          <ScrollArea className="h-64">
-            {isLoading ? (
-              <div className="p-4 text-sm text-muted-foreground">Đang tải...</div>
-            ) : members.length === 0 ? (
-              <div className="p-4 text-sm text-muted-foreground">Không có thành viên</div>
-            ) : (
-              members.map((m: any) => {
-                const checked = selected.includes(m.id)
-                return (
-                  <label
-                    key={m.id}
-                    className="flex items-center gap-2 px-3 py-2 border-b cursor-pointer hover:bg-muted/40"
-                  >
-                    <Checkbox
-                      checked={checked}
-                      onCheckedChange={(c) => {
-                        if (c) {
-                          if (tab === 'dm') setSelected([m.id])
-                          else setSelected([...selected, m.id])
-                        } else {
-                          setSelected(selected.filter((x) => x !== m.id))
-                        }
-                      }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm truncate">{m.full_name || m.email}</div>
-                      {m.full_name && (
-                        <div className="text-xs text-muted-foreground truncate">{m.email}</div>
-                      )}
-                    </div>
-                  </label>
-                )
-              })
-            )}
-          </ScrollArea>
-        </div>
+
+        {isLoading ? (
+          <div className="p-4 text-sm text-muted-foreground">Đang tải...</div>
+        ) : (
+          <MemberPicker
+            members={members}
+            selected={selected}
+            onToggle={handleToggle}
+            multi={tab === 'group'}
+          />
+        )}
+
         <Button
           onClick={handleCreate}
           disabled={createDM.isPending || createGroup.isPending}
-          className="w-full"
+          className="w-full h-9"
+          size="sm"
         >
           {createDM.isPending || createGroup.isPending ? 'Đang tạo...' : 'Tạo hội thoại'}
         </Button>
@@ -199,8 +370,10 @@ function NewConversationDialog({ onCreated }: { onCreated: (id: string) => void 
   )
 }
 
+/* -------------------- Attachments -------------------- */
+
 const MAX_ATTACHMENTS = 6
-const MAX_FILE_BYTES = 20 * 1024 * 1024 // 20MB
+const MAX_FILE_BYTES = 20 * 1024 * 1024
 
 function formatBytes(n: number | null | undefined) {
   if (!n) return ''
@@ -209,7 +382,6 @@ function formatBytes(n: number | null | undefined) {
   return `${(n / 1024 / 1024).toFixed(1)} MB`
 }
 
-/** Lấy signed URL cho file riêng tư trong bucket chat-attachments (cache theo path). */
 const signedUrlCache = new Map<string, { url: string; expiresAt: number }>()
 async function getSignedAttachmentUrl(path: string): Promise<string | null> {
   const cached = signedUrlCache.get(path)
@@ -241,17 +413,17 @@ function AttachmentBubble({ att, mine }: { att: ChatAttachment; mine: boolean })
         href={url || '#'}
         target="_blank"
         rel="noopener noreferrer"
-        className="block overflow-hidden rounded-md border max-w-[240px]"
+        className="block overflow-hidden rounded-xl border max-w-[200px]"
       >
         {url ? (
           <img
             src={url}
             alt={att.file_name || 'image'}
-            className="max-h-60 w-auto object-cover"
+            className="max-h-52 w-auto object-cover"
             loading="lazy"
           />
         ) : (
-          <div className="h-32 w-40 flex items-center justify-center bg-muted">
+          <div className="h-28 w-36 flex items-center justify-center bg-muted">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           </div>
         )}
@@ -265,16 +437,16 @@ function AttachmentBubble({ att, mine }: { att: ChatAttachment; mine: boolean })
       rel="noopener noreferrer"
       download={att.file_name || undefined}
       className={cn(
-        'flex items-center gap-2 rounded-md border px-3 py-2 max-w-[260px] hover:bg-muted/60 transition-colors',
+        'flex items-center gap-2 rounded-xl border px-2.5 py-1.5 max-w-[220px] hover:bg-muted/60 transition-colors',
         mine ? 'bg-primary-foreground/10 border-primary-foreground/20' : 'bg-background'
       )}
     >
       <FileText className="h-4 w-4 shrink-0 opacity-70" />
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-medium truncate">{att.file_name || 'Tệp đính kèm'}</div>
+        <div className="text-[11px] font-medium truncate">{att.file_name || 'Tệp đính kèm'}</div>
         <div className="text-[10px] opacity-70">{formatBytes(att.size_bytes)}</div>
       </div>
-      <Download className="h-3.5 w-3.5 opacity-60" />
+      <Download className="h-3 w-3 opacity-60" />
     </a>
   )
 }
@@ -288,6 +460,32 @@ interface PendingAttachment {
   error?: string
 }
 
+/* -------------------- Message grouping -------------------- */
+
+interface MessageGroup {
+  senderId: string
+  sender?: ChatMessage['sender']
+  items: ChatMessage[]
+}
+
+function groupMessages(messages: ChatMessage[]): MessageGroup[] {
+  const groups: MessageGroup[] = []
+  const WINDOW = 3 * 60 * 1000
+  for (const m of messages) {
+    const last = groups[groups.length - 1]
+    const last_t = last && new Date(last.items[last.items.length - 1].created_at).getTime()
+    const cur_t = new Date(m.created_at).getTime()
+    if (last && last.senderId === m.sender_id && cur_t - last_t < WINDOW) {
+      last.items.push(m)
+    } else {
+      groups.push({ senderId: m.sender_id, sender: m.sender, items: [m] })
+    }
+  }
+  return groups
+}
+
+/* -------------------- Conversation view -------------------- */
+
 function ConversationView({ conversationId }: { conversationId: string }) {
   const { user } = useUser()
   const { data: messages = [], isLoading } = useMessages(conversationId)
@@ -297,6 +495,7 @@ function ConversationView({ conversationId }: { conversationId: string }) {
   const [pending, setPending] = useState<PendingAttachment[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const lastMarkedRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -304,12 +503,16 @@ function ConversationView({ conversationId }: { conversationId: string }) {
     }
   }, [messages.length, pending.length])
 
+  // mark read only when last message id changes
   useEffect(() => {
-    if (conversationId && messages.length > 0) {
-      markRead.mutate(conversationId)
-    }
+    if (!conversationId || messages.length === 0) return
+    const lastId = messages[messages.length - 1].id
+    const key = `${conversationId}:${lastId}`
+    if (lastMarkedRef.current === key) return
+    lastMarkedRef.current = key
+    markRead.mutate(conversationId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversationId, messages.length])
+  }, [conversationId, messages.length > 0 ? messages[messages.length - 1].id : null])
 
   useEffect(() => {
     return () => {
@@ -341,7 +544,6 @@ function ConversationView({ conversationId }: { conversationId: string }) {
     if (accepted.length === 0) return
     setPending((prev) => [...prev, ...accepted])
 
-    // Upload song song
     await Promise.all(
       accepted.map(async (p) => {
         try {
@@ -389,7 +591,6 @@ function ConversationView({ conversationId }: { conversationId: string }) {
     setPending([])
     try {
       await sendMessage.mutateAsync({ body, attachments: doneAtt })
-      // cleanup object URLs
       snapshotPending.forEach((p) => p.previewUrl && URL.revokeObjectURL(p.previewUrl))
     } catch (err: any) {
       toast.error(err.message || 'Không gửi được')
@@ -398,9 +599,11 @@ function ConversationView({ conversationId }: { conversationId: string }) {
     }
   }
 
+  const groups = useMemo(() => groupMessages(messages), [messages])
+
   return (
     <div className="flex flex-col h-full">
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5">
         {isLoading ? (
           <div className="text-sm text-muted-foreground">Đang tải...</div>
         ) : messages.length === 0 ? (
@@ -408,52 +611,87 @@ function ConversationView({ conversationId }: { conversationId: string }) {
             Chưa có tin nhắn. Hãy bắt đầu cuộc trò chuyện.
           </div>
         ) : (
-          messages.map((m) => {
-            const mine = m.sender_id === user?.id
-            const atts = m.attachments || []
+          groups.map((g, gi) => {
+            const mine = g.senderId === user?.id
+            const last = g.items[g.items.length - 1]
             return (
               <div
-                key={m.id}
-                className={cn('flex flex-col', mine ? 'items-end' : 'items-start')}
+                key={gi}
+                className={cn('flex gap-2', mine ? 'flex-row-reverse' : 'flex-row')}
               >
-                {!mine && (
-                  <span className="text-xs text-muted-foreground mb-0.5 px-1">
-                    {m.sender?.full_name || 'Người dùng'}
-                  </span>
+                {!mine ? (
+                  <Avatar className="h-6 w-6 mt-auto shrink-0">
+                    {g.sender?.avatar_url && <AvatarImage src={g.sender.avatar_url} alt="" />}
+                    <AvatarFallback className="text-[9px]">
+                      {initials(g.sender?.full_name)}
+                    </AvatarFallback>
+                  </Avatar>
+                ) : (
+                  <div className="w-6 shrink-0" />
                 )}
-                {atts.length > 0 && (
-                  <div
-                    className={cn(
-                      'flex flex-col gap-1 mb-1 max-w-[75%]',
-                      mine ? 'items-end' : 'items-start'
-                    )}
-                  >
-                    {atts.map((a) => (
-                      <AttachmentBubble key={a.id} att={a} mine={mine} />
-                    ))}
-                  </div>
-                )}
-                {(m.body || m.deleted_at) && (
-                  <div
-                    className={cn(
-                      'max-w-[75%] rounded-lg px-3 py-2 text-sm break-words whitespace-pre-wrap',
-                      mine ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                    )}
-                  >
-                    {m.deleted_at ? (
-                      <span className="italic text-muted-foreground">Tin nhắn đã xoá</span>
-                    ) : (
-                      m.body
-                    )}
-                  </div>
-                )}
-                <span className="text-[10px] text-muted-foreground mt-0.5 px-1">
-                  {new Date(m.created_at).toLocaleTimeString('vi-VN', {
-                    hour: '2-digit',
-                    minute: '2-digit',
+                <div
+                  className={cn(
+                    'flex flex-col gap-0.5 max-w-[72%]',
+                    mine ? 'items-end' : 'items-start'
+                  )}
+                >
+                  {!mine && (
+                    <span className="text-[10px] text-muted-foreground px-1">
+                      {g.sender?.full_name || 'Người dùng'}
+                    </span>
+                  )}
+                  {g.items.map((m, mi) => {
+                    const atts = m.attachments || []
+                    const isLast = mi === g.items.length - 1
+                    return (
+                      <div
+                        key={m.id}
+                        className={cn(
+                          'flex flex-col gap-0.5',
+                          mine ? 'items-end' : 'items-start'
+                        )}
+                      >
+                        {atts.length > 0 && (
+                          <div
+                            className={cn(
+                              'flex flex-col gap-1',
+                              mine ? 'items-end' : 'items-start'
+                            )}
+                          >
+                            {atts.map((a) => (
+                              <AttachmentBubble key={a.id} att={a} mine={mine} />
+                            ))}
+                          </div>
+                        )}
+                        {(m.body || m.deleted_at) && (
+                          <div
+                            className={cn(
+                              'px-2.5 py-1.5 text-[13px] leading-snug break-words whitespace-pre-wrap rounded-2xl',
+                              mine
+                                ? 'bg-primary text-primary-foreground rounded-br-md'
+                                : 'bg-muted rounded-bl-md'
+                            )}
+                          >
+                            {m.deleted_at ? (
+                              <span className="italic opacity-70">Tin nhắn đã xoá</span>
+                            ) : (
+                              m.body
+                            )}
+                          </div>
+                        )}
+                        {isLast && (
+                          <span className="text-[10px] text-muted-foreground px-1">
+                            {new Date(m.created_at).toLocaleTimeString('vi-VN', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                            {m.edited_at && ' · đã sửa'}
+                          </span>
+                        )}
+                      </div>
+                    )
                   })}
-                  {m.edited_at && ' · đã sửa'}
-                </span>
+                </div>
               </div>
             )
           })
@@ -461,30 +699,30 @@ function ConversationView({ conversationId }: { conversationId: string }) {
       </div>
 
       {pending.length > 0 && (
-        <div className="border-t px-2 py-2 flex gap-2 overflow-x-auto bg-muted/30">
+        <div className="border-t px-2 py-1.5 flex gap-1.5 overflow-x-auto bg-muted/30">
           {pending.map((p) => (
             <div
               key={p.id}
               className="relative shrink-0 border rounded-md bg-background overflow-hidden"
-              style={{ width: 72, height: 72 }}
+              style={{ width: 56, height: 56 }}
             >
               {p.previewUrl ? (
                 <img src={p.previewUrl} alt={p.file.name} className="h-full w-full object-cover" />
               ) : (
                 <div className="h-full w-full flex flex-col items-center justify-center p-1">
-                  <FileText className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-[9px] text-muted-foreground truncate w-full text-center mt-0.5">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-[8px] text-muted-foreground truncate w-full text-center mt-0.5">
                     {p.file.name}
                   </span>
                 </div>
               )}
               {p.status === 'uploading' && (
                 <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 </div>
               )}
               {p.status === 'error' && (
-                <div className="absolute inset-0 bg-destructive/70 flex items-center justify-center text-[10px] text-destructive-foreground text-center px-1">
+                <div className="absolute inset-0 bg-destructive/70 flex items-center justify-center text-[9px] text-destructive-foreground text-center px-1">
                   Lỗi
                 </div>
               )}
@@ -494,14 +732,18 @@ function ConversationView({ conversationId }: { conversationId: string }) {
                 className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 shadow"
                 aria-label="Xoá"
               >
-                <X className="h-3 w-3" />
+                <X className="h-2.5 w-2.5" />
               </button>
             </div>
           ))}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="border-t p-2 flex gap-2 items-center">
+      <form
+        onSubmit={handleSubmit}
+        className="border-t p-1.5 flex gap-1.5 items-center bg-background"
+        style={{ paddingBottom: 'calc(0.375rem + env(safe-area-inset-bottom))' }}
+      >
         <input
           ref={fileInputRef}
           type="file"
@@ -517,7 +759,7 @@ function ConversationView({ conversationId }: { conversationId: string }) {
           type="button"
           size="sm"
           variant="ghost"
-          className="h-9 w-9 p-0 shrink-0"
+          className="h-8 w-8 p-0 shrink-0"
           onClick={() => fileInputRef.current?.click()}
           disabled={pending.length >= MAX_ATTACHMENTS}
           aria-label="Đính kèm tệp"
@@ -528,22 +770,32 @@ function ConversationView({ conversationId }: { conversationId: string }) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Nhập tin nhắn..."
-          className="h-9"
+          className="h-8 text-sm rounded-full px-3"
           autoFocus
         />
-        <Button type="submit" size="sm" className="h-9" disabled={!canSend}>
-          {isUploading ? 'Đang tải...' : 'Gửi'}
+        <Button
+          type="submit"
+          size="sm"
+          className="h-8 w-8 p-0 shrink-0 rounded-full"
+          disabled={!canSend}
+          aria-label="Gửi"
+        >
+          {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>
       </form>
     </div>
   )
 }
 
+/* -------------------- Page -------------------- */
+
 export default function ChatPage() {
   const { conversationId } = useParams<{ conversationId: string }>()
   const navigate = useNavigate()
   const { user } = useUser()
   const { data: conversations = [], isLoading } = useConversations()
+  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState<'all' | 'unread'>('all')
 
   const activeConv = conversations.find((c) => c.id === conversationId) || null
 
@@ -553,28 +805,70 @@ export default function ChatPage() {
       : activeConv.name || 'Nhóm'
     : null
 
+  const visibleConvs = useMemo(() => {
+    const q = removeDiacritics(search.trim())
+    return conversations.filter((c) => {
+      if (filter === 'unread' && c.unread_count === 0) return false
+      if (!q) return true
+      const title =
+        c.type === 'direct' ? c.peer?.full_name || '' : c.name || ''
+      const hay = removeDiacritics(title + ' ' + (c.last_message_preview || ''))
+      return hay.includes(q)
+    })
+  }, [conversations, search, filter])
+
   return (
-    <div className="h-[calc(100vh-12rem)] md:h-[calc(100vh-10rem)] border rounded-lg overflow-hidden flex">
+    <div className="h-[calc(100dvh-8rem)] md:h-[calc(100dvh-9rem)] border rounded-lg overflow-hidden flex bg-background">
       {/* Sidebar */}
       <div
         className={cn(
-          'w-full md:w-80 border-r flex flex-col',
+          'w-full md:w-72 border-r flex flex-col min-h-0',
           conversationId && 'hidden md:flex'
         )}
       >
-        <div className="p-3 border-b flex items-center justify-between gap-2">
+        <div className="p-2 border-b flex items-center justify-between gap-2">
           <h2 className="text-sm font-semibold">Tin nhắn</h2>
           <NewConversationDialog onCreated={(id) => navigate(`/chat/${id}`)} />
+        </div>
+        <div className="px-2 pt-2 pb-1 space-y-1.5 border-b">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Tìm hội thoại..."
+              className="h-7 pl-8 text-xs"
+            />
+          </div>
+          <div className="flex gap-1">
+            {(['all', 'unread'] as const).map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setFilter(f)}
+                className={cn(
+                  'text-[11px] px-2 py-0.5 rounded-full border',
+                  filter === f
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'border-border text-muted-foreground hover:bg-muted'
+                )}
+              >
+                {f === 'all' ? 'Tất cả' : 'Chưa đọc'}
+              </button>
+            ))}
+          </div>
         </div>
         <ScrollArea className="flex-1">
           {isLoading ? (
             <div className="p-4 text-sm text-muted-foreground">Đang tải...</div>
-          ) : conversations.length === 0 ? (
-            <div className="p-4 text-sm text-muted-foreground">
-              Chưa có hội thoại. Nhấn "+ Mới" để bắt đầu.
+          ) : visibleConvs.length === 0 ? (
+            <div className="p-4 text-xs text-muted-foreground text-center">
+              {conversations.length === 0
+                ? 'Chưa có hội thoại. Nhấn "+ Mới" để bắt đầu.'
+                : 'Không có hội thoại khớp.'}
             </div>
           ) : (
-            conversations.map((c) => (
+            visibleConvs.map((c) => (
               <ConversationRow
                 key={c.id}
                 conv={c}
@@ -588,23 +882,32 @@ export default function ChatPage() {
       </div>
 
       {/* Conversation pane */}
-      <div className={cn('flex-1 flex flex-col', !conversationId && 'hidden md:flex')}>
+      <div className={cn('flex-1 flex flex-col min-h-0', !conversationId && 'hidden md:flex')}>
         {conversationId ? (
           <>
-            <div className="px-4 py-3 border-b flex items-center gap-2">
+            <div className="px-2 py-1.5 border-b flex items-center gap-2 shrink-0">
               <Button
                 variant="ghost"
                 size="sm"
-                className="md:hidden h-8 px-2"
+                className="md:hidden h-7 w-7 p-0"
                 onClick={() => navigate('/chat')}
+                aria-label="Quay lại"
               >
                 ←
               </Button>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold truncate">{activeTitle}</div>
-                <div className="text-xs text-muted-foreground">
-                  {activeConv?.type === 'group' ? 'Nhóm' : 'Chat trực tiếp'}
-                </div>
+              <Avatar className="h-7 w-7">
+                {activeConv?.peer?.avatar_url && (
+                  <AvatarImage src={activeConv.peer.avatar_url} alt={activeTitle || ''} />
+                )}
+                <AvatarFallback className="text-[10px]">
+                  {activeConv?.type === 'group' ? 'GR' : initials(activeTitle)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0 flex items-center gap-1.5">
+                <span className="text-sm font-semibold truncate">{activeTitle}</span>
+                <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full shrink-0">
+                  {activeConv?.type === 'group' ? 'Nhóm' : '1-1'}
+                </span>
               </div>
             </div>
             <div className="flex-1 min-h-0">
