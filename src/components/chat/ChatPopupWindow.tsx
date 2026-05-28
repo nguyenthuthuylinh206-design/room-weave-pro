@@ -47,7 +47,7 @@ export function ChatPopupWindow({
     if (minimized) return null
     return (
       <section
-        className="fixed inset-0 z-[70] flex h-[100svh] max-h-[100dvh] flex-col bg-background overscroll-contain"
+        className="fixed inset-0 z-[70] flex h-[100dvh] flex-col bg-background overscroll-contain"
         aria-label={`Cửa sổ chat với ${title}`}
       >
         <div
