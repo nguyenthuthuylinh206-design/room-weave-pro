@@ -49,6 +49,10 @@ function removeDiacritics(s: string) {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 }
 
+function errorMessage(err: unknown, fallback: string) {
+  return err instanceof Error ? err.message : fallback
+}
+
 const ROLE_LABEL: Record<string, string> = {
   owner: 'Chủ',
   hotel_manager: 'Quản lý KS',
@@ -61,7 +65,7 @@ const MANAGER_ROLES = new Set(['owner', 'hotel_manager', 'department_manager', '
 
 /* -------------------- Conversation row (sidebar) -------------------- */
 
-function ConversationRow({
+export function ConversationRow({
   conv,
   active,
   onClick,
@@ -255,7 +259,7 @@ function MemberPicker({
   )
 }
 
-function NewConversationDialog({ onCreated }: { onCreated: (id: string) => void }) {
+export function NewConversationDialog({ onCreated }: { onCreated: (id: string) => void }) {
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<'dm' | 'group'>('dm')
   const [groupName, setGroupName] = useState('')
@@ -302,8 +306,8 @@ function NewConversationDialog({ onCreated }: { onCreated: (id: string) => void 
       }
       setOpen(false)
       reset()
-    } catch (e: any) {
-      toast.error(e.message || 'Không tạo được hội thoại')
+    } catch (e: unknown) {
+      toast.error(errorMessage(e, 'Không tạo được hội thoại'))
     }
   }
 
@@ -327,7 +331,7 @@ function NewConversationDialog({ onCreated }: { onCreated: (id: string) => void 
         <Tabs
           value={tab}
           onValueChange={(v) => {
-            setTab(v as any)
+            setTab(v as 'dm' | 'group')
             if (v === 'dm' && selected.length > 1) setSelected([selected[0]])
           }}
         >
@@ -486,7 +490,7 @@ function groupMessages(messages: ChatMessage[]): MessageGroup[] {
 
 /* -------------------- Conversation view -------------------- */
 
-function ConversationView({ conversationId }: { conversationId: string }) {
+export function ConversationView({ conversationId }: { conversationId: string }) {
   const { user } = useUser()
   const { data: messages = [], isLoading } = useMessages(conversationId)
   const sendMessage = useSendMessage(conversationId)
@@ -561,11 +565,11 @@ function ConversationView({ conversationId }: { conversationId: string }) {
           setPending((prev) =>
             prev.map((x) => (x.id === p.id ? { ...x, status: 'done', uploaded } : x))
           )
-        } catch (err: any) {
+        } catch (err: unknown) {
           setPending((prev) =>
             prev.map((x) =>
               x.id === p.id
-                ? { ...x, status: 'error', error: err?.message || 'Lỗi upload' }
+                ? { ...x, status: 'error', error: errorMessage(err, 'Lỗi upload') }
                 : x
             )
           )
@@ -602,8 +606,8 @@ function ConversationView({ conversationId }: { conversationId: string }) {
     try {
       await sendMessage.mutateAsync({ body, attachments: doneAtt })
       snapshotPending.forEach((p) => p.previewUrl && URL.revokeObjectURL(p.previewUrl))
-    } catch (err: any) {
-      toast.error(err.message || 'Không gửi được')
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, 'Không gửi được'))
       setText(body)
       setPending(snapshotPending)
     }
