@@ -47,16 +47,18 @@ export function ChatPopupWindow({
     if (minimized) return null
     return (
       <section
-        className="fixed inset-0 z-[60] flex flex-col bg-background"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        className="fixed left-0 right-0 top-0 z-[70] flex h-[100dvh] flex-col bg-background overscroll-contain"
         aria-label={`Cửa sổ chat với ${title}`}
       >
-        <div className="flex h-12 shrink-0 items-center gap-2 border-b bg-card px-2">
+        <div
+          className="flex shrink-0 items-center gap-2 border-b bg-card px-2"
+          style={{ paddingTop: 'env(safe-area-inset-top)', minHeight: 'calc(3rem + env(safe-area-inset-top))' }}
+        >
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="h-9 w-9 p-0"
+            className="h-10 w-10 p-0"
             onClick={() => {
               closePopup(conversationId)
               setLauncherOpen(true)
@@ -65,7 +67,7 @@ export function ChatPopupWindow({
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <Avatar className="h-7 w-7 shrink-0">
+          <Avatar className="h-8 w-8 shrink-0">
             {conv?.peer?.avatar_url && <AvatarImage src={conv.peer.avatar_url} alt={title} />}
             <AvatarFallback className="text-[10px]">
               {conv?.type === 'group' ? 'GR' : initials(title)}
@@ -76,7 +78,7 @@ export function ChatPopupWindow({
             type="button"
             variant="ghost"
             size="sm"
-            className="h-9 w-9 p-0"
+            className="h-10 w-10 p-0"
             onClick={() => {
               closePopup(conversationId)
               setLauncherOpen(false)
@@ -86,12 +88,13 @@ export function ChatPopupWindow({
             <X className="h-5 w-5" />
           </Button>
         </div>
-        <div className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 overflow-hidden">
           <ConversationView conversationId={conversationId} />
         </div>
       </section>
     )
   }
+
 
   // ─── DESKTOP ──────────────────────────────────────────────────────────────
   const right = LAUNCHER_OFFSET + index * (POPUP_WIDTH + POPUP_GAP)
