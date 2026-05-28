@@ -5,7 +5,7 @@ import { cn, formatCurrency } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import type { TapeChartBooking, TapeChartRoom } from '@/hooks/useTapeChart'
 import { getPaymentState } from '@/lib/tape-chart'
-import { isRoomDirty, normalizeRoomStatus } from '@/lib/roomStatus'
+import { isRoomDirty } from '@/lib/roomStatus'
 
 interface Props {
   rooms: TapeChartRoom[]
