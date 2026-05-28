@@ -736,7 +736,20 @@ export function ConversationView({ conversationId }: { conversationId: string })
             )
           })
         )}
+        </div>
+        {showScrollBtn && (
+          <button
+            type="button"
+            onClick={() => scrollToBottom(true)}
+            className="absolute bottom-3 right-3 z-10 h-9 w-9 rounded-full bg-background border shadow-md flex items-center justify-center hover:bg-muted"
+            aria-label="Về cuối"
+          >
+            <ChevronDown className="h-4 w-4" />
+          </button>
+        )}
       </div>
+
+
 
       {pending.length > 0 && (
         <div className="border-t px-2 py-1.5 flex gap-1.5 overflow-x-auto bg-muted/30">
