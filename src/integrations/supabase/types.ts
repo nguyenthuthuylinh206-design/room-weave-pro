@@ -7081,6 +7081,56 @@ export type Database = {
           },
         ]
       }
+      room_blocks: {
+        Row: {
+          block_type: string
+          created_at: string
+          created_by: string | null
+          end_date: string
+          hotel_id: string
+          id: string
+          reason: string | null
+          room_id: string
+          start_date: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          block_type?: string
+          created_at?: string
+          created_by?: string | null
+          end_date: string
+          hotel_id: string
+          id?: string
+          reason?: string | null
+          room_id: string
+          start_date: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          block_type?: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string
+          hotel_id?: string
+          id?: string
+          reason?: string | null
+          room_id?: string
+          start_date?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_blocks_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_bookings: {
         Row: {
           actual_check_in: string | null
@@ -11082,6 +11132,24 @@ export type Database = {
       }
     }
     Functions: {
+      _tc_check_block_conflict: {
+        Args: {
+          p_check_in: string
+          p_check_out: string
+          p_exclude_block_id?: string
+          p_room_id: string
+        }
+        Returns: string
+      }
+      _tc_check_booking_conflict: {
+        Args: {
+          p_check_in: string
+          p_check_out: string
+          p_exclude_booking_id?: string
+          p_room_id: string
+        }
+        Returns: string
+      }
       add_conversation_members: {
         Args: { _conversation_id: string; _user_ids: string[] }
         Returns: undefined
@@ -11605,6 +11673,17 @@ export type Database = {
             }
             Returns: Json
           }
+      create_room_block: {
+        Args: {
+          p_block_type?: string
+          p_end_date: string
+          p_hotel_id: string
+          p_reason?: string
+          p_room_id: string
+          p_start_date: string
+        }
+        Returns: Json
+      }
       create_stock_adjustment: {
         Args: {
           p_adjustment_type: string
@@ -11643,6 +11722,7 @@ export type Database = {
         Args: { p_transaction_id: string }
         Returns: Json
       }
+      delete_room_block: { Args: { p_block_id: string }; Returns: Json }
       deliver_stop: {
         Args: {
           p_actor_id?: string
@@ -12978,6 +13058,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      move_booking: {
+        Args: {
+          p_booking_id: string
+          p_new_check_in: string
+          p_new_check_out: string
+          p_new_room_id: string
+        }
+        Returns: Json
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -13236,6 +13325,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      resize_booking: {
+        Args: {
+          p_booking_id: string
+          p_new_check_in: string
+          p_new_check_out: string
+        }
+        Returns: Json
       }
       resolve_qc_settings: {
         Args: { _hotel_id: string; _task_type: string; _tenant_id: string }

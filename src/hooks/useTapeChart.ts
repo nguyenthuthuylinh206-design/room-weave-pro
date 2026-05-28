@@ -36,11 +36,25 @@ export interface TapeChartBooking {
   notes: string | null
 }
 
+export type RoomBlockType = 'ooo' | 'oos' | 'vip_hold' | 'maintenance' | 'other'
+
+export interface RoomBlock {
+  id: string
+  room_id: string
+  start_date: string
+  end_date: string
+  block_type: RoomBlockType
+  reason: string | null
+  created_at: string
+  created_by: string | null
+}
+
 export interface TapeChartData {
   start_date: string
   days: number
   rooms: TapeChartRoom[]
   bookings: TapeChartBooking[]
+  room_blocks: RoomBlock[]
 }
 
 export function useTapeChart(startDate: string, days: number) {
@@ -49,7 +63,6 @@ export function useTapeChart(startDate: string, days: number) {
   const queryClient = useQueryClient()
   const key = ['tape-chart', hotelId, startDate, days] as const
 
-  // Realtime: refetch khi room_bookings hoặc rooms thay đổi cho hotel này
   useEffect(() => {
     if (!hotelId) return
     const channel = supabase
@@ -62,6 +75,11 @@ export function useTapeChart(startDate: string, days: number) {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'rooms', filter: `hotel_id=eq.${hotelId}` },
+        () => queryClient.invalidateQueries({ queryKey: ['tape-chart', hotelId] })
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'room_blocks', filter: `hotel_id=eq.${hotelId}` },
         () => queryClient.invalidateQueries({ queryKey: ['tape-chart', hotelId] })
       )
       .subscribe()
@@ -81,7 +99,14 @@ export function useTapeChart(startDate: string, days: number) {
         p_days: days,
       })
       if (error) throw error
-      return data as unknown as TapeChartData
+      const d = data as any
+      return {
+        start_date: d.start_date,
+        days: d.days,
+        rooms: d.rooms || [],
+        bookings: d.bookings || [],
+        room_blocks: d.room_blocks || [],
+      }
     },
   })
 }

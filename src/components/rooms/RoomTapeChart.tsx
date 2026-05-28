@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { addDays, format, isToday, parseISO } from 'date-fns'
+import { addDays, differenceInCalendarDays, format, isToday, parseISO } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import {
   Building2,
@@ -10,6 +10,8 @@ import {
   ChevronRight,
   Search,
   AlertTriangle,
+  Lock,
+  X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,8 +26,21 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import { cn, formatCurrency } from '@/lib/utils'
-import { useTapeChart, type TapeChartBooking, type TapeChartRoom } from '@/hooks/useTapeChart'
+import {
+  useTapeChart,
+  type TapeChartBooking,
+  type TapeChartRoom,
+  type RoomBlock,
+} from '@/hooks/useTapeChart'
+import { useTapeChartMutations } from '@/hooks/useTapeChartMutations'
 import { getRoomStatusMeta, normalizeRoomStatus } from '@/lib/roomStatus'
 import { useIsMobile } from '@/hooks/use-mobile'
 import {
@@ -38,13 +53,14 @@ import {
 } from '@/lib/tape-chart'
 import { TapeChartBookingSheet } from './TapeChartBookingSheet'
 import { TapeChartTodoPanel } from './TapeChartTodoPanel'
+import { TapeChartBlockDialog } from './TapeChartBlockDialog'
 
 const DESKTOP_DAYS = 14
 const MOBILE_DAYS = 3
 const ROOM_COL_W = 132
 const CELL_W_DESKTOP = 96
 const CELL_W_MOBILE = 108
-const LANE_H = 28 // chiều cao 1 lane (bar)
+const LANE_H = 28
 const ROW_PADDING = 8
 const GROUP_HEADER_H = 28
 
@@ -57,7 +73,23 @@ interface FlatRow {
   group?: { floor: number; count: number }
   room?: TapeChartRoom
   layouts?: BookingLayout[]
+  blocks?: RoomBlock[]
   laneCount?: number
+}
+
+interface DragData {
+  bookingId: string
+  durationDays: number
+  fromRoomId: string
+  fromCheckIn: string
+}
+
+const BLOCK_TYPE_LABEL: Record<string, string> = {
+  ooo: 'OOO – Hỏng',
+  oos: 'OOS – Tạm ngừng',
+  vip_hold: 'Giữ VIP',
+  maintenance: 'Bảo trì',
+  other: 'Khác',
 }
 
 export function RoomTapeChart() {
@@ -78,11 +110,16 @@ export function RoomTapeChart() {
   const [highlightGroupId, setHighlightGroupId] = useState<string | null>(null)
   const [sheetBooking, setSheetBooking] = useState<TapeChartBooking | null>(null)
   const [showCalendar, setShowCalendar] = useState(false)
+  const [blockDialog, setBlockDialog] = useState<{ room: TapeChartRoom | null; date: Date | null }>({
+    room: null,
+    date: null,
+  })
+  const dragRef = useRef<DragData | null>(null)
 
   const startStr = format(startDate, 'yyyy-MM-dd')
   const { data, isLoading } = useTapeChart(startStr, days)
+  const { moveBooking, deleteBlock } = useTapeChartMutations()
 
-  // Now line tick — refresh mỗi phút
   const [nowMin, setNowMin] = useState(() => {
     const n = new Date()
     return n.getHours() * 60 + n.getMinutes()
@@ -95,7 +132,6 @@ export function RoomTapeChart() {
     return () => clearInterval(id)
   }, [])
 
-  // Filter bookings
   const filteredBookings = useMemo(() => {
     const all = data?.bookings || []
     return all.filter((b) => {
@@ -105,12 +141,11 @@ export function RoomTapeChart() {
         const r = (Number(b.total_amount) || 0) - (Number(b.amount_paid) || 0) - (Number(b.deposit_amount) || 0)
         return r > 1000
       }
-      if (statusFilter === 'conflict') return true // sẽ filter sau theo conflict flag
+      if (statusFilter === 'conflict') return true
       return b.status === statusFilter
     })
   }, [data?.bookings, search, statusFilter])
 
-  // Layouts per room (sweep-line + conflict + lane)
   const roomLayouts = useMemo(() => {
     const map = new Map<string, { layouts: BookingLayout[]; laneCount: number }>()
     const grouped = new Map<string, TapeChartBooking[]>()
@@ -121,7 +156,6 @@ export function RoomTapeChart() {
     })
     grouped.forEach((bs, roomId) => {
       const result = buildRoomLane(bs, startDate, days)
-      // Nếu filter conflict, chỉ giữ booking có conflict
       if (statusFilter === 'conflict') {
         const conflictOnly = result.layouts.filter((l) => l.conflict)
         if (conflictOnly.length === 0) return
@@ -133,7 +167,16 @@ export function RoomTapeChart() {
     return map
   }, [filteredBookings, startDate, days, statusFilter])
 
-  // Rooms by floor (sorted)
+  const blocksByRoom = useMemo(() => {
+    const map = new Map<string, RoomBlock[]>()
+    ;(data?.room_blocks || []).forEach((b) => {
+      const arr = map.get(b.room_id) || []
+      arr.push(b)
+      map.set(b.room_id, arr)
+    })
+    return map
+  }, [data?.room_blocks])
+
   const floors = useMemo(() => {
     const rooms = data?.rooms || []
     const grouped = new Map<number, TapeChartRoom[]>()
@@ -153,7 +196,6 @@ export function RoomTapeChart() {
       }))
   }, [data?.rooms, floorFilter])
 
-  // Flatten for virtualizer
   const flatRows: FlatRow[] = useMemo(() => {
     const rows: FlatRow[] = []
     floors.forEach(({ floor, rooms }) => {
@@ -171,13 +213,14 @@ export function RoomTapeChart() {
           key: `r-${room.id}`,
           room,
           layouts: result?.layouts || [],
+          blocks: blocksByRoom.get(room.id) || [],
           laneCount,
           height: laneCount * LANE_H + ROW_PADDING * 2,
         })
       })
     })
     return rows
-  }, [floors, roomLayouts])
+  }, [floors, roomLayouts, blocksByRoom])
 
   const allFloorOptions = useMemo(() => {
     const s = new Set<number>()
@@ -185,7 +228,6 @@ export function RoomTapeChart() {
     return Array.from(s).sort((a, b) => b - a)
   }, [data?.rooms])
 
-  // KPI
   const kpis = useMemo(() => {
     const bookings = data?.bookings || []
     const todayStr = format(new Date(), 'yyyy-MM-dd')
@@ -200,10 +242,10 @@ export function RoomTapeChart() {
       (acc, r) => acc + r.layouts.filter((l) => l.conflict).length,
       0,
     )
-    return { arrivals, departures, inHouse, totalRooms, occupancy, conflicts }
+    const blockedRooms = (data?.room_blocks || []).length
+    return { arrivals, departures, inHouse, totalRooms, occupancy, conflicts, blockedRooms }
   }, [data, roomLayouts])
 
-  // Virtualizer
   const parentRef = useRef<HTMLDivElement>(null)
   const virtualizer = useVirtualizer({
     count: flatRows.length,
@@ -215,14 +257,41 @@ export function RoomTapeChart() {
 
   const shiftDate = (n: number) => setStartDate((d) => addDays(d, n))
 
-  const onBookingClick = (b: TapeChartBooking) => {
-    if (isMobile) setSheetBooking(b)
-    else setSheetBooking(b)
-  }
+  const onBookingClick = (b: TapeChartBooking) => setSheetBooking(b)
 
   const onEmptyCellClick = (room: TapeChartRoom, date: Date) => {
     const d = format(date, 'yyyy-MM-dd')
     navigate(`/bookings?action=create&room_id=${room.id}&check_in_date=${d}`)
+  }
+
+  const onEmptyCellContextMenuBlock = (room: TapeChartRoom, date: Date) => {
+    setBlockDialog({ room, date })
+  }
+
+  const onBookingDragStart = (b: TapeChartBooking) => {
+    const ci = parseISO(b.check_in_date)
+    const co = parseISO(b.check_out_date)
+    dragRef.current = {
+      bookingId: b.id,
+      durationDays: Math.max(1, differenceInCalendarDays(co, ci)),
+      fromRoomId: b.room_id,
+      fromCheckIn: b.check_in_date,
+    }
+  }
+
+  const onCellDrop = (room: TapeChartRoom, date: Date) => {
+    const drag = dragRef.current
+    if (!drag) return
+    dragRef.current = null
+    const newCheckIn = format(date, 'yyyy-MM-dd')
+    const newCheckOut = format(addDays(date, drag.durationDays), 'yyyy-MM-dd')
+    if (room.id === drag.fromRoomId && newCheckIn === drag.fromCheckIn) return
+    moveBooking.mutate({
+      booking_id: drag.bookingId,
+      new_room_id: room.id,
+      new_check_in: newCheckIn,
+      new_check_out: newCheckOut,
+    })
   }
 
   const groupBookings = useMemo(() => {
@@ -306,7 +375,6 @@ export function RoomTapeChart() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Search */}
           <div className="relative">
             <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -317,7 +385,6 @@ export function RoomTapeChart() {
             />
           </div>
 
-          {/* Status filter */}
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
             <SelectTrigger className="h-8 w-36 text-xs">
               <SelectValue />
@@ -332,7 +399,6 @@ export function RoomTapeChart() {
             </SelectContent>
           </Select>
 
-          {/* Floor filter */}
           {allFloorOptions.length > 1 && (
             <Select value={floorFilter} onValueChange={setFloorFilter}>
               <SelectTrigger className="h-8 w-24 text-xs">
@@ -349,7 +415,6 @@ export function RoomTapeChart() {
             </Select>
           )}
 
-          {/* Window selector */}
           <div className="flex items-center gap-0.5 rounded-md border p-0.5">
             {[3, 7, 14, 30].map((d) => (
               <button
@@ -386,6 +451,12 @@ export function RoomTapeChart() {
           <span className="text-muted-foreground">Lấp đầy </span>
           <span className="font-semibold">{kpis.occupancy}%</span>
         </span>
+        {kpis.blockedRooms > 0 && (
+          <span className="flex items-center gap-1 text-slate-600">
+            <Lock className="h-3 w-3" />
+            {kpis.blockedRooms} block
+          </span>
+        )}
         {kpis.conflicts > 0 && (
           <button
             type="button"
@@ -406,16 +477,13 @@ export function RoomTapeChart() {
         <LegendDot className="border-l-blue-500 bg-blue-100" label="Đang lưu trú" />
         <LegendDot className="border-l-slate-400 bg-slate-100" label="Đã trả phòng" />
         <LegendDot className="border-l-red-500 bg-red-50" label="Còn nợ" />
+        <LegendDot className="border-l-slate-500 bg-[repeating-linear-gradient(45deg,#e2e8f0,#e2e8f0_4px,#cbd5e1_4px,#cbd5e1_6px)]" label="Phòng bị block" />
       </div>
 
       <div className="grid gap-3 lg:grid-cols-[1fr_280px]">
-        {/* Chart */}
         <div className="overflow-hidden rounded-lg border bg-card">
           {/* Sticky date header */}
-          <div
-            className="flex border-b bg-muted/40"
-            style={{ width: totalChartWidth + ROOM_COL_W }}
-          >
+          <div className="flex border-b bg-muted/40" style={{ width: totalChartWidth + ROOM_COL_W }}>
             <div
               className="sticky left-0 z-20 border-r bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground"
               style={{ width: ROOM_COL_W, minWidth: ROOM_COL_W }}
@@ -445,7 +513,6 @@ export function RoomTapeChart() {
             })}
           </div>
 
-          {/* Virtualized rows */}
           <div
             ref={parentRef}
             className="relative overflow-auto"
@@ -461,7 +528,6 @@ export function RoomTapeChart() {
               {virtualizer.getVirtualItems().map((vi) => {
                 const row = flatRows[vi.index]
                 if (!row) return null
-
                 if (row.type === 'group') {
                   return (
                     <div
@@ -483,13 +549,12 @@ export function RoomTapeChart() {
                     </div>
                   )
                 }
-
                 return (
                   <Row
                     key={vi.key}
                     room={row.room!}
                     layouts={row.layouts!}
-                    laneCount={row.laneCount!}
+                    blocks={row.blocks || []}
                     days={days}
                     cellW={cellW}
                     height={row.height}
@@ -499,12 +564,15 @@ export function RoomTapeChart() {
                     onHoverGroup={setHighlightGroupId}
                     onBookingClick={onBookingClick}
                     onEmptyCellClick={onEmptyCellClick}
-                    nowMin={nowMin}
+                    onEmptyCellBlock={onEmptyCellContextMenuBlock}
+                    onBookingDragStart={onBookingDragStart}
+                    onCellDrop={onCellDrop}
+                    onDeleteBlock={(id) => deleteBlock.mutate(id)}
                   />
                 )
               })}
 
-              {/* Now line — overlay toàn chart */}
+              {/* Now line */}
               {(() => {
                 const todayIdx = Array.from({ length: days }).findIndex((_, i) =>
                   isToday(addDays(startDate, i)),
@@ -524,7 +592,6 @@ export function RoomTapeChart() {
           </div>
         </div>
 
-        {/* Sidebar todo (desktop only) */}
         <div className="hidden lg:block">
           <TapeChartTodoPanel
             rooms={data.rooms}
@@ -535,16 +602,22 @@ export function RoomTapeChart() {
       </div>
 
       <p className="px-1 text-[11px] text-muted-foreground">
-        Bar có vị trí và độ dài theo GIỜ THỰC (mặc định 14:00 – 12:00 hôm sau). Đường đỏ là thời điểm hiện tại. Booking trùng giờ tự xếp 2 hàng và viền đỏ.
+        Kéo–thả bar booking sang phòng/ngày khác để chuyển phòng. Chuột phải vào bar để xem menu (Chi tiết / Block phòng). Chuột phải ô trống để chặn phòng theo khoảng ngày.
       </p>
 
-      {/* Detail sheet */}
       <TapeChartBookingSheet
         booking={sheetBooking}
         room={sheetRoom}
         groupBookings={groupBookings}
         open={!!sheetBooking}
         onOpenChange={(v) => !v && setSheetBooking(null)}
+      />
+
+      <TapeChartBlockDialog
+        open={!!blockDialog.room}
+        onOpenChange={(v) => !v && setBlockDialog({ room: null, date: null })}
+        room={blockDialog.room}
+        defaultStart={blockDialog.date}
       />
     </div>
   )
@@ -562,7 +635,7 @@ function LegendDot({ className, label }: { className: string; label: string }) {
 interface RowProps {
   room: TapeChartRoom
   layouts: BookingLayout[]
-  laneCount: number
+  blocks: RoomBlock[]
   days: number
   cellW: number
   height: number
@@ -572,13 +645,16 @@ interface RowProps {
   onHoverGroup: (id: string | null) => void
   onBookingClick: (b: TapeChartBooking) => void
   onEmptyCellClick: (room: TapeChartRoom, date: Date) => void
-  nowMin: number
+  onEmptyCellBlock: (room: TapeChartRoom, date: Date) => void
+  onBookingDragStart: (b: TapeChartBooking) => void
+  onCellDrop: (room: TapeChartRoom, date: Date) => void
+  onDeleteBlock: (id: string) => void
 }
 
 function Row({
   room,
   layouts,
-  laneCount,
+  blocks,
   days,
   cellW,
   height,
@@ -588,19 +664,28 @@ function Row({
   onHoverGroup,
   onBookingClick,
   onEmptyCellClick,
+  onEmptyCellBlock,
+  onBookingDragStart,
+  onCellDrop,
+  onDeleteBlock,
 }: RowProps) {
   const meta = getRoomStatusMeta(room.status)
   const v2 = normalizeRoomStatus(room.status)
-  const blocked = v2 === 'out_of_order' || v2 === 'out_of_service'
+  const blockedByStatus = v2 === 'out_of_order' || v2 === 'out_of_service'
 
-  // Mảng đánh dấu cell nào bị chiếm (để disable click trống) — dựa trên layout
+  // Mảng cell bị chiếm (booking hoặc block)
   const occupied = new Array(days).fill(false)
   layouts.forEach((l) => {
-    const startIdx = Math.floor(l.offsetMin / MINUTES_PER_DAY)
-    const endIdx = Math.ceil((l.offsetMin + l.durationMin) / MINUTES_PER_DAY)
-    for (let i = startIdx; i < endIdx; i++) {
-      if (i >= 0 && i < days) occupied[i] = true
-    }
+    const sIdx = Math.floor(l.offsetMin / MINUTES_PER_DAY)
+    const eIdx = Math.ceil((l.offsetMin + l.durationMin) / MINUTES_PER_DAY)
+    for (let i = sIdx; i < eIdx; i++) if (i >= 0 && i < days) occupied[i] = true
+  })
+  blocks.forEach((b) => {
+    const s = parseISO(b.start_date)
+    const e = parseISO(b.end_date)
+    const sIdx = Math.max(0, differenceInCalendarDays(s, startDate))
+    const eIdx = Math.min(days, differenceInCalendarDays(e, startDate))
+    for (let i = sIdx; i < eIdx; i++) occupied[i] = true
   })
 
   return (
@@ -615,7 +700,6 @@ function Row({
         transform: `translateY(${top}px)`,
       }}
     >
-      {/* Sticky room column */}
       <div
         className="sticky left-0 z-[2] flex items-center gap-2 border-r bg-background px-3"
         style={{ width: ROOM_COL_W, minWidth: ROOM_COL_W, height }}
@@ -633,31 +717,96 @@ function Row({
         </div>
       </div>
 
-      {/* Timeline */}
       <div className="relative flex" style={{ width: days * cellW, height }}>
-        {/* Background cells */}
+        {/* Background cells với drop target */}
         {Array.from({ length: days }).map((_, i) => {
           const date = addDays(startDate, i)
           const isWeekend = date.getDay() === 0 || date.getDay() === 6
           const today = isToday(date)
           const cellOccupied = occupied[i]
           return (
-            <button
-              key={i}
-              type="button"
-              disabled={cellOccupied || blocked}
-              onClick={() => onEmptyCellClick(room, date)}
-              className={cn(
-                'border-r last:border-r-0 transition-colors',
-                isWeekend && 'bg-muted/30',
-                today && 'bg-primary/5',
-                blocked && 'cursor-not-allowed bg-[repeating-linear-gradient(45deg,transparent,transparent_6px,hsl(var(--muted))_6px,hsl(var(--muted))_8px)]',
-                !cellOccupied && !blocked && 'cursor-pointer hover:bg-accent/40',
-                cellOccupied && 'cursor-default',
+            <ContextMenu key={i}>
+              <ContextMenuTrigger asChild>
+                <button
+                  type="button"
+                  disabled={cellOccupied || blockedByStatus}
+                  onClick={() => onEmptyCellClick(room, date)}
+                  onDragOver={(e) => {
+                    if (!cellOccupied && !blockedByStatus) e.preventDefault()
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    if (!cellOccupied && !blockedByStatus) onCellDrop(room, date)
+                  }}
+                  className={cn(
+                    'border-r last:border-r-0 transition-colors',
+                    isWeekend && 'bg-muted/30',
+                    today && 'bg-primary/5',
+                    blockedByStatus && 'cursor-not-allowed bg-[repeating-linear-gradient(45deg,transparent,transparent_6px,hsl(var(--muted))_6px,hsl(var(--muted))_8px)]',
+                    !cellOccupied && !blockedByStatus && 'cursor-pointer hover:bg-accent/40',
+                    cellOccupied && !blockedByStatus && 'cursor-default',
+                  )}
+                  style={{ width: cellW, height }}
+                  aria-label={`${room.room_number} ${format(date, 'dd/MM')}`}
+                />
+              </ContextMenuTrigger>
+              {!cellOccupied && !blockedByStatus && (
+                <ContextMenuContent className="w-52">
+                  <ContextMenuItem onClick={() => onEmptyCellClick(room, date)}>
+                    Tạo booking mới
+                  </ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem onClick={() => onEmptyCellBlock(room, date)}>
+                    <Lock className="mr-2 h-3.5 w-3.5" />
+                    Chặn phòng từ ngày này
+                  </ContextMenuItem>
+                </ContextMenuContent>
               )}
-              style={{ width: cellW, height }}
-              aria-label={`${room.room_number} ${format(date, 'dd/MM')}`}
-            />
+            </ContextMenu>
+          )
+        })}
+
+        {/* Room blocks — render trước (z dưới) bookings */}
+        {blocks.map((b) => {
+          const s = parseISO(b.start_date)
+          const e = parseISO(b.end_date)
+          const sIdx = Math.max(0, differenceInCalendarDays(s, startDate))
+          const eIdx = Math.min(days, differenceInCalendarDays(e, startDate))
+          if (eIdx <= sIdx) return null
+          const left = sIdx * cellW
+          const width = (eIdx - sIdx) * cellW
+          return (
+            <ContextMenu key={b.id}>
+              <ContextMenuTrigger asChild>
+                <div
+                  className="absolute z-[1] flex items-center justify-center gap-1 rounded-sm border border-slate-400/70 bg-[repeating-linear-gradient(45deg,#e2e8f0,#e2e8f0_4px,#cbd5e1_4px,#cbd5e1_6px)] text-[10px] font-medium text-slate-700"
+                  style={{
+                    left: left + 1,
+                    width: width - 2,
+                    top: ROW_PADDING / 2,
+                    height: height - ROW_PADDING,
+                  }}
+                  title={`${BLOCK_TYPE_LABEL[b.block_type] || b.block_type}${b.reason ? ' — ' + b.reason : ''}`}
+                >
+                  <Lock className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{BLOCK_TYPE_LABEL[b.block_type] || 'Block'}</span>
+                </div>
+              </ContextMenuTrigger>
+              <ContextMenuContent className="w-52">
+                <ContextMenuItem disabled className="text-xs">
+                  {BLOCK_TYPE_LABEL[b.block_type] || b.block_type}
+                  {b.reason ? ` — ${b.reason}` : ''}
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem
+                  className="text-red-600 focus:text-red-600"
+                  onClick={() => onDeleteBlock(b.id)}
+                >
+                  <X className="mr-2 h-3.5 w-3.5" />
+                  Gỡ block
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
           )
         })}
 
@@ -665,7 +814,7 @@ function Row({
         {layouts.map((l) => {
           const left = (l.offsetMin / MINUTES_PER_DAY) * cellW
           const width = Math.max(40, (l.durationMin / MINUTES_PER_DAY) * cellW)
-          const top = ROW_PADDING + l.lane * LANE_H
+          const barTop = ROW_PADDING + l.lane * LANE_H
           const color = getBarColor(l.booking)
           const isHighlighted =
             highlightGroupId && l.booking.booking_group_id === highlightGroupId
@@ -675,74 +824,94 @@ function Row({
             (Number(l.booking.total_amount) || 0) -
             (Number(l.booking.amount_paid) || 0) -
             (Number(l.booking.deposit_amount) || 0)
+          const draggable = l.booking.status !== 'checked_out'
 
           return (
-            <TooltipProvider key={l.booking.id} delayDuration={250}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    onMouseEnter={() => l.booking.booking_group_id && onHoverGroup(l.booking.booking_group_id)}
-                    onMouseLeave={() => onHoverGroup(null)}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onBookingClick(l.booking)
-                    }}
-                    className={cn(
-                      'absolute flex items-center gap-1 overflow-hidden rounded-r-md pl-1.5 pr-1.5 text-left text-[11px] font-medium shadow-sm transition-all',
-                      color.bg,
-                      color.border,
-                      color.text,
-                      color.hover,
-                      l.conflict && 'ring-2 ring-red-500',
-                      isHighlighted && cn('ring-2', color.ring),
-                      isDimmed && 'opacity-40',
-                    )}
-                    style={{
-                      left: left + 2,
-                      width: width - 4,
-                      top,
-                      height: LANE_H - 4,
-                    }}
-                  >
-                    {sourceBadge && (
-                      <span className="shrink-0 rounded bg-background/60 px-1 font-mono text-[9px] opacity-80">
-                        {sourceBadge}
-                      </span>
-                    )}
-                    <span className="truncate">{l.booking.guest_name}</span>
-                    {l.booking.guest_count ? (
-                      <span className="shrink-0 opacity-70">·{l.booking.guest_count}</span>
-                    ) : null}
-                    {l.conflict && (
-                      <AlertTriangle className="ml-auto h-3 w-3 shrink-0 text-red-600" />
-                    )}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-xs">
-                  <div className="space-y-1 text-xs">
-                    <div className="font-semibold">{l.booking.guest_name}</div>
-                    <div className="text-muted-foreground">
-                      {format(parseISO(l.booking.check_in_date), 'dd/MM')}
-                      {' '}
-                      {l.booking.expected_check_in_time?.slice(0, 5) || '14:00'}
-                      {' → '}
-                      {format(parseISO(l.booking.check_out_date), 'dd/MM')}
-                      {' '}
-                      {l.booking.expected_check_out_time?.slice(0, 5) || '12:00'}
-                    </div>
-                    {l.booking.guest_phone && <div>SĐT: {l.booking.guest_phone}</div>}
-                    <div>Tổng: {formatCurrency(Number(l.booking.total_amount) || 0)}</div>
-                    {debt > 0 && (
-                      <div className="text-red-600">Còn nợ: {formatCurrency(debt)}</div>
-                    )}
-                    {l.conflict && (
-                      <div className="font-semibold text-red-600">⚠ Trùng giờ với booking khác</div>
-                    )}
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <ContextMenu key={l.booking.id}>
+              <ContextMenuTrigger asChild>
+                <TooltipProvider delayDuration={250}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        draggable={draggable}
+                        onDragStart={() => onBookingDragStart(l.booking)}
+                        onMouseEnter={() => l.booking.booking_group_id && onHoverGroup(l.booking.booking_group_id)}
+                        onMouseLeave={() => onHoverGroup(null)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onBookingClick(l.booking)
+                        }}
+                        className={cn(
+                          'absolute z-[3] flex items-center gap-1 overflow-hidden rounded-r-md pl-1.5 pr-1.5 text-left text-[11px] font-medium shadow-sm transition-all',
+                          color.bg,
+                          color.border,
+                          color.text,
+                          color.hover,
+                          l.conflict && 'ring-2 ring-red-500',
+                          isHighlighted && cn('ring-2', color.ring),
+                          isDimmed && 'opacity-40',
+                          draggable && 'cursor-grab active:cursor-grabbing',
+                        )}
+                        style={{
+                          left: left + 2,
+                          width: width - 4,
+                          top: barTop,
+                          height: LANE_H - 4,
+                        }}
+                      >
+                        {sourceBadge && (
+                          <span className="shrink-0 rounded bg-background/60 px-1 font-mono text-[9px] opacity-80">
+                            {sourceBadge}
+                          </span>
+                        )}
+                        <span className="truncate">{l.booking.guest_name}</span>
+                        {l.booking.guest_count ? (
+                          <span className="shrink-0 opacity-70">·{l.booking.guest_count}</span>
+                        ) : null}
+                        {l.conflict && (
+                          <AlertTriangle className="ml-auto h-3 w-3 shrink-0 text-red-600" />
+                        )}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <div className="space-y-1 text-xs">
+                        <div className="font-semibold">{l.booking.guest_name}</div>
+                        <div className="text-muted-foreground">
+                          {format(parseISO(l.booking.check_in_date), 'dd/MM')}{' '}
+                          {l.booking.expected_check_in_time?.slice(0, 5) || '14:00'}
+                          {' → '}
+                          {format(parseISO(l.booking.check_out_date), 'dd/MM')}{' '}
+                          {l.booking.expected_check_out_time?.slice(0, 5) || '12:00'}
+                        </div>
+                        {l.booking.guest_phone && <div>SĐT: {l.booking.guest_phone}</div>}
+                        <div>Tổng: {formatCurrency(Number(l.booking.total_amount) || 0)}</div>
+                        {debt > 0 && (
+                          <div className="text-red-600">Còn nợ: {formatCurrency(debt)}</div>
+                        )}
+                        {l.conflict && (
+                          <div className="font-semibold text-red-600">⚠ Trùng giờ với booking khác</div>
+                        )}
+                        {draggable && (
+                          <div className="text-[10px] text-muted-foreground/80">Kéo–thả để chuyển phòng/ngày</div>
+                        )}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </ContextMenuTrigger>
+              <ContextMenuContent className="w-52">
+                <ContextMenuItem onClick={() => onBookingClick(l.booking)}>
+                  Xem chi tiết booking
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem disabled className="text-[11px] text-muted-foreground">
+                  {draggable
+                    ? 'Kéo–thả để chuyển phòng/ngày'
+                    : 'Đã trả phòng — không di chuyển'}
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
           )
         })}
       </div>
