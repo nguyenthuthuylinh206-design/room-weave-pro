@@ -840,6 +840,7 @@ function Row({
           const isWeekend = date.getDay() === 0 || date.getDay() === 6
           const today = isToday(date)
           const cellOccupied = occupied[i]
+          const holiday = getHoliday(format(date, 'yyyy-MM-dd'))
           return (
             <ContextMenu key={i}>
               <ContextMenuTrigger asChild>
@@ -856,14 +857,16 @@ function Row({
                   }}
                   className={cn(
                     'border-r last:border-r-0 transition-colors',
-                    isWeekend && 'bg-muted/30',
+                    isWeekend && !holiday && 'bg-muted/30',
+                    holiday && 'bg-rose-50/60',
                     today && 'bg-primary/5',
                     blockedByStatus && 'cursor-not-allowed bg-[repeating-linear-gradient(45deg,transparent,transparent_6px,hsl(var(--muted))_6px,hsl(var(--muted))_8px)]',
                     !cellOccupied && !blockedByStatus && 'cursor-pointer hover:bg-accent/40',
                     cellOccupied && !blockedByStatus && 'cursor-default',
                   )}
                   style={{ width: cellW, height }}
-                  aria-label={`${room.room_number} ${format(date, 'dd/MM')}`}
+                  aria-label={`${room.room_number} ${format(date, 'dd/MM')}${holiday ? ' · ' + holiday.short : ''}`}
+                  title={holiday?.name}
                 />
               </ContextMenuTrigger>
               {!cellOccupied && !blockedByStatus && (
