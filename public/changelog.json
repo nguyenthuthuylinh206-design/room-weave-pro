@@ -1,6 +1,18 @@
 {
-  "current": "1.0.81",
+  "current": "1.0.82",
   "versions": [
+    {
+      "version": "1.0.82",
+      "releaseDate": "2026-05-28",
+      "title": "Tape chart v2b — kéo–thả chuyển phòng, chặn phòng theo khoảng ngày, menu chuột phải",
+      "changes": [
+        { "type": "feature", "text": "Kéo–thả bar booking sang phòng hoặc ngày khác — tự kiểm tra trùng booking/block, có audit log, không cho di chuyển booking đã trả phòng" },
+        { "type": "feature", "text": "Chặn phòng theo khoảng ngày (Bảo trì / OOO / OOS / Giữ VIP / Khác) — chuột phải ô trống → 'Chặn phòng từ ngày này', hiển thị thanh xám sọc trên tape chart" },
+        { "type": "feature", "text": "Menu chuột phải trên bar booking (Xem chi tiết, hướng dẫn kéo–thả) và trên block (Gỡ block)" },
+        { "type": "feature", "text": "KPI hiển thị số block đang hiệu lực; phòng đã block không cho tạo booking đè lên" },
+        { "type": "improvement", "text": "Realtime đồng bộ block phòng giữa các máy: máy A chặn phòng → máy B thấy ngay không cần refresh" }
+      ]
+    },
     {
       "version": "1.0.81",
       "releaseDate": "2026-05-28",
