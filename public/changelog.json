@@ -1,112 +1,230 @@
 {
-  "current": "1.0.63",
+  "current": "1.0.64",
   "versions": [
+    {
+      "version": "1.0.64",
+      "releaseDate": "2026-05-28",
+      "title": "Chat desktop: thêm cửa sổ nổi trên PC",
+      "changes": [
+        {
+          "type": "feature",
+          "text": "Desktop có nút chat nổi góc phải dưới, kèm badge số tin chưa đọc và mở nhanh cửa sổ chat mà không rời màn hình hiện tại"
+        },
+        {
+          "type": "improvement",
+          "text": "Cửa sổ chat PC dùng lại danh sách hội thoại, tạo hội thoại mới và khung nhắn tin hiện có; ẩn trên mobile và khi đang ở trang /chat để tránh trùng UI"
+        },
+        {
+          "type": "improvement",
+          "text": "Có nút thu nhỏ, đóng và mở trang chat đầy đủ cho ca trực cần xử lý nhiều hội thoại"
+        }
+      ]
+    },
     {
       "version": "1.0.63",
       "releaseDate": "2026-05-27",
       "title": "Sửa PWA mobile: không còn màn 'Unexpected Application Error'",
       "changes": [
-        { "type": "fix", "text": "PricingSection: chuẩn hoá dữ liệu features (array/string/object) — không còn lỗi '.map is not a function' trên bundle cũ" },
-        { "type": "fix", "text": "Service worker: bỏ precache index.html, navigation dùng NetworkFirst — PWA luôn nhận shell mới khi có deploy, không kẹt bản cũ" },
-        { "type": "improvement", "text": "Bọc Landing trong RootRoute bằng SectionErrorBoundary — section lỗi không còn làm sập cả trang" }
+        {
+          "type": "fix",
+          "text": "PricingSection: chuẩn hoá dữ liệu features (array/string/object) — không còn lỗi '.map is not a function' trên bundle cũ"
+        },
+        {
+          "type": "fix",
+          "text": "Service worker: bỏ precache index.html, navigation dùng NetworkFirst — PWA luôn nhận shell mới khi có deploy, không kẹt bản cũ"
+        },
+        {
+          "type": "improvement",
+          "text": "Bọc Landing trong RootRoute bằng SectionErrorBoundary — section lỗi không còn làm sập cả trang"
+        }
       ]
     },
-
     {
       "version": "1.0.62",
       "releaseDate": "2026-05-27",
       "title": "Chat: gọn lại trên mobile, không bung 200 tin",
       "changes": [
-        { "type": "improvement", "text": "Khung chat mobile dùng chiều cao trừ bottom nav, không tràn xuống menu; bỏ viền trên mobile cho gọn" },
-        { "type": "improvement", "text": "Tin nhắn ban đầu chỉ tải 50 tin mới nhất (thay vì 200) và dedupe theo id để không bị trùng khi realtime + refetch" },
-        { "type": "fix", "text": "Auto-scroll chỉ chạy khi mở hội thoại hoặc có tin mới ở cuối — không còn bị giật mỗi lần refetch" },
-        { "type": "fix", "text": "Dedupe attachment theo id để không hiện 2 lần khi realtime trùng payload" }
+        {
+          "type": "improvement",
+          "text": "Khung chat mobile dùng chiều cao trừ bottom nav, không tràn xuống menu; bỏ viền trên mobile cho gọn"
+        },
+        {
+          "type": "improvement",
+          "text": "Tin nhắn ban đầu chỉ tải 50 tin mới nhất (thay vì 200) và dedupe theo id để không bị trùng khi realtime + refetch"
+        },
+        {
+          "type": "fix",
+          "text": "Auto-scroll chỉ chạy khi mở hội thoại hoặc có tin mới ở cuối — không còn bị giật mỗi lần refetch"
+        },
+        {
+          "type": "fix",
+          "text": "Dedupe attachment theo id để không hiện 2 lần khi realtime trùng payload"
+        }
       ]
     },
-
     {
       "version": "1.0.61",
       "releaseDate": "2026-05-27",
       "title": "Chống crash toàn trang & cứu PWA kẹt bundle cũ",
       "changes": [
-        { "type": "fix", "text": "Mọi route public (/landing, /auth/*, /payment-qr, /i/:token, /scan-document, /onboarding, /docs) có errorElement riêng — không còn màn 'Unexpected Application Error' mặc định" },
-        { "type": "fix", "text": "Landing Page bọc từng section bằng SectionErrorBoundary — 1 section lỗi (ví dụ Pricing trên bundle PWA cũ) không làm chết toàn trang" },
-        { "type": "feature", "text": "Màn lỗi route mới có CTA 'Xoá cache & tải lại' — dọn caches + unregister Service Worker để khách PWA tự thoát bản cũ" }
+        {
+          "type": "fix",
+          "text": "Mọi route public (/landing, /auth/*, /payment-qr, /i/:token, /scan-document, /onboarding, /docs) có errorElement riêng — không còn màn 'Unexpected Application Error' mặc định"
+        },
+        {
+          "type": "fix",
+          "text": "Landing Page bọc từng section bằng SectionErrorBoundary — 1 section lỗi (ví dụ Pricing trên bundle PWA cũ) không làm chết toàn trang"
+        },
+        {
+          "type": "feature",
+          "text": "Màn lỗi route mới có CTA 'Xoá cache & tải lại' — dọn caches + unregister Service Worker để khách PWA tự thoát bản cũ"
+        }
       ]
     },
-
     {
       "version": "1.0.60",
       "releaseDate": "2026-05-27",
       "title": "Chat: sửa lỗi danh sách trùng & badge sai",
       "changes": [
-        { "type": "fix", "text": "Danh sách hội thoại không còn bị nhân đôi/nhân ba (lọc viewer_id = me khi đọc v_user_conversations)" },
-        { "type": "fix", "text": "Badge 'Tin nhắn' ở Sidebar/MobileBottomNav đếm đúng, chỉ cộng unread của chính mình" },
-        { "type": "fix", "text": "Hết cảnh báo React duplicate key trong khung chat" }
+        {
+          "type": "fix",
+          "text": "Danh sách hội thoại không còn bị nhân đôi/nhân ba (lọc viewer_id = me khi đọc v_user_conversations)"
+        },
+        {
+          "type": "fix",
+          "text": "Badge 'Tin nhắn' ở Sidebar/MobileBottomNav đếm đúng, chỉ cộng unread của chính mình"
+        },
+        {
+          "type": "fix",
+          "text": "Hết cảnh báo React duplicate key trong khung chat"
+        }
       ]
     },
-
     {
       "version": "1.0.59",
       "releaseDate": "2026-05-27",
       "title": "Chat: gọn hơn, chọn người gửi dễ hơn",
       "changes": [
-        { "type": "improvement", "text": "Bubble tin nhắn compact (text 13px, padding nhỏ), bo góc kiểu chat, gộp các tin liên tiếp cùng người gửi trong 3 phút thành 1 cụm, chỉ tin cuối hiện thời gian" },
-        { "type": "improvement", "text": "Avatar 7px ở mỗi cụm tin của người khác; header hội thoại gọn lại, hiển thị chip 'Nhóm/1-1'" },
-        { "type": "improvement", "text": "Composer rút gọn: input bo tròn, nút Gửi đổi sang icon mũi tên, safe-area cho iOS" },
-        { "type": "improvement", "text": "Sidebar: avatar + ô tìm hội thoại + tab Tất cả/Chưa đọc; row gọn, badge unread dạng chấm số" },
-        { "type": "feature", "text": "Dialog 'Hội thoại mới': ô tìm theo tên/email (không dấu), phân nhóm Quản lý / Nhân viên có sticky header, chip 'Đã chọn' xoá nhanh, lọc đúng theo hotel đang chọn (qua user_hotels)" },
-        { "type": "improvement", "text": "Khung chat dùng 100dvh để không bị 'hộp vuông nhỏ trong trang'" }
+        {
+          "type": "improvement",
+          "text": "Bubble tin nhắn compact (text 13px, padding nhỏ), bo góc kiểu chat, gộp các tin liên tiếp cùng người gửi trong 3 phút thành 1 cụm, chỉ tin cuối hiện thời gian"
+        },
+        {
+          "type": "improvement",
+          "text": "Avatar 7px ở mỗi cụm tin của người khác; header hội thoại gọn lại, hiển thị chip 'Nhóm/1-1'"
+        },
+        {
+          "type": "improvement",
+          "text": "Composer rút gọn: input bo tròn, nút Gửi đổi sang icon mũi tên, safe-area cho iOS"
+        },
+        {
+          "type": "improvement",
+          "text": "Sidebar: avatar + ô tìm hội thoại + tab Tất cả/Chưa đọc; row gọn, badge unread dạng chấm số"
+        },
+        {
+          "type": "feature",
+          "text": "Dialog 'Hội thoại mới': ô tìm theo tên/email (không dấu), phân nhóm Quản lý / Nhân viên có sticky header, chip 'Đã chọn' xoá nhanh, lọc đúng theo hotel đang chọn (qua user_hotels)"
+        },
+        {
+          "type": "improvement",
+          "text": "Khung chat dùng 100dvh để không bị 'hộp vuông nhỏ trong trang'"
+        }
       ]
     },
-
     {
       "version": "1.0.58",
       "releaseDate": "2026-05-27",
       "title": "Chat: badge chưa đọc ở Sidebar & Bottom Nav",
       "changes": [
-        { "type": "feature", "text": "usePendingCounts thêm chatUnread — tổng unread_count từ v_user_conversations, lọc theo tenant + hotel đang chọn (All Hotels bao toàn bộ)" },
-        { "type": "feature", "text": "Realtime: INSERT messages hoặc UPDATE conversation_members tự invalidate pending-counts-all để badge cập nhật tức thời" },
-        { "type": "feature", "text": "MobileBottomNav: pin tab 'Tin nhắn' (luôn hiện trước More) kèm badge số chưa đọc" },
-        { "type": "improvement", "text": "Sidebar item Chat tự hiển thị badge nhờ badgeKey='chatUnread' đã có sẵn" }
+        {
+          "type": "feature",
+          "text": "usePendingCounts thêm chatUnread — tổng unread_count từ v_user_conversations, lọc theo tenant + hotel đang chọn (All Hotels bao toàn bộ)"
+        },
+        {
+          "type": "feature",
+          "text": "Realtime: INSERT messages hoặc UPDATE conversation_members tự invalidate pending-counts-all để badge cập nhật tức thời"
+        },
+        {
+          "type": "feature",
+          "text": "MobileBottomNav: pin tab 'Tin nhắn' (luôn hiện trước More) kèm badge số chưa đọc"
+        },
+        {
+          "type": "improvement",
+          "text": "Sidebar item Chat tự hiển thị badge nhờ badgeKey='chatUnread' đã có sẵn"
+        }
       ]
     },
-    {
-
     {
       "version": "1.0.57",
       "releaseDate": "2026-05-27",
       "title": "Chat: gửi ảnh & tệp đính kèm",
       "changes": [
-        { "type": "feature", "text": "Nút đính kèm trong composer: chọn nhiều ảnh/tệp (tối đa 6 / tin nhắn, 20MB/tệp), upload song song lên bucket chat-attachments theo path {conversationId}/" },
-        { "type": "feature", "text": "Preview thumbnail trước khi gửi, có nút xoá; chặn gửi khi đang upload" },
-        { "type": "feature", "text": "Hiển thị ảnh inline trong bong bóng tin nhắn (signed URL 1h, cache client) và file dạng card có tên + dung lượng + tải xuống" },
-        { "type": "improvement", "text": "useMessages tự fetch message_attachments theo lô; tin chỉ-attachment vẫn render đúng" }
+        {
+          "type": "feature",
+          "text": "Nút đính kèm trong composer: chọn nhiều ảnh/tệp (tối đa 6 / tin nhắn, 20MB/tệp), upload song song lên bucket chat-attachments theo path {conversationId}/"
+        },
+        {
+          "type": "feature",
+          "text": "Preview thumbnail trước khi gửi, có nút xoá; chặn gửi khi đang upload"
+        },
+        {
+          "type": "feature",
+          "text": "Hiển thị ảnh inline trong bong bóng tin nhắn (signed URL 1h, cache client) và file dạng card có tên + dung lượng + tải xuống"
+        },
+        {
+          "type": "improvement",
+          "text": "useMessages tự fetch message_attachments theo lô; tin chỉ-attachment vẫn render đúng"
+        }
       ]
     },
     {
-
       "version": "1.0.56",
       "releaseDate": "2026-05-27",
       "title": "Chat nội bộ: thông báo realtime + nav",
       "changes": [
-        { "type": "feature", "text": "Edge function notify-new-message: fan-out in-app notification + Web Push khi có tin nhắn mới, loại trừ người gửi và kênh muted, dedupe 30s" },
-        { "type": "feature", "text": "Trigger DB tự động gọi notify-new-message qua pg_net sau mỗi tin nhắn mới" },
-        { "type": "feature", "text": "Bổ sung mục 'Tin nhắn' (/chat) vào sidebar desktop" },
-        { "type": "improvement", "text": "Storage bucket chat-attachments private sẵn sàng cho phần đính kèm ở phiên bản tiếp theo" }
+        {
+          "type": "feature",
+          "text": "Edge function notify-new-message: fan-out in-app notification + Web Push khi có tin nhắn mới, loại trừ người gửi và kênh muted, dedupe 30s"
+        },
+        {
+          "type": "feature",
+          "text": "Trigger DB tự động gọi notify-new-message qua pg_net sau mỗi tin nhắn mới"
+        },
+        {
+          "type": "feature",
+          "text": "Bổ sung mục 'Tin nhắn' (/chat) vào sidebar desktop"
+        },
+        {
+          "type": "improvement",
+          "text": "Storage bucket chat-attachments private sẵn sàng cho phần đính kèm ở phiên bản tiếp theo"
+        }
       ]
     },
     {
-
       "version": "1.0.54",
       "releaseDate": "2026-05-27",
       "title": "Hợp nhất & dọn dẹp menu Báo cáo",
       "changes": [
-        { "type": "improvement", "text": "Finance Hub gộp 3 tab: Doanh thu phòng (mặc định) · Dòng tiền · Chi phí & Lợi nhuận — bỏ tab Doanh thu trùng" },
-        { "type": "improvement", "text": "Housekeeping Hub thêm tab Chất lượng (QC) — embed dashboard /housekeeping/qc, đặt làm tab mặc định" },
-        { "type": "improvement", "text": "Tab 'Hỏng / Mất' chuyển từ Operations Hub sang Inventory Hub (gom đúng nhóm tài sản kho)" },
-        { "type": "improvement", "text": "Bỏ trang Reports Dashboard cũ; các URL /reports/room-revenue, /reports/cash-flow, /reports/damages tự redirect vào tab tương ứng" },
-        { "type": "improvement", "text": "Menu báo cáo gọn còn 4 mục: Tài chính · Vận hành phòng · Buồng phòng & Giặt là · Kho & Bảo trì" }
+        {
+          "type": "improvement",
+          "text": "Finance Hub gộp 3 tab: Doanh thu phòng (mặc định) · Dòng tiền · Chi phí & Lợi nhuận — bỏ tab Doanh thu trùng"
+        },
+        {
+          "type": "improvement",
+          "text": "Housekeeping Hub thêm tab Chất lượng (QC) — embed dashboard /housekeeping/qc, đặt làm tab mặc định"
+        },
+        {
+          "type": "improvement",
+          "text": "Tab 'Hỏng / Mất' chuyển từ Operations Hub sang Inventory Hub (gom đúng nhóm tài sản kho)"
+        },
+        {
+          "type": "improvement",
+          "text": "Bỏ trang Reports Dashboard cũ; các URL /reports/room-revenue, /reports/cash-flow, /reports/damages tự redirect vào tab tương ứng"
+        },
+        {
+          "type": "improvement",
+          "text": "Menu báo cáo gọn còn 4 mục: Tài chính · Vận hành phòng · Buồng phòng & Giặt là · Kho & Bảo trì"
+        }
       ]
     },
     {
@@ -114,13 +232,34 @@
       "releaseDate": "2026-05-27",
       "title": "Báo cáo Dòng tiền (Cash Flow)",
       "changes": [
-        { "type": "feature", "text": "Trang mới /reports/cash-flow: 4 KPI lớn — Tiền vào, Tiền ra, Net cash, Công nợ phải thu — kèm Δ% so kỳ trước" },
-        { "type": "feature", "text": "Biểu đồ kép theo ngày: cột Tiền vào / Tiền ra + đường Net cash dồn" },
-        { "type": "feature", "text": "Breakdown Tiền vào theo kênh (Tiền mặt, Chuyển khoản, Booking.com, Agoda...) và Tiền ra theo nhóm (Mua hàng, Giặt là, Bảo trì)" },
-        { "type": "feature", "text": "Công nợ phải thu theo Aging (0-7N / 8-30N / 31-60N / >60N) + Top 10 booking nợ nhiều nhất" },
-        { "type": "feature", "text": "OTA chưa thanh toán theo kênh — gross, hoa hồng, đã trả, còn giữ" },
-        { "type": "feature", "text": "Khoản sắp phải trả 30N tới: PO chờ nhận + bảo trì đang xử lý" },
-        { "type": "feature", "text": "Cảnh báo dòng tiền tự sinh: âm net cash, công nợ cũ tích tụ, OTA giữ tiền nhiều, khoản phải trả tuần tới lớn hơn tiền vào" }
+        {
+          "type": "feature",
+          "text": "Trang mới /reports/cash-flow: 4 KPI lớn — Tiền vào, Tiền ra, Net cash, Công nợ phải thu — kèm Δ% so kỳ trước"
+        },
+        {
+          "type": "feature",
+          "text": "Biểu đồ kép theo ngày: cột Tiền vào / Tiền ra + đường Net cash dồn"
+        },
+        {
+          "type": "feature",
+          "text": "Breakdown Tiền vào theo kênh (Tiền mặt, Chuyển khoản, Booking.com, Agoda...) và Tiền ra theo nhóm (Mua hàng, Giặt là, Bảo trì)"
+        },
+        {
+          "type": "feature",
+          "text": "Công nợ phải thu theo Aging (0-7N / 8-30N / 31-60N / >60N) + Top 10 booking nợ nhiều nhất"
+        },
+        {
+          "type": "feature",
+          "text": "OTA chưa thanh toán theo kênh — gross, hoa hồng, đã trả, còn giữ"
+        },
+        {
+          "type": "feature",
+          "text": "Khoản sắp phải trả 30N tới: PO chờ nhận + bảo trì đang xử lý"
+        },
+        {
+          "type": "feature",
+          "text": "Cảnh báo dòng tiền tự sinh: âm net cash, công nợ cũ tích tụ, OTA giữ tiền nhiều, khoản phải trả tuần tới lớn hơn tiền vào"
+        }
       ]
     },
     {
@@ -128,11 +267,26 @@
       "releaseDate": "2026-05-27",
       "title": "Báo cáo Doanh thu phòng (Occupancy • ADR • RevPAR)",
       "changes": [
-        { "type": "feature", "text": "Trang mới /reports/room-revenue: 4 KPI lớn — Doanh thu phòng, Công suất, ADR (giá TB/đêm), RevPAR — kèm Δ% so kỳ trước và badge so chuẩn ngành" },
-        { "type": "feature", "text": "Biểu đồ kép theo ngày: Công suất % (bar) + Doanh thu/ngày (line) — xem nhanh xu hướng" },
-        { "type": "feature", "text": "Bảng Phòng bán tốt nhất (top 10) + Phòng bán chậm (bottom 5) — gợi ý kiểm tra QC khi <30% trung bình" },
-        { "type": "feature", "text": "Phân tích doanh thu theo kênh (Walk-in, Direct, Booking.com, Agoda...) — kèm phí hoa hồng OTA và bar visual" },
-        { "type": "feature", "text": "Gợi ý hành động tự sinh: OTA >60% cảnh báo, ADR thấp dưới chuẩn, công suất xuất sắc → cân nhắc tăng giá, RevPAR giảm mạnh" }
+        {
+          "type": "feature",
+          "text": "Trang mới /reports/room-revenue: 4 KPI lớn — Doanh thu phòng, Công suất, ADR (giá TB/đêm), RevPAR — kèm Δ% so kỳ trước và badge so chuẩn ngành"
+        },
+        {
+          "type": "feature",
+          "text": "Biểu đồ kép theo ngày: Công suất % (bar) + Doanh thu/ngày (line) — xem nhanh xu hướng"
+        },
+        {
+          "type": "feature",
+          "text": "Bảng Phòng bán tốt nhất (top 10) + Phòng bán chậm (bottom 5) — gợi ý kiểm tra QC khi <30% trung bình"
+        },
+        {
+          "type": "feature",
+          "text": "Phân tích doanh thu theo kênh (Walk-in, Direct, Booking.com, Agoda...) — kèm phí hoa hồng OTA và bar visual"
+        },
+        {
+          "type": "feature",
+          "text": "Gợi ý hành động tự sinh: OTA >60% cảnh báo, ADR thấp dưới chuẩn, công suất xuất sắc → cân nhắc tăng giá, RevPAR giảm mạnh"
+        }
       ]
     },
     {
@@ -140,24 +294,53 @@
       "releaseDate": "2026-05-27",
       "title": "Dọn dẹp Báo cáo Tài chính (Sprint F1)",
       "changes": [
-        { "type": "improvement", "text": "Bỏ trùng lặp KPI: 4+4 ô doanh thu/chi phí trong tab Chi phí đã có ở dải KPI Hub — không hiển thị 2 lần nữa" },
-        { "type": "improvement", "text": "1 bộ filter kỳ duy nhất cho cả tab Doanh thu và Chi phí — không còn 2 chọn kỳ lệch nhau" },
-        { "type": "improvement", "text": "Bỏ tabs lồng nhau trong Doanh thu (Tổng quan/Theo loại/Theo nguồn/Phòng) → cuộn dọc thành 6 section dễ đọc" },
-        { "type": "improvement", "text": "Bỏ tab ROI hardcode (số liệu không thật) — sẽ thay bằng chỉ số thật ở sprint sau" },
-        { "type": "improvement", "text": "Refactor Tài chính về chuẩn Minimalist: bỏ Card/icon/emoji/màu hex cứng, dùng border + token màu" }
+        {
+          "type": "improvement",
+          "text": "Bỏ trùng lặp KPI: 4+4 ô doanh thu/chi phí trong tab Chi phí đã có ở dải KPI Hub — không hiển thị 2 lần nữa"
+        },
+        {
+          "type": "improvement",
+          "text": "1 bộ filter kỳ duy nhất cho cả tab Doanh thu và Chi phí — không còn 2 chọn kỳ lệch nhau"
+        },
+        {
+          "type": "improvement",
+          "text": "Bỏ tabs lồng nhau trong Doanh thu (Tổng quan/Theo loại/Theo nguồn/Phòng) → cuộn dọc thành 6 section dễ đọc"
+        },
+        {
+          "type": "improvement",
+          "text": "Bỏ tab ROI hardcode (số liệu không thật) — sẽ thay bằng chỉ số thật ở sprint sau"
+        },
+        {
+          "type": "improvement",
+          "text": "Refactor Tài chính về chuẩn Minimalist: bỏ Card/icon/emoji/màu hex cứng, dùng border + token màu"
+        }
       ]
     },
-
     {
       "version": "1.0.50",
       "releaseDate": "2026-05-26",
       "title": "Trang Tổng quan điều hành mới (Sprint B2)",
       "changes": [
-        { "type": "feature", "text": "Trang /reports được thay bằng Tổng quan điều hành: 6 KPI tổng (Doanh thu • Lợi nhuận • Công suất • RevPAR • Chi phí • Còn nợ) + Δ% so kỳ trước" },
-        { "type": "feature", "text": "Biểu đồ Doanh thu vs Chi phí 30 ngày gần nhất ngay trong trang Tổng quan" },
-        { "type": "feature", "text": "Danh sách Cần chú ý: booking quá hạn, kho sắp hết, bảo trì khẩn, lô giặt trễ — click sang trang xử lý" },
-        { "type": "feature", "text": "Click KPI để drilldown sang hub báo cáo chi tiết tương ứng" },
-        { "type": "improvement", "text": "Trang Báo cáo cũ vẫn truy cập được tại /reports/legacy trong 1 release để rollback" }
+        {
+          "type": "feature",
+          "text": "Trang /reports được thay bằng Tổng quan điều hành: 6 KPI tổng (Doanh thu • Lợi nhuận • Công suất • RevPAR • Chi phí • Còn nợ) + Δ% so kỳ trước"
+        },
+        {
+          "type": "feature",
+          "text": "Biểu đồ Doanh thu vs Chi phí 30 ngày gần nhất ngay trong trang Tổng quan"
+        },
+        {
+          "type": "feature",
+          "text": "Danh sách Cần chú ý: booking quá hạn, kho sắp hết, bảo trì khẩn, lô giặt trễ — click sang trang xử lý"
+        },
+        {
+          "type": "feature",
+          "text": "Click KPI để drilldown sang hub báo cáo chi tiết tương ứng"
+        },
+        {
+          "type": "improvement",
+          "text": "Trang Báo cáo cũ vẫn truy cập được tại /reports/legacy trong 1 release để rollback"
+        }
       ]
     },
     {
@@ -165,10 +348,22 @@
       "releaseDate": "2026-05-26",
       "title": "Bảng điểm KPI cho Báo cáo Tài chính (Sprint B1)",
       "changes": [
-        { "type": "feature", "text": "Thêm dải 6 KPI tile ở đầu Báo cáo Tài chính: Doanh thu thuần • Đã thu • Còn nợ • Chi phí • Lợi nhuận • Biên LN — luôn hiển thị ở mọi tab" },
-        { "type": "feature", "text": "Mỗi KPI hiển thị Δ% so kỳ trước cùng độ dài, màu xanh/đỏ theo hướng tốt của từng chỉ số" },
-        { "type": "feature", "text": "Chip chọn nhanh kỳ báo cáo: Hôm nay • 7 ngày • Tháng này • Tháng trước • 90 ngày • Năm nay" },
-        { "type": "improvement", "text": "Component KpiScorecard + helper resolvePeriod dùng chung cho các hub báo cáo tiếp theo" }
+        {
+          "type": "feature",
+          "text": "Thêm dải 6 KPI tile ở đầu Báo cáo Tài chính: Doanh thu thuần • Đã thu • Còn nợ • Chi phí • Lợi nhuận • Biên LN — luôn hiển thị ở mọi tab"
+        },
+        {
+          "type": "feature",
+          "text": "Mỗi KPI hiển thị Δ% so kỳ trước cùng độ dài, màu xanh/đỏ theo hướng tốt của từng chỉ số"
+        },
+        {
+          "type": "feature",
+          "text": "Chip chọn nhanh kỳ báo cáo: Hôm nay • 7 ngày • Tháng này • Tháng trước • 90 ngày • Năm nay"
+        },
+        {
+          "type": "improvement",
+          "text": "Component KpiScorecard + helper resolvePeriod dùng chung cho các hub báo cáo tiếp theo"
+        }
       ]
     },
     {
@@ -176,12 +371,30 @@
       "releaseDate": "2026-05-25",
       "title": "Tinh gọn Báo cáo: từ 10 trang → 4 hub theo vai trò",
       "changes": [
-        { "type": "feature", "text": "Gộp Doanh thu + Tài chính → /reports/finance (Tài chính)" },
-        { "type": "feature", "text": "Gộp KPI Vận hành + Hiệu năng phòng + Hỏng/Mất → /reports/operations (Vận hành phòng)" },
-        { "type": "feature", "text": "Gộp Giặt là (+ Buồng phòng) → /reports/housekeeping (Buồng phòng & Giặt là)" },
-        { "type": "feature", "text": "Gộp Tồn kho + Xuất kho + Kiểm kê + Bảo trì → /reports/inventory (Kho & Bảo trì)" },
-        { "type": "feature", "text": "Sidebar Báo cáo rút gọn từ 6 mục xuống 5 mục, mỗi báo cáo trả lời 1 câu hỏi vận hành cụ thể" },
-        { "type": "fix", "text": "Mọi URL báo cáo cũ tự redirect sang hub mới kèm ?tab= tương ứng (bookmark vẫn chạy)" }
+        {
+          "type": "feature",
+          "text": "Gộp Doanh thu + Tài chính → /reports/finance (Tài chính)"
+        },
+        {
+          "type": "feature",
+          "text": "Gộp KPI Vận hành + Hiệu năng phòng + Hỏng/Mất → /reports/operations (Vận hành phòng)"
+        },
+        {
+          "type": "feature",
+          "text": "Gộp Giặt là (+ Buồng phòng) → /reports/housekeeping (Buồng phòng & Giặt là)"
+        },
+        {
+          "type": "feature",
+          "text": "Gộp Tồn kho + Xuất kho + Kiểm kê + Bảo trì → /reports/inventory (Kho & Bảo trì)"
+        },
+        {
+          "type": "feature",
+          "text": "Sidebar Báo cáo rút gọn từ 6 mục xuống 5 mục, mỗi báo cáo trả lời 1 câu hỏi vận hành cụ thể"
+        },
+        {
+          "type": "fix",
+          "text": "Mọi URL báo cáo cũ tự redirect sang hub mới kèm ?tab= tương ứng (bookmark vẫn chạy)"
+        }
       ]
     },
     {
@@ -189,9 +402,18 @@
       "releaseDate": "2026-05-25",
       "title": "Mở rộng báo cáo tài chính & giặt là (P1)",
       "changes": [
-        { "type": "feature", "text": "Báo cáo Tài chính: thêm doanh thu thuần, đã thu, còn nợ, lợi nhuận thuần và biên lợi nhuận" },
-        { "type": "feature", "text": "Xu hướng tháng có thêm đường doanh thu và lợi nhuận" },
-        { "type": "fix", "text": "Báo cáo Giặt là: tính cả lô đang xử lý (delivered/washing/ready), chi phí fallback estimated_cost khi chưa có actual_cost" }
+        {
+          "type": "feature",
+          "text": "Báo cáo Tài chính: thêm doanh thu thuần, đã thu, còn nợ, lợi nhuận thuần và biên lợi nhuận"
+        },
+        {
+          "type": "feature",
+          "text": "Xu hướng tháng có thêm đường doanh thu và lợi nhuận"
+        },
+        {
+          "type": "fix",
+          "text": "Báo cáo Giặt là: tính cả lô đang xử lý (delivered/washing/ready), chi phí fallback estimated_cost khi chưa có actual_cost"
+        }
       ]
     },
     {
@@ -199,8 +421,14 @@
       "releaseDate": "2026-05-25",
       "title": "Sửa lỗi báo cáo doanh thu & công suất phòng (P0)",
       "changes": [
-        { "type": "fix", "text": "Báo cáo Doanh thu: chỉ tính booking đã trả phòng (checked_out), loại pending/cancelled để không thổi phồng doanh thu" },
-        { "type": "fix", "text": "Báo cáo Phòng: công suất và doanh thu theo loại phòng chỉ tính booking thực sự lưu trú (checked_in/checked_out)" }
+        {
+          "type": "fix",
+          "text": "Báo cáo Doanh thu: chỉ tính booking đã trả phòng (checked_out), loại pending/cancelled để không thổi phồng doanh thu"
+        },
+        {
+          "type": "fix",
+          "text": "Báo cáo Phòng: công suất và doanh thu theo loại phòng chỉ tính booking thực sự lưu trú (checked_in/checked_out)"
+        }
       ]
     },
     {
@@ -208,23 +436,49 @@
       "releaseDate": "2026-05-23",
       "title": "Đánh giá vận hành — KPI, benchmark ngành và lời khuyên AI",
       "changes": [
-        { "type": "feature", "text": "Thêm tab Đánh giá vận hành trong Báo cáo Tài chính: lợi nhuận thuần, biên lợi nhuận, RevPAR, tỷ lệ lấp đầy + so sánh kỳ trước" },
-        { "type": "feature", "text": "Benchmark ngành khách sạn 2-4 sao Việt Nam — hiển thị mức Yếu/Trung bình/Tốt/Xuất sắc cho từng KPI" },
-        { "type": "feature", "text": "Lời khuyên ưu tiên dùng Rule engine + AI tóm tắt tự nhiên, ước tính tác động VNĐ/tháng" },
-        { "type": "feature", "text": "Xuất PDF báo cáo đánh giá vận hành" }
+        {
+          "type": "feature",
+          "text": "Thêm tab Đánh giá vận hành trong Báo cáo Tài chính: lợi nhuận thuần, biên lợi nhuận, RevPAR, tỷ lệ lấp đầy + so sánh kỳ trước"
+        },
+        {
+          "type": "feature",
+          "text": "Benchmark ngành khách sạn 2-4 sao Việt Nam — hiển thị mức Yếu/Trung bình/Tốt/Xuất sắc cho từng KPI"
+        },
+        {
+          "type": "feature",
+          "text": "Lời khuyên ưu tiên dùng Rule engine + AI tóm tắt tự nhiên, ước tính tác động VNĐ/tháng"
+        },
+        {
+          "type": "feature",
+          "text": "Xuất PDF báo cáo đánh giá vận hành"
+        }
       ]
     },
-    {
     {
       "version": "1.0.44",
       "releaseDate": "2026-05-23",
       "title": "Sửa công thức doanh thu — gộp phí dịch vụ, minibar và phụ thu phát sinh",
       "changes": [
-        { "type": "fix", "text": "Báo cáo Doanh thu nay cộng đủ phí dịch vụ (spa, đưa đón…) và phí phát sinh (minibar, đồ tiêu hao) vào phần Phụ thu — trước đây bị bỏ sót khiến doanh thu thấp hơn thực tế" },
-        { "type": "feature", "text": "Thêm chọn khoảng thời gian tùy chọn (Tùy chọn…) ở Báo cáo Doanh thu — so sánh quý/năm bất kỳ thay vì chỉ preset tuần/tháng/quý/năm" },
-        { "type": "fix", "text": "Trang Báo cáo Tài chính khi đang tải hiển thị skeleton tiếng Việt thay vì chữ Loading… cứng" },
-        { "type": "improvement", "text": "Báo cáo Hỏng/Mất ghi log cảnh báo khi gặp dữ liệu legacy không đúng định dạng, giúp phát hiện bug âm thầm" },
-        { "type": "improvement", "text": "Thêm 7 unit test cho công thức doanh thu (paid/pending/refunded, fallback net revenue, phụ thu, VAT)" }
+        {
+          "type": "fix",
+          "text": "Báo cáo Doanh thu nay cộng đủ phí dịch vụ (spa, đưa đón…) và phí phát sinh (minibar, đồ tiêu hao) vào phần Phụ thu — trước đây bị bỏ sót khiến doanh thu thấp hơn thực tế"
+        },
+        {
+          "type": "feature",
+          "text": "Thêm chọn khoảng thời gian tùy chọn (Tùy chọn…) ở Báo cáo Doanh thu — so sánh quý/năm bất kỳ thay vì chỉ preset tuần/tháng/quý/năm"
+        },
+        {
+          "type": "fix",
+          "text": "Trang Báo cáo Tài chính khi đang tải hiển thị skeleton tiếng Việt thay vì chữ Loading… cứng"
+        },
+        {
+          "type": "improvement",
+          "text": "Báo cáo Hỏng/Mất ghi log cảnh báo khi gặp dữ liệu legacy không đúng định dạng, giúp phát hiện bug âm thầm"
+        },
+        {
+          "type": "improvement",
+          "text": "Thêm 7 unit test cho công thức doanh thu (paid/pending/refunded, fallback net revenue, phụ thu, VAT)"
+        }
       ]
     },
     {
@@ -232,10 +486,22 @@
       "releaseDate": "2026-05-21",
       "title": "Báo cáo theo chức vụ — chỉ thấy báo cáo liên quan",
       "changes": [
-        { "type": "feature", "text": "Trang /reports tổ chức lại theo nhóm bộ phận: Tài chính, Vận hành, Buồng phòng, Kho & Mua hàng, Giặt là, Bảo trì" },
-        { "type": "feature", "text": "Trưởng bộ phận chỉ thấy báo cáo của bộ phận mình (ví dụ Trưởng kho chỉ thấy Tồn kho, Kiểm kê, Xuất kho), tránh nhiễu thông tin" },
-        { "type": "improvement", "text": "Owner và Quản lý khách sạn vẫn thấy đầy đủ; hiển thị nhãn vai trò dưới tiêu đề để biết đang xem ở góc nhìn nào" },
-        { "type": "improvement", "text": "Mobile dashboard /reports cũng áp dụng cùng quy tắc nhóm + lọc" }
+        {
+          "type": "feature",
+          "text": "Trang /reports tổ chức lại theo nhóm bộ phận: Tài chính, Vận hành, Buồng phòng, Kho & Mua hàng, Giặt là, Bảo trì"
+        },
+        {
+          "type": "feature",
+          "text": "Trưởng bộ phận chỉ thấy báo cáo của bộ phận mình (ví dụ Trưởng kho chỉ thấy Tồn kho, Kiểm kê, Xuất kho), tránh nhiễu thông tin"
+        },
+        {
+          "type": "improvement",
+          "text": "Owner và Quản lý khách sạn vẫn thấy đầy đủ; hiển thị nhãn vai trò dưới tiêu đề để biết đang xem ở góc nhìn nào"
+        },
+        {
+          "type": "improvement",
+          "text": "Mobile dashboard /reports cũng áp dụng cùng quy tắc nhóm + lọc"
+        }
       ]
     },
     {
@@ -243,9 +509,18 @@
       "releaseDate": "2026-05-21",
       "title": "Tự động đăng nhập trên PWA đã cài",
       "changes": [
-        { "type": "feature", "text": "PWA đã cài (Add to Home Screen) nay tự đăng nhập sau lần đầu — không cần gõ lại email/mật khẩu mỗi lần mở app" },
-        { "type": "improvement", "text": "Có nút 'Hủy' khi đang tự đăng nhập để chuyển sang tài khoản khác; bấm Đăng xuất thủ công sẽ chặn auto-login cho đến lần đăng nhập tay kế tiếp" },
-        { "type": "improvement", "text": "Trình duyệt thường và môi trường preview vẫn giữ nguyên hành vi cũ — chỉ kích hoạt khi app chạy ở chế độ standalone" }
+        {
+          "type": "feature",
+          "text": "PWA đã cài (Add to Home Screen) nay tự đăng nhập sau lần đầu — không cần gõ lại email/mật khẩu mỗi lần mở app"
+        },
+        {
+          "type": "improvement",
+          "text": "Có nút 'Hủy' khi đang tự đăng nhập để chuyển sang tài khoản khác; bấm Đăng xuất thủ công sẽ chặn auto-login cho đến lần đăng nhập tay kế tiếp"
+        },
+        {
+          "type": "improvement",
+          "text": "Trình duyệt thường và môi trường preview vẫn giữ nguyên hành vi cũ — chỉ kích hoạt khi app chạy ở chế độ standalone"
+        }
       ]
     },
     {
@@ -253,21 +528,41 @@
       "releaseDate": "2026-05-21",
       "title": "Đồng bộ chấm on/off ở trang Quản lý nhân sự",
       "changes": [
-        { "type": "fix", "text": "Chấm trạng thái cạnh tên nhân viên (trang /staff) nay phản ánh đúng thực tế: chỉ xanh khi đang trong ca và còn heartbeat — không còn chấm xanh cho người đã offline cả tháng" },
-        { "type": "improvement", "text": "Thẻ thống kê đổi sang 4 nhóm: Sẵn sàng / Đang bận / Mất kết nối / Ngoài ca, dùng chung định nghĩa với dropdown giao việc" },
-        { "type": "improvement", "text": "Badge 'Đang trong ca' tự đổi thành 'Trong ca · mất kết nối' khi heartbeat quá 30 phút, và 'Ca treo' khi ca mở quá 16 giờ" }
+        {
+          "type": "fix",
+          "text": "Chấm trạng thái cạnh tên nhân viên (trang /staff) nay phản ánh đúng thực tế: chỉ xanh khi đang trong ca và còn heartbeat — không còn chấm xanh cho người đã offline cả tháng"
+        },
+        {
+          "type": "improvement",
+          "text": "Thẻ thống kê đổi sang 4 nhóm: Sẵn sàng / Đang bận / Mất kết nối / Ngoài ca, dùng chung định nghĩa với dropdown giao việc"
+        },
+        {
+          "type": "improvement",
+          "text": "Badge 'Đang trong ca' tự đổi thành 'Trong ca · mất kết nối' khi heartbeat quá 30 phút, và 'Ca treo' khi ca mở quá 16 giờ"
+        }
       ]
     },
-
     {
       "version": "1.0.40",
       "releaseDate": "2026-05-20",
       "title": "Đồng bộ logic 'đang trong ca' giữa giao việc và Quản lý nhân sự",
       "changes": [
-        { "type": "fix", "text": "Dropdown chọn nhân viên kiểm tra phòng (checkout, housekeeping, distribution...) nay loại bỏ ca treo quá 16 giờ — không còn hiện nhân viên đã nghỉ từ tuần trước" },
-        { "type": "improvement", "text": "Nhân viên hiển thị theo nhóm rõ ràng: Sẵn sàng (chấm xanh) / Đang bận (vàng) / Mất kết nối >30 phút (xám), thay vì gộp chung" },
-        { "type": "improvement", "text": "Trạng thái busy/break/offline trong staff_status nay được tôn trọng ở mọi nơi giao việc, không chỉ ở trang Quản lý nhân sự" },
-        { "type": "improvement", "text": "Tự động đóng các ca làm việc đã mở quá 16 giờ (nhân viên quên bấm tan ca), chạy mỗi giờ và ghi nhật ký audit" }
+        {
+          "type": "fix",
+          "text": "Dropdown chọn nhân viên kiểm tra phòng (checkout, housekeeping, distribution...) nay loại bỏ ca treo quá 16 giờ — không còn hiện nhân viên đã nghỉ từ tuần trước"
+        },
+        {
+          "type": "improvement",
+          "text": "Nhân viên hiển thị theo nhóm rõ ràng: Sẵn sàng (chấm xanh) / Đang bận (vàng) / Mất kết nối >30 phút (xám), thay vì gộp chung"
+        },
+        {
+          "type": "improvement",
+          "text": "Trạng thái busy/break/offline trong staff_status nay được tôn trọng ở mọi nơi giao việc, không chỉ ở trang Quản lý nhân sự"
+        },
+        {
+          "type": "improvement",
+          "text": "Tự động đóng các ca làm việc đã mở quá 16 giờ (nhân viên quên bấm tan ca), chạy mỗi giờ và ghi nhật ký audit"
+        }
       ]
     },
     {
@@ -275,11 +570,26 @@
       "releaseDate": "2026-05-20",
       "title": "Đồng bộ trạng thái phòng & sửa lỗi không check-in được phòng vacant_clean",
       "changes": [
-        { "type": "fix", "text": "Sửa lỗi không check-in được khi phòng đang ở trạng thái 'Trống – đã dọn' (vacant_clean): RPC perform_checkin nay hiểu đầy đủ bộ trạng thái mới v2" },
-        { "type": "improvement", "text": "Sau checkout, phòng tự chuyển sang 'Trống – chưa dọn' (vacant_dirty) để housekeeping xử lý, thay vì trạng thái cũ check_out" },
-        { "type": "improvement", "text": "Thông báo lỗi check-in rõ ràng hơn: phân biệt 'Phòng chưa dọn', 'Phòng bảo trì', 'Phòng đang có khách'" },
-        { "type": "improvement", "text": "Bộ lọc trạng thái phòng và Floor Plan dùng nhãn thống nhất theo state machine v2 (Trống – đã dọn / chưa dọn / đã QC, Đang ở – đã dọn / cần dọn, DND, OOO, OOS...)" },
-        { "type": "fix", "text": "Tự động chuẩn hóa các phòng còn dùng tên trạng thái cũ (vacant, occupied, cleaning, maintenance...) về tên mới" }
+        {
+          "type": "fix",
+          "text": "Sửa lỗi không check-in được khi phòng đang ở trạng thái 'Trống – đã dọn' (vacant_clean): RPC perform_checkin nay hiểu đầy đủ bộ trạng thái mới v2"
+        },
+        {
+          "type": "improvement",
+          "text": "Sau checkout, phòng tự chuyển sang 'Trống – chưa dọn' (vacant_dirty) để housekeeping xử lý, thay vì trạng thái cũ check_out"
+        },
+        {
+          "type": "improvement",
+          "text": "Thông báo lỗi check-in rõ ràng hơn: phân biệt 'Phòng chưa dọn', 'Phòng bảo trì', 'Phòng đang có khách'"
+        },
+        {
+          "type": "improvement",
+          "text": "Bộ lọc trạng thái phòng và Floor Plan dùng nhãn thống nhất theo state machine v2 (Trống – đã dọn / chưa dọn / đã QC, Đang ở – đã dọn / cần dọn, DND, OOO, OOS...)"
+        },
+        {
+          "type": "fix",
+          "text": "Tự động chuẩn hóa các phòng còn dùng tên trạng thái cũ (vacant, occupied, cleaning, maintenance...) về tên mới"
+        }
       ]
     },
     {
@@ -287,11 +597,26 @@
       "releaseDate": "2026-05-20",
       "title": "Sửa lỗi QR VAT báo 'Mã không hợp lệ hoặc hết hạn'",
       "changes": [
-        { "type": "fix", "text": "QR lấy hoá đơn VAT trên bill nay luôn dùng token thật từ hệ thống, không còn fallback sang ID hoá đơn (nguyên nhân khiến khách quét báo mã không hợp lệ/hết hạn)" },
-        { "type": "fix", "text": "Khi token chưa sẵn sàng, các nút In / PDF / In QR VAT sẽ chờ tạo token xong rồi mới chạy — bill in ra chắc chắn có QR đúng" },
-        { "type": "improvement", "text": "QR luôn trỏ đến domain chính thức roomqc.com/i/:token, kèm URL ngắn + hạn 7 ngày in dưới mã để khách gõ tay nếu cần" },
-        { "type": "improvement", "text": "Nút In hoá đơn ở màn Booking nay mặc định khổ K80 và lấy QR VAT đúng cho hoá đơn của booking" },
-        { "type": "fix", "text": "Công thức Còn lại trên bill trừ cả tiền cọc: Còn lại = Tổng − Đã thanh toán − Đã cọc" }
+        {
+          "type": "fix",
+          "text": "QR lấy hoá đơn VAT trên bill nay luôn dùng token thật từ hệ thống, không còn fallback sang ID hoá đơn (nguyên nhân khiến khách quét báo mã không hợp lệ/hết hạn)"
+        },
+        {
+          "type": "fix",
+          "text": "Khi token chưa sẵn sàng, các nút In / PDF / In QR VAT sẽ chờ tạo token xong rồi mới chạy — bill in ra chắc chắn có QR đúng"
+        },
+        {
+          "type": "improvement",
+          "text": "QR luôn trỏ đến domain chính thức roomqc.com/i/:token, kèm URL ngắn + hạn 7 ngày in dưới mã để khách gõ tay nếu cần"
+        },
+        {
+          "type": "improvement",
+          "text": "Nút In hoá đơn ở màn Booking nay mặc định khổ K80 và lấy QR VAT đúng cho hoá đơn của booking"
+        },
+        {
+          "type": "fix",
+          "text": "Công thức Còn lại trên bill trừ cả tiền cọc: Còn lại = Tổng − Đã thanh toán − Đã cọc"
+        }
       ]
     },
     {
@@ -299,10 +624,22 @@
       "releaseDate": "2026-05-20",
       "title": "Sửa hoá đơn: VAT/Phí DV đúng %, thông tin khách sạn đầy đủ trên bill",
       "changes": [
-        { "type": "fix", "text": "Khắc phục lỗi hiển thị VAT 800% / Phí DV 500% trên bill và email — quy ước về integer percent, có normalize tương thích ngược cho hoá đơn cũ" },
-        { "type": "fix", "text": "Bill nhiệt và A4/A5 hiển thị đúng tên khách sạn, địa chỉ, điện thoại, MST (trước đó luôn ghi 'KHÁCH SẠN' do không truyền hotelInfo vào preview)" },
-        { "type": "improvement", "text": "Bill thêm dòng: Đã cọc, Hình thức thanh toán, Tiền thừa trả khách, dòng nhắc hạn 7 ngày quét QR lấy HĐ GTGT" },
-        { "type": "improvement", "text": "Form tạo/sửa hoá đơn: ô % VAT và Phí DV nhập trực tiếp số nguyên (8, 10, 5...), tính tiền chính xác đến đồng" }
+        {
+          "type": "fix",
+          "text": "Khắc phục lỗi hiển thị VAT 800% / Phí DV 500% trên bill và email — quy ước về integer percent, có normalize tương thích ngược cho hoá đơn cũ"
+        },
+        {
+          "type": "fix",
+          "text": "Bill nhiệt và A4/A5 hiển thị đúng tên khách sạn, địa chỉ, điện thoại, MST (trước đó luôn ghi 'KHÁCH SẠN' do không truyền hotelInfo vào preview)"
+        },
+        {
+          "type": "improvement",
+          "text": "Bill thêm dòng: Đã cọc, Hình thức thanh toán, Tiền thừa trả khách, dòng nhắc hạn 7 ngày quét QR lấy HĐ GTGT"
+        },
+        {
+          "type": "improvement",
+          "text": "Form tạo/sửa hoá đơn: ô % VAT và Phí DV nhập trực tiếp số nguyên (8, 10, 5...), tính tiền chính xác đến đồng"
+        }
       ]
     },
     {
@@ -310,10 +647,22 @@
       "releaseDate": "2026-05-20",
       "title": "Khách tự lấy hoá đơn VAT điện tử qua QR",
       "changes": [
-        { "type": "feature", "text": "Luồng hoá đơn mới: in bill nhiệt kèm QR → khách quét, tự nhập tên công ty/MST/email → hệ thống tự gửi hoá đơn VAT qua email" },
-        { "type": "feature", "text": "Trang public /i/:token tối ưu mobile, có Zod validation MST 10/13 số, email bắt buộc, hỗ trợ tiền sẵn nếu khách đã lưu thông tin" },
-        { "type": "feature", "text": "Mặc định khổ K80 khi mở preview hoá đơn để in nhanh trên máy nhiệt phổ biến" },
-        { "type": "improvement", "text": "Cơ chế token 7 ngày, idempotent — lễ tân in lại QR vẫn ra cùng link, không tạo trùng" }
+        {
+          "type": "feature",
+          "text": "Luồng hoá đơn mới: in bill nhiệt kèm QR → khách quét, tự nhập tên công ty/MST/email → hệ thống tự gửi hoá đơn VAT qua email"
+        },
+        {
+          "type": "feature",
+          "text": "Trang public /i/:token tối ưu mobile, có Zod validation MST 10/13 số, email bắt buộc, hỗ trợ tiền sẵn nếu khách đã lưu thông tin"
+        },
+        {
+          "type": "feature",
+          "text": "Mặc định khổ K80 khi mở preview hoá đơn để in nhanh trên máy nhiệt phổ biến"
+        },
+        {
+          "type": "improvement",
+          "text": "Cơ chế token 7 ngày, idempotent — lễ tân in lại QR vẫn ra cùng link, không tạo trùng"
+        }
       ]
     },
     {
@@ -321,10 +670,22 @@
       "releaseDate": "2026-05-20",
       "title": "Hoá đơn: hỗ trợ 4 khổ giấy + QR lấy VAT điện tử",
       "changes": [
-        { "type": "improvement", "text": "Refactor bộ render hoá đơn: tách rõ khổ A4, A5, K80, K58 với layout và print CSS @page chuẩn cho từng khổ máy in" },
-        { "type": "feature", "text": "Bill nhiệt K80/K58 và hoá đơn A4/A5 đều in kèm QR Code; khách quét để tự nhập thông tin công ty/email lấy hoá đơn VAT điện tử (chuẩn bị cho luồng tự phát hành HĐĐT)" },
-        { "type": "feature", "text": "Thêm nút In QR VAT riêng — in một tem nhỏ khổ K80 chỉ chứa mã QR và hướng dẫn, đưa khách khi quên xin VAT lúc thanh toán" },
-        { "type": "improvement", "text": "Preview hoá đơn dựng lại bất đồng bộ, hiển thị skeleton khi đang render, tránh nhấp nháy" }
+        {
+          "type": "improvement",
+          "text": "Refactor bộ render hoá đơn: tách rõ khổ A4, A5, K80, K58 với layout và print CSS @page chuẩn cho từng khổ máy in"
+        },
+        {
+          "type": "feature",
+          "text": "Bill nhiệt K80/K58 và hoá đơn A4/A5 đều in kèm QR Code; khách quét để tự nhập thông tin công ty/email lấy hoá đơn VAT điện tử (chuẩn bị cho luồng tự phát hành HĐĐT)"
+        },
+        {
+          "type": "feature",
+          "text": "Thêm nút In QR VAT riêng — in một tem nhỏ khổ K80 chỉ chứa mã QR và hướng dẫn, đưa khách khi quên xin VAT lúc thanh toán"
+        },
+        {
+          "type": "improvement",
+          "text": "Preview hoá đơn dựng lại bất đồng bộ, hiển thị skeleton khi đang render, tránh nhấp nháy"
+        }
       ]
     },
     {
@@ -332,21 +693,41 @@
       "releaseDate": "2026-05-20",
       "title": "Tối ưu landing & thống nhất bộ chọn khách sạn trên mobile",
       "changes": [
-        { "type": "improvement", "text": "Landing page trên mobile gọn lại: giảm khoảng trắng giữa các phần, tiêu đề Hero không còn vỡ 3 dòng, CTA full-width thumb-friendly" },
-        { "type": "improvement", "text": "Stats khách sạn hiển thị trong fold đầu tiên trên iPhone, kết hợp min-h dùng svh để tránh bị che bởi address bar Safari" },
-        { "type": "improvement", "text": "Thống nhất bộ chọn khách sạn trên mobile: trang Kho hàng và header chính cùng dùng bottom sheet full-width thay cho dropdown 280px" },
-        { "type": "fix", "text": "Loại bỏ nested button trong header mobile, tránh sự kiện kép trên iOS Safari khi chạm tên khách sạn" },
-        { "type": "improvement", "text": "Safe-area chính xác cho iPhone notch: FAB không còn che nội dung cuối list trên Inventory" }
+        {
+          "type": "improvement",
+          "text": "Landing page trên mobile gọn lại: giảm khoảng trắng giữa các phần, tiêu đề Hero không còn vỡ 3 dòng, CTA full-width thumb-friendly"
+        },
+        {
+          "type": "improvement",
+          "text": "Stats khách sạn hiển thị trong fold đầu tiên trên iPhone, kết hợp min-h dùng svh để tránh bị che bởi address bar Safari"
+        },
+        {
+          "type": "improvement",
+          "text": "Thống nhất bộ chọn khách sạn trên mobile: trang Kho hàng và header chính cùng dùng bottom sheet full-width thay cho dropdown 280px"
+        },
+        {
+          "type": "fix",
+          "text": "Loại bỏ nested button trong header mobile, tránh sự kiện kép trên iOS Safari khi chạm tên khách sạn"
+        },
+        {
+          "type": "improvement",
+          "text": "Safe-area chính xác cho iPhone notch: FAB không còn che nội dung cuối list trên Inventory"
+        }
       ]
     },
-
     {
       "version": "1.0.33",
       "releaseDate": "2026-05-19",
       "title": "Bộ chọn khách sạn mới trên mobile",
       "changes": [
-        { "type": "improvement", "text": "Chạm vào tên khách sạn trên header mobile để mở bottom sheet full-width: tìm kiếm, xem trạng thái và chuyển nhanh giữa các khách sạn" },
-        { "type": "improvement", "text": "Bỏ nút chuyển khách sạn trùng lặp trên header, tránh xung đột thao tác trong vùng ngón cái" }
+        {
+          "type": "improvement",
+          "text": "Chạm vào tên khách sạn trên header mobile để mở bottom sheet full-width: tìm kiếm, xem trạng thái và chuyển nhanh giữa các khách sạn"
+        },
+        {
+          "type": "improvement",
+          "text": "Bỏ nút chuyển khách sạn trùng lặp trên header, tránh xung đột thao tác trong vùng ngón cái"
+        }
       ]
     },
     {
@@ -354,10 +735,22 @@
       "releaseDate": "2026-05-19",
       "title": "Sửa màn lỗi mặc định & tối ưu giao diện mobile",
       "changes": [
-        { "type": "fix", "text": "Thay màn \"Unexpected Application Error\" mặc định bằng fallback tiếng Việt; lỗi chunk sau deploy tự tải lại bản mới" },
-        { "type": "fix", "text": "Sửa lỗi tràn ngang ở trang Cài đặt chung trên mobile (tiêu đề bị cắt bên trái)" },
-        { "type": "improvement", "text": "Gọn header mobile: bỏ nút chuyển khách sạn trùng lặp; nút chạm trong header nhỏ gọn hơn" },
-        { "type": "improvement", "text": "Chặn cuộn ngang toàn cục trên mobile để layout không bị lệch khi nội dung dài" }
+        {
+          "type": "fix",
+          "text": "Thay màn \"Unexpected Application Error\" mặc định bằng fallback tiếng Việt; lỗi chunk sau deploy tự tải lại bản mới"
+        },
+        {
+          "type": "fix",
+          "text": "Sửa lỗi tràn ngang ở trang Cài đặt chung trên mobile (tiêu đề bị cắt bên trái)"
+        },
+        {
+          "type": "improvement",
+          "text": "Gọn header mobile: bỏ nút chuyển khách sạn trùng lặp; nút chạm trong header nhỏ gọn hơn"
+        },
+        {
+          "type": "improvement",
+          "text": "Chặn cuộn ngang toàn cục trên mobile để layout không bị lệch khi nội dung dài"
+        }
       ]
     },
     {
@@ -365,8 +758,14 @@
       "releaseDate": "2026-05-19",
       "title": "Sửa lỗi crash trang chủ \"l.map is not a function\"",
       "changes": [
-        { "type": "fix", "text": "Bundle sẵn ngôn ngữ trang chủ (landing) để bảng giá không crash khi mở lần đầu trên mạng chậm" },
-        { "type": "improvement", "text": "Bảng giá luôn render an toàn kể cả khi dữ liệu i18n chưa kịp tải" }
+        {
+          "type": "fix",
+          "text": "Bundle sẵn ngôn ngữ trang chủ (landing) để bảng giá không crash khi mở lần đầu trên mạng chậm"
+        },
+        {
+          "type": "improvement",
+          "text": "Bảng giá luôn render an toàn kể cả khi dữ liệu i18n chưa kịp tải"
+        }
       ]
     },
     {
@@ -374,8 +773,14 @@
       "releaseDate": "2026-05-19",
       "title": "Sửa lỗi \"Importing a module script failed\" trên mobile",
       "changes": [
-        { "type": "fix", "text": "Tự động xoá cache & tải lại khi gặp lỗi chunk JS sau khi app cập nhật — không còn kẹt màn hình lỗi trên iOS PWA" },
-        { "type": "improvement", "text": "Thêm màn hình fallback \"Đã có bản cập nhật mới\" với nút Tải lại thủ công khi auto-reload không thành công" }
+        {
+          "type": "fix",
+          "text": "Tự động xoá cache & tải lại khi gặp lỗi chunk JS sau khi app cập nhật — không còn kẹt màn hình lỗi trên iOS PWA"
+        },
+        {
+          "type": "improvement",
+          "text": "Thêm màn hình fallback \"Đã có bản cập nhật mới\" với nút Tải lại thủ công khi auto-reload không thành công"
+        }
       ]
     },
     {
@@ -383,7 +788,10 @@
       "releaseDate": "2026-05-19",
       "title": "Bảng booking tự cập nhật sau khi dời lịch",
       "changes": [
-        { "type": "fix", "text": "Dời ngày check-in xong, ngày trong bảng /bookings và các thẻ thống kê tự cập nhật ngay, không cần F5" }
+        {
+          "type": "fix",
+          "text": "Dời ngày check-in xong, ngày trong bảng /bookings và các thẻ thống kê tự cập nhật ngay, không cần F5"
+        }
       ]
     },
     {
@@ -391,7 +799,10 @@
       "releaseDate": "2026-05-19",
       "title": "Sửa lỗi xác nhận dời lịch check-in",
       "changes": [
-        { "type": "fix", "text": "Khắc phục lỗi 404 \"log_state_transition does not exist\" khi bấm Xác nhận dời lịch — RPC giờ gọi đúng tham số và ghi audit log đầy đủ" }
+        {
+          "type": "fix",
+          "text": "Khắc phục lỗi 404 \"log_state_transition does not exist\" khi bấm Xác nhận dời lịch — RPC giờ gọi đúng tham số và ghi audit log đầy đủ"
+        }
       ]
     },
     {
@@ -399,10 +810,22 @@
       "releaseDate": "2026-05-19",
       "title": "Lịch chọn ngày rõ ràng hơn trong dialog dời check-in",
       "changes": [
-        { "type": "improvement", "text": "Ô lịch đang chọn tô màu thực sự: xanh đậm = Nhận, xanh vừa = Trả, nhạt = trong khoảng" },
-        { "type": "feature", "text": "Thêm chế độ \"Chọn ngày trả riêng\" — chạm 2 lần để đặt check-in và check-out tự do" },
-        { "type": "improvement", "text": "Tóm tắt khoảng đang chọn + số đêm, có dấu xác nhận khi phòng trống" },
-        { "type": "improvement", "text": "Ô ngày cao hơn (48px), hiện nhãn \"Nhận\" / \"Trả\" trực tiếp trên ô" }
+        {
+          "type": "improvement",
+          "text": "Ô lịch đang chọn tô màu thực sự: xanh đậm = Nhận, xanh vừa = Trả, nhạt = trong khoảng"
+        },
+        {
+          "type": "feature",
+          "text": "Thêm chế độ \"Chọn ngày trả riêng\" — chạm 2 lần để đặt check-in và check-out tự do"
+        },
+        {
+          "type": "improvement",
+          "text": "Tóm tắt khoảng đang chọn + số đêm, có dấu xác nhận khi phòng trống"
+        },
+        {
+          "type": "improvement",
+          "text": "Ô ngày cao hơn (48px), hiện nhãn \"Nhận\" / \"Trả\" trực tiếp trên ô"
+        }
       ]
     },
     {
@@ -410,11 +833,26 @@
       "releaseDate": "2026-05-19",
       "title": "Lịch phòng trống trong dialog dời ngày check-in",
       "changes": [
-        { "type": "feature", "text": "Dialog dời lịch hiển thị mini-calendar 30 ngày tới của phòng — ô đỏ là đã đặt, ô xám là trống" },
-        { "type": "feature", "text": "Chạm ô trống để chọn ngày check-in mới (số đêm tự giữ nguyên)" },
-        { "type": "feature", "text": "Cảnh báo đỏ ngay khi khoảng chọn trùng lịch + gợi ý khoảng trống gần nhất 1 chạm" },
-        { "type": "feature", "text": "Nút \"Xem thêm 30 ngày\" mở rộng cửa sổ lịch tới 120 ngày" },
-        { "type": "improvement", "text": "Realtime tự cập nhật lịch nếu có booking khác tạo cùng phòng" }
+        {
+          "type": "feature",
+          "text": "Dialog dời lịch hiển thị mini-calendar 30 ngày tới của phòng — ô đỏ là đã đặt, ô xám là trống"
+        },
+        {
+          "type": "feature",
+          "text": "Chạm ô trống để chọn ngày check-in mới (số đêm tự giữ nguyên)"
+        },
+        {
+          "type": "feature",
+          "text": "Cảnh báo đỏ ngay khi khoảng chọn trùng lịch + gợi ý khoảng trống gần nhất 1 chạm"
+        },
+        {
+          "type": "feature",
+          "text": "Nút \"Xem thêm 30 ngày\" mở rộng cửa sổ lịch tới 120 ngày"
+        },
+        {
+          "type": "improvement",
+          "text": "Realtime tự cập nhật lịch nếu có booking khác tạo cùng phòng"
+        }
       ]
     },
     {
@@ -422,11 +860,26 @@
       "releaseDate": "2026-05-19",
       "title": "Xử lý khách quá giờ check-in (No-Show)",
       "changes": [
-        { "type": "feature", "text": "Lọc nhanh \"Quá giờ check-in\" trên danh sách đặt phòng kèm số đếm" },
-        { "type": "feature", "text": "Dòng booking quá giờ hiện chip cảnh báo \"Quá X giờ\" (vàng < 24h, đỏ ≥ 24h)" },
-        { "type": "feature", "text": "Menu thao tác nhanh: Gọi khách, Dời ngày check-in, Đánh dấu No-Show" },
-        { "type": "feature", "text": "Dialog No-Show cho phép chọn giữ cọc làm phí huỷ hoặc hoàn lại khách" },
-        { "type": "feature", "text": "Dialog dời lịch giữ nguyên số đêm, kiểm tra xung đột phòng" }
+        {
+          "type": "feature",
+          "text": "Lọc nhanh \"Quá giờ check-in\" trên danh sách đặt phòng kèm số đếm"
+        },
+        {
+          "type": "feature",
+          "text": "Dòng booking quá giờ hiện chip cảnh báo \"Quá X giờ\" (vàng < 24h, đỏ ≥ 24h)"
+        },
+        {
+          "type": "feature",
+          "text": "Menu thao tác nhanh: Gọi khách, Dời ngày check-in, Đánh dấu No-Show"
+        },
+        {
+          "type": "feature",
+          "text": "Dialog No-Show cho phép chọn giữ cọc làm phí huỷ hoặc hoàn lại khách"
+        },
+        {
+          "type": "feature",
+          "text": "Dialog dời lịch giữ nguyên số đêm, kiểm tra xung đột phòng"
+        }
       ]
     },
     {
@@ -434,7 +887,10 @@
       "releaseDate": "2026-05-19",
       "title": "Vá bảo mật — siết kiểm tra tenant trong phân quyền",
       "changes": [
-        { "type": "security", "text": "Hàm phân quyền quản lý người dùng giờ tự kiểm tra cùng khách sạn — chặn rò chéo tenant kể cả khi RLS bên ngoài có sơ hở" }
+        {
+          "type": "security",
+          "text": "Hàm phân quyền quản lý người dùng giờ tự kiểm tra cùng khách sạn — chặn rò chéo tenant kể cả khi RLS bên ngoài có sơ hở"
+        }
       ]
     },
     {
@@ -442,10 +898,22 @@
       "releaseDate": "2026-05-19",
       "title": "Vá bảo mật — defense-in-depth & rò marketing/giá gói",
       "changes": [
-        { "type": "security", "text": "Thêm WITH CHECK chặn nhân viên đổi cấp bậc/vai trò/cờ super admin của chính mình (lớp 2 cùng trigger)" },
-        { "type": "security", "text": "Chiến dịch marketing không còn lộ với khách vô danh, chỉ user đã đăng nhập đọc được" },
-        { "type": "security", "text": "Lịch sử thay đổi giá gói dịch vụ chỉ Super Admin xem được (tránh lộ chiến lược giá)" },
-        { "type": "security", "text": "Chủ khách sạn có thể tự thêm/sửa/xoá cấu hình tài khoản ngân hàng nhận thanh toán" }
+        {
+          "type": "security",
+          "text": "Thêm WITH CHECK chặn nhân viên đổi cấp bậc/vai trò/cờ super admin của chính mình (lớp 2 cùng trigger)"
+        },
+        {
+          "type": "security",
+          "text": "Chiến dịch marketing không còn lộ với khách vô danh, chỉ user đã đăng nhập đọc được"
+        },
+        {
+          "type": "security",
+          "text": "Lịch sử thay đổi giá gói dịch vụ chỉ Super Admin xem được (tránh lộ chiến lược giá)"
+        },
+        {
+          "type": "security",
+          "text": "Chủ khách sạn có thể tự thêm/sửa/xoá cấu hình tài khoản ngân hàng nhận thanh toán"
+        }
       ]
     },
     {
@@ -453,10 +921,22 @@
       "releaseDate": "2026-05-19",
       "title": "Vá bảo mật — chống leo quyền & rò mã khuyến mãi",
       "changes": [
-        { "type": "security", "text": "Chặn nhân viên tự nâng cấp bậc/vai trò/cờ super admin qua bảng người dùng (trigger BEFORE INSERT/UPDATE)" },
-        { "type": "security", "text": "Chỉ chủ khách sạn hoặc quản lý mới được tạo tài khoản mới — chặn staff tạo user giả mạo" },
-        { "type": "security", "text": "Mã khuyến mãi không còn lộ với khách vô danh, chỉ user đã đăng nhập đọc được" },
-        { "type": "security", "text": "Bổ sung chính sách truy cập rõ ràng cho Super Admin trên reminder_email_templates và reminder_automation_rules" }
+        {
+          "type": "security",
+          "text": "Chặn nhân viên tự nâng cấp bậc/vai trò/cờ super admin qua bảng người dùng (trigger BEFORE INSERT/UPDATE)"
+        },
+        {
+          "type": "security",
+          "text": "Chỉ chủ khách sạn hoặc quản lý mới được tạo tài khoản mới — chặn staff tạo user giả mạo"
+        },
+        {
+          "type": "security",
+          "text": "Mã khuyến mãi không còn lộ với khách vô danh, chỉ user đã đăng nhập đọc được"
+        },
+        {
+          "type": "security",
+          "text": "Bổ sung chính sách truy cập rõ ràng cho Super Admin trên reminder_email_templates và reminder_automation_rules"
+        }
       ]
     },
     {
@@ -464,14 +944,38 @@
       "releaseDate": "2026-05-19",
       "title": "Vá bảo mật — Realtime, phân quyền, storage",
       "changes": [
-        { "type": "security", "text": "Chặn cross-tenant qua Realtime broadcast/presence — chỉ cho phép postgres_changes (đã bảo vệ bởi RLS từng bảng)" },
-        { "type": "security", "text": "Chủ khách sạn không còn được tự cấp/gán vai trò super_admin (chống leo quyền)" },
-        { "type": "security", "text": "Ghi audit log mọi thay đổi user_roles" },
-        { "type": "security", "text": "Chặn liệt kê file ở 4 bucket công khai (logo, ảnh sản phẩm, avatar, ảnh thông báo) — URL trực tiếp vẫn hoạt động" },
-        { "type": "security", "text": "Bật chống mật khẩu rò rỉ (Have I Been Pwned) khi đăng ký / đổi mật khẩu" },
-        { "type": "security", "text": "Khoá search_path cho 4 hàm email queue, chuyển pgtap ra schema extensions" },
-        { "type": "security", "text": "Thu hồi quyền REST API trên materialized view monthly_expenses" },
-        { "type": "security", "text": "Bổ sung chính sách đọc minh bạch cho super admin trên payment_webhook_logs, platform_settings, super_admin_activity_log" }
+        {
+          "type": "security",
+          "text": "Chặn cross-tenant qua Realtime broadcast/presence — chỉ cho phép postgres_changes (đã bảo vệ bởi RLS từng bảng)"
+        },
+        {
+          "type": "security",
+          "text": "Chủ khách sạn không còn được tự cấp/gán vai trò super_admin (chống leo quyền)"
+        },
+        {
+          "type": "security",
+          "text": "Ghi audit log mọi thay đổi user_roles"
+        },
+        {
+          "type": "security",
+          "text": "Chặn liệt kê file ở 4 bucket công khai (logo, ảnh sản phẩm, avatar, ảnh thông báo) — URL trực tiếp vẫn hoạt động"
+        },
+        {
+          "type": "security",
+          "text": "Bật chống mật khẩu rò rỉ (Have I Been Pwned) khi đăng ký / đổi mật khẩu"
+        },
+        {
+          "type": "security",
+          "text": "Khoá search_path cho 4 hàm email queue, chuyển pgtap ra schema extensions"
+        },
+        {
+          "type": "security",
+          "text": "Thu hồi quyền REST API trên materialized view monthly_expenses"
+        },
+        {
+          "type": "security",
+          "text": "Bổ sung chính sách đọc minh bạch cho super admin trên payment_webhook_logs, platform_settings, super_admin_activity_log"
+        }
       ]
     },
     {
