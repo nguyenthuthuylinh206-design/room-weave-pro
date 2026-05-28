@@ -1,6 +1,19 @@
 {
-  "current": "1.0.83",
+  "current": "1.0.84",
   "versions": [
+    {
+      "version": "1.0.84",
+      "releaseDate": "2026-05-28",
+      "title": "Tape chart v2c.1 — sửa cuộn ngang, kéo-pan, dọn text đè, điều hướng theo tuần",
+      "changes": [
+        { "type": "fix", "text": "Header ngày đồng bộ cuộn ngang với body: cuộn trái/phải không còn lệch cột ngày với bar booking" },
+        { "type": "feature", "text": "Kéo-pan bằng chuột: nhấn giữ trên vùng trống của chart và kéo để di chuyển ngang/dọc (không cần dùng thanh cuộn)" },
+        { "type": "feature", "text": "Điều hướng theo tuần: nút ◀/▶ chuyển 1 tuần, ◀◀/▶▶ chuyển nguyên cửa sổ; chọn ngày trong lịch đặt ngày đó vào 1/4 đầu cửa sổ và highlight" },
+        { "type": "feature", "text": "Phím tắt: ←/→ cuộn 7 ngày, T về hôm nay, [ và ] đổi cửa sổ 3/7/14/30" },
+        { "type": "improvement", "text": "Dọn text đè: header ngày cao 56px đủ chỗ cho dòng lễ Việt Nam; KPI strip chia 2 nhóm (vận hành / tài chính) với phân tách dọc, số tabular-nums không nhảy" },
+        { "type": "improvement", "text": "Hôm nay không còn nhảy về cột đầu — đặt vào 1/4 đầu cửa sổ để thấy cả quá khứ gần" }
+      ]
+    },
     {
       "version": "1.0.83",
       "releaseDate": "2026-05-28",
