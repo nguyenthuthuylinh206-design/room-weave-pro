@@ -40,7 +40,7 @@ const ALL_TABS: NavItem[] = [
   { id: 'laundry', label: 'Giặt là', icon: Shirt, path: '/laundry', modules: ['laundry'] },
   { id: 'maintenance', label: 'Bảo trì', icon: Wrench, path: '/maintenance', modules: ['maintenance_requests', 'maintenance'] },
   { id: 'inventory', label: 'Kho', icon: Package, path: '/inventory', modules: ['inventory', 'items'] },
-  { id: 'chat', label: 'Tin nhắn', icon: MessageSquare, path: '/chat', badgeKey: 'chatUnread', alwaysShow: true },
+  // Chat đã chuyển thành nút nổi (floating launcher) giống desktop, không còn trong bottom nav
   { id: 'more', label: 'Thêm', icon: MoreHorizontal, path: '/more', alwaysShow: true },
 ]
 
