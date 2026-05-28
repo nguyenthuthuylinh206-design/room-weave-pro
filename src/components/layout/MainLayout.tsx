@@ -16,6 +16,7 @@ import { SuspendedOverlay } from './SuspendedOverlay'
 import { ReadOnlyBanner } from './ReadOnlyBanner'
 import { FreeTrialPopup } from '@/components/promotions/FreeTrialPopup'
 import { AnnouncementHost } from '@/components/announcements/AnnouncementHost'
+import { DesktopChatWindow } from '@/components/chat/DesktopChatWindow'
 import { useUser } from '@/hooks/useUser'
 import { useGracePeriod } from '@/hooks/useGracePeriod'
 import { usePostUpdateToast } from '@/hooks/usePostUpdateToast'
@@ -123,6 +124,7 @@ export const MainLayout = () => {
       <MainLayoutContent />
       <PushNotificationPrompt />
       <PWAUpdatePrompt />
+      <DesktopChatWindow />
       <AnnouncementHost slot="popup" />
       <FreeTrialPopup />
     </HotelProvider>
