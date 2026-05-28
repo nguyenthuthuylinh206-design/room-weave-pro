@@ -483,6 +483,28 @@ export function RoomTapeChart() {
               </button>
             ))}
           </div>
+
+          <Button
+            size="sm"
+            variant={colorBlind ? 'default' : 'outline'}
+            onClick={() => updatePrefs({ colorBlind: !colorBlind })}
+            title={colorBlind ? 'Tắt chế độ hỗ trợ màu' : 'Bật chế độ hỗ trợ màu (pattern)'}
+            className="h-8 gap-1 px-2 text-xs no-print"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">CB</span>
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => window.print()}
+            title="In / Xuất PDF tape chart"
+            className="h-8 gap-1 px-2 text-xs no-print"
+          >
+            <Printer className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">In</span>
+          </Button>
         </div>
       </div>
 
