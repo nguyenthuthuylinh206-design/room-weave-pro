@@ -61,7 +61,7 @@ const MANAGER_ROLES = new Set(['owner', 'hotel_manager', 'department_manager', '
 
 /* -------------------- Conversation row (sidebar) -------------------- */
 
-function ConversationRow({
+export function ConversationRow({
   conv,
   active,
   onClick,
@@ -255,7 +255,7 @@ function MemberPicker({
   )
 }
 
-function NewConversationDialog({ onCreated }: { onCreated: (id: string) => void }) {
+export function NewConversationDialog({ onCreated }: { onCreated: (id: string) => void }) {
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<'dm' | 'group'>('dm')
   const [groupName, setGroupName] = useState('')
@@ -486,7 +486,7 @@ function groupMessages(messages: ChatMessage[]): MessageGroup[] {
 
 /* -------------------- Conversation view -------------------- */
 
-function ConversationView({ conversationId }: { conversationId: string }) {
+export function ConversationView({ conversationId }: { conversationId: string }) {
   const { user } = useUser()
   const { data: messages = [], isLoading } = useMessages(conversationId)
   const sendMessage = useSendMessage(conversationId)
