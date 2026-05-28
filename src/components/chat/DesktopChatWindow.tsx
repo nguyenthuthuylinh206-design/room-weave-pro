@@ -68,7 +68,7 @@ function DesktopChatWindowContent() {
       <button
         type="button"
         onClick={handleOpen}
-        className="fixed bottom-5 right-5 z-50 hidden h-12 w-12 items-center justify-center rounded-full border bg-background text-foreground shadow-lg transition-colors hover:bg-muted md:flex"
+        className="fixed bottom-5 right-5 z-50 hidden h-12 w-12 items-center justify-center rounded-full border bg-background text-foreground shadow-lg transition-colors hover:bg-muted lg:flex"
         aria-label="Mở cửa sổ tin nhắn"
       >
         <MessageCircle className="h-5 w-5" />
@@ -82,7 +82,7 @@ function DesktopChatWindowContent() {
   }
 
   return (
-    <section className="fixed bottom-5 right-5 z-50 hidden h-[620px] w-[760px] max-h-[calc(100dvh-2.5rem)] max-w-[calc(100vw-19rem)] overflow-hidden rounded-lg border bg-background shadow-2xl md:flex">
+    <section className="fixed bottom-5 right-5 z-50 hidden h-[620px] w-[760px] max-h-[calc(100dvh-2.5rem)] max-w-[calc(100vw-19rem)] overflow-hidden rounded-lg border bg-background shadow-2xl lg:flex">
       <div className="w-72 border-r flex flex-col min-h-0">
         <div className="p-2 border-b flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
