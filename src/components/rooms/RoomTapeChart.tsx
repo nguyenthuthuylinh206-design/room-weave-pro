@@ -126,6 +126,16 @@ export function RoomTapeChart() {
     date: null,
   })
   const dragRef = useRef<DragData | null>(null)
+  const selectedDateStr = prefs.selectedDate
+
+  // Drag-to-pan refs
+  const panRef = useRef<{ startX: number; startY: number; scrollLeft: number; scrollTop: number; active: boolean }>({
+    startX: 0,
+    startY: 0,
+    scrollLeft: 0,
+    scrollTop: 0,
+    active: false,
+  })
 
   const startStr = format(startDate, 'yyyy-MM-dd')
   const { data, isLoading } = useTapeChart(startStr, days)
