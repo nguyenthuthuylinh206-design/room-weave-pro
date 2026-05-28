@@ -83,7 +83,7 @@ interface RoomRowProps {
 function RoomRow({ room, layouts, days, cellW, startDate, onBookingClick, onEmptyCellClick }: RoomRowProps) {
   const meta = getRoomStatusMeta(room.status)
   const v2 = normalizeRoomStatus(room.status)
-  const blocked = v2 === 'ooo' || v2 === 'oos'
+  const blocked = v2 === 'out_of_order' || v2 === 'out_of_service'
 
   // Mảng đánh dấu cell nào đã bị chiếm bởi booking để biết cell trống
   const occupied = new Array(days).fill(false)
