@@ -1,6 +1,17 @@
 {
-  "current": "1.0.79",
+  "current": "1.0.80",
   "versions": [
+    {
+      "version": "1.0.80",
+      "releaseDate": "2026-05-28",
+      "title": "Tape chart cho lễ tân — xem cả tuần đặt phòng trên 1 màn hình",
+      "changes": [
+        { "type": "feature", "text": "Tab 'Sơ đồ tầng' đổi thành 'Tape chart' kiểu PMS: mỗi phòng 1 dòng × 3/7/14 ngày, hiển thị thanh booking theo tên khách và màu trạng thái" },
+        { "type": "feature", "text": "KPI nhanh: số phòng đang ở, khách đến/đi hôm nay, tỉ lệ lấp đầy" },
+        { "type": "feature", "text": "Chạm thanh booking để xem chi tiết; chạm ô trống để tạo đặt phòng mới đúng phòng + ngày" },
+        { "type": "feature", "text": "Tự cập nhật realtime khi có booking mới hoặc trạng thái phòng thay đổi" }
+      ]
+    },
     {
       "version": "1.0.79",
       "releaseDate": "2026-05-28",
