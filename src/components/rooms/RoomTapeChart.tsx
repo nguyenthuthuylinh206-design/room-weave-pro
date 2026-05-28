@@ -12,6 +12,8 @@ import {
   AlertTriangle,
   Lock,
   X,
+  Printer,
+  Eye,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -47,6 +49,7 @@ import {
   buildRoomLane,
   bookingMatchesQuery,
   getBarColor,
+  getBarKey,
   getSourceBadge,
   MINUTES_PER_DAY,
   type BookingLayout,
@@ -54,6 +57,9 @@ import {
 import { TapeChartBookingSheet } from './TapeChartBookingSheet'
 import { TapeChartTodoPanel } from './TapeChartTodoPanel'
 import { TapeChartBlockDialog } from './TapeChartBlockDialog'
+import { useTapeChartPrefs } from '@/hooks/useTapeChartPrefs'
+import { getHoliday } from '@/lib/vn-holidays'
+
 
 const DESKTOP_DAYS = 14
 const MOBILE_DAYS = 3
@@ -103,10 +109,15 @@ export function RoomTapeChart() {
     d.setHours(0, 0, 0, 0)
     return d
   })
-  const [days, setDays] = useState<number>(defaultDays)
+  const { prefs, update: updatePrefs } = useTapeChartPrefs(defaultDays)
+  const days = prefs.days
+  const setDays = (d: number) => updatePrefs({ days: d })
+  const statusFilter = prefs.statusFilter as StatusFilter
+  const setStatusFilter = (v: StatusFilter) => updatePrefs({ statusFilter: v })
+  const floorFilter = prefs.floorFilter
+  const setFloorFilter = (v: string) => updatePrefs({ floorFilter: v })
+  const colorBlind = prefs.colorBlind
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
-  const [floorFilter, setFloorFilter] = useState<string>('all')
   const [highlightGroupId, setHighlightGroupId] = useState<string | null>(null)
   const [sheetBooking, setSheetBooking] = useState<TapeChartBooking | null>(null)
   const [showCalendar, setShowCalendar] = useState(false)
@@ -243,8 +254,51 @@ export function RoomTapeChart() {
       0,
     )
     const blockedRooms = (data?.room_blocks || []).length
-    return { arrivals, departures, inHouse, totalRooms, occupancy, conflicts, blockedRooms }
-  }, [data, roomLayouts])
+
+    // ADR / RevPAR / Pickup trên cửa sổ đang hiển thị
+    let roomNights = 0
+    let revenue = 0
+    let pickup24h = 0
+    const now = Date.now()
+    bookings.forEach((b) => {
+      const ci = parseISO(b.check_in_date)
+      const co = parseISO(b.check_out_date)
+      const winStart = startDate
+      const winEnd = addDays(startDate, days)
+      const s = ci > winStart ? ci : winStart
+      const e = co < winEnd ? co : winEnd
+      const nights = Math.max(0, differenceInCalendarDays(e, s))
+      if (nights > 0) {
+        roomNights += nights
+        const total = Number(b.total_amount) || 0
+        const stayLen = Math.max(1, differenceInCalendarDays(co, ci))
+        revenue += (total / stayLen) * nights
+      }
+      // Pickup 24h: booking tạo trong 24 giờ qua, có ngày trong window
+      const createdAt = (b as any).created_at ? new Date((b as any).created_at).getTime() : 0
+      if (createdAt && now - createdAt < 24 * 60 * 60 * 1000 && nights > 0) {
+        pickup24h += 1
+      }
+    })
+    const capacity = totalRooms * days
+    const adr = roomNights > 0 ? revenue / roomNights : 0
+    const revpar = capacity > 0 ? revenue / capacity : 0
+    const windowOccupancy = capacity > 0 ? Math.round((roomNights / capacity) * 100) : 0
+
+    return {
+      arrivals,
+      departures,
+      inHouse,
+      totalRooms,
+      occupancy,
+      conflicts,
+      blockedRooms,
+      adr,
+      revpar,
+      pickup24h,
+      windowOccupancy,
+    }
+  }, [data, roomLayouts, startDate, days])
 
   const parentRef = useRef<HTMLDivElement>(null)
   const virtualizer = useVirtualizer({
@@ -325,7 +379,24 @@ export function RoomTapeChart() {
   const totalChartWidth = days * cellW
 
   return (
-    <div className="space-y-3">
+    <div className={cn('space-y-3 tape-chart-root', colorBlind && 'tape-chart-cb')}>
+      <style>{`
+        @media print {
+          body * { visibility: hidden !important; }
+          .tape-chart-root, .tape-chart-root * { visibility: visible !important; }
+          .tape-chart-root { position: absolute; left: 0; top: 0; width: 100%; }
+          .no-print { display: none !important; }
+          .tape-chart-root .overflow-auto { overflow: visible !important; height: auto !important; max-height: none !important; }
+          @page { size: A3 landscape; margin: 8mm; }
+        }
+        /* Color-blind helper: thêm sọc chéo nhẹ vào bar booking khi bật */
+        .tape-chart-cb [data-tape-bar="paid"] { background-image: repeating-linear-gradient(45deg, transparent 0 6px, rgba(0,0,0,0.08) 6px 8px) !important; }
+        .tape-chart-cb [data-tape-bar="partial"] { background-image: repeating-linear-gradient(90deg, transparent 0 6px, rgba(0,0,0,0.10) 6px 8px) !important; }
+        .tape-chart-cb [data-tape-bar="unpaid"] { background-image: repeating-linear-gradient(135deg, transparent 0 4px, rgba(0,0,0,0.12) 4px 6px) !important; }
+        .tape-chart-cb [data-tape-bar="debt"] { background-image: repeating-linear-gradient(0deg, transparent 0 5px, rgba(220,38,38,0.18) 5px 7px) !important; }
+        .tape-chart-cb [data-tape-bar="checked_in"] { background-image: repeating-linear-gradient(30deg, transparent 0 6px, rgba(59,130,246,0.18) 6px 9px) !important; }
+        .tape-chart-cb [data-tape-bar="checked_out"] { background-image: repeating-linear-gradient(60deg, transparent 0 6px, rgba(100,116,139,0.18) 6px 9px) !important; }
+      `}</style>
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3">
         <div className="flex flex-wrap items-center gap-1">
@@ -430,6 +501,28 @@ export function RoomTapeChart() {
               </button>
             ))}
           </div>
+
+          <Button
+            size="sm"
+            variant={colorBlind ? 'default' : 'outline'}
+            onClick={() => updatePrefs({ colorBlind: !colorBlind })}
+            title={colorBlind ? 'Tắt chế độ hỗ trợ màu' : 'Bật chế độ hỗ trợ màu (pattern)'}
+            className="h-8 gap-1 px-2 text-xs no-print"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">CB</span>
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => window.print()}
+            title="In / Xuất PDF tape chart"
+            className="h-8 gap-1 px-2 text-xs no-print"
+          >
+            <Printer className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">In</span>
+          </Button>
         </div>
       </div>
 
@@ -450,7 +543,22 @@ export function RoomTapeChart() {
         <span>
           <span className="text-muted-foreground">Lấp đầy </span>
           <span className="font-semibold">{kpis.occupancy}%</span>
+          <span className="text-muted-foreground/70"> · {days}n {kpis.windowOccupancy}%</span>
         </span>
+        <span title="Average Daily Rate trên cửa sổ đang xem">
+          <span className="text-muted-foreground">ADR </span>
+          <span className="font-semibold">{formatCurrency(kpis.adr)}</span>
+        </span>
+        <span title="Revenue Per Available Room trên cửa sổ đang xem">
+          <span className="text-muted-foreground">RevPAR </span>
+          <span className="font-semibold">{formatCurrency(kpis.revpar)}</span>
+        </span>
+        {kpis.pickup24h > 0 && (
+          <span title="Booking mới tạo trong 24 giờ qua">
+            <span className="text-muted-foreground">Pickup 24h </span>
+            <span className="font-semibold text-emerald-600">+{kpis.pickup24h}</span>
+          </span>
+        )}
         {kpis.blockedRooms > 0 && (
           <span className="flex items-center gap-1 text-slate-600">
             <Lock className="h-3 w-3" />
@@ -494,20 +602,28 @@ export function RoomTapeChart() {
               const date = addDays(startDate, i)
               const today = isToday(date)
               const weekend = date.getDay() === 0 || date.getDay() === 6
+              const holiday = getHoliday(format(date, 'yyyy-MM-dd'))
               return (
                 <div
                   key={i}
                   className={cn(
                     'flex flex-col items-center justify-center border-r py-1.5 text-[11px] leading-tight last:border-r-0',
                     today && 'bg-primary/10 font-semibold text-primary',
-                    weekend && !today && 'bg-muted/60',
+                    weekend && !today && !holiday && 'bg-muted/60',
+                    holiday && !today && 'bg-rose-50 text-rose-700',
                   )}
                   style={{ width: cellW, minWidth: cellW }}
+                  title={holiday?.name}
                 >
-                  <span className="text-[10px] uppercase text-muted-foreground">
+                  <span className={cn('text-[10px] uppercase text-muted-foreground', holiday && 'text-rose-600/80')}>
                     {format(date, 'EEE', { locale: vi })}
                   </span>
                   <span className="text-sm font-semibold">{format(date, 'dd/MM')}</span>
+                  {holiday && (
+                    <span className="truncate px-1 text-[9px] font-medium text-rose-700">
+                      {holiday.short}
+                    </span>
+                  )}
                 </div>
               )
             })}
@@ -724,6 +840,7 @@ function Row({
           const isWeekend = date.getDay() === 0 || date.getDay() === 6
           const today = isToday(date)
           const cellOccupied = occupied[i]
+          const holiday = getHoliday(format(date, 'yyyy-MM-dd'))
           return (
             <ContextMenu key={i}>
               <ContextMenuTrigger asChild>
@@ -740,14 +857,16 @@ function Row({
                   }}
                   className={cn(
                     'border-r last:border-r-0 transition-colors',
-                    isWeekend && 'bg-muted/30',
+                    isWeekend && !holiday && 'bg-muted/30',
+                    holiday && 'bg-rose-50/60',
                     today && 'bg-primary/5',
                     blockedByStatus && 'cursor-not-allowed bg-[repeating-linear-gradient(45deg,transparent,transparent_6px,hsl(var(--muted))_6px,hsl(var(--muted))_8px)]',
                     !cellOccupied && !blockedByStatus && 'cursor-pointer hover:bg-accent/40',
                     cellOccupied && !blockedByStatus && 'cursor-default',
                   )}
                   style={{ width: cellW, height }}
-                  aria-label={`${room.room_number} ${format(date, 'dd/MM')}`}
+                  aria-label={`${room.room_number} ${format(date, 'dd/MM')}${holiday ? ' · ' + holiday.short : ''}`}
+                  title={holiday?.name}
                 />
               </ContextMenuTrigger>
               {!cellOccupied && !blockedByStatus && (
@@ -835,6 +954,7 @@ function Row({
                       <button
                         type="button"
                         draggable={draggable}
+                        data-tape-bar={getBarKey(l.booking)}
                         onDragStart={() => onBookingDragStart(l.booking)}
                         onMouseEnter={() => l.booking.booking_group_id && onHoverGroup(l.booking.booking_group_id)}
                         onMouseLeave={() => onHoverGroup(null)}
