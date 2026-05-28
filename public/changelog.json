@@ -1,6 +1,24 @@
 {
-  "current": "1.0.80",
+  "current": "1.0.81",
   "versions": [
+    {
+      "version": "1.0.81",
+      "releaseDate": "2026-05-28",
+      "title": "Tape chart v2 — vị trí theo giờ thực, phát hiện trùng giờ, sidebar việc cần làm",
+      "changes": [
+        { "type": "feature", "text": "Bar booking giờ định vị theo GIỜ THỰC check-in/check-out (mặc định 14:00–12:00) — khách đi 12h và khách đến 14h cùng phòng cùng ngày không còn chồng nhau" },
+        { "type": "feature", "text": "Phát hiện overbooking: 2 booking trùng giờ tự xếp 2 hàng trong cùng phòng và viền đỏ cảnh báo; có nút lọc 'Trùng giờ' trên thanh KPI" },
+        { "type": "feature", "text": "Màu bar theo 5 trạng thái thanh toán: chưa cọc / cọc một phần / cọc đủ / đang lưu trú / còn nợ sau trả" },
+        { "type": "feature", "text": "Hover bar trong nhóm đặt phòng → tất cả phòng cùng nhóm sáng cùng lúc, các bar khác mờ đi" },
+        { "type": "feature", "text": "Sidebar 'Cần làm hôm nay' bên phải: khách đến, khách đi, phòng dơ cần dọn, booking còn nợ — bấm là mở chi tiết" },
+        { "type": "feature", "text": "Đường đỏ chỉ thời điểm hiện tại chạy dọc theo cột hôm nay, tự cập nhật mỗi phút" },
+        { "type": "feature", "text": "Sheet chi tiết booking mở từ ngay tape chart (không cần rời trang), có thông tin lưu trú/tài chính/nhóm/ghi chú" },
+        { "type": "feature", "text": "Bộ lọc nhanh: tìm theo tên khách/SĐT, lọc theo trạng thái booking, lọc theo tầng, chọn khoảng 3/7/14/30 ngày, jump-to-date bằng lịch" },
+        { "type": "feature", "text": "Badge nguồn booking (WI/BK/AG/AB/EX...) ở đầu bar để phân biệt walk-in và OTA" },
+        { "type": "improvement", "text": "Hiển thị trạng thái phòng v2 đầy đủ trên cột phòng (Trống/Sạch/Bẩn/DND/OOO/OOS…)" },
+        { "type": "improvement", "text": "Virtualization theo dòng — khách sạn 100+ phòng × 30 ngày cuộn mượt 60fps, render lần đầu < 800ms" }
+      ]
+    },
     {
       "version": "1.0.80",
       "releaseDate": "2026-05-28",
