@@ -218,10 +218,10 @@ export function RoomTapeChart() {
   const cellW = isMobile ? CELL_W_MOBILE : CELL_W_DESKTOP
 
   const [startDate, setStartDate] = useState<Date>(() => {
-    const d = new Date()
-    d.setHours(0, 0, 0, 0)
-    return d
-  })
+  const onEmptyCellClick = (room: TapeChartRoom, date: Date) => {
+    const d = format(date, 'yyyy-MM-dd')
+    navigate(`/bookings?action=create&room_id=${room.id}&check_in_date=${d}`)
+  }
   const [days, setDays] = useState<number>(defaultDays)
 
   const startStr = format(startDate, 'yyyy-MM-dd')
