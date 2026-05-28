@@ -329,3 +329,10 @@ All colors MUST be HSL.
     }
   }
 }
+
+@layer components {
+  /* Chat notification toast — nổi bật hơn với viền trái màu primary */
+  .chat-message-toast {
+    border-left: 3px solid hsl(var(--primary)) !important;
+  }
+}

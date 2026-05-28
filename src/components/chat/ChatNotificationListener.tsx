@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useUser } from '@/hooks/useUser'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { useChatPopups } from './ChatPopupContext'
+import { MessageCircle, Users } from 'lucide-react'
 
 type ToastPosition = 'top-center' | 'bottom-right'
 
@@ -66,31 +67,51 @@ export function ChatNotificationListener() {
           if (!member) return
           if (member.muted_until && new Date(member.muted_until) > new Date()) return
 
-          // Lấy thông tin sender
-          const { data: sender } = await supabase
-            .from('users')
-            .select('full_name, avatar_url')
-            .eq('id', msg.sender_id)
-            .maybeSingle()
+          // Lấy thông tin sender + conversation
+          const [{ data: sender }, { data: conv }] = await Promise.all([
+            supabase.from('users').select('full_name, avatar_url').eq('id', msg.sender_id).maybeSingle(),
+            supabase.from('conversations').select('type, name').eq('id', msg.conversation_id).maybeSingle(),
+          ])
 
-          const name = sender?.full_name || 'Tin nhắn mới'
-          const preview = (msg.body || '').slice(0, 80) || '[Đính kèm]'
+          const senderName = sender?.full_name || 'Người dùng'
+          const isGroup = conv?.type === 'group'
+          const convName = conv?.name || (isGroup ? 'Nhóm' : 'Chat 1-1')
+          const displayTitle = isGroup ? `${senderName} → ${convName}` : senderName
+          const preview = (msg.body || '').slice(0, 80) || (msg.has_attachment ? '[Đính kèm]' : 'Tin nhắn mới')
 
-          toast(name, {
-            description: preview,
-            position: toastPosition,
-            duration: 6000,
-            className: 'chat-message-toast',
-            action: {
-              label: 'Mở',
-              onClick: () => {
-                setLauncherOpen(true)
-                openPopup(msg.conversation_id)
+          toast(
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                {isGroup ? (
+                  <Users className="h-4 w-4 text-primary" />
+                ) : (
+                  <MessageCircle className="h-4 w-4 text-primary" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold truncate">{displayTitle}</div>
+              </div>
+            </div>,
+            {
+              description: (
+                <div className="flex items-start gap-2.5 pl-[2.625rem]">
+                  <span className="text-sm text-muted-foreground line-clamp-2">{preview}</span>
+                </div>
+              ),
+              position: toastPosition,
+              duration: 6000,
+              className: 'chat-message-toast',
+              action: {
+                label: 'Mở chat',
+                onClick: () => {
+                  setLauncherOpen(true)
+                  openPopup(msg.conversation_id)
+                },
               },
-            },
-            onAutoClose: () => seenRef.current.delete(msg.id),
-            onDismiss: () => seenRef.current.delete(msg.id),
-          })
+              onAutoClose: () => seenRef.current.delete(msg.id),
+              onDismiss: () => seenRef.current.delete(msg.id),
+            }
+          )
         }
       )
       .subscribe()

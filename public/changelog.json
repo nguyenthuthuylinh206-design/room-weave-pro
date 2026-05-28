@@ -1,6 +1,16 @@
 {
-  "current": "1.0.71",
+  "current": "1.0.72",
   "versions": [
+    {
+      "version": "1.0.72",
+      "releaseDate": "2026-05-28",
+      "title": "Cải thiện thông báo tin nhắn đến",
+      "changes": [
+        { "type": "improvement", "text": "Toast tin nhắn có icon (MessageCircle / Users) và viền trái màu primary — phân biệt rõ chat 1-1 và nhóm" },
+        { "type": "improvement", "text": "Nội dung toast hiển thị đúng: chat nhóm thì 'Người gửi → Tên nhóm', chat 1-1 thì tên người gửi" },
+        { "type": "improvement", "text": "Nút action đổi từ 'Mở' thành 'Mở chat' rõ nghĩa hơn, cả trên realtime toast và notification bell" }
+      ]
+    },
     {
       "version": "1.0.71",
       "releaseDate": "2026-05-28",
