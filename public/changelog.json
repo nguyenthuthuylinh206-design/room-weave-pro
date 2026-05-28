@@ -1,6 +1,17 @@
 {
-  "current": "1.0.75",
+  "current": "1.0.76",
   "versions": [
+    {
+      "version": "1.0.76",
+      "releaseDate": "2026-05-28",
+      "title": "Sửa crash khi tải quyền truy cập",
+      "changes": [
+        { "type": "fix", "text": "Thêm fallback ?? [] khi permissions chưa tải về hoặc RPC thất bại — tránh lỗi 'Cannot read properties of undefined (reading find')" },
+        { "type": "fix", "text": "AuthCallback không còn bị kẹt 'Đang xác thực...' khi dữ liệu phân quyền rỗng hoặc lỗi" }
+      ]
+    },
+    {
+      "version": "1.0.75",
     {
       "version": "1.0.75",
       "releaseDate": "2026-05-28",
