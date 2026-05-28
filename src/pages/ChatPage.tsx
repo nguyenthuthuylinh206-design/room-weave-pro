@@ -794,7 +794,7 @@ export function ConversationView({ conversationId }: { conversationId: string })
 
       <form
         onSubmit={handleSubmit}
-        className="border-t p-1.5 flex gap-1.5 items-center bg-background"
+        className="sticky bottom-0 z-10 shrink-0 border-t p-1.5 flex gap-1.5 items-center bg-background"
         style={{ paddingBottom: 'calc(0.375rem + env(safe-area-inset-bottom))' }}
       >
         <input
