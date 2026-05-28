@@ -34,10 +34,9 @@ export function useFirstAccessibleRoute() {
       return '/'
     }
 
-    // Nếu chưa có permissions data, return null
-    if (!permissions || permissions.length === 0) {
-      return null
-    }
+    // Đã hết loading mà không có permissions → coi như không có quyền,
+    // tránh kẹt vô hạn ở /auth/callback. RoleGuard sẽ xử lý tiếp.
+
 
     // Tìm route đầu tiên user có quyền view hoặc có quyền khác (update/create)
     for (const route of ROUTE_PRIORITY) {
