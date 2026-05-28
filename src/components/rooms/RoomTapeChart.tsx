@@ -267,7 +267,7 @@ export function RoomTapeChart() {
       const s = ci > winStart ? ci : winStart
       const e = co < winEnd ? co : winEnd
       const nights = Math.max(0, differenceInCalendarDays(e, s))
-      if (nights > 0 && b.status !== 'cancelled' && b.status !== 'no_show') {
+      if (nights > 0) {
         roomNights += nights
         const total = Number(b.total_amount) || 0
         const stayLen = Math.max(1, differenceInCalendarDays(co, ci))
