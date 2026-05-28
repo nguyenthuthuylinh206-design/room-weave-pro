@@ -1,6 +1,21 @@
 {
-  "current": "1.0.67",
+  "current": "1.0.68",
   "versions": [
+    {
+      "version": "1.0.68",
+      "releaseDate": "2026-05-28",
+      "title": "Sửa thông báo tin nhắn trên mobile",
+      "changes": [
+        {
+          "type": "fix",
+          "text": "Thông báo tin nhắn đến trên mobile chuyển lên đầu màn hình, tránh bị che bởi thanh điều hướng dưới"
+        },
+        {
+          "type": "fix",
+          "text": "Sửa backend phát thông báo tin nhắn mới để lấy đúng khách sạn từ hội thoại và gọi đúng function thông báo"
+        }
+      ]
+    },
     {
       "version": "1.0.67",
       "releaseDate": "2026-05-28",
