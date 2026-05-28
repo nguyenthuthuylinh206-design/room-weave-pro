@@ -34,7 +34,7 @@ import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { toast } from 'sonner'
-import { Paperclip, X, FileText, Loader2, Download, Send, Search } from 'lucide-react'
+import { Paperclip, X, FileText, Loader2, Download, Send, Search, ChevronDown } from 'lucide-react'
 
 /* -------------------- Helpers -------------------- */
 
@@ -497,6 +497,7 @@ export function ConversationView({ conversationId }: { conversationId: string })
   const markRead = useMarkConversationRead()
   const [text, setText] = useState('')
   const [pending, setPending] = useState<PendingAttachment[]>([])
+  const [showScrollBtn, setShowScrollBtn] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const lastMarkedRef = useRef<string | null>(null)
@@ -504,19 +505,43 @@ export function ConversationView({ conversationId }: { conversationId: string })
 
   const lastMsgId = messages.length > 0 ? messages[messages.length - 1].id : null
 
-  // Chỉ auto-scroll khi: mở hội thoại lần đầu, hoặc có tin mới ở cuối
+  const scrollToBottom = (smooth = true) => {
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' })
+  }
+
+  // Auto-scroll khi: mở hội thoại lần đầu, hoặc có tin mới (nếu user đang ở gần đáy)
   useEffect(() => {
-    if (!scrollRef.current) return
+    const el = scrollRef.current
+    if (!el) return
     if (lastMsgIdRef.current !== lastMsgId) {
+      const wasNearBottom =
+        lastMsgIdRef.current === null ||
+        el.scrollHeight - el.scrollTop - el.clientHeight < 120
       lastMsgIdRef.current = lastMsgId
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+      if (wasNearBottom) el.scrollTop = el.scrollHeight
     }
   }, [lastMsgId, conversationId])
+
+  // Theo dõi vị trí cuộn để hiện nút "về cuối"
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const onScroll = () => {
+      const dist = el.scrollHeight - el.scrollTop - el.clientHeight
+      setShowScrollBtn(dist > 200)
+    }
+    el.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [conversationId, messages.length])
 
   // Reset khi đổi hội thoại
   useEffect(() => {
     lastMsgIdRef.current = null
   }, [conversationId])
+
 
   // mark read only when last message id changes
   useEffect(() => {
@@ -616,8 +641,9 @@ export function ConversationView({ conversationId }: { conversationId: string })
   const groups = useMemo(() => groupMessages(messages), [messages])
 
   return (
-    <div className="flex flex-col h-full">
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5">
+    <div className="flex flex-col h-full min-h-0">
+      <div className="relative flex-1 min-h-0">
+        <div ref={scrollRef} className="absolute inset-0 overflow-y-auto overscroll-contain px-3 py-2 space-y-1.5">
         {isLoading ? (
           <div className="text-sm text-muted-foreground">Đang tải...</div>
         ) : messages.length === 0 ? (
@@ -710,7 +736,20 @@ export function ConversationView({ conversationId }: { conversationId: string })
             )
           })
         )}
+        </div>
+        {showScrollBtn && (
+          <button
+            type="button"
+            onClick={() => scrollToBottom(true)}
+            className="absolute bottom-3 right-3 z-10 h-9 w-9 rounded-full bg-background border shadow-md flex items-center justify-center hover:bg-muted"
+            aria-label="Về cuối"
+          >
+            <ChevronDown className="h-4 w-4" />
+          </button>
+        )}
       </div>
+
+
 
       {pending.length > 0 && (
         <div className="border-t px-2 py-1.5 flex gap-1.5 overflow-x-auto bg-muted/30">
@@ -755,7 +794,7 @@ export function ConversationView({ conversationId }: { conversationId: string })
 
       <form
         onSubmit={handleSubmit}
-        className="border-t p-1.5 flex gap-1.5 items-center bg-background"
+        className="sticky bottom-0 z-10 shrink-0 border-t p-1.5 flex gap-1.5 items-center bg-background"
         style={{ paddingBottom: 'calc(0.375rem + env(safe-area-inset-bottom))' }}
       >
         <input

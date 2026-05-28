@@ -1,6 +1,16 @@
 {
-  "current": "1.0.70",
+  "current": "1.0.71",
   "versions": [
+    {
+      "version": "1.0.71",
+      "releaseDate": "2026-05-28",
+      "title": "Chat mobile: pin ô nhập + nút về cuối",
+      "changes": [
+        { "type": "fix", "text": "Form nhập tin và nút gửi luôn sticky ở đáy (sticky bottom-0), không bị đẩy đi khi bàn phím iOS mở/đóng" },
+        { "type": "improvement", "text": "Khu vực cuộn tin nhắn dùng absolute inset-0 + overscroll-contain để tách hoàn toàn khỏi form gửi" },
+        { "type": "feature", "text": "Thêm nút 'Về cuối' nổi (ChevronDown) khi cuộn lên cao; auto-scroll chỉ khi đang ở gần đáy để không cướp vị trí đọc" }
+      ]
+    },
     {
       "version": "1.0.70",
       "releaseDate": "2026-05-28",
