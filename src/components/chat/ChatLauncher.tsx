@@ -75,14 +75,17 @@ function ChatLauncherInner() {
     })
   }, [conversations, search])
 
-  // Desktop closed state: floating round button (mobile uses bottom nav as trigger)
+  // Closed state: floating round button on both desktop & mobile
   if (!launcherOpen) {
-    if (isMobile) return null
     return (
       <button
         type="button"
         onClick={() => setLauncherOpen(true)}
-        className="fixed bottom-5 right-5 z-50 flex h-12 w-12 items-center justify-center rounded-full border bg-background text-foreground shadow-lg transition-colors hover:bg-muted"
+        className={cn(
+          'fixed right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full border bg-background text-foreground shadow-lg transition-colors hover:bg-muted',
+          // Đặt cao hơn bottom nav trên mobile (bottom nav ~64px + safe area)
+          isMobile ? 'bottom-[calc(env(safe-area-inset-bottom)+72px)]' : 'bottom-5',
+        )}
         aria-label="Mở danh sách tin nhắn"
       >
         <MessageCircle className="h-5 w-5" />

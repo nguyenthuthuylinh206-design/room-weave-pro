@@ -1,6 +1,16 @@
 {
-  "current": "1.0.72",
+  "current": "1.0.73",
   "versions": [
+    {
+      "version": "1.0.73",
+      "releaseDate": "2026-05-28",
+      "title": "Chat mobile: chuyển sang nút nổi giống desktop",
+      "changes": [
+        { "type": "improvement", "text": "Gỡ tab 'Tin nhắn' khỏi bottom nav trên mobile — giải phóng 1 slot cho module nghiệp vụ" },
+        { "type": "improvement", "text": "Hiển thị nút chat nổi (floating) trên mobile, đặt phía trên bottom nav để dễ thao tác bằng ngón cái" },
+        { "type": "improvement", "text": "Badge số tin chưa đọc hiển thị ngay trên nút nổi, đồng bộ trải nghiệm với desktop" }
+      ]
+    },
     {
       "version": "1.0.72",
       "releaseDate": "2026-05-28",

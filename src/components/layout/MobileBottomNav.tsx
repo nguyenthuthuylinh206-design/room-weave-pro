@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Home, DoorOpen, Shirt, Wrench, ClipboardList, CalendarDays, Package, MoreHorizontal, MessageSquare } from 'lucide-react'
+import { Home, DoorOpen, Shirt, Wrench, ClipboardList, CalendarDays, Package, MoreHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { useUser } from '@/hooks/useUser'
@@ -40,7 +40,7 @@ const ALL_TABS: NavItem[] = [
   { id: 'laundry', label: 'Giặt là', icon: Shirt, path: '/laundry', modules: ['laundry'] },
   { id: 'maintenance', label: 'Bảo trì', icon: Wrench, path: '/maintenance', modules: ['maintenance_requests', 'maintenance'] },
   { id: 'inventory', label: 'Kho', icon: Package, path: '/inventory', modules: ['inventory', 'items'] },
-  { id: 'chat', label: 'Tin nhắn', icon: MessageSquare, path: '/chat', badgeKey: 'chatUnread', alwaysShow: true },
+  // Chat đã chuyển thành nút nổi (floating launcher) giống desktop, không còn trong bottom nav
   { id: 'more', label: 'Thêm', icon: MoreHorizontal, path: '/more', alwaysShow: true },
 ]
 
