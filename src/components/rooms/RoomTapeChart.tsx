@@ -56,6 +56,9 @@ import {
 import { TapeChartBookingSheet } from './TapeChartBookingSheet'
 import { TapeChartTodoPanel } from './TapeChartTodoPanel'
 import { TapeChartBlockDialog } from './TapeChartBlockDialog'
+import { useTapeChartPrefs } from '@/hooks/useTapeChartPrefs'
+import { getHoliday } from '@/lib/vn-holidays'
+
 
 const DESKTOP_DAYS = 14
 const MOBILE_DAYS = 3
