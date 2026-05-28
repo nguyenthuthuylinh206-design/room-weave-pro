@@ -951,6 +951,7 @@ function Row({
                       <button
                         type="button"
                         draggable={draggable}
+                        data-tape-bar={getBarKey(l.booking)}
                         onDragStart={() => onBookingDragStart(l.booking)}
                         onMouseEnter={() => l.booking.booking_group_id && onHoverGroup(l.booking.booking_group_id)}
                         onMouseLeave={() => onHoverGroup(null)}
