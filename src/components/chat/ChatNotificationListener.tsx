@@ -6,6 +6,8 @@ import { useUser } from '@/hooks/useUser'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { useChatPopups } from './ChatPopupContext'
 
+type ToastPosition = 'top-center' | 'bottom-right'
+
 /**
  * Global listener: hiển thị toast nổi khi có tin nhắn mới (không phải của mình)
  * và cửa sổ chat tương ứng chưa mở/đang minimize. Click toast sẽ mở popup chat.
@@ -16,7 +18,7 @@ export function ChatNotificationListener() {
   const { popups, openPopup, setLauncherOpen } = useChatPopups()
   const location = useLocation()
   const { isMobile } = useBreakpoint()
-  const toastPosition = useMemo(() => (isMobile ? 'top-center' : 'bottom-right') as const, [isMobile])
+  const toastPosition = useMemo<ToastPosition>(() => (isMobile ? 'top-center' : 'bottom-right'), [isMobile])
 
   // Refs để callback realtime luôn đọc state mới nhất
   const popupsRef = useRef(popups)
