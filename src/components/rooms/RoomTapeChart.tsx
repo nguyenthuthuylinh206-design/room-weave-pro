@@ -695,58 +695,71 @@ export function RoomTapeChart() {
       </div>
 
       <div className="grid gap-3 lg:grid-cols-[1fr_280px]">
-        <div className="overflow-hidden rounded-lg border bg-card">
-          {/* Sticky date header */}
-          <div className="flex border-b bg-muted/40" style={{ width: totalChartWidth + ROOM_COL_W }}>
-            <div
-              className="sticky left-0 z-20 border-r bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground"
-              style={{ width: ROOM_COL_W, minWidth: ROOM_COL_W }}
-            >
-              Phòng
-            </div>
-            {Array.from({ length: days }).map((_, i) => {
-              const date = addDays(startDate, i)
-              const today = isToday(date)
-              const weekend = date.getDay() === 0 || date.getDay() === 6
-              const holiday = getHoliday(format(date, 'yyyy-MM-dd'))
-              return (
-                <div
-                  key={i}
-                  className={cn(
-                    'flex flex-col items-center justify-center border-r py-1.5 text-[11px] leading-tight last:border-r-0',
-                    today && 'bg-primary/10 font-semibold text-primary',
-                    weekend && !today && !holiday && 'bg-muted/60',
-                    holiday && !today && 'bg-rose-50 text-rose-700',
-                  )}
-                  style={{ width: cellW, minWidth: cellW }}
-                  title={holiday?.name}
-                >
-                  <span className={cn('text-[10px] uppercase text-muted-foreground', holiday && 'text-rose-600/80')}>
-                    {format(date, 'EEE', { locale: vi })}
-                  </span>
-                  <span className="text-sm font-semibold">{format(date, 'dd/MM')}</span>
-                  {holiday && (
-                    <span className="truncate px-1 text-[9px] font-medium text-rose-700">
-                      {holiday.short}
-                    </span>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-
+        <div className="rounded-lg border bg-card overflow-hidden">
           <div
             ref={parentRef}
-            className="relative overflow-auto"
-            style={{ height: Math.min(640, flatRows.reduce((a, r) => a + r.height, 0) + 16) }}
+            className="relative overflow-auto cursor-grab"
+            style={{ height: Math.min(680, flatRows.reduce((a, r) => a + r.height, 0) + HEADER_H + 16) }}
+            onPointerDown={onPanPointerDown}
+            onPointerMove={onPanPointerMove}
+            onPointerUp={onPanPointerUp}
+            onPointerCancel={onPanPointerUp}
           >
             <div
               style={{
-                height: virtualizer.getTotalSize(),
-                width: totalChartWidth + ROOM_COL_W,
                 position: 'relative',
+                width: totalChartWidth + ROOM_COL_W,
+                height: virtualizer.getTotalSize() + HEADER_H,
               }}
             >
+              {/* Sticky date header (đồng bộ cuộn ngang với body) */}
+              <div
+                className="sticky top-0 z-30 flex border-b bg-muted/40"
+                style={{ width: totalChartWidth + ROOM_COL_W, height: HEADER_H }}
+              >
+                <div
+                  className="sticky left-0 z-40 flex items-center border-r bg-muted/40 px-3 text-xs font-medium text-muted-foreground"
+                  style={{ width: ROOM_COL_W, minWidth: ROOM_COL_W }}
+                >
+                  Phòng
+                </div>
+                {Array.from({ length: days }).map((_, i) => {
+                  const date = addDays(startDate, i)
+                  const today = isToday(date)
+                  const weekend = date.getDay() === 0 || date.getDay() === 6
+                  const dStr = format(date, 'yyyy-MM-dd')
+                  const holiday = getHoliday(dStr)
+                  const isSelected = selectedDateStr === dStr && !today
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => updatePrefs({ selectedDate: dStr })}
+                      className={cn(
+                        'flex flex-col items-center justify-center gap-0.5 border-r px-0.5 text-[11px] leading-tight last:border-r-0 transition-colors',
+                        today && 'bg-primary/10 font-semibold text-primary',
+                        weekend && !today && !holiday && 'bg-muted/60',
+                        holiday && !today && 'bg-rose-50 text-rose-700',
+                        isSelected && 'ring-1 ring-inset ring-primary bg-primary/5',
+                      )}
+                      style={{ width: cellW, minWidth: cellW, height: HEADER_H }}
+                      title={holiday?.name || format(date, 'EEEE, dd/MM/yyyy', { locale: vi })}
+                    >
+                      <span className={cn('text-[10px] uppercase text-muted-foreground/80', holiday && 'text-rose-600/80')}>
+                        {format(date, 'EEE', { locale: vi })}
+                      </span>
+                      <span className="text-sm font-semibold tabular-nums">{format(date, 'dd/MM')}</span>
+                      {holiday && (
+                        <span className="w-full truncate px-1 text-[9px] font-medium text-rose-700">
+                          {holiday.short}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Virtualized rows */}
               {virtualizer.getVirtualItems().map((vi) => {
                 const row = flatRows[vi.index]
                 if (!row) return null
@@ -782,6 +795,7 @@ export function RoomTapeChart() {
                     height={row.height}
                     startDate={startDate}
                     top={vi.start}
+                    selectedDateStr={selectedDateStr}
                     highlightGroupId={highlightGroupId}
                     onHoverGroup={setHighlightGroupId}
                     onBookingClick={onBookingClick}
@@ -794,7 +808,7 @@ export function RoomTapeChart() {
                 )
               })}
 
-              {/* Now line */}
+              {/* Now line — chạy dọc từ dưới header tới hết phần row */}
               {(() => {
                 const todayIdx = Array.from({ length: days }).findIndex((_, i) =>
                   isToday(addDays(startDate, i)),
@@ -803,8 +817,8 @@ export function RoomTapeChart() {
                 const x = ROOM_COL_W + todayIdx * cellW + (nowMin / MINUTES_PER_DAY) * cellW
                 return (
                   <div
-                    className="pointer-events-none absolute top-0 z-[5] w-px bg-red-500/70"
-                    style={{ left: x, height: virtualizer.getTotalSize() }}
+                    className="pointer-events-none absolute z-[5] w-px bg-red-500/70"
+                    style={{ left: x, top: HEADER_H, height: virtualizer.getTotalSize() }}
                   >
                     <div className="absolute -left-1 -top-0.5 h-2 w-2 rounded-full bg-red-500" />
                   </div>
