@@ -691,8 +691,9 @@ export function ConversationView({ conversationId }: { conversationId: string })
                       <div
                         key={m.id}
                         className={cn(
-                          'flex flex-col gap-0.5',
-                          mine ? 'items-end' : 'items-start'
+                          'flex flex-col gap-0.5 transition-opacity',
+                          mine ? 'items-end' : 'items-start',
+                          m._pending && 'opacity-60'
                         )}
                       >
                         {atts.length > 0 && (
