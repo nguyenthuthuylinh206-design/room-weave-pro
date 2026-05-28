@@ -25,6 +25,13 @@ function removeDiacritics(s: string) {
 
 export function DesktopChatWindow() {
   const location = useLocation()
+
+  if (location.pathname.startsWith('/chat')) return null
+
+  return <DesktopChatWindowContent />
+}
+
+function DesktopChatWindowContent() {
   const navigate = useNavigate()
   const { user } = useUser()
   const { data: conversations = [], isLoading } = useConversations()
@@ -50,8 +57,6 @@ export function DesktopChatWindow() {
       return removeDiacritics(`${title} ${c.last_message_preview || ''}`).includes(q)
     })
   }, [conversations, search])
-
-  if (location.pathname.startsWith('/chat')) return null
 
   const handleOpen = () => {
     setOpen(true)
