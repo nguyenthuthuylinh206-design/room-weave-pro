@@ -963,6 +963,7 @@ function Row({
           const today = isToday(date)
           const cellOccupied = occupied[i]
           const holiday = getHoliday(format(date, 'yyyy-MM-dd'))
+          const isSelected = selectedDateStr === format(date, 'yyyy-MM-dd') && !today
           return (
             <ContextMenu key={i}>
               <ContextMenuTrigger asChild>
@@ -982,6 +983,7 @@ function Row({
                     isWeekend && !holiday && 'bg-muted/30',
                     holiday && 'bg-rose-50/60',
                     today && 'bg-primary/5',
+                    isSelected && 'bg-primary/[0.07]',
                     blockedByStatus && 'cursor-not-allowed bg-[repeating-linear-gradient(45deg,transparent,transparent_6px,hsl(var(--muted))_6px,hsl(var(--muted))_8px)]',
                     !cellOccupied && !blockedByStatus && 'cursor-pointer hover:bg-accent/40',
                     cellOccupied && !blockedByStatus && 'cursor-default',
