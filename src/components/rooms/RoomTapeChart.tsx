@@ -126,6 +126,16 @@ export function RoomTapeChart() {
     date: null,
   })
   const dragRef = useRef<DragData | null>(null)
+  const selectedDateStr = prefs.selectedDate
+
+  // Drag-to-pan refs
+  const panRef = useRef<{ startX: number; startY: number; scrollLeft: number; scrollTop: number; active: boolean }>({
+    startX: 0,
+    startY: 0,
+    scrollLeft: 0,
+    scrollTop: 0,
+    active: false,
+  })
 
   const startStr = format(startDate, 'yyyy-MM-dd')
   const { data, isLoading } = useTapeChart(startStr, days)
@@ -301,15 +311,91 @@ export function RoomTapeChart() {
   }, [data, roomLayouts, startDate, days])
 
   const parentRef = useRef<HTMLDivElement>(null)
+  const HEADER_H = 56 // chiều cao header ngày (cố định, đủ chỗ cho lễ)
   const virtualizer = useVirtualizer({
     count: flatRows.length,
     getScrollElement: () => parentRef.current,
     estimateSize: (i) => flatRows[i]?.height || 56,
     overscan: 8,
     getItemKey: (i) => flatRows[i]?.key || i,
+    scrollMargin: HEADER_H,
   })
 
   const shiftDate = (n: number) => setStartDate((d) => addDays(d, n))
+
+  // Đặt ngày X vào vị trí ~1/4 đầu cửa sổ để vẫn thấy quá khứ gần
+  const jumpToDate = (target: Date) => {
+    const offset = Math.floor(days / 4)
+    const newStart = addDays(target, -offset)
+    newStart.setHours(0, 0, 0, 0)
+    setStartDate(newStart)
+    updatePrefs({ selectedDate: format(target, 'yyyy-MM-dd') })
+  }
+
+  // Keyboard shortcuts: ← → cuộn 7 ngày, T hôm nay, [ ] đổi window
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.key === 'ArrowLeft') { e.preventDefault(); shiftDate(-7) }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); shiftDate(7) }
+      else if (e.key === 't' || e.key === 'T') {
+        const d = new Date(); d.setHours(0, 0, 0, 0); setStartDate(d)
+      }
+      else if (e.key === '[') {
+        const opts = [3, 7, 14, 30]; const i = opts.indexOf(days)
+        if (i > 0) setDays(opts[i - 1])
+      }
+      else if (e.key === ']') {
+        const opts = [3, 7, 14, 30]; const i = opts.indexOf(days)
+        if (i < opts.length - 1) setDays(opts[i + 1])
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [days])
+
+  // Drag-to-pan handlers cho scroll container
+  const onPanPointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return
+    const target = e.target as HTMLElement
+    // Bỏ qua nếu nhấn vào nút/bar/menu — chỉ pan khi nhấn vùng nền
+    if (target.closest('button[data-tape-bar],[data-tape-block],[role="menu"],[role="menuitem"],input,a')) return
+    const el = parentRef.current
+    if (!el) return
+    panRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      scrollLeft: el.scrollLeft,
+      scrollTop: el.scrollTop,
+      active: true,
+    }
+    el.setPointerCapture?.(e.pointerId)
+    el.style.cursor = 'grabbing'
+  }
+  const onPanPointerMove = (e: React.PointerEvent) => {
+    const p = panRef.current
+    if (!p.active) return
+    const el = parentRef.current
+    if (!el) return
+    const dx = e.clientX - p.startX
+    const dy = e.clientY - p.startY
+    if (Math.abs(dx) + Math.abs(dy) > 3) {
+      el.scrollLeft = p.scrollLeft - dx
+      el.scrollTop = p.scrollTop - dy
+    }
+  }
+  const onPanPointerUp = (e: React.PointerEvent) => {
+    panRef.current.active = false
+    const el = parentRef.current
+    if (el) {
+      el.releasePointerCapture?.(e.pointerId)
+      el.style.cursor = ''
+    }
+  }
+
 
   const onBookingClick = (b: TapeChartBooking) => setSheetBooking(b)
 
@@ -400,7 +486,11 @@ export function RoomTapeChart() {
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3">
         <div className="flex flex-wrap items-center gap-1">
-          <Button size="sm" variant="outline" onClick={() => shiftDate(-days)} className="h-8 px-2">
+          <Button size="sm" variant="outline" onClick={() => shiftDate(-days)} className="h-8 px-2" title="Lùi 1 cửa sổ">
+            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="-ml-2 h-4 w-4" />
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => shiftDate(-7)} className="h-8 px-2" title="Lùi 1 tuần (←)">
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button
@@ -409,32 +499,36 @@ export function RoomTapeChart() {
             onClick={() => {
               const d = new Date()
               d.setHours(0, 0, 0, 0)
-              setStartDate(d)
+              setStartDate(addDays(d, -Math.floor(days / 4)))
+              updatePrefs({ selectedDate: format(d, 'yyyy-MM-dd') })
             }}
             className="h-8 px-3 text-xs"
+            title="Về hôm nay (T)"
           >
             Hôm nay
           </Button>
-          <Button size="sm" variant="outline" onClick={() => shiftDate(days)} className="h-8 px-2">
+          <Button size="sm" variant="outline" onClick={() => shiftDate(7)} className="h-8 px-2" title="Tiến 1 tuần (→)">
             <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => shiftDate(days)} className="h-8 px-2" title="Tiến 1 cửa sổ">
+            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="-ml-2 h-4 w-4" />
           </Button>
 
           <Popover open={showCalendar} onOpenChange={setShowCalendar}>
             <PopoverTrigger asChild>
-              <Button size="sm" variant="outline" className="ml-1 h-8 gap-1.5 px-2 text-xs">
+              <Button size="sm" variant="outline" className="ml-1 h-8 gap-1.5 px-2 text-xs tabular-nums">
                 <CalendarDays className="h-3.5 w-3.5" />
-                {format(startDate, 'dd/MM', { locale: vi })} – {format(addDays(startDate, days - 1), 'dd/MM/yyyy', { locale: vi })}
+                {format(startDate, 'dd/MM', { locale: vi })} → {format(addDays(startDate, days - 1), 'dd/MM/yyyy', { locale: vi })}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
-                selected={startDate}
+                selected={selectedDateStr ? parseISO(selectedDateStr) : startDate}
                 onSelect={(d) => {
                   if (d) {
-                    const x = new Date(d)
-                    x.setHours(0, 0, 0, 0)
-                    setStartDate(x)
+                    jumpToDate(d)
                     setShowCalendar(false)
                   }
                 }}
@@ -526,41 +620,53 @@ export function RoomTapeChart() {
         </div>
       </div>
 
-      {/* KPI strip */}
-      <div className="flex flex-wrap gap-x-5 gap-y-1 px-1 text-xs">
-        <span>
-          <span className="text-muted-foreground">Đang ở </span>
+      {/* KPI strip — 2 nhóm rõ ràng, số tabular-nums không nhảy */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-1 text-xs tabular-nums">
+        {/* Nhóm 1: vận hành hôm nay */}
+        <span className="inline-flex items-center gap-1.5">
+          <span className="text-muted-foreground">Đang ở</span>
           <span className="font-semibold">{kpis.inHouse}/{kpis.totalRooms}</span>
         </span>
-        <span>
-          <span className="text-muted-foreground">Đến hôm nay </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="text-muted-foreground">Đến</span>
           <span className="font-semibold text-emerald-600">{kpis.arrivals}</span>
         </span>
-        <span>
-          <span className="text-muted-foreground">Đi hôm nay </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="text-muted-foreground">Đi</span>
           <span className="font-semibold text-blue-600">{kpis.departures}</span>
         </span>
-        <span>
-          <span className="text-muted-foreground">Lấp đầy </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="text-muted-foreground">Lấp đầy</span>
           <span className="font-semibold">{kpis.occupancy}%</span>
-          <span className="text-muted-foreground/70"> · {days}n {kpis.windowOccupancy}%</span>
         </span>
-        <span title="Average Daily Rate trên cửa sổ đang xem">
-          <span className="text-muted-foreground">ADR </span>
+
+        <span className="hidden sm:inline h-4 w-px bg-border" aria-hidden />
+
+        {/* Nhóm 2: tài chính cửa sổ */}
+        <span className="inline-flex items-center gap-1.5" title={`Lấp đầy trung bình ${days} ngày tới`}>
+          <span className="text-muted-foreground">{days}n</span>
+          <span className="font-semibold">{kpis.windowOccupancy}%</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5" title="Average Daily Rate trên cửa sổ đang xem">
+          <span className="text-muted-foreground">ADR</span>
           <span className="font-semibold">{formatCurrency(kpis.adr)}</span>
         </span>
-        <span title="Revenue Per Available Room trên cửa sổ đang xem">
-          <span className="text-muted-foreground">RevPAR </span>
+        <span className="inline-flex items-center gap-1.5" title="Revenue Per Available Room trên cửa sổ đang xem">
+          <span className="text-muted-foreground">RevPAR</span>
           <span className="font-semibold">{formatCurrency(kpis.revpar)}</span>
         </span>
         {kpis.pickup24h > 0 && (
-          <span title="Booking mới tạo trong 24 giờ qua">
-            <span className="text-muted-foreground">Pickup 24h </span>
+          <span className="inline-flex items-center gap-1.5" title="Booking mới tạo trong 24 giờ qua">
+            <span className="text-muted-foreground">Pickup 24h</span>
             <span className="font-semibold text-emerald-600">+{kpis.pickup24h}</span>
           </span>
         )}
+
+        {(kpis.blockedRooms > 0 || kpis.conflicts > 0) && (
+          <span className="hidden sm:inline h-4 w-px bg-border" aria-hidden />
+        )}
         {kpis.blockedRooms > 0 && (
-          <span className="flex items-center gap-1 text-slate-600">
+          <span className="inline-flex items-center gap-1 text-slate-600">
             <Lock className="h-3 w-3" />
             {kpis.blockedRooms} block
           </span>
@@ -569,7 +675,7 @@ export function RoomTapeChart() {
           <button
             type="button"
             onClick={() => setStatusFilter('conflict')}
-            className="flex items-center gap-1 font-semibold text-red-600 hover:underline"
+            className="inline-flex items-center gap-1 font-semibold text-red-600 hover:underline"
           >
             <AlertTriangle className="h-3 w-3" />
             {kpis.conflicts} trùng giờ
@@ -589,58 +695,71 @@ export function RoomTapeChart() {
       </div>
 
       <div className="grid gap-3 lg:grid-cols-[1fr_280px]">
-        <div className="overflow-hidden rounded-lg border bg-card">
-          {/* Sticky date header */}
-          <div className="flex border-b bg-muted/40" style={{ width: totalChartWidth + ROOM_COL_W }}>
-            <div
-              className="sticky left-0 z-20 border-r bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground"
-              style={{ width: ROOM_COL_W, minWidth: ROOM_COL_W }}
-            >
-              Phòng
-            </div>
-            {Array.from({ length: days }).map((_, i) => {
-              const date = addDays(startDate, i)
-              const today = isToday(date)
-              const weekend = date.getDay() === 0 || date.getDay() === 6
-              const holiday = getHoliday(format(date, 'yyyy-MM-dd'))
-              return (
-                <div
-                  key={i}
-                  className={cn(
-                    'flex flex-col items-center justify-center border-r py-1.5 text-[11px] leading-tight last:border-r-0',
-                    today && 'bg-primary/10 font-semibold text-primary',
-                    weekend && !today && !holiday && 'bg-muted/60',
-                    holiday && !today && 'bg-rose-50 text-rose-700',
-                  )}
-                  style={{ width: cellW, minWidth: cellW }}
-                  title={holiday?.name}
-                >
-                  <span className={cn('text-[10px] uppercase text-muted-foreground', holiday && 'text-rose-600/80')}>
-                    {format(date, 'EEE', { locale: vi })}
-                  </span>
-                  <span className="text-sm font-semibold">{format(date, 'dd/MM')}</span>
-                  {holiday && (
-                    <span className="truncate px-1 text-[9px] font-medium text-rose-700">
-                      {holiday.short}
-                    </span>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-
+        <div className="rounded-lg border bg-card overflow-hidden">
           <div
             ref={parentRef}
-            className="relative overflow-auto"
-            style={{ height: Math.min(640, flatRows.reduce((a, r) => a + r.height, 0) + 16) }}
+            className="relative overflow-auto cursor-grab"
+            style={{ height: Math.min(680, flatRows.reduce((a, r) => a + r.height, 0) + HEADER_H + 16) }}
+            onPointerDown={onPanPointerDown}
+            onPointerMove={onPanPointerMove}
+            onPointerUp={onPanPointerUp}
+            onPointerCancel={onPanPointerUp}
           >
             <div
               style={{
-                height: virtualizer.getTotalSize(),
-                width: totalChartWidth + ROOM_COL_W,
                 position: 'relative',
+                width: totalChartWidth + ROOM_COL_W,
+                height: virtualizer.getTotalSize() + HEADER_H,
               }}
             >
+              {/* Sticky date header (đồng bộ cuộn ngang với body) */}
+              <div
+                className="sticky top-0 z-30 flex border-b bg-muted/40"
+                style={{ width: totalChartWidth + ROOM_COL_W, height: HEADER_H }}
+              >
+                <div
+                  className="sticky left-0 z-40 flex items-center border-r bg-muted/40 px-3 text-xs font-medium text-muted-foreground"
+                  style={{ width: ROOM_COL_W, minWidth: ROOM_COL_W }}
+                >
+                  Phòng
+                </div>
+                {Array.from({ length: days }).map((_, i) => {
+                  const date = addDays(startDate, i)
+                  const today = isToday(date)
+                  const weekend = date.getDay() === 0 || date.getDay() === 6
+                  const dStr = format(date, 'yyyy-MM-dd')
+                  const holiday = getHoliday(dStr)
+                  const isSelected = selectedDateStr === dStr && !today
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => updatePrefs({ selectedDate: dStr })}
+                      className={cn(
+                        'flex flex-col items-center justify-center gap-0.5 border-r px-0.5 text-[11px] leading-tight last:border-r-0 transition-colors',
+                        today && 'bg-primary/10 font-semibold text-primary',
+                        weekend && !today && !holiday && 'bg-muted/60',
+                        holiday && !today && 'bg-rose-50 text-rose-700',
+                        isSelected && 'ring-1 ring-inset ring-primary bg-primary/5',
+                      )}
+                      style={{ width: cellW, minWidth: cellW, height: HEADER_H }}
+                      title={holiday?.name || format(date, 'EEEE, dd/MM/yyyy', { locale: vi })}
+                    >
+                      <span className={cn('text-[10px] uppercase text-muted-foreground/80', holiday && 'text-rose-600/80')}>
+                        {format(date, 'EEE', { locale: vi })}
+                      </span>
+                      <span className="text-sm font-semibold tabular-nums">{format(date, 'dd/MM')}</span>
+                      {holiday && (
+                        <span className="w-full truncate px-1 text-[9px] font-medium text-rose-700">
+                          {holiday.short}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Virtualized rows */}
               {virtualizer.getVirtualItems().map((vi) => {
                 const row = flatRows[vi.index]
                 if (!row) return null
@@ -676,6 +795,7 @@ export function RoomTapeChart() {
                     height={row.height}
                     startDate={startDate}
                     top={vi.start}
+                    selectedDateStr={selectedDateStr}
                     highlightGroupId={highlightGroupId}
                     onHoverGroup={setHighlightGroupId}
                     onBookingClick={onBookingClick}
@@ -688,7 +808,7 @@ export function RoomTapeChart() {
                 )
               })}
 
-              {/* Now line */}
+              {/* Now line — chạy dọc từ dưới header tới hết phần row */}
               {(() => {
                 const todayIdx = Array.from({ length: days }).findIndex((_, i) =>
                   isToday(addDays(startDate, i)),
@@ -697,8 +817,8 @@ export function RoomTapeChart() {
                 const x = ROOM_COL_W + todayIdx * cellW + (nowMin / MINUTES_PER_DAY) * cellW
                 return (
                   <div
-                    className="pointer-events-none absolute top-0 z-[5] w-px bg-red-500/70"
-                    style={{ left: x, height: virtualizer.getTotalSize() }}
+                    className="pointer-events-none absolute z-[5] w-px bg-red-500/70"
+                    style={{ left: x, top: HEADER_H, height: virtualizer.getTotalSize() }}
                   >
                     <div className="absolute -left-1 -top-0.5 h-2 w-2 rounded-full bg-red-500" />
                   </div>
@@ -757,6 +877,7 @@ interface RowProps {
   height: number
   startDate: Date
   top: number
+  selectedDateStr?: string
   highlightGroupId: string | null
   onHoverGroup: (id: string | null) => void
   onBookingClick: (b: TapeChartBooking) => void
@@ -776,6 +897,7 @@ function Row({
   height,
   startDate,
   top,
+  selectedDateStr,
   highlightGroupId,
   onHoverGroup,
   onBookingClick,
@@ -841,6 +963,7 @@ function Row({
           const today = isToday(date)
           const cellOccupied = occupied[i]
           const holiday = getHoliday(format(date, 'yyyy-MM-dd'))
+          const isSelected = selectedDateStr === format(date, 'yyyy-MM-dd') && !today
           return (
             <ContextMenu key={i}>
               <ContextMenuTrigger asChild>
@@ -860,6 +983,7 @@ function Row({
                     isWeekend && !holiday && 'bg-muted/30',
                     holiday && 'bg-rose-50/60',
                     today && 'bg-primary/5',
+                    isSelected && 'bg-primary/[0.07]',
                     blockedByStatus && 'cursor-not-allowed bg-[repeating-linear-gradient(45deg,transparent,transparent_6px,hsl(var(--muted))_6px,hsl(var(--muted))_8px)]',
                     !cellOccupied && !blockedByStatus && 'cursor-pointer hover:bg-accent/40',
                     cellOccupied && !blockedByStatus && 'cursor-default',

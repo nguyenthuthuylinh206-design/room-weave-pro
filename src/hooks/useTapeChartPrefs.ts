@@ -16,6 +16,7 @@ export interface TapeChartPrefs {
   statusFilter: string
   floorFilter: string
   colorBlind: boolean
+  selectedDate?: string
 }
 
 const DEFAULTS: TapeChartPrefs = {
