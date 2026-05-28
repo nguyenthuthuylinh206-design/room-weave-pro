@@ -1,6 +1,18 @@
 {
-  "current": "1.0.82",
+  "current": "1.0.83",
   "versions": [
+    {
+      "version": "1.0.83",
+      "releaseDate": "2026-05-28",
+      "title": "Tape chart v2c — KPI ADR/RevPAR/Pickup, in/PDF, lễ Việt Nam, lưu preference, chế độ hỗ trợ màu",
+      "changes": [
+        { "type": "feature", "text": "KPI nâng cao trên thanh tape chart: ADR, RevPAR và Pickup 24h (booking mới tạo) cho cửa sổ đang hiển thị, kèm % lấp đầy theo khoảng N ngày" },
+        { "type": "feature", "text": "Nút 'In' xuất tape chart ra máy in hoặc PDF (A3 ngang) — toolbar và sidebar tự ẩn khi in" },
+        { "type": "feature", "text": "Tô màu cột ngày lễ Việt Nam 2025–2027 (Tết, Giỗ Tổ, 30/4, 1/5, 2/9, Tết Dương lịch) và hiển thị tên rút gọn trên header" },
+        { "type": "feature", "text": "Lưu preference người dùng vào trình duyệt: khoảng ngày 3/7/14/30, bộ lọc trạng thái, lọc tầng, chế độ hỗ trợ màu — lần mở sau không phải set lại" },
+        { "type": "feature", "text": "Chế độ hỗ trợ màu (CB): thêm pattern sọc theo từng nhóm trạng thái thanh toán/lưu trú, giúp người không phân biệt màu vẫn đọc được tape chart" }
+      ]
+    },
     {
       "version": "1.0.82",
       "releaseDate": "2026-05-28",
