@@ -20,6 +20,7 @@ interface NotificationBellProps {
 
 export function NotificationBell({ className }: NotificationBellProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -54,9 +55,41 @@ export function NotificationBell({ className }: NotificationBellProps) {
         },
         (payload) => {
           setUnreadCount(prev => prev + 1);
-          // Show toast for new notification
-          const newNotif = payload.new as { title?: string; body?: string };
-          if (newNotif.title) {
+          const newNotif = payload.new as {
+            title?: string;
+            body?: string;
+            type?: string;
+            action_url?: string;
+          };
+          if (!newNotif.title) return;
+
+          if (newNotif.type === 'chat_message') {
+            toast(
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                  <MessageCircle className="h-4 w-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold truncate">{newNotif.title}</div>
+                </div>
+              </div>,
+              {
+                description: (
+                  <div className="flex items-start gap-2.5 pl-[2.625rem]">
+                    <span className="text-sm text-muted-foreground line-clamp-2">{newNotif.body}</span>
+                  </div>
+                ),
+                duration: 5000,
+                className: 'chat-message-toast',
+                action: {
+                  label: 'Mở chat',
+                  onClick: () => {
+                    if (newNotif.action_url) navigate(newNotif.action_url);
+                  },
+                },
+              }
+            );
+          } else {
             toast.info(newNotif.title, {
               description: newNotif.body,
               duration: 5000,
