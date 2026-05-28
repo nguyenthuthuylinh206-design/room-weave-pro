@@ -18,6 +18,7 @@ import { FreeTrialPopup } from '@/components/promotions/FreeTrialPopup'
 import { AnnouncementHost } from '@/components/announcements/AnnouncementHost'
 import { ChatLauncher } from '@/components/chat/ChatLauncher'
 import { ChatPopupProvider } from '@/components/chat/ChatPopupContext'
+import { ChatNotificationListener } from '@/components/chat/ChatNotificationListener'
 import { useUser } from '@/hooks/useUser'
 import { useGracePeriod } from '@/hooks/useGracePeriod'
 import { usePostUpdateToast } from '@/hooks/usePostUpdateToast'
@@ -127,6 +128,7 @@ export const MainLayout = () => {
         <PushNotificationPrompt />
         <PWAUpdatePrompt />
         <ChatLauncher />
+        <ChatNotificationListener />
         <AnnouncementHost slot="popup" />
         <FreeTrialPopup />
       </ChatPopupProvider>
