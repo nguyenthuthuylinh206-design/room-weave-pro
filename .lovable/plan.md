@@ -1,68 +1,61 @@
-# Plan: Chat widget kiểu Facebook (danh sách + popup nổi)
+# Chat dạng cửa sổ thu/mở trên mobile
 
-## Mục tiêu
-Thay cửa sổ chat lớn 760px hiện tại bằng 1 widget nhỏ bottom-right (~280px) chỉ hiển thị danh sách hội thoại đã có, có chấm online. Click 1 hội thoại sẽ bung 1 popup chat ~320px×420px nổi bên trái widget. Có thể mở nhiều popup song song (giới hạn 3), thu nhỏ/đóng từng cái.
+## Vấn đề hiện tại
+- Trên desktop (`lg+`): `ChatLauncher` đã là cửa sổ thu/mở ở góc phải. OK.
+- Trên mobile: tab "Tin nhắn" ở bottom nav điều hướng sang trang `/chat` → mất context trang đang dùng.
 
-## A. Kiến trúc / logic
+Mong muốn: tab "Tin nhắn" mở/thu một panel nổi như Messenger, không rời trang.
 
-- 3 component mới trong `src/components/chat/`:
-  - `ChatLauncher.tsx` — ô danh sách 280×~420px ở bottom-right. Hiện danh sách hội thoại (reuse `useConversations`), chấm online, badge unread, ô tìm kiếm, nút collapse/đóng.
-  - `ChatPopupWindow.tsx` — 1 popup chat đơn lẻ (header avatar + tên + minimize + close, body reuse `ConversationView`).
-  - `ChatPopupManager.tsx` — context + stack quản lý các popup đang mở (max 3, mở thêm sẽ đẩy popup cũ nhất ra), render xếp ngang phải→trái cạnh launcher.
-- Hook `useOnlinePresence(userIds)` — reuse `staff_status`/`useOnShiftStaffList` đã có để biết user nào online (chấm xanh/xám). Nếu chưa đủ data, fallback dùng `last_seen` trong `users`.
-- Ẩn toàn bộ widget khi route bắt đầu bằng `/chat` (như hiện tại). Chỉ hiện ở breakpoint `lg+` (PC), mobile vẫn dùng `/chat`.
+## Giải pháp
 
-## B. Schema / migration
-Không cần migration. Tái sử dụng bảng `conversations`, `messages`, `conversation_members`, `staff_status` đã có.
+### A. Kiến trúc state
+- Tách `ChatPopupProvider` ra khỏi `ChatLauncher`, đưa lên `MainLayout` để cả `MobileBottomNav` và `ChatLauncher` cùng dùng chung.
+- Thêm vào provider hai state mới: `launcherOpen: boolean` + `toggleLauncher()`.
 
-## C. API / RPC
-Không thêm RPC mới. Dùng lại `useConversations`, `useMessages`, `useSendMessage`, `usePendingCounts`.
+### B. ChatLauncher responsive
+- Bỏ ràng buộc `lg:flex` / `hidden`. Hiển thị ở cả mobile lẫn desktop.
+- Desktop (`lg+`): giữ nguyên — nút tròn góc phải + panel 280×440 phía trên nút.
+- Mobile (`<lg`):
+  - Bỏ nút tròn FAB (vì đã có tab "Tin nhắn" ở bottom nav đảm nhiệm vai trò mở).
+  - Khi `launcherOpen = true`: panel slide-up full-width, cao ~70vh, bo góc trên, nằm trên `MobileBottomNav` (z-index cao hơn nav).
+  - Header có nút `Minus` để thu, nút `X` để đóng — cả hai đều set `launcherOpen = false`.
+  - Backdrop mờ nhẹ phía sau panel; tap ngoài đóng panel.
 
-## D. UI / Components
+### C. ChatPopupWindow mobile
+- Mobile: hiển thị 1 popup duy nhất, dạng sheet full-width chiếm gần full màn (giống Messenger mở 1 conversation), header có nút back để đóng/quay lại launcher.
+- Desktop: giữ nguyên 320×440 stack tối đa 3.
 
-### ChatLauncher (collapsed)
-- Nút tròn 48px bottom-right, icon `MessageCircle`, badge unread.
+### D. MobileBottomNav
+- Tab `chat`: thay `navigate('/chat')` bằng `toggleLauncher()`.
+- Trạng thái active của tab dựa vào `launcherOpen` (không dựa vào pathname).
+- Badge unread giữ nguyên (đọc từ `pendingCounts.chatUnread`).
+- Ẩn launcher khi pathname bắt đầu `/chat` để tránh trùng lặp (giữ logic cũ).
 
-### ChatLauncher (expanded) — kiểu ảnh mẫu
-```text
-┌─────────────────────────┐
-│ Tin nhắn          – ×  │  header semantic (bg-card border-b)
-├─────────────────────────┤
-│ [Tìm hội thoại...]     │
-├─────────────────────────┤
-│ ● Hỗ trợ Skyhotel    2 │  ● xanh = online, badge unread
-│ ○ LeTan1               │
-│ ○ LeTan2               │
-│ ● DonPhong1            │
-└─────────────────────────┘
-```
-- Dùng semantic tokens (`bg-background`, `border`, `text-foreground`, `text-primary`), không hardcode màu nâu.
-- Row: avatar + tên + chấm online + badge unread. Click → mở `ChatPopupWindow` qua manager.
+### E. /chat route
+- Vẫn giữ route `/chat` (truy cập qua link "Xem toàn màn hình" trong popup, hoặc bookmark). Không xóa.
 
-### ChatPopupWindow
-- 320×420px, fixed bottom-0, xếp ngang phải sang trái: `right: 304px + index*328px`.
-- Header: avatar + tên + nút `–` (minimize → thu thành tab nhỏ 200×32px ngay trên launcher) + `×` (close).
-- Body: reuse `ConversationView` (đã export từ ChatPage).
-- Click vào tab minimized → expand lại.
+## Files
 
-## E. Permission
-Như chat hiện tại — chỉ user đã đăng nhập, filter theo tenant_id qua RLS.
+**Sửa:**
+- `src/components/chat/ChatPopupContext.tsx` — thêm `launcherOpen` + `toggleLauncher` + `setLauncherOpen`.
+- `src/components/chat/ChatLauncher.tsx` — bỏ `lg:flex` exclusive, thêm variant mobile (sheet slide-up + backdrop), dùng `launcherOpen` từ context thay state nội bộ.
+- `src/components/chat/ChatPopupWindow.tsx` — responsive: mobile full-screen sheet, desktop popup như cũ.
+- `src/components/layout/MainLayout.tsx` — bọc `ChatPopupProvider` quanh `{children}` + `ChatLauncher`.
+- `src/components/layout/MobileBottomNav.tsx` — tab chat dùng `toggleLauncher()` + active state theo `launcherOpen`.
+- `src/lib/app-version.ts` + `src/components/shared/CacheBuster.tsx` + `public/changelog.json` — bump version.
 
-## F. Test
-- Mở 1 hội thoại → popup hiện, gửi tin nhắn OK.
-- Mở 4 hội thoại liên tiếp → tối đa 3 popup, popup cũ nhất bị đẩy ra.
-- Minimize/restore/close hoạt động độc lập từng popup.
-- Vào `/chat` → toàn bộ widget ẩn.
-- Breakpoint < lg → ẩn hoàn toàn.
-- Badge unread launcher = tổng `chatUnread` từ `usePendingCounts`.
+**Không tạo file mới, không migration, không thay đổi API/RPC, không đụng DB.**
 
-## G. Rollout
-- Xoá `DesktopChatWindow` cũ khỏi `MainLayout`, thay bằng `<ChatPopupProvider><ChatLauncher /><ChatPopupStack /></ChatPopupProvider>`.
-- Bump `APP_VERSION` → `1.0.65`, thêm entry `public/changelog.json`: "Chat widget kiểu Facebook: danh sách nhỏ + popup nổi nhiều cuộc cùng lúc".
-- Không có breaking change DB. Component cũ xoá hẳn vì user chọn "thay thế hoàn toàn".
+## Test QA
 
-## Files dự kiến
-- **Tạo**: `src/components/chat/ChatLauncher.tsx`, `ChatPopupWindow.tsx`, `ChatPopupManager.tsx`, `useOnlinePresence.ts` (hoặc reuse hook on-shift sẵn có).
-- **Sửa**: `src/components/layout/MainLayout.tsx`, `src/lib/app-version.ts`, `public/changelog.json`.
-- **Xoá**: `src/components/chat/DesktopChatWindow.tsx`.
-- **Không đụng**: `ChatPage.tsx` (chỉ import lại `ConversationView` đã export sẵn), DB, edge functions.
+1. Mobile: tap "Tin nhắn" ở bottom nav → panel slide-up, tab active.
+2. Tap lại tab "Tin nhắn" hoặc nút `Minus`/`X` → panel thu xuống, vẫn ở trang gốc.
+3. Tap vào 1 hội thoại → mở `ChatPopupWindow` full-screen mobile; nút back trở về launcher list.
+4. Tap backdrop → đóng panel.
+5. Desktop (`lg+`): hành vi cũ giữ nguyên (nút tròn + popup stack).
+6. Badge unread cập nhật đồng thời trên tab và header launcher.
+7. Khi vào `/chat` (full page): launcher tự ẩn.
+
+## Rollout
+- Không breaking change DB/API.
+- Bump `APP_VERSION` + `CURRENT_VERSION` + thêm entry `changelog.json` theo convention.
