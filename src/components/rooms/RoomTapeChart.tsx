@@ -620,41 +620,53 @@ export function RoomTapeChart() {
         </div>
       </div>
 
-      {/* KPI strip */}
-      <div className="flex flex-wrap gap-x-5 gap-y-1 px-1 text-xs">
-        <span>
-          <span className="text-muted-foreground">Đang ở </span>
+      {/* KPI strip — 2 nhóm rõ ràng, số tabular-nums không nhảy */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-1 text-xs tabular-nums">
+        {/* Nhóm 1: vận hành hôm nay */}
+        <span className="inline-flex items-center gap-1.5">
+          <span className="text-muted-foreground">Đang ở</span>
           <span className="font-semibold">{kpis.inHouse}/{kpis.totalRooms}</span>
         </span>
-        <span>
-          <span className="text-muted-foreground">Đến hôm nay </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="text-muted-foreground">Đến</span>
           <span className="font-semibold text-emerald-600">{kpis.arrivals}</span>
         </span>
-        <span>
-          <span className="text-muted-foreground">Đi hôm nay </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="text-muted-foreground">Đi</span>
           <span className="font-semibold text-blue-600">{kpis.departures}</span>
         </span>
-        <span>
-          <span className="text-muted-foreground">Lấp đầy </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="text-muted-foreground">Lấp đầy</span>
           <span className="font-semibold">{kpis.occupancy}%</span>
-          <span className="text-muted-foreground/70"> · {days}n {kpis.windowOccupancy}%</span>
         </span>
-        <span title="Average Daily Rate trên cửa sổ đang xem">
-          <span className="text-muted-foreground">ADR </span>
+
+        <span className="hidden sm:inline h-4 w-px bg-border" aria-hidden />
+
+        {/* Nhóm 2: tài chính cửa sổ */}
+        <span className="inline-flex items-center gap-1.5" title={`Lấp đầy trung bình ${days} ngày tới`}>
+          <span className="text-muted-foreground">{days}n</span>
+          <span className="font-semibold">{kpis.windowOccupancy}%</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5" title="Average Daily Rate trên cửa sổ đang xem">
+          <span className="text-muted-foreground">ADR</span>
           <span className="font-semibold">{formatCurrency(kpis.adr)}</span>
         </span>
-        <span title="Revenue Per Available Room trên cửa sổ đang xem">
-          <span className="text-muted-foreground">RevPAR </span>
+        <span className="inline-flex items-center gap-1.5" title="Revenue Per Available Room trên cửa sổ đang xem">
+          <span className="text-muted-foreground">RevPAR</span>
           <span className="font-semibold">{formatCurrency(kpis.revpar)}</span>
         </span>
         {kpis.pickup24h > 0 && (
-          <span title="Booking mới tạo trong 24 giờ qua">
-            <span className="text-muted-foreground">Pickup 24h </span>
+          <span className="inline-flex items-center gap-1.5" title="Booking mới tạo trong 24 giờ qua">
+            <span className="text-muted-foreground">Pickup 24h</span>
             <span className="font-semibold text-emerald-600">+{kpis.pickup24h}</span>
           </span>
         )}
+
+        {(kpis.blockedRooms > 0 || kpis.conflicts > 0) && (
+          <span className="hidden sm:inline h-4 w-px bg-border" aria-hidden />
+        )}
         {kpis.blockedRooms > 0 && (
-          <span className="flex items-center gap-1 text-slate-600">
+          <span className="inline-flex items-center gap-1 text-slate-600">
             <Lock className="h-3 w-3" />
             {kpis.blockedRooms} block
           </span>
@@ -663,7 +675,7 @@ export function RoomTapeChart() {
           <button
             type="button"
             onClick={() => setStatusFilter('conflict')}
-            className="flex items-center gap-1 font-semibold text-red-600 hover:underline"
+            className="inline-flex items-center gap-1 font-semibold text-red-600 hover:underline"
           >
             <AlertTriangle className="h-3 w-3" />
             {kpis.conflicts} trùng giờ
