@@ -877,6 +877,7 @@ interface RowProps {
   height: number
   startDate: Date
   top: number
+  selectedDateStr?: string
   highlightGroupId: string | null
   onHoverGroup: (id: string | null) => void
   onBookingClick: (b: TapeChartBooking) => void
@@ -896,6 +897,7 @@ function Row({
   height,
   startDate,
   top,
+  selectedDateStr,
   highlightGroupId,
   onHoverGroup,
   onBookingClick,
