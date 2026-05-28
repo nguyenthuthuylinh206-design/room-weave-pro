@@ -38,9 +38,11 @@ export function useFirstAccessibleRoute() {
     // tránh kẹt vô hạn ở /auth/callback. RoleGuard sẽ xử lý tiếp.
 
 
+    const list = permissions ?? []
+
     // Tìm route đầu tiên user có quyền view hoặc có quyền khác (update/create)
     for (const route of ROUTE_PRIORITY) {
-      const permission = permissions.find(p => p.module === route.module)
+      const permission = list.find(p => p.module === route.module)
       // Cho phép truy cập nếu có bất kỳ quyền nào trong module
       if (permission && (permission.can_view || permission.can_update || permission.can_create)) {
         return route.path
