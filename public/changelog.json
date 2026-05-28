@@ -1,6 +1,22 @@
 {
-  "current": "1.0.66",
+  "current": "1.0.67",
   "versions": [
+    {
+      "version": "1.0.67",
+      "releaseDate": "2026-05-28",
+      "title": "Thông báo tin nhắn mới nổi trên mọi trang",
+      "changes": [
+        {
+          "type": "improvement",
+          "text": "Tin nhắn đến hiển thị toast nổi (kèm nút Mở) trên cả mobile và desktop khi cửa sổ chat đang đóng/thu gọn"
+        },
+        {
+          "type": "improvement",
+          "text": "Tôn trọng mute conversation và bỏ qua khi đang xem chính cuộc hội thoại đó"
+        }
+      ]
+    },
+    {
     {
       "version": "1.0.66",
       "releaseDate": "2026-05-28",
