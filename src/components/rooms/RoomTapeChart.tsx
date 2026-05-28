@@ -253,8 +253,51 @@ export function RoomTapeChart() {
       0,
     )
     const blockedRooms = (data?.room_blocks || []).length
-    return { arrivals, departures, inHouse, totalRooms, occupancy, conflicts, blockedRooms }
-  }, [data, roomLayouts])
+
+    // ADR / RevPAR / Pickup trên cửa sổ đang hiển thị
+    let roomNights = 0
+    let revenue = 0
+    let pickup24h = 0
+    const now = Date.now()
+    bookings.forEach((b) => {
+      const ci = parseISO(b.check_in_date)
+      const co = parseISO(b.check_out_date)
+      const winStart = startDate
+      const winEnd = addDays(startDate, days)
+      const s = ci > winStart ? ci : winStart
+      const e = co < winEnd ? co : winEnd
+      const nights = Math.max(0, differenceInCalendarDays(e, s))
+      if (nights > 0 && b.status !== 'cancelled' && b.status !== 'no_show') {
+        roomNights += nights
+        const total = Number(b.total_amount) || 0
+        const stayLen = Math.max(1, differenceInCalendarDays(co, ci))
+        revenue += (total / stayLen) * nights
+      }
+      // Pickup 24h: booking tạo trong 24 giờ qua, có ngày trong window
+      const createdAt = (b as any).created_at ? new Date((b as any).created_at).getTime() : 0
+      if (createdAt && now - createdAt < 24 * 60 * 60 * 1000 && nights > 0) {
+        pickup24h += 1
+      }
+    })
+    const capacity = totalRooms * days
+    const adr = roomNights > 0 ? revenue / roomNights : 0
+    const revpar = capacity > 0 ? revenue / capacity : 0
+    const windowOccupancy = capacity > 0 ? Math.round((roomNights / capacity) * 100) : 0
+
+    return {
+      arrivals,
+      departures,
+      inHouse,
+      totalRooms,
+      occupancy,
+      conflicts,
+      blockedRooms,
+      adr,
+      revpar,
+      pickup24h,
+      windowOccupancy,
+    }
+  }, [data, roomLayouts, startDate, days])
 
   const parentRef = useRef<HTMLDivElement>(null)
   const virtualizer = useVirtualizer({
