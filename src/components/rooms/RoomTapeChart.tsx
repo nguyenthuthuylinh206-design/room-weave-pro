@@ -311,15 +311,91 @@ export function RoomTapeChart() {
   }, [data, roomLayouts, startDate, days])
 
   const parentRef = useRef<HTMLDivElement>(null)
+  const HEADER_H = 56 // chiều cao header ngày (cố định, đủ chỗ cho lễ)
   const virtualizer = useVirtualizer({
     count: flatRows.length,
     getScrollElement: () => parentRef.current,
     estimateSize: (i) => flatRows[i]?.height || 56,
     overscan: 8,
     getItemKey: (i) => flatRows[i]?.key || i,
+    scrollMargin: HEADER_H,
   })
 
   const shiftDate = (n: number) => setStartDate((d) => addDays(d, n))
+
+  // Đặt ngày X vào vị trí ~1/4 đầu cửa sổ để vẫn thấy quá khứ gần
+  const jumpToDate = (target: Date) => {
+    const offset = Math.floor(days / 4)
+    const newStart = addDays(target, -offset)
+    newStart.setHours(0, 0, 0, 0)
+    setStartDate(newStart)
+    updatePrefs({ selectedDate: format(target, 'yyyy-MM-dd') })
+  }
+
+  // Keyboard shortcuts: ← → cuộn 7 ngày, T hôm nay, [ ] đổi window
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.key === 'ArrowLeft') { e.preventDefault(); shiftDate(-7) }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); shiftDate(7) }
+      else if (e.key === 't' || e.key === 'T') {
+        const d = new Date(); d.setHours(0, 0, 0, 0); setStartDate(d)
+      }
+      else if (e.key === '[') {
+        const opts = [3, 7, 14, 30]; const i = opts.indexOf(days)
+        if (i > 0) setDays(opts[i - 1])
+      }
+      else if (e.key === ']') {
+        const opts = [3, 7, 14, 30]; const i = opts.indexOf(days)
+        if (i < opts.length - 1) setDays(opts[i + 1])
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [days])
+
+  // Drag-to-pan handlers cho scroll container
+  const onPanPointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return
+    const target = e.target as HTMLElement
+    // Bỏ qua nếu nhấn vào nút/bar/menu — chỉ pan khi nhấn vùng nền
+    if (target.closest('button[data-tape-bar],[data-tape-block],[role="menu"],[role="menuitem"],input,a')) return
+    const el = parentRef.current
+    if (!el) return
+    panRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      scrollLeft: el.scrollLeft,
+      scrollTop: el.scrollTop,
+      active: true,
+    }
+    el.setPointerCapture?.(e.pointerId)
+    el.style.cursor = 'grabbing'
+  }
+  const onPanPointerMove = (e: React.PointerEvent) => {
+    const p = panRef.current
+    if (!p.active) return
+    const el = parentRef.current
+    if (!el) return
+    const dx = e.clientX - p.startX
+    const dy = e.clientY - p.startY
+    if (Math.abs(dx) + Math.abs(dy) > 3) {
+      el.scrollLeft = p.scrollLeft - dx
+      el.scrollTop = p.scrollTop - dy
+    }
+  }
+  const onPanPointerUp = (e: React.PointerEvent) => {
+    panRef.current.active = false
+    const el = parentRef.current
+    if (el) {
+      el.releasePointerCapture?.(e.pointerId)
+      el.style.cursor = ''
+    }
+  }
+
 
   const onBookingClick = (b: TapeChartBooking) => setSheetBooking(b)
 
