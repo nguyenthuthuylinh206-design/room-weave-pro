@@ -486,7 +486,11 @@ export function RoomTapeChart() {
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3">
         <div className="flex flex-wrap items-center gap-1">
-          <Button size="sm" variant="outline" onClick={() => shiftDate(-days)} className="h-8 px-2">
+          <Button size="sm" variant="outline" onClick={() => shiftDate(-days)} className="h-8 px-2" title="Lùi 1 cửa sổ">
+            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="-ml-2 h-4 w-4" />
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => shiftDate(-7)} className="h-8 px-2" title="Lùi 1 tuần (←)">
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button
@@ -495,32 +499,36 @@ export function RoomTapeChart() {
             onClick={() => {
               const d = new Date()
               d.setHours(0, 0, 0, 0)
-              setStartDate(d)
+              setStartDate(addDays(d, -Math.floor(days / 4)))
+              updatePrefs({ selectedDate: format(d, 'yyyy-MM-dd') })
             }}
             className="h-8 px-3 text-xs"
+            title="Về hôm nay (T)"
           >
             Hôm nay
           </Button>
-          <Button size="sm" variant="outline" onClick={() => shiftDate(days)} className="h-8 px-2">
+          <Button size="sm" variant="outline" onClick={() => shiftDate(7)} className="h-8 px-2" title="Tiến 1 tuần (→)">
             <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => shiftDate(days)} className="h-8 px-2" title="Tiến 1 cửa sổ">
+            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="-ml-2 h-4 w-4" />
           </Button>
 
           <Popover open={showCalendar} onOpenChange={setShowCalendar}>
             <PopoverTrigger asChild>
-              <Button size="sm" variant="outline" className="ml-1 h-8 gap-1.5 px-2 text-xs">
+              <Button size="sm" variant="outline" className="ml-1 h-8 gap-1.5 px-2 text-xs tabular-nums">
                 <CalendarDays className="h-3.5 w-3.5" />
-                {format(startDate, 'dd/MM', { locale: vi })} – {format(addDays(startDate, days - 1), 'dd/MM/yyyy', { locale: vi })}
+                {format(startDate, 'dd/MM', { locale: vi })} → {format(addDays(startDate, days - 1), 'dd/MM/yyyy', { locale: vi })}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
-                selected={startDate}
+                selected={selectedDateStr ? parseISO(selectedDateStr) : startDate}
                 onSelect={(d) => {
                   if (d) {
-                    const x = new Date(d)
-                    x.setHours(0, 0, 0, 0)
-                    setStartDate(x)
+                    jumpToDate(d)
                     setShowCalendar(false)
                   }
                 }}
