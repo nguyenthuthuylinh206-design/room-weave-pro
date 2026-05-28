@@ -1,61 +1,44 @@
-# Chat dạng cửa sổ thu/mở trên mobile
+## Mục tiêu
+Đổi toast thông báo tin nhắn mới sang phong cách Messenger: avatar thật của người gửi, tên đậm, dòng preview ngay dưới, bấm cả thẻ là mở chat. Áp dụng cho cả mobile và desktop.
 
-## Vấn đề hiện tại
-- Trên desktop (`lg+`): `ChatLauncher` đã là cửa sổ thu/mở ở góc phải. OK.
-- Trên mobile: tab "Tin nhắn" ở bottom nav điều hướng sang trang `/chat` → mất context trang đang dùng.
+## Thay đổi UI (trong `src/components/chat/ChatNotificationListener.tsx`)
 
-Mong muốn: tab "Tin nhắn" mở/thu một panel nổi như Messenger, không rời trang.
+Bố cục mới (1 hàng, giống Messenger):
+```text
+[Avatar 40px]  Nguyễn Văn A                      2 phút
+               Tin nhắn preview tối đa 2 dòng…
+               (nếu nhóm) trong "Lễ tân ca sáng"
+```
 
-## Giải pháp
+Chi tiết:
+- **Avatar**: `Avatar` shadcn 40px, dùng `sender.avatar_url`, fallback = chữ cái đầu tên. Nếu là nhóm, đè 1 chip nhỏ góc dưới-phải hiển thị icon `Users` để vẫn nhận biết được context.
+- **Hàng 1**: tên người gửi (`font-semibold text-sm`) + thời điểm "vừa xong" (`text-[11px] text-muted-foreground`).
+- **Hàng 2**: preview tin nhắn `line-clamp-2`, `text-sm text-muted-foreground`. Nếu có đính kèm và body trống → "📷 Ảnh" / "📎 Tệp đính kèm" (tùy `attachment_type` nếu có, mặc định "Đính kèm").
+- **Hàng 3 (chỉ nhóm)**: `trong "Tên nhóm"` — `text-xs text-muted-foreground/80`.
+- **Toàn bộ card clickable**: bấm bất kỳ đâu trên toast → `setLauncherOpen(true)` + `openPopup(conversationId)` + `toast.dismiss(id)`. Bỏ nút "Mở chat" rời (giảm rối, đúng pattern Messenger).
+- **Style toast**: dùng `unstyled: true` + className tùy chỉnh để render card phẳng, padding `p-3`, `rounded-lg border bg-card shadow-lg`, viền trái 3px `border-l-primary` giữ phân biệt như hiện tại.
+- **Vị trí**: giữ `top-center` mobile / `bottom-right` desktop.
+- **Duration**: 6s, có thể hover-pause (mặc định của sonner).
+- **Icon-only fallback** chỉ khi không có avatar_url.
 
-### A. Kiến trúc state
-- Tách `ChatPopupProvider` ra khỏi `ChatLauncher`, đưa lên `MainLayout` để cả `MobileBottomNav` và `ChatLauncher` cùng dùng chung.
-- Thêm vào provider hai state mới: `launcherOpen: boolean` + `toggleLauncher()`.
+## Phần KHÔNG đổi
+- Logic dedup, kiểm tra member/muted/popup-đang-mở, route `/chat`: giữ nguyên.
+- Notification bell và logic gửi push: không thay đổi.
+- Cách lấy sender/conv: giữ nguyên (đã đủ dữ liệu).
 
-### B. ChatLauncher responsive
-- Bỏ ràng buộc `lg:flex` / `hidden`. Hiển thị ở cả mobile lẫn desktop.
-- Desktop (`lg+`): giữ nguyên — nút tròn góc phải + panel 280×440 phía trên nút.
-- Mobile (`<lg`):
-  - Bỏ nút tròn FAB (vì đã có tab "Tin nhắn" ở bottom nav đảm nhiệm vai trò mở).
-  - Khi `launcherOpen = true`: panel slide-up full-width, cao ~70vh, bo góc trên, nằm trên `MobileBottomNav` (z-index cao hơn nav).
-  - Header có nút `Minus` để thu, nút `X` để đóng — cả hai đều set `launcherOpen = false`.
-  - Backdrop mờ nhẹ phía sau panel; tap ngoài đóng panel.
+## Files sẽ sửa
+- `src/components/chat/ChatNotificationListener.tsx` — rewrite phần render toast theo bố cục trên.
+- `src/index.css` — chỉnh `.chat-message-toast` để hỗ trợ `unstyled` card (bỏ padding mặc định, giữ shadow + border-left).
+- `src/lib/app-version.ts` → `1.0.74`.
+- `public/changelog.json` → thêm entry 1.0.74 "Toast tin nhắn theo phong cách Messenger".
 
-### C. ChatPopupWindow mobile
-- Mobile: hiển thị 1 popup duy nhất, dạng sheet full-width chiếm gần full màn (giống Messenger mở 1 conversation), header có nút back để đóng/quay lại launcher.
-- Desktop: giữ nguyên 320×440 stack tối đa 3.
+## QA checklist
+- Mobile 390px: card không tràn ngang, avatar tròn rõ, line-clamp đúng 2 dòng.
+- Desktop: hiển thị bottom-right, không che FAB chat.
+- Chat 1-1 vs nhóm: nhóm hiện badge Users + dòng `trong "..."`; 1-1 không có.
+- Bấm bất kỳ chỗ nào trên card → mở popup chat đúng conversation, toast tự đóng.
+- Avatar lỗi → fallback chữ cái đầu hoạt động.
+- Tin có ảnh, không body → hiện "📷 Ảnh".
 
-### D. MobileBottomNav
-- Tab `chat`: thay `navigate('/chat')` bằng `toggleLauncher()`.
-- Trạng thái active của tab dựa vào `launcherOpen` (không dựa vào pathname).
-- Badge unread giữ nguyên (đọc từ `pendingCounts.chatUnread`).
-- Ẩn launcher khi pathname bắt đầu `/chat` để tránh trùng lặp (giữ logic cũ).
-
-### E. /chat route
-- Vẫn giữ route `/chat` (truy cập qua link "Xem toàn màn hình" trong popup, hoặc bookmark). Không xóa.
-
-## Files
-
-**Sửa:**
-- `src/components/chat/ChatPopupContext.tsx` — thêm `launcherOpen` + `toggleLauncher` + `setLauncherOpen`.
-- `src/components/chat/ChatLauncher.tsx` — bỏ `lg:flex` exclusive, thêm variant mobile (sheet slide-up + backdrop), dùng `launcherOpen` từ context thay state nội bộ.
-- `src/components/chat/ChatPopupWindow.tsx` — responsive: mobile full-screen sheet, desktop popup như cũ.
-- `src/components/layout/MainLayout.tsx` — bọc `ChatPopupProvider` quanh `{children}` + `ChatLauncher`.
-- `src/components/layout/MobileBottomNav.tsx` — tab chat dùng `toggleLauncher()` + active state theo `launcherOpen`.
-- `src/lib/app-version.ts` + `src/components/shared/CacheBuster.tsx` + `public/changelog.json` — bump version.
-
-**Không tạo file mới, không migration, không thay đổi API/RPC, không đụng DB.**
-
-## Test QA
-
-1. Mobile: tap "Tin nhắn" ở bottom nav → panel slide-up, tab active.
-2. Tap lại tab "Tin nhắn" hoặc nút `Minus`/`X` → panel thu xuống, vẫn ở trang gốc.
-3. Tap vào 1 hội thoại → mở `ChatPopupWindow` full-screen mobile; nút back trở về launcher list.
-4. Tap backdrop → đóng panel.
-5. Desktop (`lg+`): hành vi cũ giữ nguyên (nút tròn + popup stack).
-6. Badge unread cập nhật đồng thời trên tab và header launcher.
-7. Khi vào `/chat` (full page): launcher tự ẩn.
-
-## Rollout
-- Không breaking change DB/API.
-- Bump `APP_VERSION` + `CURRENT_VERSION` + thêm entry `changelog.json` theo convention.
+## Rollback
+Revert 1 file `ChatNotificationListener.tsx` + dòng CSS `.chat-message-toast` về 1.0.72.
