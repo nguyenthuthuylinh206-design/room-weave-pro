@@ -108,10 +108,15 @@ export function RoomTapeChart() {
     d.setHours(0, 0, 0, 0)
     return d
   })
-  const [days, setDays] = useState<number>(defaultDays)
+  const { prefs, update: updatePrefs } = useTapeChartPrefs(defaultDays)
+  const days = prefs.days
+  const setDays = (d: number) => updatePrefs({ days: d })
+  const statusFilter = prefs.statusFilter as StatusFilter
+  const setStatusFilter = (v: StatusFilter) => updatePrefs({ statusFilter: v })
+  const floorFilter = prefs.floorFilter
+  const setFloorFilter = (v: string) => updatePrefs({ floorFilter: v })
+  const colorBlind = prefs.colorBlind
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
-  const [floorFilter, setFloorFilter] = useState<string>('all')
   const [highlightGroupId, setHighlightGroupId] = useState<string | null>(null)
   const [sheetBooking, setSheetBooking] = useState<TapeChartBooking | null>(null)
   const [showCalendar, setShowCalendar] = useState(false)
