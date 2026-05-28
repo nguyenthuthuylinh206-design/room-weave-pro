@@ -1,44 +1,39 @@
-## Mục tiêu
-Đổi toast thông báo tin nhắn mới sang phong cách Messenger: avatar thật của người gửi, tên đậm, dòng preview ngay dưới, bấm cả thẻ là mở chat. Áp dụng cho cả mobile và desktop.
+## Vấn đề
 
-## Thay đổi UI (trong `src/components/chat/ChatNotificationListener.tsx`)
+Trang `/auth/callback` hiển thị "Đang xác thực..." mãi không chuyển. Nguyên nhân ở `useFirstAccessibleRoute`:
 
-Bố cục mới (1 hàng, giống Messenger):
-```text
-[Avatar 40px]  Nguyễn Văn A                      2 phút
-               Tin nhắn preview tối đa 2 dòng…
-               (nếu nhóm) trong "Lễ tân ca sáng"
-```
+- Khi load xong nhưng `permissions` trả về mảng rỗng (RPC `get_user_permissions_summary` chưa cấu hình cho user, hoặc lỗi mạng cache lại), hook trả `firstAccessibleRoute = null`.
+- `AuthCallback.tsx` có điều kiện `if (firstAccessibleRoute === null) return` → chờ vô hạn, không có timeout, không có fallback.
+- Kết quả: user staff như "Nhân Viên Buồng Tám" bị kẹt sau khi đăng nhập (khớp với auth-logs: login thành công nhưng không thấy navigate).
 
-Chi tiết:
-- **Avatar**: `Avatar` shadcn 40px, dùng `sender.avatar_url`, fallback = chữ cái đầu tên. Nếu là nhóm, đè 1 chip nhỏ góc dưới-phải hiển thị icon `Users` để vẫn nhận biết được context.
-- **Hàng 1**: tên người gửi (`font-semibold text-sm`) + thời điểm "vừa xong" (`text-[11px] text-muted-foreground`).
-- **Hàng 2**: preview tin nhắn `line-clamp-2`, `text-sm text-muted-foreground`. Nếu có đính kèm và body trống → "📷 Ảnh" / "📎 Tệp đính kèm" (tùy `attachment_type` nếu có, mặc định "Đính kèm").
-- **Hàng 3 (chỉ nhóm)**: `trong "Tên nhóm"` — `text-xs text-muted-foreground/80`.
-- **Toàn bộ card clickable**: bấm bất kỳ đâu trên toast → `setLauncherOpen(true)` + `openPopup(conversationId)` + `toast.dismiss(id)`. Bỏ nút "Mở chat" rời (giảm rối, đúng pattern Messenger).
-- **Style toast**: dùng `unstyled: true` + className tùy chỉnh để render card phẳng, padding `p-3`, `rounded-lg border bg-card shadow-lg`, viền trái 3px `border-l-primary` giữ phân biệt như hiện tại.
-- **Vị trí**: giữ `top-center` mobile / `bottom-right` desktop.
-- **Duration**: 6s, có thể hover-pause (mặc định của sonner).
-- **Icon-only fallback** chỉ khi không có avatar_url.
+## Cách sửa
 
-## Phần KHÔNG đổi
-- Logic dedup, kiểm tra member/muted/popup-đang-mở, route `/chat`: giữ nguyên.
-- Notification bell và logic gửi push: không thay đổi.
-- Cách lấy sender/conv: giữ nguyên (đã đủ dữ liệu).
+### A. `src/hooks/useFirstAccessibleRoute.ts`
+- Khi đã `!isLoading` mà `permissions` rỗng → KHÔNG trả `null` nữa. Trả thẳng `/unauthorized` (hành vi cũ đã có sẵn ở cuối hàm, chỉ cần bỏ nhánh `return null` ở dòng 38–40).
+- Chỉ giữ `null` cho trạng thái thật sự đang loading.
 
-## Files sẽ sửa
-- `src/components/chat/ChatNotificationListener.tsx` — rewrite phần render toast theo bố cục trên.
-- `src/index.css` — chỉnh `.chat-message-toast` để hỗ trợ `unstyled` card (bỏ padding mặc định, giữ shadow + border-left).
-- `src/lib/app-version.ts` → `1.0.74`.
-- `public/changelog.json` → thêm entry 1.0.74 "Toast tin nhắn theo phong cách Messenger".
+### B. `src/pages/auth/AuthCallback.tsx`
+- Thêm safety timeout 8s: nếu sau 8s vẫn chưa redirect được (ví dụ RPC permissions lỗi/treo), điều hướng fallback:
+  - Có `user.tenant_id && user.hotel_id` → `/` (Dashboard, RoleGuard sẽ chặn nếu không có quyền).
+  - Ngược lại → `/auth/login`.
+- Hiển thị thêm dòng phụ "Đang tải quyền truy cập..." và nút "Đăng nhập lại" sau 5s để user không bị mắc kẹt.
 
-## QA checklist
-- Mobile 390px: card không tràn ngang, avatar tròn rõ, line-clamp đúng 2 dòng.
-- Desktop: hiển thị bottom-right, không che FAB chat.
-- Chat 1-1 vs nhóm: nhóm hiện badge Users + dòng `trong "..."`; 1-1 không có.
-- Bấm bất kỳ chỗ nào trên card → mở popup chat đúng conversation, toast tự đóng.
-- Avatar lỗi → fallback chữ cái đầu hoạt động.
-- Tin có ảnh, không body → hiện "📷 Ảnh".
+### C. Log chẩn đoán
+- Thêm `console.warn('[AuthCallback] permissions empty or stuck', { hasUser, permissionsLen, firstAccessibleRoute })` khi rơi vào fallback để lần sau debug nhanh.
 
-## Rollback
-Revert 1 file `ChatNotificationListener.tsx` + dòng CSS `.chat-message-toast` về 1.0.72.
+## Không đụng tới
+- `AuthContext`, `useUser`, `useUserModulePermissions`, RLS, RPC — giữ nguyên để tránh ảnh hưởng các user khác đang chạy bình thường.
+- Logic auto-login PWA.
+
+## QA
+1. Đăng nhập tài khoản staff "Nhân Viên Buồng Tám" → phải redirect vào trang được phép trong < 3s, không kẹt.
+2. Đăng nhập owner/super_admin → vẫn vào `/`.
+3. User mới chưa onboard → vẫn vào `/onboarding`.
+4. User `must_change_password` → vẫn vào `/auth/change-password`.
+5. Ngắt mạng giữa chừng (devtools offline) → sau 8s rơi vào fallback, không trắng màn hình mãi.
+
+## File sẽ sửa
+- `src/hooks/useFirstAccessibleRoute.ts`
+- `src/pages/auth/AuthCallback.tsx`
+- `src/lib/app-version.ts` (bump → 1.0.75)
+- `public/changelog.json` (thêm entry 1.0.75)
