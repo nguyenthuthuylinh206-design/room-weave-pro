@@ -1,6 +1,16 @@
 {
-  "current": "1.0.77",
+  "current": "1.0.78",
   "versions": [
+    {
+      "version": "1.0.78",
+      "releaseDate": "2026-05-28",
+      "title": "Tin nhắn gửi tức thì như Messenger",
+      "changes": [
+        { "type": "improvement", "text": "Tin nhắn hiện ngay khi nhấn Enter (<50ms) thay vì chờ máy chủ phản hồi — gõ và gửi liên tục không bị khựng" },
+        { "type": "improvement", "text": "Tin đang gửi hiển thị mờ nhẹ, tự sáng lại khi máy chủ xác nhận" },
+        { "type": "fix", "text": "Bỏ refetch toàn bộ 50 tin mỗi khi mình gửi xong — giảm tải mạng và hết hiện tượng nhấp nháy" }
+      ]
+    },
     {
       "version": "1.0.77",
       "releaseDate": "2026-05-28",

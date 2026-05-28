@@ -40,8 +40,11 @@ export interface ChatMessage {
   edited_at: string | null
   deleted_at: string | null
   created_at: string
+  client_msg_id?: string | null
   sender?: { id: string; full_name: string | null; avatar_url: string | null }
   attachments?: ChatAttachment[]
+  /** Optimistic local state — chưa được server xác nhận */
+  _pending?: boolean
 }
 
 export function useConversations() {
@@ -215,7 +218,18 @@ export function useMessages(conversationId: string | undefined) {
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`,
         },
-        () => queryClient.invalidateQueries({ queryKey: ['chat-messages', conversationId] })
+        (payload: any) => {
+          // Bỏ qua nếu message đã có trong cache (đã optimistic insert) để tránh refetch + nháy
+          if (payload.eventType === 'INSERT') {
+            const incomingId = payload.new?.id
+            const cache = queryClient.getQueryData<ChatMessage[]>([
+              'chat-messages',
+              conversationId,
+            ])
+            if (incomingId && cache?.some((m) => m.id === incomingId)) return
+          }
+          queryClient.invalidateQueries({ queryKey: ['chat-messages', conversationId] })
+        }
       )
       .subscribe()
     return () => {
@@ -237,23 +251,77 @@ export interface UploadedChatAttachment {
 
 export function useSendMessage(conversationId: string | undefined) {
   const queryClient = useQueryClient()
+  const { user } = useUser()
   return useMutation({
-    mutationFn: async (args: { body: string; attachments?: UploadedChatAttachment[] }) => {
+    mutationFn: async (args: {
+      body: string
+      attachments?: UploadedChatAttachment[]
+      clientMsgId: string
+    }) => {
       if (!conversationId) throw new Error('missing conversation')
-      const clientMsgId = crypto.randomUUID()
       const { data, error } = await supabase.rpc('send_chat_message', {
         _conversation_id: conversationId,
         _body: args.body,
         _parent_message_id: null,
-        _client_msg_id: clientMsgId,
+        _client_msg_id: args.clientMsgId,
         _mentioned_user_ids: [],
         _attachments: (args.attachments || []) as any,
       })
       if (error) throw error
-      return data
+      return data as string // new message id
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['chat-messages', conversationId] })
+    onMutate: async (args) => {
+      if (!conversationId || !user?.id) return
+      const queryKey = ['chat-messages', conversationId]
+      await queryClient.cancelQueries({ queryKey })
+      const previous = queryClient.getQueryData<ChatMessage[]>(queryKey) || []
+      const now = new Date().toISOString()
+      const optimistic: ChatMessage = {
+        id: args.clientMsgId,
+        conversation_id: conversationId,
+        sender_id: user.id,
+        body: args.body || null,
+        parent_message_id: null,
+        mentioned_user_ids: [],
+        edited_at: null,
+        deleted_at: null,
+        created_at: now,
+        client_msg_id: args.clientMsgId,
+        sender: {
+          id: user.id,
+          full_name: user.full_name ?? null,
+          avatar_url: (user as any).avatar_url ?? null,
+        },
+        attachments: (args.attachments || []).map((a, i) => ({
+          id: `${args.clientMsgId}-att-${i}`,
+          message_id: args.clientMsgId,
+          storage_path: a.storage_path,
+          file_name: a.file_name,
+          mime_type: a.mime_type,
+          size_bytes: a.size_bytes,
+          width: a.width ?? null,
+          height: a.height ?? null,
+        })),
+        _pending: true,
+      }
+      queryClient.setQueryData<ChatMessage[]>(queryKey, [...previous, optimistic])
+      return { previous, tempId: args.clientMsgId }
+    },
+    onSuccess: (newId, args, ctx) => {
+      if (!conversationId || !ctx) return
+      const queryKey = ['chat-messages', conversationId]
+      const current = queryClient.getQueryData<ChatMessage[]>(queryKey) || []
+      // Thay id tạm bằng id thật để dedupe với realtime sắp tới
+      queryClient.setQueryData<ChatMessage[]>(
+        queryKey,
+        current.map((m) =>
+          m.id === ctx.tempId ? { ...m, id: newId, _pending: false } : m
+        )
+      )
+    },
+    onError: (_err, _args, ctx) => {
+      if (!conversationId || !ctx) return
+      queryClient.setQueryData(['chat-messages', conversationId], ctx.previous)
     },
   })
 }

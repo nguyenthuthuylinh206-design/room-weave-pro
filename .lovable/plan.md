@@ -1,95 +1,65 @@
-# Vấn đề phát hiện
+# Tăng tốc gửi tin nhắn — Optimistic + Fire-and-forget
 
-Sau khi kiểm tra auth logs + DB, tôi xác định **đăng nhập Supabase Auth vẫn OK** (login `nguyenducphuoc3@company.com` trả 200). Vấn đề nằm ở bước **sau đăng nhập**: app gọi RPC `get_user_permissions_summary` để load quyền → RPC này **lỗi ngay tại DB**:
+## Vấn đề hiện tại
 
-```
-ERROR: 42703 column reference "module" is ambiguous
-DETAIL: It could refer to either a PL/pgSQL variable or a table column.
-```
+Đo flow trong `ChatPage.tsx` + `useChat.ts`:
 
-Lý do: hàm khai báo `RETURNS TABLE(module text, ...)` nên `module` trở thành biến PL/pgSQL. Trong câu `SELECT DISTINCT module FROM permissions` và `m.module` ở SELECT cuối, Postgres không biết là biến hay cột → throw lỗi.
+1. `handleSubmit` **await** `sendMessage.mutateAsync` → input bị khoá tới khi RPC trả về.
+2. Tin nhắn **không hiện ngay** — phải chờ:
+   - RPC `send_chat_message` (200–600ms)
+   - Realtime event → `invalidateQueries` → **refetch 50 tin + join users + join attachments** (300–900ms)
+3. Mỗi tin mới từ realtime cũng **refetch toàn bộ** thay vì append → tốn băng thông & gây "flash".
 
-## Hệ quả dây chuyền
+Kết quả: từ lúc bấm gửi đến lúc thấy tin trên màn hình thường 0.7–1.5s — chậm so với Messenger (~30ms).
 
-1. `useUserModulePermissions` nhận lỗi → `permissions = undefined`.
-2. `useFirstAccessibleRoute`:
-   - User KHÔNG phải `super_admin`/`owner` (vd `hotel_manager`, `staff`) → bỏ qua nhánh bypass.
-   - Duyệt `ROUTE_PRIORITY` nhưng `list = []` → return `/unauthorized`.
-3. Đó là lý do `Quản Lý 2` và `Nhân Viên Buồng Tám` đăng nhập xong **văng thẳng `/unauthorized`** (đúng route hiện tại của bạn).
-4. Với Owner/Super Admin thì không bị, vì `useFirstAccessibleRoute` có nhánh bypass trả `/` mà không cần permissions.
+## Mục tiêu
 
-# Phương án sửa (Migration)
+Thấy tin ngay khi nhấn Enter (<50ms), bất kể mạng. Nếu RPC fail thì rollback + báo lỗi.
 
-Tạo migration sửa hàm `get_user_permissions_summary`:
+## Thay đổi
 
-- Thêm `#variable_conflict use_column` đầu hàm để Postgres ưu tiên cột khi trùng tên biến.
-- Qualify lại các `module` còn mơ hồ (đặc biệt `(SELECT DISTINCT permissions.module AS module FROM permissions)`).
-- Giữ nguyên signature `RETURNS TABLE(module, can_view, ...)` và logic nghiệp vụ (bypass super_admin/tenant_owner, gộp user_permissions + role_permissions).
+### A. `useSendMessage` — Optimistic update
 
-```sql
-CREATE OR REPLACE FUNCTION public.get_user_permissions_summary(p_user_id uuid)
-RETURNS TABLE(module text, can_view boolean, can_create boolean, can_update boolean,
-              can_delete boolean, can_export boolean, can_approve boolean,
-              can_assign boolean, can_manage boolean)
-LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path TO 'public'
-AS $$
-#variable_conflict use_column
-DECLARE
-  v_user_level text;
-  v_tenant_id  uuid;
-BEGIN
-  SELECT user_level_code, tenant_id INTO v_user_level, v_tenant_id
-  FROM users WHERE id = p_user_id;
+- Thêm `onMutate`: build 1 `ChatMessage` tạm với `id = clientMsgId`, `sender = currentUser`, `created_at = now`, `_pending: true`. `setQueryData(['chat-messages', conversationId])` push vào cuối.
+- Lưu `previousMessages` để rollback trong `onError`.
+- `onSuccess`: thay thế message tạm (match theo `client_msg_id` hoặc fallback theo `id` từ RPC) bằng record thật từ `data`. Không invalidate.
+- `onError`: rollback + toast.
+- Truyền `currentUser` vào hook (hoặc gọi `useUser()` bên trong) để có sender info.
 
-  IF v_user_level IS NULL THEN RETURN; END IF;
+### B. `useMessages` realtime — Patch cache thay vì invalidate
 
-  IF v_user_level IN ('super_admin','tenant_owner') THEN
-    RETURN QUERY
-      SELECT DISTINCT p.module, true, true, true, true, true, true, true, true
-      FROM permissions p ORDER BY 1;
-    RETURN;
-  END IF;
+- Khi nhận `INSERT`: nếu message đã có (match `id` hoặc `client_msg_id`) → bỏ qua/merge; nếu chưa có → fetch riêng record đó + sender + attachments rồi append. Không refetch 50 tin.
+- Khi nhận `UPDATE`/`DELETE`: patch in-place theo `id`.
+- Vẫn giữ invalidate làm fallback cho event lạ.
 
-  RETURN QUERY
-  WITH all_perms AS (
-    SELECT up.module, up.action FROM user_permissions up
-      WHERE up.user_id = p_user_id AND up.enabled = true
-    UNION
-    SELECT p.module, p.action
-      FROM user_roles ur
-      JOIN roles r ON r.code = ur.role::text
-        AND (r.tenant_id = v_tenant_id OR r.tenant_id = '00000000-0000-0000-0000-000000000000'::uuid)
-      JOIN role_permissions rp ON rp.role_id = r.id
-      JOIN permissions p ON p.id = rp.permission_id
-      WHERE ur.user_id = p_user_id
-  )
-  SELECT m.module,
-    EXISTS(SELECT 1 FROM all_perms a WHERE a.module = m.module AND a.action = 'view'),
-    EXISTS(SELECT 1 FROM all_perms a WHERE a.module = m.module AND a.action = 'create'),
-    EXISTS(SELECT 1 FROM all_perms a WHERE a.module = m.module AND a.action IN ('update','edit')),
-    EXISTS(SELECT 1 FROM all_perms a WHERE a.module = m.module AND a.action = 'delete'),
-    EXISTS(SELECT 1 FROM all_perms a WHERE a.module = m.module AND a.action = 'export'),
-    EXISTS(SELECT 1 FROM all_perms a WHERE a.module = m.module AND a.action = 'approve'),
-    EXISTS(SELECT 1 FROM all_perms a WHERE a.module = m.module AND a.action = 'assign'),
-    EXISTS(SELECT 1 FROM all_perms a WHERE a.module = m.module AND a.action = 'manage')
-  FROM (SELECT DISTINCT permissions.module FROM permissions) m
-  ORDER BY m.module;
-END;
-$$;
-```
+### C. `handleSubmit` — Fire-and-forget
 
-# Việc đi kèm (FE)
+- Đổi `await sendMessage.mutateAsync(...)` → `sendMessage.mutate(...)` (không await).
+- Clear `text`/`pending` ngay (đã đang làm), không cần `try/catch` await — `onError` của mutation đã handle rollback + toast.
+- Bỏ điều kiện `!sendMessage.isPending` trong `canSend` để cho phép gõ + gửi liên tục nhiều tin liền.
 
-- Bump `APP_VERSION` → `1.0.77` + entry `public/changelog.json`: "Sửa lỗi nhân viên/quản lý đăng nhập bị đá về Không có quyền".
-- Không cần đổi `AuthCallback` / `useFirstAccessibleRoute` nữa — chúng đã đúng, chỉ thiếu data do RPC chết.
+### D. Render gợi ý trạng thái (nhẹ)
 
-# QA checklist
+- Trong bubble tin của mình, nếu `_pending` → opacity 70% (không thêm icon để giữ tinh thần tối giản).
+- Khi onSuccess thay thế → opacity về 100%.
 
-- Login `nguyenducphuoc3@company.com` (hotel_manager) → vào đúng module đầu tiên có quyền, không còn `/unauthorized`.
-- Login `nguyenducphuoc2@company.com` (staff) → vào module có quyền (vd `/my-tasks` hoặc `/rooms`).
-- Login Owner/Super Admin → vẫn vào `/` như cũ.
-- Gọi trực tiếp `select * from get_user_permissions_summary('<uid>')` không còn lỗi 42702.
+## Phạm vi không đụng
 
-# Rollback
+- RPC `send_chat_message` không đổi (đã trả về message; sẵn có `client_msg_id` để de-dupe).
+- Upload attachment vẫn await như cũ (an toàn) — `canSend` vẫn chặn khi `isUploading`.
+- Không động `useMarkConversationRead`, group conversation, list sidebar.
 
-Migration chỉ thay thân function bằng `CREATE OR REPLACE`. Rollback = redeploy bản cũ (đã lưu trong git history của migrations).
+## QA checklist
+
+- Gõ + Enter liên tục 5 tin nhanh → cả 5 hiện ngay, không nhấp nháy, không trùng.
+- Mạng chậm (throttle Slow 3G): tin vẫn hiện ngay, sau vài giây vẫn ở đó.
+- Mạng fail (offline): tin hiện ra rồi biến mất + toast "Không gửi được".
+- Mở 2 trình duyệt cùng hội thoại: tin từ A hiện ở B qua realtime (append, không reload toàn list).
+- Đính kèm ảnh + text: gửi xong tin hiện đầy đủ ảnh.
+
+## Rollout
+
+- 1 file FE: `src/hooks/useChat.ts` (sửa `useSendMessage` + `useMessages`).
+- 1 file FE: `src/pages/ChatPage.tsx` (đổi `mutateAsync` → `mutate`, bỏ chặn `isPending` trong `canSend`, thêm class opacity cho `_pending`).
+- Bump `APP_VERSION` → `1.0.78` + entry changelog "Tin nhắn gửi tức thì như Messenger".
+- Rollback: revert 2 file, không có migration.

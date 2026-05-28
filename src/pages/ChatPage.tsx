@@ -614,11 +614,10 @@ export function ConversationView({ conversationId }: { conversationId: string })
 
   const isUploading = pending.some((p) => p.status === 'uploading')
   const canSend =
-    !sendMessage.isPending &&
     !isUploading &&
     (text.trim().length > 0 || pending.some((p) => p.status === 'done'))
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
     if (!canSend) return
     const body = text.trim()
@@ -626,16 +625,21 @@ export function ConversationView({ conversationId }: { conversationId: string })
       .filter((p) => p.status === 'done' && p.uploaded)
       .map((p) => p.uploaded as UploadedChatAttachment)
     const snapshotPending = pending
+    // Clear input + pending NGAY để gõ tiếp tin sau không bị chờ
     setText('')
     setPending([])
-    try {
-      await sendMessage.mutateAsync({ body, attachments: doneAtt })
-      snapshotPending.forEach((p) => p.previewUrl && URL.revokeObjectURL(p.previewUrl))
-    } catch (err: unknown) {
-      toast.error(errorMessage(err, 'Không gửi được'))
-      setText(body)
-      setPending(snapshotPending)
-    }
+    // Fire-and-forget — optimistic UI hiện tin tức thì, onError tự rollback
+    sendMessage.mutate(
+      { body, attachments: doneAtt, clientMsgId: crypto.randomUUID() },
+      {
+        onSuccess: () => {
+          snapshotPending.forEach((p) => p.previewUrl && URL.revokeObjectURL(p.previewUrl))
+        },
+        onError: (err) => {
+          toast.error(errorMessage(err, 'Không gửi được'))
+        },
+      }
+    )
   }
 
   const groups = useMemo(() => groupMessages(messages), [messages])
@@ -687,8 +691,9 @@ export function ConversationView({ conversationId }: { conversationId: string })
                       <div
                         key={m.id}
                         className={cn(
-                          'flex flex-col gap-0.5',
-                          mine ? 'items-end' : 'items-start'
+                          'flex flex-col gap-0.5 transition-opacity',
+                          mine ? 'items-end' : 'items-start',
+                          m._pending && 'opacity-60'
                         )}
                       >
                         {atts.length > 0 && (
