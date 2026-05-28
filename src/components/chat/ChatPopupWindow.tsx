@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom'
-import { Minus, X, Maximize2 } from 'lucide-react'
+import { Minus, X, Maximize2, ArrowLeft } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { useConversations } from '@/hooks/useChat'
 import { ConversationView } from '@/pages/ChatPage'
 import { useChatPopups } from './ChatPopupContext'
@@ -28,7 +29,8 @@ export function ChatPopupWindow({
   index: number
 }) {
   const navigate = useNavigate()
-  const { closePopup, toggleMinimize } = useChatPopups()
+  const { isMobile } = useBreakpoint()
+  const { closePopup, toggleMinimize, setLauncherOpen } = useChatPopups()
   const { data: conversations = [] } = useConversations()
   const conv = conversations.find((c) => c.id === conversationId)
 
@@ -38,6 +40,60 @@ export function ChatPopupWindow({
       : conv.name || 'Nhóm'
     : 'Đang tải...'
 
+  // ─── MOBILE ───────────────────────────────────────────────────────────────
+  if (isMobile) {
+    // Only render the top-most (index 0) popup on mobile to avoid stacking sheets.
+    if (index > 0) return null
+    if (minimized) return null
+    return (
+      <section
+        className="fixed inset-0 z-[60] flex flex-col bg-background"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        aria-label={`Cửa sổ chat với ${title}`}
+      >
+        <div className="flex h-12 shrink-0 items-center gap-2 border-b bg-card px-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-9 w-9 p-0"
+            onClick={() => {
+              closePopup(conversationId)
+              setLauncherOpen(true)
+            }}
+            aria-label="Quay lại danh sách"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <Avatar className="h-7 w-7 shrink-0">
+            {conv?.peer?.avatar_url && <AvatarImage src={conv.peer.avatar_url} alt={title} />}
+            <AvatarFallback className="text-[10px]">
+              {conv?.type === 'group' ? 'GR' : initials(title)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 truncate text-sm font-semibold">{title}</div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-9 w-9 p-0"
+            onClick={() => {
+              closePopup(conversationId)
+              setLauncherOpen(false)
+            }}
+            aria-label="Đóng"
+          >
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
+        <div className="flex-1 min-h-0">
+          <ConversationView conversationId={conversationId} />
+        </div>
+      </section>
+    )
+  }
+
+  // ─── DESKTOP ──────────────────────────────────────────────────────────────
   const right = LAUNCHER_OFFSET + index * (POPUP_WIDTH + POPUP_GAP)
 
   if (minimized) {
@@ -45,7 +101,7 @@ export function ChatPopupWindow({
       <button
         type="button"
         onClick={() => toggleMinimize(conversationId)}
-        className="fixed bottom-0 z-50 hidden h-9 w-[200px] items-center gap-2 rounded-t-lg border border-b-0 bg-card px-2 text-left shadow-md hover:bg-muted lg:flex"
+        className="fixed bottom-0 z-50 flex h-9 w-[200px] items-center gap-2 rounded-t-lg border border-b-0 bg-card px-2 text-left shadow-md hover:bg-muted"
         style={{ right: LAUNCHER_OFFSET + index * 208 }}
         aria-label={`Mở lại chat với ${title}`}
       >
@@ -67,7 +123,7 @@ export function ChatPopupWindow({
 
   return (
     <section
-      className="fixed bottom-0 z-50 hidden h-[440px] w-[320px] flex-col overflow-hidden rounded-t-lg border border-b-0 bg-background shadow-2xl lg:flex"
+      className="fixed bottom-0 z-50 flex h-[440px] w-[320px] flex-col overflow-hidden rounded-t-lg border border-b-0 bg-background shadow-2xl"
       style={{ right }}
       aria-label={`Cửa sổ chat với ${title}`}
     >
