@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useUser } from '@/hooks/useUser'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { useChatPopups } from './ChatPopupContext'
+import { MessageCircle, Users } from 'lucide-react'
 
 type ToastPosition = 'top-center' | 'bottom-right'
 
