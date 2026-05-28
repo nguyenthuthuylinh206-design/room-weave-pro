@@ -1,9 +1,12 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { toast } from 'sonner'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from '@/hooks/useUser'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { useChatPopups } from './ChatPopupContext'
+
+type ToastPosition = 'top-center' | 'bottom-right'
 
 /**
  * Global listener: hiển thị toast nổi khi có tin nhắn mới (không phải của mình)
@@ -14,6 +17,8 @@ export function ChatNotificationListener() {
   const tenantId = user?.tenant_id
   const { popups, openPopup, setLauncherOpen } = useChatPopups()
   const location = useLocation()
+  const { isMobile } = useBreakpoint()
+  const toastPosition = useMemo<ToastPosition>(() => (isMobile ? 'top-center' : 'bottom-right'), [isMobile])
 
   // Refs để callback realtime luôn đọc state mới nhất
   const popupsRef = useRef(popups)
@@ -73,7 +78,9 @@ export function ChatNotificationListener() {
 
           toast(name, {
             description: preview,
+            position: toastPosition,
             duration: 6000,
+            className: 'chat-message-toast',
             action: {
               label: 'Mở',
               onClick: () => {
@@ -91,7 +98,7 @@ export function ChatNotificationListener() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [user?.id, tenantId, openPopup, setLauncherOpen])
+  }, [user?.id, tenantId, openPopup, setLauncherOpen, toastPosition])
 
   return null
 }

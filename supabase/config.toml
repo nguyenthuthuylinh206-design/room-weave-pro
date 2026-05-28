@@ -13,6 +13,8 @@ project_id = "ehjtoajnlnuvuiwkpmbp"
     verify_jwt = false
   [functions.mobile-scan-upload]
     verify_jwt = false
+  [functions.notify-new-message]
+    verify_jwt = false
   [functions.notify-chargeable]
     verify_jwt = false
   [functions.process-email-queue]
