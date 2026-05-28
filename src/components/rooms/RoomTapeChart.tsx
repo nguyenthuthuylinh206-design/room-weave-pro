@@ -525,7 +525,22 @@ export function RoomTapeChart() {
         <span>
           <span className="text-muted-foreground">Lấp đầy </span>
           <span className="font-semibold">{kpis.occupancy}%</span>
+          <span className="text-muted-foreground/70"> · {days}n {kpis.windowOccupancy}%</span>
         </span>
+        <span title="Average Daily Rate trên cửa sổ đang xem">
+          <span className="text-muted-foreground">ADR </span>
+          <span className="font-semibold">{formatCurrency(kpis.adr)}</span>
+        </span>
+        <span title="Revenue Per Available Room trên cửa sổ đang xem">
+          <span className="text-muted-foreground">RevPAR </span>
+          <span className="font-semibold">{formatCurrency(kpis.revpar)}</span>
+        </span>
+        {kpis.pickup24h > 0 && (
+          <span title="Booking mới tạo trong 24 giờ qua">
+            <span className="text-muted-foreground">Pickup 24h </span>
+            <span className="font-semibold text-emerald-600">+{kpis.pickup24h}</span>
+          </span>
+        )}
         {kpis.blockedRooms > 0 && (
           <span className="flex items-center gap-1 text-slate-600">
             <Lock className="h-3 w-3" />
