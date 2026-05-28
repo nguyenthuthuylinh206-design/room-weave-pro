@@ -1,6 +1,17 @@
 {
-  "current": "1.0.73",
+  "current": "1.0.74",
   "versions": [
+    {
+      "version": "1.0.74",
+      "releaseDate": "2026-05-28",
+      "title": "Toast tin nhắn theo phong cách Messenger",
+      "changes": [
+        { "type": "improvement", "text": "Toast tin nhắn mới hiển thị avatar thật của người gửi, tên đậm và preview nội dung — bố cục giống Messenger" },
+        { "type": "improvement", "text": "Bấm bất kỳ đâu trên toast là mở ngay cửa sổ chat đúng cuộc trò chuyện (bỏ nút 'Mở chat' rời)" },
+        { "type": "improvement", "text": "Chat nhóm hiển thị huy hiệu Users trên avatar và dòng phụ 'trong \"Tên nhóm\"' để dễ nhận diện" },
+        { "type": "improvement", "text": "Tin có ảnh/đính kèm khi body trống hiển thị '📷 Ảnh' hoặc '📎 Tệp đính kèm'" }
+      ]
+    },
     {
       "version": "1.0.73",
       "releaseDate": "2026-05-28",
