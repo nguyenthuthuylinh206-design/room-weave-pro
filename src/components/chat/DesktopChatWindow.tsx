@@ -34,8 +34,6 @@ export function DesktopChatWindow() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
 
-  if (location.pathname.startsWith('/chat')) return null
-
   const unread = pendingCounts?.chatUnread || 0
   const activeConv = conversations.find((c) => c.id === activeId) || null
   const activeTitle = activeConv
@@ -52,6 +50,8 @@ export function DesktopChatWindow() {
       return removeDiacritics(`${title} ${c.last_message_preview || ''}`).includes(q)
     })
   }, [conversations, search])
+
+  if (location.pathname.startsWith('/chat')) return null
 
   const handleOpen = () => {
     setOpen(true)
