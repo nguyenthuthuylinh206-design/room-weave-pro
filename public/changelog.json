@@ -1,6 +1,25 @@
 {
-  "current": "1.0.64",
+  "current": "1.0.65",
   "versions": [
+    {
+      "version": "1.0.65",
+      "releaseDate": "2026-05-28",
+      "title": "Chat desktop kiểu Facebook: danh sách nhỏ + popup nổi",
+      "changes": [
+        {
+          "type": "feature",
+          "text": "Widget chat mới ở góc phải dưới: danh sách hội thoại gọn 280px, có chấm online/offline cho từng người"
+        },
+        {
+          "type": "feature",
+          "text": "Click 1 hội thoại bung popup chat nổi riêng (320×440px); mở được tối đa 3 popup song song, từng popup có nút thu nhỏ và đóng"
+        },
+        {
+          "type": "improvement",
+          "text": "Thay cửa sổ chat lớn 760px trước đây bằng widget gọn hơn, không che màn hình làm việc"
+        }
+      ]
+    },
     {
       "version": "1.0.64",
       "releaseDate": "2026-05-28",
