@@ -191,6 +191,18 @@ export function getBarColor(b: TapeChartBooking): BarColor {
   }
 }
 
+/** Khoá ngắn để CSS color-blind áp pattern overlay đúng nhóm trạng thái */
+export function getBarKey(b: TapeChartBooking): string {
+  if (b.status === 'checked_in') return 'checked_in'
+  if (b.status === 'checked_out') {
+    return getPaymentState(b) === 'debt_after_checkout' ? 'debt' : 'checked_out'
+  }
+  const ps = getPaymentState(b)
+  if (ps === 'deposit_full' || ps === 'paid_full') return 'paid'
+  if (ps === 'partial_deposit') return 'partial'
+  return 'unpaid'
+}
+
 export const PAYMENT_LABEL: Record<PaymentState, string> = {
   unpaid: 'Chưa cọc',
   partial_deposit: 'Cọc một phần',
