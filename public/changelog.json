@@ -1,6 +1,16 @@
 {
-  "current": "1.0.74",
+  "current": "1.0.75",
   "versions": [
+    {
+      "version": "1.0.75",
+      "releaseDate": "2026-05-28",
+      "title": "Sửa lỗi kẹt 'Đang xác thực...' sau khi đăng nhập",
+      "changes": [
+        { "type": "fix", "text": "Không còn kẹt vô hạn ở màn hình 'Đang xác thực...' khi tài khoản nhân viên chưa có dữ liệu phân quyền — tự động chuyển vào trang phù hợp" },
+        { "type": "improvement", "text": "Thêm timeout an toàn 8 giây và nút 'Đăng nhập lại' xuất hiện sau 5 giây để thoát khỏi màn hình chờ nếu mạng/quyền tải chậm" },
+        { "type": "improvement", "text": "Hiển thị dòng phụ 'Đang tải quyền truy cập' để biết app đang làm gì" }
+      ]
+    },
     {
       "version": "1.0.74",
       "releaseDate": "2026-05-28",
