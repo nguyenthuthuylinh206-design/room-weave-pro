@@ -1,6 +1,14 @@
 {
-  "current": "1.0.69",
+  "current": "1.0.70",
   "versions": [
+    {
+      "version": "1.0.70",
+      "releaseDate": "2026-05-28",
+      "title": "Khóa ô nhập tin chat ở cuối màn hình mobile",
+      "changes": [
+        { "type": "fix", "text": "Cửa sổ chat mobile dùng 100svh thay vì 100dvh: ô nhập tin và nút gửi không bị đẩy lên/xuống khi cuộn (thanh địa chỉ Safari thay đổi)" }
+      ]
+    },
     {
       "version": "1.0.69",
       "releaseDate": "2026-05-28",
