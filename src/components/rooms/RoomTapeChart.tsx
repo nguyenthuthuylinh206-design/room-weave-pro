@@ -49,6 +49,7 @@ import {
   buildRoomLane,
   bookingMatchesQuery,
   getBarColor,
+  getBarKey,
   getSourceBadge,
   MINUTES_PER_DAY,
   type BookingLayout,
