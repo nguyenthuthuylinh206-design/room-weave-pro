@@ -1,73 +1,68 @@
-## Vấn đề xác định
+# Plan: Chat widget kiểu Facebook (danh sách + popup nổi)
 
-Ảnh chụp cho thấy PWA production đang crash ở `PricingSection` với lỗi:
+## Mục tiêu
+Thay cửa sổ chat lớn 760px hiện tại bằng 1 widget nhỏ bottom-right (~280px) chỉ hiển thị danh sách hội thoại đã có, có chấm online. Click 1 hội thoại sẽ bung 1 popup chat ~320px×420px nổi bên trái widget. Có thể mở nhiều popup song song (giới hạn 3), thu nhỏ/đóng từng cái.
 
+## A. Kiến trúc / logic
+
+- 3 component mới trong `src/components/chat/`:
+  - `ChatLauncher.tsx` — ô danh sách 280×~420px ở bottom-right. Hiện danh sách hội thoại (reuse `useConversations`), chấm online, badge unread, ô tìm kiếm, nút collapse/đóng.
+  - `ChatPopupWindow.tsx` — 1 popup chat đơn lẻ (header avatar + tên + minimize + close, body reuse `ConversationView`).
+  - `ChatPopupManager.tsx` — context + stack quản lý các popup đang mở (max 3, mở thêm sẽ đẩy popup cũ nhất ra), render xếp ngang phải→trái cạnh launcher.
+- Hook `useOnlinePresence(userIds)` — reuse `staff_status`/`useOnShiftStaffList` đã có để biết user nào online (chấm xanh/xám). Nếu chưa đủ data, fallback dùng `last_seen` trong `users`.
+- Ẩn toàn bộ widget khi route bắt đầu bằng `/chat` (như hiện tại). Chỉ hiện ở breakpoint `lg+` (PC), mobile vẫn dùng `/chat`.
+
+## B. Schema / migration
+Không cần migration. Tái sử dụng bảng `conversations`, `messages`, `conversation_members`, `staff_status` đã có.
+
+## C. API / RPC
+Không thêm RPC mới. Dùng lại `useConversations`, `useMessages`, `useSendMessage`, `usePendingCounts`.
+
+## D. UI / Components
+
+### ChatLauncher (collapsed)
+- Nút tròn 48px bottom-right, icon `MessageCircle`, badge unread.
+
+### ChatLauncher (expanded) — kiểu ảnh mẫu
 ```text
-.map is not a function
-/assets/PricingSection...
+┌─────────────────────────┐
+│ Tin nhắn          – ×  │  header semantic (bg-card border-b)
+├─────────────────────────┤
+│ [Tìm hội thoại...]     │
+├─────────────────────────┤
+│ ● Hỗ trợ Skyhotel    2 │  ● xanh = online, badge unread
+│ ○ LeTan1               │
+│ ○ LeTan2               │
+│ ● DonPhong1            │
+└─────────────────────────┘
 ```
+- Dùng semantic tokens (`bg-background`, `border`, `text-foreground`, `text-primary`), không hardcode màu nâu.
+- Row: avatar + tên + chấm online + badge unread. Click → mở `ChatPopupWindow` qua manager.
 
-Có 2 nguyên nhân cần xử lý cùng lúc:
+### ChatPopupWindow
+- 320×420px, fixed bottom-0, xếp ngang phải sang trái: `right: 304px + index*328px`.
+- Header: avatar + tên + nút `–` (minimize → thu thành tab nhỏ 200×32px ngay trên launcher) + `×` (close).
+- Body: reuse `ConversationView` (đã export từ ChatPage).
+- Click vào tab minimized → expand lại.
 
-1. `PricingSection` vẫn có đường render phụ thuộc dữ liệu dịch `features` là array; nếu i18n trả về string/object trong bundle cũ hoặc cache lệch, `.map` làm sập route.
-2. Service worker hiện tại precache cả app shell/chunk và dùng SPA fallback từ precache `index.html`, nên PWA đã cài có thể tiếp tục chạy bundle cũ dù web đã publish bản mới. `CacheBuster` lại chạy sau khi React render nên không cứu được crash xảy ra sớm.
+## E. Permission
+Như chat hiện tại — chỉ user đã đăng nhập, filter theo tenant_id qua RLS.
 
-## Kế hoạch sửa
+## F. Test
+- Mở 1 hội thoại → popup hiện, gửi tin nhắn OK.
+- Mở 4 hội thoại liên tiếp → tối đa 3 popup, popup cũ nhất bị đẩy ra.
+- Minimize/restore/close hoạt động độc lập từng popup.
+- Vào `/chat` → toàn bộ widget ẩn.
+- Breakpoint < lg → ẩn hoàn toàn.
+- Badge unread launcher = tổng `chatUnread` từ `usePendingCounts`.
 
-### 1. Chặn crash ngay tại `PricingSection`
-- Thêm parser an toàn cho `pricing.*.features`:
-  - array -> dùng trực tiếp
-  - string -> tách theo dòng/dấu phân cách hợp lý
-  - object/undefined -> trả `[]`
-- Không để bất kỳ giá trị i18n nào gọi `.map` trực tiếp nếu chưa chuẩn hóa.
-- Đây là fix trực tiếp cho lỗi trong ảnh.
+## G. Rollout
+- Xoá `DesktopChatWindow` cũ khỏi `MainLayout`, thay bằng `<ChatPopupProvider><ChatLauncher /><ChatPopupStack /></ChatPopupProvider>`.
+- Bump `APP_VERSION` → `1.0.65`, thêm entry `public/changelog.json`: "Chat widget kiểu Facebook: danh sách nhỏ + popup nổi nhiều cuộc cùng lúc".
+- Không có breaking change DB. Component cũ xoá hẳn vì user chọn "thay thế hoàn toàn".
 
-### 2. Bọc root landing bằng error boundary đúng tầng
-- Route `/` render landing qua `RootRoute`, hiện chưa bọc `SectionErrorBoundary` ở tầng `Suspense` của landing.
-- Thêm boundary quanh landing ở `RootRoute` để nếu landing section lỗi, người dùng không rơi vào màn `Unexpected Application Error` mặc định.
-
-### 3. Sửa chiến lược service worker để không giữ app shell cũ
-- Trong `src/sw.ts`:
-  - Không precache `index.html` và các chunk route động dễ lệch phiên bản.
-  - Đổi navigation fallback sang `NetworkFirst` cho HTML navigation thay vì luôn lấy `index.html` từ precache.
-  - Giữ push notification và cache tài nguyên tĩnh cần thiết.
-- Trong `vite.config.ts`:
-  - Loại `html` khỏi `globPatterns` hoặc thêm ignore rõ ràng cho `index.html`.
-  - Không precache quá rộng toàn bộ `assets/*.js` route chunks.
-
-### 4. Đưa PWA update/cleanup lên trước render
-- Hiện `usePWAUpdate` chỉ nằm trong `MainLayout`, nên guest landing hoặc crash trước layout không có cơ chế update.
-- Tạo component/hook nhỏ chạy ở root app trước `RouterProvider` để:
-  - đăng ký SW ở production,
-  - bắt update mới sớm,
-  - reload khi controller đổi,
-  - không phụ thuộc vào `MainLayout`.
-- Giữ `PWAUpdatePrompt` trong layout nếu vẫn muốn hiển thị thông báo cho user đã đăng nhập.
-
-### 5. Nâng fallback production, không để hiện stack trace thô
-- Cập nhật `ChunkErrorBoundary`/`RouteErrorBoundary` để lỗi render thường trên production hiển thị tiếng Việt với nút:
-  - Tải lại
-  - Xoá cache & tải lại
-  - Về trang chủ
-- Tránh để người dùng cuối thấy màn `Unexpected Application Error`/stack trace như ảnh.
-
-### 6. Version và changelog
-- Bump `APP_VERSION` lên `1.0.63`.
-- Thêm entry `public/changelog.json` mô tả fix PWA mobile production.
-
-## Không thay đổi
-
-- Không thêm migration.
-- Không đổi nghiệp vụ chat/booking/room check.
-- Không sửa database/RPC.
-
-## QA sau khi implement
-
-- Kiểm tra `/` và `/landing` ở viewport mobile 390px không crash khi `pricing.*.features` là array/string/object/undefined.
-- Kiểm tra service worker production config không precache `index.html` theo kiểu app shell cũ.
-- Kiểm tra route fallback hiển thị tiếng Việt, không còn màn `Unexpected Application Error` mặc định.
-- Kiểm tra PWA update hook chạy ở root, không phụ thuộc đăng nhập/MainLayout.
-
-## Rollout note
-
-Bản này cần publish để thiết bị PWA thực tế nhận service worker mới. Với thiết bị đã kẹt cache quá cũ, lần mở đầu có thể vẫn cần đóng/mở lại app hoặc bấm “Xoá cache & tải lại”; sau release này cơ chế update sẽ không còn để app shell cũ giữ lỗi lâu như hiện tại.
+## Files dự kiến
+- **Tạo**: `src/components/chat/ChatLauncher.tsx`, `ChatPopupWindow.tsx`, `ChatPopupManager.tsx`, `useOnlinePresence.ts` (hoặc reuse hook on-shift sẵn có).
+- **Sửa**: `src/components/layout/MainLayout.tsx`, `src/lib/app-version.ts`, `public/changelog.json`.
+- **Xoá**: `src/components/chat/DesktopChatWindow.tsx`.
+- **Không đụng**: `ChatPage.tsx` (chỉ import lại `ConversationView` đã export sẵn), DB, edge functions.
