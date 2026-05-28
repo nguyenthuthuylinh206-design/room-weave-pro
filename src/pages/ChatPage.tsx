@@ -34,7 +34,7 @@ import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { toast } from 'sonner'
-import { Paperclip, X, FileText, Loader2, Download, Send, Search } from 'lucide-react'
+import { Paperclip, X, FileText, Loader2, Download, Send, Search, ChevronDown } from 'lucide-react'
 
 /* -------------------- Helpers -------------------- */
 
