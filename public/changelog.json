@@ -1,6 +1,16 @@
 {
-  "current": "1.0.68",
+  "current": "1.0.69",
   "versions": [
+    {
+      "version": "1.0.69",
+      "releaseDate": "2026-05-28",
+      "title": "Cải thiện hộp thoại chat trên mobile",
+      "changes": [
+        { "type": "fix", "text": "Cửa sổ chat mobile dùng 100dvh + interactive-widget=resizes-content: khi mở bàn phím, layout co lại đúng, ô nhập và tin nhắn không còn bị che" },
+        { "type": "fix", "text": "Bỏ padding safe-area kép giữa popup và form gửi tin → khu vực cuộn tin nhắn rộng hơn" },
+        { "type": "improvement", "text": "Header chat mobile cao hơn, tap target nút Back/Đóng 40×40, tôn trọng safe-area-top" }
+      ]
+    },
     {
       "version": "1.0.68",
       "releaseDate": "2026-05-28",
