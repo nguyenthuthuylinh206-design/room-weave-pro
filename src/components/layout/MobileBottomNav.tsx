@@ -7,6 +7,7 @@ import { useUserModulePermissions, type PermissionSummary } from '@/hooks/useUse
 import { usePendingTaskCount } from '@/hooks/useHousekeepingTasks'
 import { usePendingCounts, type PendingCounts } from '@/hooks/usePendingCounts'
 import { prefetchRoute } from '@/lib/route-prefetch'
+import { useChatPopupsOptional } from '@/components/chat/ChatPopupContext'
 
 type PendingCountKey = keyof PendingCounts | 'tasks'
 
@@ -52,6 +53,7 @@ export const MobileBottomNav = () => {
   const { data: modulePermissions } = useUserModulePermissions()
   const { data: pendingTaskCount = 0 } = usePendingTaskCount()
   const { data: pendingCounts } = usePendingCounts()
+  const chatPopups = useChatPopupsOptional()
 
   // Hide MobileBottomNav khi đang trong room check (cần full screen)
   if (location.pathname.includes('/check')) {
@@ -121,14 +123,23 @@ export const MobileBottomNav = () => {
       <div className="flex items-center justify-around h-16">
         {effectiveNavItems.map((item) => {
           const Icon = item.icon
-          const active = isActive(item.path)
+          const isChat = item.id === 'chat'
+          const active = isChat ? !!chatPopups?.launcherOpen : isActive(item.path)
           const badgeCount = getBadgeCount(item.badgeKey)
+
+          const handleClick = () => {
+            if (isChat && chatPopups) {
+              chatPopups.toggleLauncher()
+              return
+            }
+            navigate(item.path)
+          }
 
           return (
             <button
               key={item.id}
-              onPointerDown={() => prefetchRoute(item.path)}
-              onClick={() => navigate(item.path)}
+              onPointerDown={() => !isChat && prefetchRoute(item.path)}
+              onClick={handleClick}
               className={cn(
                 'relative flex flex-col items-center justify-center gap-1 px-3 py-2 min-w-[64px] transition-all',
                 active ? 'text-primary' : 'text-muted-foreground'
