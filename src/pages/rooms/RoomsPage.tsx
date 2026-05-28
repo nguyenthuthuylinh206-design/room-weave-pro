@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RoomFilters } from '@/components/rooms/RoomFilters'
 import { RoomGrid } from '@/components/rooms/RoomGrid'
 import { RoomTable } from '@/components/rooms/RoomTable'
-import { RoomFloorPlan } from '@/components/rooms/RoomFloorPlan'
+import { RoomTapeChart } from '@/components/rooms/RoomTapeChart'
 import { BulkImportRoomsDialog } from '@/components/rooms/BulkImportRoomsDialog'
 import { RoomBulkActionsBar } from '@/components/rooms/RoomBulkActionsBar'
 import { useRooms } from '@/hooks/useRooms'
@@ -136,7 +136,7 @@ export function RoomsPage() {
           onSelectionChange={setSelectedRoomIds}
         />
       )}
-      {viewMode === 'floor' && <RoomFloorPlan />}
+      {viewMode === 'floor' && <RoomTapeChart />}
 
       {/* Bulk Import Dialog */}
       {selectedHotel && (
