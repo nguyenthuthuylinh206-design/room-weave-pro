@@ -497,6 +497,7 @@ export function ConversationView({ conversationId }: { conversationId: string })
   const markRead = useMarkConversationRead()
   const [text, setText] = useState('')
   const [pending, setPending] = useState<PendingAttachment[]>([])
+  const [showScrollBtn, setShowScrollBtn] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const lastMarkedRef = useRef<string | null>(null)
@@ -504,19 +505,43 @@ export function ConversationView({ conversationId }: { conversationId: string })
 
   const lastMsgId = messages.length > 0 ? messages[messages.length - 1].id : null
 
-  // Chỉ auto-scroll khi: mở hội thoại lần đầu, hoặc có tin mới ở cuối
+  const scrollToBottom = (smooth = true) => {
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' })
+  }
+
+  // Auto-scroll khi: mở hội thoại lần đầu, hoặc có tin mới (nếu user đang ở gần đáy)
   useEffect(() => {
-    if (!scrollRef.current) return
+    const el = scrollRef.current
+    if (!el) return
     if (lastMsgIdRef.current !== lastMsgId) {
+      const wasNearBottom =
+        lastMsgIdRef.current === null ||
+        el.scrollHeight - el.scrollTop - el.clientHeight < 120
       lastMsgIdRef.current = lastMsgId
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+      if (wasNearBottom) el.scrollTop = el.scrollHeight
     }
   }, [lastMsgId, conversationId])
+
+  // Theo dõi vị trí cuộn để hiện nút "về cuối"
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const onScroll = () => {
+      const dist = el.scrollHeight - el.scrollTop - el.clientHeight
+      setShowScrollBtn(dist > 200)
+    }
+    el.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [conversationId, messages.length])
 
   // Reset khi đổi hội thoại
   useEffect(() => {
     lastMsgIdRef.current = null
   }, [conversationId])
+
 
   // mark read only when last message id changes
   useEffect(() => {
