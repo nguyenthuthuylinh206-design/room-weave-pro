@@ -7,12 +7,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { useUser } from '@/hooks/useUser'
 import { useConversations, type ConversationListItem } from '@/hooks/useChat'
 import { usePendingCounts } from '@/hooks/usePendingCounts'
 import { useOnlinePresence } from '@/hooks/useOnlinePresence'
 import { NewConversationDialog } from '@/pages/ChatPage'
-import { ChatPopupProvider, useChatPopups } from './ChatPopupContext'
+import { useChatPopups } from './ChatPopupContext'
 import { ChatPopupWindow } from './ChatPopupWindow'
 
 function removeDiacritics(s: string) {
@@ -31,10 +32,10 @@ export function ChatLauncher() {
   if (location.pathname.startsWith('/chat')) return null
 
   return (
-    <ChatPopupProvider>
+    <>
       <ChatLauncherInner />
       <PopupStack />
-    </ChatPopupProvider>
+    </>
   )
 }
 
@@ -56,11 +57,11 @@ function PopupStack() {
 
 function ChatLauncherInner() {
   const { user } = useUser()
+  const { isMobile } = useBreakpoint()
   const { data: conversations = [], isLoading } = useConversations()
   const { data: pendingCounts } = usePendingCounts()
   const { data: onlineIds } = useOnlinePresence()
-  const { openPopup } = useChatPopups()
-  const [open, setOpen] = useState(false)
+  const { openPopup, launcherOpen, setLauncherOpen } = useChatPopups()
   const [search, setSearch] = useState('')
 
   const unread = pendingCounts?.chatUnread || 0
@@ -74,12 +75,14 @@ function ChatLauncherInner() {
     })
   }, [conversations, search])
 
-  if (!open) {
+  // Desktop closed state: floating round button (mobile uses bottom nav as trigger)
+  if (!launcherOpen) {
+    if (isMobile) return null
     return (
       <button
         type="button"
-        onClick={() => setOpen(true)}
-        className="fixed bottom-5 right-5 z-50 hidden h-12 w-12 items-center justify-center rounded-full border bg-background text-foreground shadow-lg transition-colors hover:bg-muted lg:flex"
+        onClick={() => setLauncherOpen(true)}
+        className="fixed bottom-5 right-5 z-50 flex h-12 w-12 items-center justify-center rounded-full border bg-background text-foreground shadow-lg transition-colors hover:bg-muted"
         aria-label="Mở danh sách tin nhắn"
       >
         <MessageCircle className="h-5 w-5" />
@@ -92,61 +95,161 @@ function ChatLauncherInner() {
     )
   }
 
+  // Open state
+  if (isMobile) {
+    return (
+      <>
+        <div
+          className="fixed inset-0 z-40 bg-foreground/20"
+          onClick={() => setLauncherOpen(false)}
+          aria-label="Đóng danh sách tin nhắn"
+        />
+        <aside
+          className="fixed inset-x-0 bottom-0 z-50 flex h-[75dvh] flex-col overflow-hidden rounded-t-xl border border-b-0 bg-background shadow-2xl"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+          aria-label="Danh sách tin nhắn"
+        >
+          <LauncherHeader
+            unread={unread}
+            onOpenConversation={(id) => openPopup(id)}
+            onMinimize={() => setLauncherOpen(false)}
+            onClose={() => setLauncherOpen(false)}
+            showClose
+          />
+          <LauncherSearch search={search} setSearch={setSearch} />
+          <LauncherList
+            isLoading={isLoading}
+            visible={visible}
+            conversations={conversations}
+            onlineIds={onlineIds}
+            meId={user?.id || ''}
+            onOpen={(id) => openPopup(id)}
+          />
+        </aside>
+      </>
+    )
+  }
+
   return (
     <aside
-      className="fixed bottom-0 right-5 z-40 hidden h-[440px] w-[280px] flex-col overflow-hidden rounded-t-lg border border-b-0 bg-background shadow-2xl lg:flex"
+      className="fixed bottom-0 right-5 z-40 flex h-[440px] w-[280px] flex-col overflow-hidden rounded-t-lg border border-b-0 bg-background shadow-2xl"
       aria-label="Danh sách tin nhắn"
     >
-      <div className="flex h-10 shrink-0 items-center justify-between gap-2 border-b bg-card px-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <MessageCircle className="h-4 w-4 text-muted-foreground" />
-          <h2 className="truncate text-sm font-semibold">Tin nhắn</h2>
-          {unread > 0 && <span className="text-xs font-medium text-primary">{unread}</span>}
-        </div>
-        <div className="flex items-center gap-1">
-          <NewConversationDialog onCreated={(id) => openPopup(id)} />
+      <LauncherHeader
+        unread={unread}
+        onOpenConversation={(id) => openPopup(id)}
+        onMinimize={() => setLauncherOpen(false)}
+      />
+      <LauncherSearch search={search} setSearch={setSearch} />
+      <LauncherList
+        isLoading={isLoading}
+        visible={visible}
+        conversations={conversations}
+        onlineIds={onlineIds}
+        meId={user?.id || ''}
+        onOpen={(id) => openPopup(id)}
+      />
+    </aside>
+  )
+}
+
+function LauncherHeader({
+  unread,
+  onOpenConversation,
+  onMinimize,
+  onClose,
+  showClose,
+}: {
+  unread: number
+  onOpenConversation: (id: string) => void
+  onMinimize: () => void
+  onClose?: () => void
+  showClose?: boolean
+}) {
+  return (
+    <div className="flex h-10 shrink-0 items-center justify-between gap-2 border-b bg-card px-2">
+      <div className="flex min-w-0 items-center gap-2">
+        <MessageCircle className="h-4 w-4 text-muted-foreground" />
+        <h2 className="truncate text-sm font-semibold">Tin nhắn</h2>
+        {unread > 0 && <span className="text-xs font-medium text-primary">{unread}</span>}
+      </div>
+      <div className="flex items-center gap-1">
+        <NewConversationDialog onCreated={onOpenConversation} />
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-7 w-7 p-0"
+          onClick={onMinimize}
+          aria-label="Thu nhỏ"
+        >
+          <Minus className="h-4 w-4" />
+        </Button>
+        {showClose && onClose && (
           <Button
             type="button"
             variant="ghost"
             size="sm"
             className="h-7 w-7 p-0"
-            onClick={() => setOpen(false)}
-            aria-label="Thu nhỏ"
+            onClick={onClose}
+            aria-label="Đóng"
           >
-            <Minus className="h-4 w-4" />
+            <X className="h-4 w-4" />
           </Button>
-        </div>
-      </div>
-
-      <div className="border-b p-2">
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Tìm hội thoại..."
-          className="h-8 text-xs"
-        />
-      </div>
-
-      <ScrollArea className="flex-1">
-        {isLoading ? (
-          <div className="p-4 text-xs text-muted-foreground">Đang tải...</div>
-        ) : visible.length === 0 ? (
-          <div className="p-4 text-center text-xs text-muted-foreground">
-            {conversations.length === 0 ? 'Chưa có hội thoại.' : 'Không có hội thoại khớp.'}
-          </div>
-        ) : (
-          visible.map((c) => (
-            <ConversationItem
-              key={c.id}
-              conv={c}
-              meId={user?.id || ''}
-              isOnline={!!(c.peer?.id && onlineIds?.has(c.peer.id))}
-              onClick={() => openPopup(c.id)}
-            />
-          ))
         )}
-      </ScrollArea>
-    </aside>
+      </div>
+    </div>
+  )
+}
+
+function LauncherSearch({ search, setSearch }: { search: string; setSearch: (v: string) => void }) {
+  return (
+    <div className="border-b p-2">
+      <Input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Tìm hội thoại..."
+        className="h-8 text-xs"
+      />
+    </div>
+  )
+}
+
+function LauncherList({
+  isLoading,
+  visible,
+  conversations,
+  onlineIds,
+  meId,
+  onOpen,
+}: {
+  isLoading: boolean
+  visible: ConversationListItem[]
+  conversations: ConversationListItem[]
+  onlineIds: Set<string> | undefined
+  meId: string
+  onOpen: (id: string) => void
+}) {
+  return (
+    <ScrollArea className="flex-1">
+      {isLoading ? (
+        <div className="p-4 text-xs text-muted-foreground">Đang tải...</div>
+      ) : visible.length === 0 ? (
+        <div className="p-4 text-center text-xs text-muted-foreground">
+          {conversations.length === 0 ? 'Chưa có hội thoại.' : 'Không có hội thoại khớp.'}
+        </div>
+      ) : (
+        visible.map((c) => (
+          <ConversationItem
+            key={c.id}
+            conv={c}
+            meId={meId}
+            isOnline={!!(c.peer?.id && onlineIds?.has(c.peer.id))}
+            onClick={() => onOpen(c.id)}
+          />
+        ))
+      )}
+    </ScrollArea>
   )
 }
 

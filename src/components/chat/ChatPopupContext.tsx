@@ -10,6 +10,9 @@ interface ChatPopupCtx {
   openPopup: (conversationId: string) => void
   closePopup: (conversationId: string) => void
   toggleMinimize: (conversationId: string) => void
+  launcherOpen: boolean
+  setLauncherOpen: (open: boolean) => void
+  toggleLauncher: () => void
 }
 
 const MAX_POPUPS = 3
@@ -18,12 +21,12 @@ const Ctx = createContext<ChatPopupCtx | null>(null)
 
 export function ChatPopupProvider({ children }: { children: ReactNode }) {
   const [popups, setPopups] = useState<PopupState[]>([])
+  const [launcherOpen, setLauncherOpen] = useState(false)
 
   const openPopup = useCallback((conversationId: string) => {
     setPopups((prev) => {
       const existing = prev.find((p) => p.conversationId === conversationId)
       if (existing) {
-        // bring to front + expand
         return [
           { conversationId, minimized: false },
           ...prev.filter((p) => p.conversationId !== conversationId),
@@ -46,9 +49,19 @@ export function ChatPopupProvider({ children }: { children: ReactNode }) {
     )
   }, [])
 
+  const toggleLauncher = useCallback(() => setLauncherOpen((v) => !v), [])
+
   const value = useMemo(
-    () => ({ popups, openPopup, closePopup, toggleMinimize }),
-    [popups, openPopup, closePopup, toggleMinimize]
+    () => ({
+      popups,
+      openPopup,
+      closePopup,
+      toggleMinimize,
+      launcherOpen,
+      setLauncherOpen,
+      toggleLauncher,
+    }),
+    [popups, openPopup, closePopup, toggleMinimize, launcherOpen, toggleLauncher]
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
@@ -58,4 +71,9 @@ export function useChatPopups() {
   const ctx = useContext(Ctx)
   if (!ctx) throw new Error('useChatPopups must be used within ChatPopupProvider')
   return ctx
+}
+
+/** Safe variant — returns null when outside provider (avoids crashes on auth/public pages). */
+export function useChatPopupsOptional() {
+  return useContext(Ctx)
 }
