@@ -163,7 +163,7 @@
   "viewModes": {
     "grid": "Lưới",
     "list": "Danh sách",
-    "floorPlan": "Sơ đồ tầng"
+    "floorPlan": "Tape chart"
   },
   "actions": {
     "addRoom": "Thêm phòng",
