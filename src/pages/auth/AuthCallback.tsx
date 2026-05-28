@@ -1,58 +1,91 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUser } from '@/hooks/useUser'
 import { useFirstAccessibleRoute } from '@/hooks/useFirstAccessibleRoute'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { useToast } from '@/hooks/use-toast'
+import { Button } from '@/components/ui/button'
 
 export default function AuthCallback() {
   const navigate = useNavigate()
-  const { user: authUser, loading: authLoading } = useAuth()
+  const { user: authUser, loading: authLoading, signOut } = useAuth()
   const { user, isLoading: isUserLoading } = useUser()
   const { firstAccessibleRoute, isLoading: isPermissionsLoading } = useFirstAccessibleRoute()
   const { toast } = useToast()
 
+  const [showEscape, setShowEscape] = useState(false)
+  const [forceFallback, setForceFallback] = useState(false)
+
   const isLoading = authLoading || isUserLoading || isPermissionsLoading
 
+  // Hiển thị nút "Đăng nhập lại" sau 5s để user không bị kẹt
   useEffect(() => {
-    // Vẫn đang load → chờ tiếp
-    if (isLoading) return
+    const t = setTimeout(() => setShowEscape(true), 5000)
+    return () => clearTimeout(t)
+  }, [])
 
-    // Wait for user data to load
+  // Safety timeout 8s: nếu chưa redirect được thì fallback
+  useEffect(() => {
+    const t = setTimeout(() => setForceFallback(true), 8000)
+    return () => clearTimeout(t)
+  }, [])
+
+  useEffect(() => {
+    if (isLoading && !forceFallback) return
+
     if (!authUser) {
       navigate('/auth/login', { replace: true })
       return
     }
 
-    // Check if user has completed setup
     if (!user?.tenant_id || !user?.hotel_id) {
-      // User needs to complete onboarding
       navigate('/onboarding', { replace: true })
       return
     }
-    
-    // Check if user must change password (staff/manager created by admin)
-    const mustChangePassword = user?.must_change_password === true
-    if (mustChangePassword) {
+
+    if (user?.must_change_password === true) {
       navigate('/auth/change-password', { replace: true })
       return
     }
-    
-    // firstAccessibleRoute = null nghĩa là đang chờ permissions load
+
     if (firstAccessibleRoute === null) {
+      if (forceFallback) {
+        console.warn('[AuthCallback] permissions stuck, fallback to /', {
+          hasUser: !!user,
+          tenantId: user?.tenant_id,
+        })
+        navigate('/', { replace: true })
+      }
       return
     }
 
-    // Redirect to first accessible route (toast is already shown by AuthContext)
     navigate(firstAccessibleRoute, { replace: true })
-  }, [authUser, user, isLoading, firstAccessibleRoute, navigate, toast])
+  }, [authUser, user, isLoading, firstAccessibleRoute, forceFallback, navigate, toast])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted">
-      <div className="text-center space-y-4">
+      <div className="text-center space-y-4 max-w-xs px-6">
         <LoadingSpinner size="lg" />
-        <p className="text-muted-foreground">Đang xác thực...</p>
+        <div className="space-y-1">
+          <p className="text-muted-foreground">Đang xác thực...</p>
+          <p className="text-xs text-muted-foreground/70">
+            {isPermissionsLoading ? 'Đang tải quyền truy cập' : 'Đang chuẩn bị giao diện'}
+          </p>
+        </div>
+        {showEscape && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={async () => {
+              await signOut()
+              navigate('/auth/login', { replace: true })
+            }}
+          >
+            Đăng nhập lại
+          </Button>
+        )}
       </div>
     </div>
   )
