@@ -124,9 +124,21 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html {
+    background-color: hsl(var(--background));
+    color-scheme: light dark;
+  }
+
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Đảm bảo background phủ kín viewport để vùng overscroll iOS PWA hiện đúng màu nền */
+  html, body, #root {
+    min-height: 100dvh;
+    background-color: hsl(var(--background));
+  }
+
 
   /* Safe area insets for mobile devices (notches, home indicators) */
   .safe-area-top {
@@ -272,6 +284,13 @@ All colors MUST be HSL.
       max-width: 100vw;
       overscroll-behavior-y: contain;
       overscroll-behavior-x: none;
+    }
+  }
+
+  /* iOS PWA: chặn rubber-band ở scroll root để không lộ khoảng trắng khi vuốt quá đầu/cuối */
+  @media screen and (max-width: 768px) {
+    html, body {
+      overscroll-behavior: none;
     }
   }
 

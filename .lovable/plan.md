@@ -1,65 +1,67 @@
-# Tăng tốc gửi tin nhắn — Optimistic + Fire-and-forget
+## Vấn đề
 
-## Vấn đề hiện tại
+Khi mở PWA trên iPhone (chế độ standalone, đã "Add to Home Screen"), vuốt quá đầu hoặc cuối trang xuất hiện **khoảng trắng lớn** lệch hẳn với nền tối của app (xem ảnh). Có 2 nguyên nhân kết hợp:
 
-Đo flow trong `ChatPage.tsx` + `useChat.ts`:
+1. `<meta name="theme-color" content="#ffffff">` đang là trắng → status bar + vùng overscroll iOS tô trắng, dù app đang ở dark mode (nền `#0f172a`).
+2. Element `<html>` không có `background-color`, nên khi rubber-band lộ ra phần phía sau `<body>` thì hiện màu trắng mặc định của UA. CSS hiện tại chỉ set `bg-background` cho `body`, không cho `html`.
+3. Body không phải `min-height: 100dvh` với background kế thừa → vùng dưới khi nội dung ngắn cũng trắng.
 
-1. `handleSubmit` **await** `sendMessage.mutateAsync` → input bị khoá tới khi RPC trả về.
-2. Tin nhắn **không hiện ngay** — phải chờ:
-   - RPC `send_chat_message` (200–600ms)
-   - Realtime event → `invalidateQueries` → **refetch 50 tin + join users + join attachments** (300–900ms)
-3. Mỗi tin mới từ realtime cũng **refetch toàn bộ** thay vì append → tốn băng thông & gây "flash".
+## Giải pháp (chỉ CSS + meta, không đụng logic)
 
-Kết quả: từ lúc bấm gửi đến lúc thấy tin trên màn hình thường 0.7–1.5s — chậm so với Messenger (~30ms).
+### A. `index.html`
+- Đổi `theme-color` thành 2 thẻ media để khớp light/dark:
+  - `<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">`
+  - `<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f172a">` (giá trị HSL của `--background` dark mode quy đổi sang hex).
+- Đổi `apple-mobile-web-app-status-bar-style` từ `default` → `black-translucent` để status bar không vẽ dải trắng và để app vẽ tận mép trên (đã có `viewport-fit=cover` + `safe-area-top`).
 
-## Mục tiêu
+### B. `src/index.css`
+Thêm trong `@layer base`:
 
-Thấy tin ngay khi nhấn Enter (<50ms), bất kể mạng. Nếu RPC fail thì rollback + báo lỗi.
+```css
+html {
+  background-color: hsl(var(--background));
+  color-scheme: light dark;
+}
 
-## Thay đổi
+/* Đảm bảo body luôn phủ kín viewport để overscroll lộ đúng màu nền */
+html, body, #root {
+  min-height: 100dvh;
+  background-color: hsl(var(--background));
+}
 
-### A. `useSendMessage` — Optimistic update
+/* iOS PWA standalone: chặn rubber-band ở scroll cha, chỉ cho phép scroll trong các vùng nội dung */
+@media (max-width: 768px) {
+  html, body {
+    overscroll-behavior: none; /* mạnh hơn `contain` đang có */
+  }
+}
+```
 
-- Thêm `onMutate`: build 1 `ChatMessage` tạm với `id = clientMsgId`, `sender = currentUser`, `created_at = now`, `_pending: true`. `setQueryData(['chat-messages', conversationId])` push vào cuối.
-- Lưu `previousMessages` để rollback trong `onError`.
-- `onSuccess`: thay thế message tạm (match theo `client_msg_id` hoặc fallback theo `id` từ RPC) bằng record thật từ `data`. Không invalidate.
-- `onError`: rollback + toast.
-- Truyền `currentUser` vào hook (hoặc gọi `useUser()` bên trong) để có sender info.
+Giữ nguyên các utility scroll hiện tại (`.scrollable-area`, `-webkit-overflow-scrolling: touch`) để bên trong các list vẫn momentum scroll bình thường.
 
-### B. `useMessages` realtime — Patch cache thay vì invalidate
+### C. Version bump
+- `src/lib/app-version.ts` → `1.0.79`
+- `src/components/CacheBuster.tsx` → `CURRENT_VERSION = '1.0.79'`
+- Thêm entry trong `public/changelog.json`: "Sửa khoảng trắng khi vuốt quá đầu/cuối trên PWA iOS, đồng bộ màu status bar với theme tối."
 
-- Khi nhận `INSERT`: nếu message đã có (match `id` hoặc `client_msg_id`) → bỏ qua/merge; nếu chưa có → fetch riêng record đó + sender + attachments rồi append. Không refetch 50 tin.
-- Khi nhận `UPDATE`/`DELETE`: patch in-place theo `id`.
-- Vẫn giữ invalidate làm fallback cho event lạ.
-
-### C. `handleSubmit` — Fire-and-forget
-
-- Đổi `await sendMessage.mutateAsync(...)` → `sendMessage.mutate(...)` (không await).
-- Clear `text`/`pending` ngay (đã đang làm), không cần `try/catch` await — `onError` của mutation đã handle rollback + toast.
-- Bỏ điều kiện `!sendMessage.isPending` trong `canSend` để cho phép gõ + gửi liên tục nhiều tin liền.
-
-### D. Render gợi ý trạng thái (nhẹ)
-
-- Trong bubble tin của mình, nếu `_pending` → opacity 70% (không thêm icon để giữ tinh thần tối giản).
-- Khi onSuccess thay thế → opacity về 100%.
-
-## Phạm vi không đụng
-
-- RPC `send_chat_message` không đổi (đã trả về message; sẵn có `client_msg_id` để de-dupe).
-- Upload attachment vẫn await như cũ (an toàn) — `canSend` vẫn chặn khi `isUploading`.
-- Không động `useMarkConversationRead`, group conversation, list sidebar.
+## Phạm vi không thay đổi
+- Không sửa logic JS, không đụng React tree, không đổi behavior scroll bên trong các container.
+- Không ảnh hưởng desktop (rule chỉ áp dụng ≤768px hoặc thuộc tính an toàn cho cả 2).
 
 ## QA checklist
+- iPhone Safari (chưa add to home): vuốt overscroll → vùng bounce có màu nền dark, không trắng.
+- iPhone PWA (Add to Home Screen, mở từ icon): status bar khớp màu nền, vuốt trên/dưới không lộ trắng.
+- Android Chrome PWA: theme-color bar khớp nền.
+- Light mode (nếu user đổi): theme-color trắng vẫn đúng.
+- Trang dài có scroll: scroll trong content vẫn mượt, không bị "stuck".
+- BottomSheet / Dialog không bị lệch safe-area.
 
-- Gõ + Enter liên tục 5 tin nhanh → cả 5 hiện ngay, không nhấp nháy, không trùng.
-- Mạng chậm (throttle Slow 3G): tin vẫn hiện ngay, sau vài giây vẫn ở đó.
-- Mạng fail (offline): tin hiện ra rồi biến mất + toast "Không gửi được".
-- Mở 2 trình duyệt cùng hội thoại: tin từ A hiện ở B qua realtime (append, không reload toàn list).
-- Đính kèm ảnh + text: gửi xong tin hiện đầy đủ ảnh.
+## Rollback
+Revert 3 file: `index.html`, `src/index.css`, version bump. Không có migration DB.
 
-## Rollout
-
-- 1 file FE: `src/hooks/useChat.ts` (sửa `useSendMessage` + `useMessages`).
-- 1 file FE: `src/pages/ChatPage.tsx` (đổi `mutateAsync` → `mutate`, bỏ chặn `isPending` trong `canSend`, thêm class opacity cho `_pending`).
-- Bump `APP_VERSION` → `1.0.78` + entry changelog "Tin nhắn gửi tức thì như Messenger".
-- Rollback: revert 2 file, không có migration.
+## File sẽ sửa
+- `index.html`
+- `src/index.css`
+- `src/lib/app-version.ts`
+- `src/components/CacheBuster.tsx`
+- `public/changelog.json`
