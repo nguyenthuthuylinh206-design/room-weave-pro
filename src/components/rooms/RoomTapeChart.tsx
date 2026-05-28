@@ -584,20 +584,28 @@ export function RoomTapeChart() {
               const date = addDays(startDate, i)
               const today = isToday(date)
               const weekend = date.getDay() === 0 || date.getDay() === 6
+              const holiday = getHoliday(format(date, 'yyyy-MM-dd'))
               return (
                 <div
                   key={i}
                   className={cn(
                     'flex flex-col items-center justify-center border-r py-1.5 text-[11px] leading-tight last:border-r-0',
                     today && 'bg-primary/10 font-semibold text-primary',
-                    weekend && !today && 'bg-muted/60',
+                    weekend && !today && !holiday && 'bg-muted/60',
+                    holiday && !today && 'bg-rose-50 text-rose-700',
                   )}
                   style={{ width: cellW, minWidth: cellW }}
+                  title={holiday?.name}
                 >
-                  <span className="text-[10px] uppercase text-muted-foreground">
+                  <span className={cn('text-[10px] uppercase text-muted-foreground', holiday && 'text-rose-600/80')}>
                     {format(date, 'EEE', { locale: vi })}
                   </span>
                   <span className="text-sm font-semibold">{format(date, 'dd/MM')}</span>
+                  {holiday && (
+                    <span className="truncate px-1 text-[9px] font-medium text-rose-700">
+                      {holiday.short}
+                    </span>
+                  )}
                 </div>
               )
             })}
