@@ -378,7 +378,24 @@ export function RoomTapeChart() {
   const totalChartWidth = days * cellW
 
   return (
-    <div className="space-y-3">
+    <div className={cn('space-y-3 tape-chart-root', colorBlind && 'tape-chart-cb')}>
+      <style>{`
+        @media print {
+          body * { visibility: hidden !important; }
+          .tape-chart-root, .tape-chart-root * { visibility: visible !important; }
+          .tape-chart-root { position: absolute; left: 0; top: 0; width: 100%; }
+          .no-print { display: none !important; }
+          .tape-chart-root .overflow-auto { overflow: visible !important; height: auto !important; max-height: none !important; }
+          @page { size: A3 landscape; margin: 8mm; }
+        }
+        /* Color-blind helper: thêm sọc chéo nhẹ vào bar booking khi bật */
+        .tape-chart-cb [data-tape-bar="paid"] { background-image: repeating-linear-gradient(45deg, transparent 0 6px, rgba(0,0,0,0.08) 6px 8px) !important; }
+        .tape-chart-cb [data-tape-bar="partial"] { background-image: repeating-linear-gradient(90deg, transparent 0 6px, rgba(0,0,0,0.10) 6px 8px) !important; }
+        .tape-chart-cb [data-tape-bar="unpaid"] { background-image: repeating-linear-gradient(135deg, transparent 0 4px, rgba(0,0,0,0.12) 4px 6px) !important; }
+        .tape-chart-cb [data-tape-bar="debt"] { background-image: repeating-linear-gradient(0deg, transparent 0 5px, rgba(220,38,38,0.18) 5px 7px) !important; }
+        .tape-chart-cb [data-tape-bar="checked_in"] { background-image: repeating-linear-gradient(30deg, transparent 0 6px, rgba(59,130,246,0.18) 6px 9px) !important; }
+        .tape-chart-cb [data-tape-bar="checked_out"] { background-image: repeating-linear-gradient(60deg, transparent 0 6px, rgba(100,116,139,0.18) 6px 9px) !important; }
+      `}</style>
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3">
         <div className="flex flex-wrap items-center gap-1">
