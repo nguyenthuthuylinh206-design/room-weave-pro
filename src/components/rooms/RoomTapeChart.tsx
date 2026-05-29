@@ -767,7 +767,7 @@ export function RoomTapeChart() {
                   return (
                     <div
                       key={vi.key}
-                      className="sticky left-0 z-10 flex items-center border-b border-t bg-muted/30 px-3 text-[11px] font-medium text-muted-foreground"
+                      className="sticky left-0 z-20 flex items-center border-b border-t bg-muted/30 px-3 text-[11px] font-medium text-muted-foreground"
                       style={{
                         position: 'absolute',
                         top: 0,
