@@ -97,10 +97,12 @@ export function RoomBulkActionsBar({ selectedIds, onClearSelection, rooms = [] }
     })
   }
 
-  const handleStatusChange = (status: RoomStatus) => {
-    setSelectedStatus(status)
+  const handleStatusChange = (value: string) => {
+    // Option "Gỡ DND/OOS" → transition về vacant_clean (Owner/Manager đủ quyền theo RPC)
+    const targetStatus: RoomStatus = value === LIFT_OPTION_VALUE ? 'vacant_clean' : (value as RoomStatus)
+    setSelectedStatus(targetStatus)
     bulkUpdateStatus.mutate(
-      { roomIds: selectedIds, status },
+      { roomIds: selectedIds, status: targetStatus },
       {
         onSuccess: () => {
           setSelectedStatus('')
@@ -109,6 +111,7 @@ export function RoomBulkActionsBar({ selectedIds, onClearSelection, rooms = [] }
       }
     )
   }
+
 
   const handleApplyStandards = () => {
     setApplyProgress({ current: 0, total: selectedIds.length })
