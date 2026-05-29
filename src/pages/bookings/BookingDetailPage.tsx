@@ -44,10 +44,18 @@ const paymentMap: Record<string, { text: string; className: string }> = {
   refunded: { text: 'Đã hoàn', className: 'text-muted-foreground' },
 }
 
-export function BookingDetailPage() {
-  const { id } = useParams<{ id: string }>()
+interface BookingDetailPageProps {
+  idProp?: string
+  embedded?: boolean
+  onClose?: () => void
+}
+
+export function BookingDetailPage({ idProp, embedded, onClose }: BookingDetailPageProps = {}) {
+  const params = useParams<{ id: string }>()
+  const id = idProp ?? params.id
   const navigate = useNavigate()
   const { selectedHotel } = useHotelContext()
+
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showPayDialog, setShowPayDialog] = useState(false)
 
