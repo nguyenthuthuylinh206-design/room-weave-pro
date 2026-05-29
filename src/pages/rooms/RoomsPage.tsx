@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Plus, Grid3x3, List, Map, FileSpreadsheet, LayoutGrid } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -20,23 +20,47 @@ import { MobileRoomsPage } from '@/components/rooms/MobileRoomsPage'
 import type { RoomFilters as IRoomFilters } from '@/types/rooms.types'
 
 type ViewMode = 'grid' | 'list' | 'floor' | 'map'
+const STORAGE_KEY = 'rooms.viewMode'
+const ALLOWED: ViewMode[] = ['grid', 'list', 'floor', 'map']
+
+function readInitialView(searchParams: URLSearchParams): ViewMode {
+  const fromUrl = searchParams.get('view') as ViewMode | null
+  if (fromUrl && ALLOWED.includes(fromUrl)) return fromUrl
+  try {
+    const fromLs = localStorage.getItem(STORAGE_KEY) as ViewMode | null
+    if (fromLs && ALLOWED.includes(fromLs)) return fromLs
+  } catch {}
+  return 'grid'
+}
 
 export function RoomsPage() {
   const { t } = useTranslation('rooms')
   const { isMobile } = useBreakpoint()
   const navigate = useNavigate()
-  const [viewMode, setViewMode] = useState<ViewMode>('grid')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [viewMode, setViewMode] = useState<ViewMode>(() => readInitialView(searchParams))
   const [filters, setFilters] = useState<IRoomFilters>({})
   const [showBulkImport, setShowBulkImport] = useState(false)
   const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>([])
-  
+
   const { data: rooms, isLoading } = useRooms(filters)
   const { selectedHotel } = useHotelContext()
+
+  // Persist tab to URL + localStorage
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEY, viewMode) } catch {}
+    const current = searchParams.get('view')
+    if (current !== viewMode) {
+      const next = new URLSearchParams(searchParams)
+      next.set('view', viewMode)
+      setSearchParams(next, { replace: true })
+    }
+  }, [viewMode, searchParams, setSearchParams])
 
   if (isMobile) {
     return <MobileRoomsPage />
   }
-  
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -45,7 +69,7 @@ export function RoomsPage() {
       >
         <div className="flex gap-2">
           {selectedHotel && (
-            <Button 
+            <Button
               variant="outline"
               onClick={() => setShowBulkImport(true)}
             >
@@ -59,14 +83,14 @@ export function RoomsPage() {
           </Button>
         </div>
       </PageHeader>
-      
+
       <div className="flex items-center justify-between gap-4">
         <RoomFilters
           filters={filters}
           onFilterChange={(newFilters) => setFilters(prev => ({ ...prev, ...newFilters }))}
         />
-        
-      <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
+
+        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
           <TabsList>
             <TabsTrigger value="grid">
               <Grid3x3 className="h-4 w-4 mr-2" />
@@ -87,7 +111,7 @@ export function RoomsPage() {
           </TabsList>
         </Tabs>
       </div>
-      
+
       {/* Bulk Actions Bar */}
       <RoomBulkActionsBar
         selectedIds={selectedRoomIds}
@@ -142,7 +166,12 @@ export function RoomsPage() {
         />
       )}
       {viewMode === 'floor' && <RoomTapeChart />}
-      {viewMode === 'map' && <RoomFloorMapView />}
+      {viewMode === 'map' && (
+        <RoomFloorMapView
+          onAddRoom={() => navigate('/rooms/new')}
+          onBulkImport={selectedHotel ? () => setShowBulkImport(true) : undefined}
+        />
+      )}
 
       {/* Bulk Import Dialog */}
       {selectedHotel && (

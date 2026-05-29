@@ -26,6 +26,9 @@ export interface FloorPlanRoom {
   room_number: string
   room_type: string
   status: string
+  open_tasks?: number
+  open_hk_tasks?: number
+  open_maintenance?: number
   current_booking: FloorPlanBooking | null
   next_booking: FloorPlanBooking | null
 }
@@ -63,6 +66,8 @@ export function useFloorPlanLive() {
       .channel(`floor-plan:${hotelId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms', filter: `hotel_id=eq.${hotelId}` }, invalidate)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'room_bookings', filter: `hotel_id=eq.${hotelId}` }, invalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'housekeeping_tasks', filter: `hotel_id=eq.${hotelId}` }, invalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_requests', filter: `hotel_id=eq.${hotelId}` }, invalidate)
       .subscribe()
     return () => {
       if (t) clearTimeout(t)

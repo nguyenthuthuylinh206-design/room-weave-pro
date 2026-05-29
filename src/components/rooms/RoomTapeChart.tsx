@@ -44,7 +44,7 @@ import {
 } from '@/hooks/useTapeChart'
 import { useTapeChartMutations } from '@/hooks/useTapeChartMutations'
 import { getRoomStatusMeta, normalizeRoomStatus } from '@/lib/roomStatus'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import {
   buildRoomLane,
   bookingMatchesQuery,
@@ -100,7 +100,7 @@ const BLOCK_TYPE_LABEL: Record<string, string> = {
 
 export function RoomTapeChart() {
   const navigate = useNavigate()
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const defaultDays = isMobile ? MOBILE_DAYS : DESKTOP_DAYS
   const cellW = isMobile ? CELL_W_MOBILE : CELL_W_DESKTOP
 
