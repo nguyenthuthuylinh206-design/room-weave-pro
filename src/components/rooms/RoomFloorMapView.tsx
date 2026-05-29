@@ -19,11 +19,39 @@ import { hasPermission } from '@/lib/permissions'
 import { BookingDetailDialog } from '@/components/bookings/BookingDetailDialog'
 import { RoomBookingDialog } from './RoomBookingDialog'
 import { RoomAuditLogDialog } from './RoomAuditLogDialog'
+import { ReceptionQuickDialog } from './ReceptionQuickDialog'
 import { useRoomTransition } from '@/hooks/useRoomTransition'
 import { useNavigate } from 'react-router-dom'
-import { formatDistanceToNowStrict, parseISO, differenceInHours } from 'date-fns'
+import { formatDistanceToNowStrict, parseISO, differenceInHours, format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { Search, Plus, FileSpreadsheet, History, Unlock } from 'lucide-react'
+
+// "Bucket" hiển thị cho lễ tân — gom 11 trạng thái nội bộ vào 5 nhóm dễ hiểu
+type ReceptionBucket = 'sellable' | 'due_out' | 'dirty' | 'occupied' | 'blocked'
+
+const BUCKET_META: Record<ReceptionBucket, { label: string; short: string; dot: string; ring: string; bg: string; text: string }> = {
+  sellable: { label: 'Bán được',        short: 'Bán được',   dot: 'bg-emerald-500', ring: 'ring-emerald-300', bg: 'bg-emerald-50',  text: 'text-emerald-700' },
+  due_out:  { label: 'Checkout hôm nay', short: 'Sắp trả',    dot: 'bg-amber-500',   ring: 'ring-amber-300',   bg: 'bg-amber-50',    text: 'text-amber-700' },
+  dirty:    { label: 'Đang dọn',         short: 'Đang dọn',   dot: 'bg-rose-500',    ring: 'ring-rose-300',    bg: 'bg-rose-50',     text: 'text-rose-700' },
+  occupied: { label: 'Có khách',         short: 'Có khách',   dot: 'bg-sky-500',     ring: 'ring-sky-300',     bg: 'bg-sky-50',      text: 'text-sky-700' },
+  blocked:  { label: 'Khoá / Bảo trì',   short: 'Khoá',       dot: 'bg-slate-500',   ring: 'ring-slate-300',   bg: 'bg-slate-50',    text: 'text-slate-700' },
+}
+
+function getBucket(room: FloorPlanRoom): ReceptionBucket {
+  const s = room.status
+  if (s === 'out_of_order' || s === 'out_of_service' || s === 'dnd' || s === 'skipper') return 'blocked'
+  if (s === 'vacant_dirty' || s === 'occupied_dirty' || s === 'cleaning') return 'dirty'
+  // Occupied bucket: có booking hiện tại
+  if (room.current_booking) {
+    const today = format(new Date(), 'yyyy-MM-dd')
+    if (room.current_booking.check_out_date === today) return 'due_out'
+    return 'occupied'
+  }
+  if (s === 'occupied' || s === 'occupied_clean') return 'occupied'
+  // Còn lại: trống sạch / đã QC / vacant / reserved → bán được
+  return 'sellable'
+}
+
 
 const LIFTABLE_STATUSES = new Set(['dnd', 'out_of_service', 'out_of_order'])
 
