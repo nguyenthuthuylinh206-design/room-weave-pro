@@ -78,9 +78,14 @@ export function RoomsPage() {
             </TabsTrigger>
             <TabsTrigger value="floor">
               <Map className="h-4 w-4 mr-2" />
-              {t('viewModes.floorPlan')}
+              Lịch phòng
+            </TabsTrigger>
+            <TabsTrigger value="map">
+              <LayoutGrid className="h-4 w-4 mr-2" />
+              Sơ đồ phòng
             </TabsTrigger>
           </TabsList>
+        </Tabs>
         </Tabs>
       </div>
       
