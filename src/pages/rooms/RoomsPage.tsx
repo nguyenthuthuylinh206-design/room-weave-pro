@@ -19,7 +19,7 @@ import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileRoomsPage } from '@/components/rooms/MobileRoomsPage'
 import type { RoomFilters as IRoomFilters } from '@/types/rooms.types'
 
-type ViewMode = 'grid' | 'list' | 'floor'
+type ViewMode = 'grid' | 'list' | 'floor' | 'map'
 
 export function RoomsPage() {
   const { t } = useTranslation('rooms')
