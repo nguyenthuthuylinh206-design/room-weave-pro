@@ -355,25 +355,6 @@ export function RoomFloorMapView({
         ) : null}
       </div>
 
-                  key={tp}
-                  type="button"
-                  onClick={() =>
-                    setTypeFilter((prev) =>
-                      prev.includes(tp) ? prev.filter((x) => x !== tp) : [...prev, tp],
-                    )
-                  }
-                  className={cn(
-                    'h-6 rounded border px-2 text-[11px] font-medium transition-colors',
-                    active ? 'bg-foreground text-background' : 'bg-background text-muted-foreground',
-                  )}
-                >
-                  {tp}
-                </button>
-              )
-            })}
-          </div>
-        )}
-      </div>
 
       {/* Floor panels */}
       {visibleFloors.length === 0 ? (
