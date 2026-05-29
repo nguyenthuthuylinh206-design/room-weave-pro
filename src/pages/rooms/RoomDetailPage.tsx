@@ -216,6 +216,14 @@ export function RoomDetailPage() {
           hotelId={room.hotel_id}
         />
       )}
+
+      <RoomAuditLogDialog
+        open={showAuditLog}
+        onOpenChange={setShowAuditLog}
+        roomId={id!}
+        roomNumber={room.room_number}
+      />
+
     </div>
   )
 }
