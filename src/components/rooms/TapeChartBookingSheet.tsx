@@ -677,16 +677,15 @@ export function TapeChartBookingSheet({
               {/* Nhóm đặt phòng — luôn hiện vì là điều hướng */}
               {groupBookings && groupBookings.length > 1 && (
                 <section className="border-b px-5 py-3">
-                        onClick={() => openDetail(gb.id)}
-
+                  <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Nhóm đặt phòng · {groupBookings.length} phòng
+                  </h3>
+                  <div className="flex flex-wrap gap-1">
                     {groupBookings.map((gb) => (
                       <button
                         key={gb.id}
                         type="button"
-                        onClick={() => {
-                          onOpenChange(false)
-                          navigate(`/bookings/${gb.id}`)
-                        }}
+                        onClick={() => openDetail(gb.id)}
                         className={cn(
                           'rounded border px-2 py-1 text-xs hover:bg-accent',
                           gb.id === booking.id &&
@@ -698,6 +697,7 @@ export function TapeChartBookingSheet({
                     ))}
                   </div>
                 </section>
+
               )}
 
               <div className="h-2" />
