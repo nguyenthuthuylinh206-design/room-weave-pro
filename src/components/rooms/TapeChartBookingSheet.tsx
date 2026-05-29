@@ -110,6 +110,12 @@ export function TapeChartBookingSheet({
           text: `Phòng đang "${roomMeta?.label}" — kiểm tra trước khi nhận`,
         })
       }
+      if (details && !hasIdScan) {
+        warnings.push({
+          tone: 'amber',
+          text: 'Chưa scan giấy tờ — cần bổ sung khi nhận phòng',
+        })
+      }
     }
     if (booking.status === 'checked_out' && remaining > 1000) {
       warnings.push({
