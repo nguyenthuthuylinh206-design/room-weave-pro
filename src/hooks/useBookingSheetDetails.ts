@@ -167,14 +167,42 @@ export function vipLabel(level: string | null | undefined): string {
 
 const ACTION_LABEL: Record<string, string> = {
   INSERT: 'Tạo booking',
-  UPDATE: 'Cập nhật',
-  DELETE: 'Xoá',
+  UPDATE: 'Cập nhật booking',
+  DELETE: 'Xoá booking',
+  insert: 'Tạo booking',
+  update: 'Cập nhật booking',
+  delete: 'Xoá booking',
+  create: 'Tạo booking',
   checkin: 'Nhận phòng',
+  check_in: 'Nhận phòng',
   checkout: 'Trả phòng',
+  check_out: 'Trả phòng',
   payment: 'Thu tiền',
-  cancel: 'Huỷ',
+  pay: 'Thu tiền',
+  deposit: 'Thu cọc',
+  refund: 'Hoàn tiền',
+  cancel: 'Huỷ booking',
+  cancelled: 'Huỷ booking',
   block: 'Khoá phòng',
+  unblock: 'Mở khoá phòng',
+  move: 'Đổi phòng',
+  room_change: 'Đổi phòng',
+  change_room: 'Đổi phòng',
+  price_change: 'Sửa giá',
+  rate_change: 'Sửa giá',
+  date_change: 'Đổi ngày',
+  extend: 'Gia hạn lưu trú',
+  shorten: 'Rút ngắn lưu trú',
+  note: 'Thêm ghi chú',
+  status_change: 'Đổi trạng thái',
+  add_service: 'Thêm dịch vụ',
+  add_minibar: 'Thêm minibar',
+  add_surcharge: 'Thêm phụ thu',
+  scan_id: 'Scan giấy tờ',
+  guest_update: 'Cập nhật khách',
 }
 export function actionLabel(a: string): string {
-  return ACTION_LABEL[a] ?? a
+  if (!a) return 'Thao tác'
+  return ACTION_LABEL[a] ?? ACTION_LABEL[a.toLowerCase()] ?? a.replace(/_/g, ' ')
 }
+
