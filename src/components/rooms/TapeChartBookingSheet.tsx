@@ -677,10 +677,8 @@ export function TapeChartBookingSheet({
               {/* Nhóm đặt phòng — luôn hiện vì là điều hướng */}
               {groupBookings && groupBookings.length > 1 && (
                 <section className="border-b px-5 py-3">
-                  <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Nhóm đặt phòng · {groupBookings.length} phòng
-                  </h3>
-                  <div className="flex flex-wrap gap-1">
+                        onClick={() => openDetail(gb.id)}
+
                     {groupBookings.map((gb) => (
                       <button
                         key={gb.id}
@@ -727,6 +725,12 @@ export function TapeChartBookingSheet({
           </>
         )}
       </SheetContent>
+      <BookingDetailDialog
+        bookingId={detailBookingId}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
     </Sheet>
   )
 }
+
