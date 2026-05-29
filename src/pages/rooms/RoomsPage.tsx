@@ -142,6 +142,7 @@ export function RoomsPage() {
         />
       )}
       {viewMode === 'floor' && <RoomTapeChart />}
+      {viewMode === 'map' && <RoomFloorMapView />}
 
       {/* Bulk Import Dialog */}
       {selectedHotel && (
