@@ -270,15 +270,16 @@ export function RoomFloorMapView() {
       />
 
       {/* Quick new booking */}
-      {bookingDialog && selectedHotel && user?.tenant_id && (
+      {bookingDialog && selectedHotel && tenantId && (
         <RoomBookingDialog
           open={!!bookingDialog}
           onOpenChange={(v) => !v && setBookingDialog(null)}
           roomId={bookingDialog.roomId}
           roomNumber={bookingDialog.roomNumber}
           hotelId={selectedHotel.id}
-          tenantId={user.tenant_id}
+          tenantId={tenantId}
         />
+      )}
       )}
     </div>
   )
