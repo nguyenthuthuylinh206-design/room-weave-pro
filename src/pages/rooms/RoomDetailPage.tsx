@@ -49,12 +49,12 @@ export function RoomDetailPage() {
   const applyStandards = useApplyStandards()
   const setupRoom = useSetupRoom()
   const { user } = useUser()
+  const timelineRef = useRef<HTMLDivElement>(null)
   const [showResetDialog, setShowResetDialog] = useState(false)
   const [showCreateTask, setShowCreateTask] = useState(false)
   const [showAuditLog, setShowAuditLog] = useState(false)
   const canCreateTask = canCreateHousekeepingTask(user)
 
-  const canCreateTask = canCreateHousekeepingTask(user)
 
   if (isMobile) return <MobileRoomDetailPage />
   if (isLoading) return <RoomDetailSkeleton />
