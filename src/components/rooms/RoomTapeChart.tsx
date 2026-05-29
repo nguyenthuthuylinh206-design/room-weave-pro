@@ -1119,7 +1119,7 @@ function Row({
                           </span>
                         )}
 
-                        )}
+
                         <span className="truncate">{l.booking.guest_name}</span>
                         {l.booking.guest_count ? (
                           <span className="shrink-0 opacity-70">·{l.booking.guest_count}</span>
