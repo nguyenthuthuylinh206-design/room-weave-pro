@@ -1,40 +1,79 @@
-## Mục tiêu
-Khi cuộn ngang trong Tape Chart, các ô ngày không được "xuyên" lên cột "Phòng" sticky bên trái.
+## Vấn đề hiện tại
 
-## Nguyên nhân
-File `src/components/rooms/RoomTapeChart.tsx`:
-- L721: header cell "Phòng" dùng `bg-muted/40` (40% opacity)
-- L770: row group "Tầng X" dùng `bg-muted/30` (30% opacity), sticky `left-0` full width
+Sheet đang trộn 6 section dọc với mật độ thông tin cao (Lưu trú, Giấy tờ, CRM, Tài chính breakdown 8 dòng, Dịch vụ, Minibar, Lịch sử), khiến lễ tân:
+- Phải scroll mới thấy số tiền cần thu
+- Lịch sử hiện raw `audit_log.action` (`move`, `update`) không hiểu
+- Không có nút "Thu tiền QR" / "Gọi khách" trong sheet — phải mở trang booking
+- Lưu trú trình bày dạng grid 3 cột vẫn rối khi nhỏ
 
-Khi scroll ngang, ô ngày nằm cùng row, có z thấp hơn nhưng vẫn hiện xuyên qua phần nền bán trong suốt của cột Phòng.
+## Tổ chức lại theo flow nghiệp vụ lễ tân
 
-## Thay đổi
+```text
+┌─────────────────────────────────┐
+│ HEADER (giữ nguyên)             │  Phòng · nguồn · trạng thái
+│ Tên khách · 📞 · trạng thái TT  │
+├─────────────────────────────────┤
+│ ⚠ Cảnh báo (nếu có)             │  Bẩn / CCCD chưa scan / Còn nợ
+├─────────────────────────────────┤
+│ 1. TÓM TẮT NHANH                │  ← Trả lời "khách nào, phòng nào, bao nhiêu"
+│   Nhận: T6 29/05 14:00          │
+│   Trả:  CN 31/05 12:00 (2 đêm)  │
+│   ─────────────────────         │
+│   Tổng     3.842.000 ₫          │
+│   Đã thu       0 ₫              │
+│   Còn thu  3.842.000 ₫  (đỏ)    │  ← luôn nổi bật
+├─────────────────────────────────┤
+│ 2. QUICK ACTIONS (sticky-ish)   │
+│   [Thu tiền QR]  [Gọi khách]    │  ← thao tác làm ngay trong sheet
+│   [Nhận phòng / Trả phòng] ★    │
+├─────────────────────────────────┤
+│ 3. CHI TIẾT (collapse mặc định) │  ← ẩn, click mới mở
+│   ▸ Chi tiết tài chính (8 dòng cũ)
+│   ▸ Giấy tờ (CCCD + ảnh)
+│   ▸ Hồ sơ khách (CRM)           │
+│   ▸ Lịch sử thay đổi            │  ← dịch action sang VN
+├─────────────────────────────────┤
+│ FOOTER                          │
+│ [Đóng]  [Mở phiếu booking đầy đủ]│
+└─────────────────────────────────┘
+```
 
-### `src/components/rooms/RoomTapeChart.tsx`
+### Nguyên tắc
+- **Tóm tắt + Còn thu** luôn nhìn thấy không cần scroll (trả lời điện thoại tức thì).
+- **Quick actions** đưa lên trên cùng body, không phải dưới footer:
+  - `Thu tiền QR` → mở `PaymentQRDialog` ngay trong sheet (đã có sẵn ở `/bookings/:id`, reuse component).
+  - `Gọi khách` → `tel:` (đã có ở header nhưng tách nút riêng).
+  - CTA chính theo status: `Tiếp tục nhận phòng` / `Thu tiền & trả phòng` (như hiện tại) — vẫn navigate sang `/bookings/:id` vì cần wizard.
+- **Chi tiết tài chính / Giấy tờ / CRM / Lịch sử** gộp vào `<Collapsible>` (shadcn) đóng mặc định. Lễ tân muốn xem sâu thì bấm "Mở phiếu booking" sang trang chi tiết — đúng ý user.
+- **Lịch sử**: map `audit_log.action` qua `actionLabel()` (đã có) nhưng bổ sung các action thiếu: `move` → "Đổi phòng", `update` → "Cập nhật booking", `price_change` → "Sửa giá"...
 
-1. **Header "Phòng" (L720-725)**: thêm lớp nền opaque phía dưới
-   - Thay `bg-muted/40` → `bg-muted` (solid) + giữ `border-r border-b` để không lộ viền
+## A. Kiến trúc / logic
+- Không đổi schema, không đổi RPC. Chỉ refactor presentation.
+- Reuse `useBookingSheetDetails` đã có.
+- Reuse `PaymentQRDialog` từ trang booking detail nếu khả thi; nếu không, primary CTA "Thu tiền QR" vẫn navigate `/bookings/:id?action=pay`.
 
-2. **Header date strip wrapper (L716-719)**: `bg-muted/40` giữ nguyên vì là phần header — không cần opaque (không bị che bởi gì cả). OK.
+## D. UI / files
+- **Sửa** `src/components/rooms/TapeChartBookingSheet.tsx`:
+  - Thêm khối "Tóm tắt nhanh" (lưu trú compact 2 dòng + tổng/đã thu/còn thu nổi bật).
+  - Thêm hàng Quick Actions ngay dưới tóm tắt: `[Thu tiền QR] [Gọi khách]` + CTA chính theo status.
+  - Bọc 4 section chi tiết (Tài chính breakdown, Giấy tờ, CRM, Lịch sử) trong `<Collapsible>` đóng mặc định, label "Xem chi tiết".
+  - Đơn giản hoá Lưu trú: 2 dòng `Nhận: ...` / `Trả: ... (N đêm · loại phòng)` thay grid 3 cột.
+- **Sửa** `src/hooks/useBookingSheetDetails.ts` (function `actionLabel`): bổ sung mapping cho các action raw hiện hiển thị `move`, `update`, `price_change`, `room_change`, v.v.
+- **Bump**: `src/lib/app-version.ts` → `1.0.90`, `src/components/CacheBuster.tsx` `CURRENT_VERSION`, thêm entry `public/changelog.json`.
 
-3. **Row group "Tầng X" (L768-784)**: hiện sticky `left-0` full width nền `bg-muted/30`. Tách thành 2 phần:
-   - Box sticky chỉ rộng `ROOM_COL_W` với `bg-background` (opaque) chứa text "Tầng X (n phòng)"
-   - Phần còn lại width = `days * cellW` nền `bg-muted/30` (cho đẹp)
-   
-   Hoặc đơn giản: giữ nguyên cấu trúc nhưng đổi nền sang `bg-muted` (opaque). Vì group header không cần thấy gì phía sau, opaque hoàn toàn ổn.
+## E. Permission
+Không đổi — sheet read-only, các action vẫn đi qua các flow đã có permission check (`perform_checkin`, QR payment).
 
-4. **Row room cell (L941-956)**: đã dùng `bg-background` (opaque) — OK, không sửa.
+## F. Test cases
+- Booking `confirmed` chưa thanh toán → CTA "Tiếp tục nhận phòng", Còn thu hiển thị đỏ.
+- Booking `checked_in` đã thanh toán đủ → CTA "Trả phòng", Còn thu = 0 ẩn đỏ.
+- Booking có `audit_log` action `move` → hiển thị "Đổi phòng" thay vì "move".
+- Click "Xem chi tiết" → expand section, click lại → collapse.
+- Mobile portrait 390px → tóm tắt + quick actions không cần scroll.
 
-### Version bump
-- `src/lib/app-version.ts`: `1.0.86` → `1.0.87`
-- `public/changelog.json`: thêm entry "Sửa overlap cột Phòng khi cuộn ngang Tape Chart"
+## G. Rollout
+- Thay đổi UI thuần, không có migration, rollback bằng revert file.
+- Bump version để PWA cache buster đẩy bản mới (theo Core memory).
 
-## Files sửa
-- `src/components/rooms/RoomTapeChart.tsx` (2 dòng nền)
-- `src/lib/app-version.ts`
-- `public/changelog.json`
-
-## QA
-1. Mở `/rooms` → Tape Chart
-2. Cuộn ngang → text "Phòng" và "Tầng X" phải đứng rõ, không có chữ ngày xuyên qua
-3. Today highlight, weekend, holiday vẫn hiển thị đúng ở dải date header
+## Phần KHÔNG làm (theo ý user)
+- Không nhồi thêm chi tiết phòng / chỉnh sửa booking inline — những thứ này điều hướng sang `/bookings/:id` như user yêu cầu.
