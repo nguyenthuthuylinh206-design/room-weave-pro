@@ -2,6 +2,14 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn, formatCurrency } from '@/lib/utils'
 import { useFloorPlanLive, type FloorPlanRoom, type FloorPlanBooking } from '@/hooks/useFloorPlanLive'
@@ -13,8 +21,9 @@ import { RoomBookingDialog } from './RoomBookingDialog'
 import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNowStrict, parseISO, differenceInHours } from 'date-fns'
 import { vi } from 'date-fns/locale'
+import { Search, Plus, FileSpreadsheet } from 'lucide-react'
 
-// Status → solid colors (đồng bộ với tape chart v1.0.92)
+// Status → solid colors
 const STATUS_STYLE: Record<string, { bg: string; label: string; textCls: string }> = {
   available: { bg: 'bg-emerald-500', label: 'Còn trống', textCls: 'text-emerald-700' },
   vacant: { bg: 'bg-emerald-500', label: 'Còn trống', textCls: 'text-emerald-700' },
@@ -31,13 +40,28 @@ const STATUS_STYLE: Record<string, { bg: string; label: string; textCls: string 
   blocked: { bg: 'bg-slate-400', label: 'Bị chặn', textCls: 'text-slate-700' },
 }
 
-// Room type → left border accent
 const TYPE_BORDER: Record<string, string> = {
   standard: 'border-l-blue-300',
   deluxe: 'border-l-cyan-300',
   superior: 'border-l-violet-300',
   suite: 'border-l-amber-300',
   vip: 'border-l-pink-300',
+}
+
+// Stable color per booking group (chỉ tô viền nhóm nếu có nhiều hơn 1 phòng cùng nhóm)
+const GROUP_RING_COLORS = [
+  'ring-fuchsia-400',
+  'ring-cyan-400',
+  'ring-lime-400',
+  'ring-rose-400',
+  'ring-violet-400',
+  'ring-teal-400',
+  'ring-yellow-400',
+]
+function ringForGroup(id: string) {
+  let h = 0
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0
+  return GROUP_RING_COLORS[h % GROUP_RING_COLORS.length]
 }
 
 function getStatusStyle(status: string) {
@@ -52,8 +76,6 @@ function formatStayDuration(checkIn: string | null | undefined): string {
     if (hrs < 1) return 'Vừa vào'
     if (hrs < 24) return `${hrs} giờ`
     return formatDistanceToNowStrict(d, { locale: vi, addSuffix: false })
-      .replace(' ngày', ' ngày')
-      .replace(' tuần', ' tuần')
   } catch {
     return ''
   }
@@ -73,7 +95,13 @@ function formatArriveIn(checkInDate: string, time: string | null | undefined): s
   }
 }
 
-export function RoomFloorMapView() {
+export function RoomFloorMapView({
+  onAddRoom,
+  onBulkImport,
+}: {
+  onAddRoom?: () => void
+  onBulkImport?: () => void
+} = {}) {
   const { t: _t } = useTranslation(['rooms'])
   const { selectedHotel } = useHotelContext()
   const { role, tenantId } = useUser()
@@ -82,20 +110,31 @@ export function RoomFloorMapView() {
   const [detailBookingId, setDetailBookingId] = useState<string | null>(null)
   const [bookingDialog, setBookingDialog] = useState<{ roomId: string; roomNumber: string } | null>(null)
   const [typeFilter, setTypeFilter] = useState<string[]>([])
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [floorFilter, setFloorFilter] = useState<string>('all')
+  const [search, setSearch] = useState('')
 
-  const { floors, totals, types } = useMemo(() => {
+  const { floors, totals, types, groupCounts } = useMemo(() => {
     const _floors = data ? Object.keys(data).sort((a, b) => parseInt(b) - parseInt(a)) : []
     const _totals: Record<string, number> = {}
     const _types = new Set<string>()
+    const _groupCounts: Record<string, number> = {}
     if (data) {
       for (const f of _floors) {
         for (const r of data[f]) {
           _totals[r.status] = (_totals[r.status] || 0) + 1
           if (r.room_type) _types.add(r.room_type)
+          const gid = r.current_booking?.booking_group_id || r.next_booking?.booking_group_id
+          if (gid) _groupCounts[gid] = (_groupCounts[gid] || 0) + 1
         }
       }
     }
-    return { floors: _floors, totals: _totals, types: Array.from(_types).sort() }
+    return {
+      floors: _floors,
+      totals: _totals,
+      types: Array.from(_types).sort(),
+      groupCounts: _groupCounts,
+    }
   }, [data])
 
   const canBook = hasPermission(role, 'manage_rooms')
@@ -133,17 +172,99 @@ export function RoomFloorMapView() {
 
   if (!floors.length) {
     return (
-      <div className="border rounded-lg p-8 text-center text-sm text-muted-foreground">
-        Chưa có phòng nào để hiển thị sơ đồ. Hãy thêm phòng để bắt đầu.
+      <div className="border rounded-lg p-8 text-center space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Chưa có phòng nào để hiển thị sơ đồ. Hãy thêm phòng để bắt đầu.
+        </p>
+        <div className="flex items-center justify-center gap-2">
+          {onAddRoom && (
+            <Button size="sm" onClick={onAddRoom}>
+              <Plus className="mr-2 h-4 w-4" />
+              Thêm phòng
+            </Button>
+          )}
+          {onBulkImport && (
+            <Button size="sm" variant="outline" onClick={onBulkImport}>
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
+              Import từ Excel
+            </Button>
+          )}
+        </div>
       </div>
     )
   }
 
   const statusKeys = Object.keys(totals).sort()
+  const allFloorNums = floors.slice()
+
+  // Áp filter floor + search + status
+  const visibleFloors = floors
+    .filter((f) => floorFilter === 'all' || f === floorFilter)
+    .map((f) => ({
+      floor: f,
+      rooms: data![f].filter((r) => {
+        if (statusFilter !== 'all' && r.status !== statusFilter) return false
+        if (search.trim() && !r.room_number.toLowerCase().includes(search.trim().toLowerCase())) return false
+        return true
+      }),
+    }))
+    .filter((g) => g.rooms.length > 0)
 
   return (
     <div className="space-y-3">
-      {/* Summary + Legend */}
+      {/* Toolbar: search + filters */}
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-2">
+        <div className="relative flex-1 min-w-[180px]">
+          <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Tìm số phòng..."
+            className="h-8 pl-7 text-sm"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="h-8 w-[140px] text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả trạng thái</SelectItem>
+            {statusKeys.map((s) => (
+              <SelectItem key={s} value={s}>
+                {getStatusStyle(s).label} ({totals[s]})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={floorFilter} onValueChange={setFloorFilter}>
+          <SelectTrigger className="h-8 w-[110px] text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Mọi tầng</SelectItem>
+            {allFloorNums.map((f) => (
+              <SelectItem key={f} value={f}>Tầng {f}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {(search || statusFilter !== 'all' || floorFilter !== 'all' || typeFilter.length) ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 px-2 text-xs"
+            onClick={() => {
+              setSearch('')
+              setStatusFilter('all')
+              setFloorFilter('all')
+              setTypeFilter([])
+            }}
+          >
+            Xoá lọc
+          </Button>
+        ) : null}
+      </div>
+
+      {/* Legend + type filter */}
       <div className="rounded-lg border bg-card p-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           {statusKeys.map((s) => {
@@ -156,6 +277,10 @@ export function RoomFloorMapView() {
               </div>
             )
           })}
+          <div className="flex items-center gap-1.5 text-xs">
+            <span className="inline-block h-2 w-2 rounded-full bg-red-500" />
+            <span className="text-muted-foreground">Có việc cần làm</span>
+          </div>
         </div>
         {types.length > 1 && (
           <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t pt-2">
@@ -180,25 +305,18 @@ export function RoomFloorMapView() {
                 </button>
               )
             })}
-            {typeFilter.length > 0 && (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 px-2 text-[11px]"
-                onClick={() => setTypeFilter([])}
-              >
-                Xoá lọc
-              </Button>
-            )}
           </div>
         )}
       </div>
 
       {/* Floor panels */}
-      <TooltipProvider delayDuration={300}>
-        {floors.map((floor) => {
-          const rooms = data![floor]
-          return (
+      {visibleFloors.length === 0 ? (
+        <div className="rounded-lg border p-6 text-center text-sm text-muted-foreground">
+          Không có phòng nào khớp với bộ lọc hiện tại.
+        </div>
+      ) : (
+        <TooltipProvider delayDuration={300}>
+          {visibleFloors.map(({ floor, rooms }) => (
             <div key={floor} className="rounded-lg border bg-card">
               <div className="flex items-center justify-between border-b px-3 py-1.5">
                 <div className="text-sm font-semibold">Tầng {floor}</div>
@@ -219,6 +337,9 @@ export function RoomFloorMapView() {
                     : next
                     ? formatArriveIn(next.check_in_date, next.expected_check_in_time)
                     : ''
+                  const gid = bk?.booking_group_id || next?.booking_group_id
+                  const showGroupRing = gid && (groupCounts[gid] || 0) > 1
+                  const openTasks = room.open_tasks || 0
 
                   return (
                     <Tooltip key={room.id}>
@@ -230,9 +351,19 @@ export function RoomFloorMapView() {
                             'relative flex h-20 flex-col items-stretch justify-between rounded-md border-l-[3px] p-1.5 text-left text-white shadow-sm transition-all hover:brightness-110 active:scale-95',
                             bgClass,
                             TYPE_BORDER[room.room_type] || 'border-l-white/40',
+                            showGroupRing && cn('ring-2 ring-offset-1', ringForGroup(gid!)),
                             dim && 'opacity-30',
                           )}
                         >
+                          {/* Service request dot */}
+                          {openTasks > 0 && (
+                            <span
+                              className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white shadow ring-1 ring-white"
+                              title={`${openTasks} việc cần làm`}
+                            >
+                              {openTasks}
+                            </span>
+                          )}
                           <div className="flex items-start justify-between gap-1">
                             <span className="text-base font-bold leading-none">{room.room_number}</span>
                             {chip && (
@@ -251,16 +382,21 @@ export function RoomFloorMapView() {
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-xs">
-                        <RoomTooltip room={room} bk={bk || next} isArriving={!!showAsArriving} />
+                        <RoomTooltip
+                          room={room}
+                          bk={bk || next}
+                          isArriving={!!showAsArriving}
+                          isGroup={!!showGroupRing}
+                        />
                       </TooltipContent>
                     </Tooltip>
                   )
                 })}
               </div>
             </div>
-          )
-        })}
-      </TooltipProvider>
+          ))}
+        </TooltipProvider>
+      )}
 
       {/* Booking detail popup */}
       <BookingDetailDialog
@@ -288,10 +424,12 @@ function RoomTooltip({
   room,
   bk,
   isArriving,
+  isGroup,
 }: {
   room: FloorPlanRoom
   bk: FloorPlanBooking | null
   isArriving: boolean
+  isGroup: boolean
 }) {
   const st = getStatusStyle(room.status)
   return (
@@ -300,12 +438,20 @@ function RoomTooltip({
         Phòng {room.room_number} · {room.room_type}
       </div>
       <div className={cn('font-medium', st.textCls)}>{st.label}</div>
+      {(room.open_hk_tasks || room.open_maintenance) ? (
+        <div className="text-red-600">
+          {room.open_hk_tasks ? `${room.open_hk_tasks} buồng phòng` : ''}
+          {room.open_hk_tasks && room.open_maintenance ? ' · ' : ''}
+          {room.open_maintenance ? `${room.open_maintenance} bảo trì` : ''}
+        </div>
+      ) : null}
       {bk && (
         <>
           <div className="border-t pt-1 font-medium">
             {isArriving ? 'Sắp đến: ' : 'Khách: '}
             {bk.guest_name}
             {bk.guest_count ? ` (${bk.guest_count})` : ''}
+            {isGroup && <span className="ml-1 text-fuchsia-600">· Nhóm</span>}
           </div>
           {bk.guest_phone && <div>SĐT: {bk.guest_phone}</div>}
           <div className="text-muted-foreground">
