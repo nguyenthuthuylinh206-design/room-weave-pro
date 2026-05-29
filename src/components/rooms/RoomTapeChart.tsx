@@ -1113,11 +1113,12 @@ function Row({
                           height: LANE_H - 4,
                         }}
                       >
+                        {sourceBadge && (
                           <span className="shrink-0 rounded bg-white/25 px-1 font-mono text-[9px] text-white">
-
-                          <span className="shrink-0 rounded bg-background/60 px-1 font-mono text-[9px] opacity-80">
                             {sourceBadge}
                           </span>
+                        )}
+
                         )}
                         <span className="truncate">{l.booking.guest_name}</span>
                         {l.booking.guest_count ? (
