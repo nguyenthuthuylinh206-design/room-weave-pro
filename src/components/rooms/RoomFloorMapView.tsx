@@ -79,7 +79,7 @@ export function RoomFloorMapView() {
   const { user } = useUser()
   const navigate = useNavigate()
   const { data, isLoading } = useFloorPlanLive()
-
+  const { user, role } = useUser()
   const [detailBookingId, setDetailBookingId] = useState<string | null>(null)
   const [bookingDialog, setBookingDialog] = useState<{ roomId: string; roomNumber: string } | null>(null)
   const [typeFilter, setTypeFilter] = useState<string[]>([])
