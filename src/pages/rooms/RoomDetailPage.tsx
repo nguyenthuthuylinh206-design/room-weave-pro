@@ -103,11 +103,15 @@ export function RoomDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          <Button variant="outline" size="sm" className="h-8" onClick={() => setShowAuditLog(true)}>
+            <History className="mr-1.5 h-3.5 w-3.5" />Lịch sử
+          </Button>
           <PermissionGate module="rooms" action="update">
             <Button variant="outline" size="sm" className="h-8" onClick={() => navigate(`/rooms/${id}/edit`)}>
               <Edit className="mr-1.5 h-3.5 w-3.5" />Sửa
             </Button>
           </PermissionGate>
+
           {canCreateTask && (
             <Button variant="outline" size="sm" className="h-8" onClick={() => setShowCreateTask(true)}>
               <Wrench className="mr-1.5 h-3.5 w-3.5" />Yêu cầu CV
