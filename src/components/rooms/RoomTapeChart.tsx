@@ -765,7 +765,9 @@ export function RoomTapeChart() {
                 const row = flatRows[vi.index]
                 if (!row) return null
                 if (row.type === 'group') {
+                  return (
                     <div
+
                       key={vi.key}
                       className="flex items-center border-b border-t bg-muted/30 text-[11px] font-medium text-muted-foreground"
                       style={{
