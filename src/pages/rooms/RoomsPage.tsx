@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, Grid3x3, List, Map, FileSpreadsheet } from 'lucide-react'
+import { Plus, Grid3x3, List, Map, FileSpreadsheet, LayoutGrid } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -10,6 +10,7 @@ import { RoomFilters } from '@/components/rooms/RoomFilters'
 import { RoomGrid } from '@/components/rooms/RoomGrid'
 import { RoomTable } from '@/components/rooms/RoomTable'
 import { RoomTapeChart } from '@/components/rooms/RoomTapeChart'
+import { RoomFloorMapView } from '@/components/rooms/RoomFloorMapView'
 import { BulkImportRoomsDialog } from '@/components/rooms/BulkImportRoomsDialog'
 import { RoomBulkActionsBar } from '@/components/rooms/RoomBulkActionsBar'
 import { useRooms } from '@/hooks/useRooms'
@@ -18,7 +19,7 @@ import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileRoomsPage } from '@/components/rooms/MobileRoomsPage'
 import type { RoomFilters as IRoomFilters } from '@/types/rooms.types'
 
-type ViewMode = 'grid' | 'list' | 'floor'
+type ViewMode = 'grid' | 'list' | 'floor' | 'map'
 
 export function RoomsPage() {
   const { t } = useTranslation('rooms')
@@ -77,7 +78,11 @@ export function RoomsPage() {
             </TabsTrigger>
             <TabsTrigger value="floor">
               <Map className="h-4 w-4 mr-2" />
-              {t('viewModes.floorPlan')}
+              Lịch phòng
+            </TabsTrigger>
+            <TabsTrigger value="map">
+              <LayoutGrid className="h-4 w-4 mr-2" />
+              Sơ đồ phòng
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -137,6 +142,7 @@ export function RoomsPage() {
         />
       )}
       {viewMode === 'floor' && <RoomTapeChart />}
+      {viewMode === 'map' && <RoomFloorMapView />}
 
       {/* Bulk Import Dialog */}
       {selectedHotel && (

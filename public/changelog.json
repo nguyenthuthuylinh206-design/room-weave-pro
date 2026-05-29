@@ -1,6 +1,17 @@
 {
-  "current": "1.0.92",
+  "current": "1.0.93",
   "versions": [
+    {
+      "version": "1.0.93",
+      "releaseDate": "2026-05-29",
+      "title": "Sơ đồ phòng theo thời gian thực",
+      "changes": [
+        { "type": "feature", "text": "Thêm tab 'Sơ đồ phòng' tại /rooms — lưới phòng theo tầng, màu đậm theo trạng thái (trống/đang ở/sắp đến/chờ dọn/bảo trì), hiển thị tên khách + chip thời lượng lưu trú (Hôm qua, 2 ngày, 5 giờ)" },
+        { "type": "feature", "text": "RPC mới get_floor_plan_live trả về trạng thái phòng + booking hiện tại + booking sắp tới trong 24h, cập nhật realtime qua subscription rooms/room_bookings" },
+        { "type": "improvement", "text": "Click ô phòng đang có khách → mở popup chi tiết booking; ô phòng trống → mở dialog tạo booking nhanh; lọc theo loại phòng (Standard/Deluxe/Suite...)" }
+      ]
+    },
+
     {
       "version": "1.0.92",
       "releaseDate": "2026-05-29",
