@@ -164,9 +164,11 @@ export function BookingDetailPage({ idProp, embedded, onClose }: BookingDetailPa
       {/* === STICKY SUMMARY HEADER === */}
       <div className="sticky top-0 z-20 -mx-4 px-4 py-3 border-b bg-background/95 backdrop-blur">
         <div className="flex items-start gap-3">
-          <Button variant="ghost" size="icon" className="h-9 w-9 -ml-2" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/bookings'))}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+          {!embedded && (
+            <Button variant="ghost" size="icon" className="h-9 w-9 -ml-2" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/bookings'))}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-base font-semibold truncate">{booking.guest_name}</h1>
