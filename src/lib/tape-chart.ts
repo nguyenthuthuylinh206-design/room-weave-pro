@@ -138,58 +138,59 @@ export function getBarColor(b: TapeChartBooking): BarColor {
   // checked_in luôn nổi bật xanh dương
   if (b.status === 'checked_in') {
     return {
-      bg: 'bg-blue-100',
-      border: 'border-l-4 border-blue-500',
-      text: 'text-blue-900',
-      hover: 'hover:bg-blue-200',
-      ring: 'ring-blue-400',
+      bg: 'bg-blue-500',
+      border: 'border-l-4 border-blue-700',
+      text: 'text-white',
+      hover: 'hover:bg-blue-600',
+      ring: 'ring-blue-300',
     }
   }
   if (b.status === 'checked_out') {
     return ps === 'debt_after_checkout'
       ? {
-          bg: 'bg-red-50',
-          border: 'border-l-4 border-red-500',
-          text: 'text-red-900',
-          hover: 'hover:bg-red-100',
-          ring: 'ring-red-400',
+          bg: 'bg-red-500',
+          border: 'border-l-4 border-red-700',
+          text: 'text-white',
+          hover: 'hover:bg-red-600',
+          ring: 'ring-red-300',
         }
       : {
-          bg: 'bg-slate-100',
-          border: 'border-l-4 border-slate-400',
-          text: 'text-slate-700',
-          hover: 'hover:bg-slate-200',
-          ring: 'ring-slate-400',
+          bg: 'bg-slate-400',
+          border: 'border-l-4 border-slate-600',
+          text: 'text-white',
+          hover: 'hover:bg-slate-500',
+          ring: 'ring-slate-300',
         }
   }
   // confirmed
   switch (ps) {
     case 'deposit_full':
       return {
-        bg: 'bg-emerald-50',
-        border: 'border-l-4 border-emerald-500',
-        text: 'text-emerald-900',
-        hover: 'hover:bg-emerald-100',
-        ring: 'ring-emerald-400',
+        bg: 'bg-emerald-500',
+        border: 'border-l-4 border-emerald-700',
+        text: 'text-white',
+        hover: 'hover:bg-emerald-600',
+        ring: 'ring-emerald-300',
       }
     case 'partial_deposit':
       return {
-        bg: 'bg-amber-50',
-        border: 'border-l-4 border-amber-500',
-        text: 'text-amber-900',
-        hover: 'hover:bg-amber-100',
-        ring: 'ring-amber-400',
+        bg: 'bg-amber-500',
+        border: 'border-l-4 border-amber-700',
+        text: 'text-white',
+        hover: 'hover:bg-amber-600',
+        ring: 'ring-amber-300',
       }
     default:
       return {
-        bg: 'bg-orange-50',
-        border: 'border-l-4 border-orange-500',
-        text: 'text-orange-900',
-        hover: 'hover:bg-orange-100',
-        ring: 'ring-orange-400',
+        bg: 'bg-orange-500',
+        border: 'border-l-4 border-orange-700',
+        text: 'text-white',
+        hover: 'hover:bg-orange-600',
+        ring: 'ring-orange-300',
       }
   }
 }
+
 
 /** Khoá ngắn để CSS color-blind áp pattern overlay đúng nhóm trạng thái */
 export function getBarKey(b: TapeChartBooking): string {
