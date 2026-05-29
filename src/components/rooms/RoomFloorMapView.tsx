@@ -18,10 +18,14 @@ import { useUser } from '@/hooks/useUser'
 import { hasPermission } from '@/lib/permissions'
 import { BookingDetailDialog } from '@/components/bookings/BookingDetailDialog'
 import { RoomBookingDialog } from './RoomBookingDialog'
+import { RoomAuditLogDialog } from './RoomAuditLogDialog'
+import { useRoomTransition } from '@/hooks/useRoomTransition'
 import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNowStrict, parseISO, differenceInHours } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { Search, Plus, FileSpreadsheet } from 'lucide-react'
+import { Search, Plus, FileSpreadsheet, History, Unlock } from 'lucide-react'
+
+const LIFTABLE_STATUSES = new Set(['dnd', 'out_of_service', 'out_of_order'])
 
 // Status → solid colors
 const STATUS_STYLE: Record<string, { bg: string; label: string; textCls: string }> = {
@@ -109,10 +113,28 @@ export function RoomFloorMapView({
   const { data, isLoading } = useFloorPlanLive()
   const [detailBookingId, setDetailBookingId] = useState<string | null>(null)
   const [bookingDialog, setBookingDialog] = useState<{ roomId: string; roomNumber: string } | null>(null)
+  const [auditDialog, setAuditDialog] = useState<{ roomId: string; roomNumber: string } | null>(null)
   const [typeFilter, setTypeFilter] = useState<string[]>([])
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [floorFilter, setFloorFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
+  const transitionRoom = useRoomTransition()
+
+  const handleLiftStatus = (e: React.MouseEvent, room: FloorPlanRoom) => {
+    e.stopPropagation()
+    if (!confirm(`Gỡ trạng thái "${room.status.toUpperCase()}" của phòng ${room.room_number}?\nPhòng sẽ chuyển về "Trống – đã dọn".`)) return
+    transitionRoom.mutate({
+      roomId: room.id,
+      toStatus: 'vacant_clean',
+      reason: `Gỡ thủ công từ sơ đồ phòng (was ${room.status})`,
+    })
+  }
+
+  const handleShowHistory = (e: React.MouseEvent, room: FloorPlanRoom) => {
+    e.stopPropagation()
+    setAuditDialog({ roomId: room.id, roomNumber: room.room_number })
+  }
+
 
   const { floors, totals, types, groupCounts } = useMemo(() => {
     const _floors = data ? Object.keys(data).sort((a, b) => parseInt(b) - parseInt(a)) : []
@@ -340,6 +362,7 @@ export function RoomFloorMapView({
                   const gid = bk?.booking_group_id || next?.booking_group_id
                   const showGroupRing = gid && (groupCounts[gid] || 0) > 1
                   const openTasks = room.open_tasks || 0
+                  const canLift = LIFTABLE_STATUSES.has(room.status)
 
                   return (
                     <Tooltip key={room.id}>
@@ -348,7 +371,7 @@ export function RoomFloorMapView({
                           type="button"
                           onClick={() => handleRoomClick(room)}
                           className={cn(
-                            'relative flex h-20 flex-col items-stretch justify-between rounded-md border-l-[3px] p-1.5 text-left text-white shadow-sm transition-all hover:brightness-110 active:scale-95',
+                            'group relative flex h-20 flex-col items-stretch justify-between rounded-md border-l-[3px] p-1.5 text-left text-white shadow-sm transition-all hover:brightness-110 active:scale-95',
                             bgClass,
                             TYPE_BORDER[room.room_type] || 'border-l-white/40',
                             showGroupRing && cn('ring-2 ring-offset-1', ringForGroup(gid!)),
@@ -364,6 +387,28 @@ export function RoomFloorMapView({
                               {openTasks}
                             </span>
                           )}
+                          {/* Quick actions (hover) */}
+                          <span className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-1 rounded-b-md bg-black/45 py-0.5 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
+                            {canLift && (
+                              <button
+                                type="button"
+                                onClick={(e) => handleLiftStatus(e, room)}
+                                disabled={transitionRoom.isPending}
+                                className="rounded bg-emerald-500/90 px-1.5 py-0.5 text-[9px] font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+                                title="Gỡ DND/OOS · về Trống sạch"
+                              >
+                                <Unlock className="inline h-2.5 w-2.5 mr-0.5" />Gỡ
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => handleShowHistory(e, room)}
+                              className="rounded bg-white/20 px-1.5 py-0.5 text-[9px] font-semibold text-white hover:bg-white/30"
+                              title="Lịch sử trạng thái"
+                            >
+                              <History className="inline h-2.5 w-2.5 mr-0.5" />Sử
+                            </button>
+                          </span>
                           <div className="flex items-start justify-between gap-1">
                             <span className="text-base font-bold leading-none">{room.room_number}</span>
                             {chip && (
@@ -398,13 +443,13 @@ export function RoomFloorMapView({
         </TooltipProvider>
       )}
 
+
       {/* Booking detail popup */}
       <BookingDetailDialog
         bookingId={detailBookingId}
         open={!!detailBookingId}
         onOpenChange={(v) => !v && setDetailBookingId(null)}
       />
-
       {/* Quick new booking */}
       {bookingDialog && selectedHotel && tenantId && (
         <RoomBookingDialog
@@ -416,6 +461,18 @@ export function RoomFloorMapView({
           tenantId={tenantId}
         />
       )}
+
+      {/* Room audit log */}
+      {auditDialog && (
+        <RoomAuditLogDialog
+          open={!!auditDialog}
+          onOpenChange={(v) => !v && setAuditDialog(null)}
+          roomId={auditDialog.roomId}
+          roomNumber={auditDialog.roomNumber}
+        />
+      )}
+
+
     </div>
   )
 }

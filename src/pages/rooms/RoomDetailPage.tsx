@@ -7,7 +7,10 @@ import {
   ArrowLeft,
   RotateCcw,
   Wrench,
+  History,
 } from 'lucide-react'
+import { RoomAuditLogDialog } from '@/components/rooms/RoomAuditLogDialog'
+
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
@@ -49,7 +52,9 @@ export function RoomDetailPage() {
   const timelineRef = useRef<HTMLDivElement>(null)
   const [showResetDialog, setShowResetDialog] = useState(false)
   const [showCreateTask, setShowCreateTask] = useState(false)
+  const [showAuditLog, setShowAuditLog] = useState(false)
   const canCreateTask = canCreateHousekeepingTask(user)
+
 
   if (isMobile) return <MobileRoomDetailPage />
   if (isLoading) return <RoomDetailSkeleton />
@@ -98,11 +103,15 @@ export function RoomDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          <Button variant="outline" size="sm" className="h-8" onClick={() => setShowAuditLog(true)}>
+            <History className="mr-1.5 h-3.5 w-3.5" />Lịch sử
+          </Button>
           <PermissionGate module="rooms" action="update">
             <Button variant="outline" size="sm" className="h-8" onClick={() => navigate(`/rooms/${id}/edit`)}>
               <Edit className="mr-1.5 h-3.5 w-3.5" />Sửa
             </Button>
           </PermissionGate>
+
           {canCreateTask && (
             <Button variant="outline" size="sm" className="h-8" onClick={() => setShowCreateTask(true)}>
               <Wrench className="mr-1.5 h-3.5 w-3.5" />Yêu cầu CV
@@ -207,6 +216,14 @@ export function RoomDetailPage() {
           hotelId={room.hotel_id}
         />
       )}
+
+      <RoomAuditLogDialog
+        open={showAuditLog}
+        onOpenChange={setShowAuditLog}
+        roomId={id!}
+        roomNumber={room.room_number}
+      />
+
     </div>
   )
 }

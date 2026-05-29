@@ -1,6 +1,19 @@
 {
-  "current": "1.0.95",
+  "current": "1.0.96",
   "versions": [
+    {
+      "version": "1.0.96",
+      "releaseDate": "2026-05-29",
+      "title": "Quản lý phòng nâng cao — #3 Gỡ DND/OOS + Bulk action + Lịch sử trạng thái",
+      "changes": [
+        { "type": "feature", "text": "Sơ đồ phòng: hover ô phòng đang DND/OOS/OOO hiện nút 'Gỡ' để chuyển nhanh về 'Trống – đã dọn' (qua RPC transition_room_status, có audit log)" },
+        { "type": "feature", "text": "Sơ đồ phòng: nút 'Sử' (lịch sử) trên mỗi ô — mở dialog xem 100 thay đổi trạng thái gần nhất với người thực hiện, lý do, thời điểm tự gỡ" },
+        { "type": "feature", "text": "Trang chi tiết phòng: nút 'Lịch sử' hiển thị audit log đầy đủ của phòng (lọc bỏ cron tick rỗng)" },
+        { "type": "improvement", "text": "RoomBulkActionsBar: dropdown trạng thái nay hỗ trợ đầy đủ 10 trạng thái V2 (Trống/Đang ở/DND/OOO/OOS...) chia nhóm Vận hành / Đặc biệt; thêm tuỳ chọn '↺ Gỡ DND/OOS · về Trống sạch' để xử lý hàng loạt" },
+        { "type": "improvement", "text": "Hook useRoomAuditLog: gộp thông tin user (tên/email) cho từng entry, sort mới → cũ, lọc bỏ cron tick lift_expired_dnd_oos không có thay đổi" }
+      ]
+    },
+
     {
       "version": "1.0.95",
       "releaseDate": "2026-05-29",
