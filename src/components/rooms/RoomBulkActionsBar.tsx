@@ -160,25 +160,35 @@ export function RoomBulkActionsBar({ selectedIds, onClearSelection, rooms = [] }
             <span className="ml-1">{t('bulkActions.clear')}</span>
           </Button>
         </div>
-
-        <div className="flex items-center gap-2">
           {/* Status change */}
           <Select
             value={selectedStatus}
-            onValueChange={(value) => handleStatusChange(value as RoomStatus)}
+            onValueChange={handleStatusChange}
             disabled={bulkUpdateStatus.isPending}
           >
-            <SelectTrigger className="w-[160px] bg-background">
+            <SelectTrigger className="w-[200px] bg-background">
               <RefreshCw className={`mr-2 h-4 w-4 ${bulkUpdateStatus.isPending ? 'animate-spin' : ''}`} />
               <SelectValue placeholder={t('bulkActions.changeStatus')} />
             </SelectTrigger>
             <SelectContent>
-              {statusKeys.map((statusKey) => (
-                <SelectItem key={statusKey} value={statusKey}>
-                  {t(`status.${statusKey}`)}
-                </SelectItem>
+              <SelectItem value={LIFT_OPTION_VALUE} className="font-medium text-emerald-700">
+                ↺ Gỡ DND / OOS · về Trống sạch
+              </SelectItem>
+              {STATUS_GROUPS.map((group) => (
+                <div key={group.label}>
+                  <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    {group.label}
+                  </div>
+                  {group.items.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </div>
               ))}
             </SelectContent>
+          </Select>
+
           </Select>
 
           {/* Request task button */}
