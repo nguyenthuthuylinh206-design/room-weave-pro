@@ -113,10 +113,28 @@ export function RoomFloorMapView({
   const { data, isLoading } = useFloorPlanLive()
   const [detailBookingId, setDetailBookingId] = useState<string | null>(null)
   const [bookingDialog, setBookingDialog] = useState<{ roomId: string; roomNumber: string } | null>(null)
+  const [auditDialog, setAuditDialog] = useState<{ roomId: string; roomNumber: string } | null>(null)
   const [typeFilter, setTypeFilter] = useState<string[]>([])
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [floorFilter, setFloorFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
+  const transitionRoom = useRoomTransition()
+
+  const handleLiftStatus = (e: React.MouseEvent, room: FloorPlanRoom) => {
+    e.stopPropagation()
+    if (!confirm(`Gỡ trạng thái "${room.status.toUpperCase()}" của phòng ${room.room_number}?\nPhòng sẽ chuyển về "Trống – đã dọn".`)) return
+    transitionRoom.mutate({
+      roomId: room.id,
+      toStatus: 'vacant_clean',
+      reason: `Gỡ thủ công từ sơ đồ phòng (was ${room.status})`,
+    })
+  }
+
+  const handleShowHistory = (e: React.MouseEvent, room: FloorPlanRoom) => {
+    e.stopPropagation()
+    setAuditDialog({ roomId: room.id, roomNumber: room.room_number })
+  }
+
 
   const { floors, totals, types, groupCounts } = useMemo(() => {
     const _floors = data ? Object.keys(data).sort((a, b) => parseInt(b) - parseInt(a)) : []
