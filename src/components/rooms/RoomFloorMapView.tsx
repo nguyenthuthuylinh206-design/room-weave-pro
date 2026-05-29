@@ -477,8 +477,10 @@ export function RoomFloorMapView({
                     </Tooltip>
                   )
                 })}
+              </div>
             </div>
           ))}
+
         </TooltipProvider>
       )}
 
