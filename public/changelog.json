@@ -1,6 +1,17 @@
 {
-  "current": "1.0.87",
+  "current": "1.0.88",
   "versions": [
+    {
+      "version": "1.0.88",
+      "releaseDate": "2026-05-29",
+      "title": "Tape chart — redesign sheet chi tiết booking (Command Bar)",
+      "changes": [
+        { "type": "improvement", "text": "Sheet booking: header gọn 1 dòng, số điện thoại tap-to-call, cảnh báo phòng bẩn/hỏng/còn nợ nổi bật" },
+        { "type": "improvement", "text": "Tài chính hiển thị TB/đêm, tách 'Còn phải thu' (đang lưu trú) vs 'Còn nợ' (đã trả phòng)" },
+        { "type": "improvement", "text": "Footer sticky với CTA chính theo trạng thái: Tiếp tục nhận phòng / Trả phòng / Thu tiền & trả phòng" }
+      ]
+    },
+
     {
       "version": "1.0.87",
       "releaseDate": "2026-05-29",
