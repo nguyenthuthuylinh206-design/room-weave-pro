@@ -1,6 +1,18 @@
 {
-  "current": "1.0.89",
+  "current": "1.0.90",
   "versions": [
+    {
+      "version": "1.0.90",
+      "releaseDate": "2026-05-29",
+      "title": "Tape chart sheet — tổ chức lại theo flow lễ tân",
+      "changes": [
+        { "type": "improvement", "text": "Đưa Tóm tắt nhanh (ngày nhận/trả + đêm) và 3 số tài chính cốt lõi (Tổng / Đã thu / Còn thu) lên đầu — lễ tân trả lời điện thoại không cần scroll" },
+        { "type": "improvement", "text": "Quick actions ngay trong sheet: Gọi khách, Mở phiếu booking, CTA chính theo trạng thái" },
+        { "type": "improvement", "text": "Ẩn các chi tiết phụ (breakdown tài chính, giấy tờ, CRM, lịch sử, ghi chú) vào mục Xem chi tiết — mở khi cần, tránh nhiễu" },
+        { "type": "fix", "text": "Lịch sử thay đổi: dịch action sang tiếng Việt (move → Đổi phòng, update → Cập nhật booking, price_change → Sửa giá...)" }
+      ]
+    },
+
     {
       "version": "1.0.89",
       "releaseDate": "2026-05-29",
