@@ -767,7 +767,7 @@ export function RoomTapeChart() {
                   return (
                     <div
                       key={vi.key}
-                      className="sticky left-0 z-10 flex items-center border-b border-t bg-muted/30 px-3 text-[11px] font-medium text-muted-foreground"
+                      className="sticky left-0 z-20 flex items-center border-b border-t bg-muted/30 px-3 text-[11px] font-medium text-muted-foreground"
                       style={{
                         position: 'absolute',
                         top: 0,
@@ -939,7 +939,7 @@ function Row({
       }}
     >
       <div
-        className="sticky left-0 z-[2] flex items-center gap-2 border-r bg-background px-3"
+        className="sticky left-0 z-20 flex items-center gap-2 border-r bg-background px-3"
         style={{ width: ROOM_COL_W, minWidth: ROOM_COL_W, height }}
       >
         <span

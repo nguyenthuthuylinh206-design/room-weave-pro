@@ -1,6 +1,14 @@
 {
-  "current": "1.0.84",
+  "current": "1.0.86",
   "versions": [
+    {
+      "version": "1.0.86",
+      "releaseDate": "2026-05-29",
+      "title": "Tape chart — sửa booking bar đè chữ cột phòng",
+      "changes": [
+        { "type": "fix", "text": "Cột phòng sticky (P101, Deluxe · Bẩn...) không còn bị bar booking đè khi cuộn ngang" }
+      ]
+    },
     {
       "version": "1.0.84",
       "releaseDate": "2026-05-28",
