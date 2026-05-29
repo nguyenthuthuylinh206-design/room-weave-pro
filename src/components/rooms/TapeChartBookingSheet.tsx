@@ -265,6 +265,96 @@ export function TapeChartBookingSheet({
                 )}
               </section>
 
+              {/* Giấy tờ / CCCD */}
+              <section className="border-b px-5 py-4">
+                <div className="mb-2 flex items-baseline justify-between">
+                  <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Giấy tờ
+                  </h3>
+                  {hasIdScan ? (
+                    <span className="flex items-center gap-1 text-[11px] font-medium text-emerald-700">
+                      <CheckCircle2 className="h-3 w-3" /> Đã scan
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-[11px] font-medium text-amber-700">
+                      <AlertCircle className="h-3 w-3" /> Chưa scan
+                    </span>
+                  )}
+                </div>
+                {hasIdScan ? (
+                  <div className="flex items-center gap-3 text-sm">
+                    {details?.guest_id_image_url ? (
+                      <a
+                        href={details.guest_id_image_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded border bg-muted"
+                      >
+                        <img
+                          src={details.guest_id_image_url}
+                          alt="Giấy tờ"
+                          className="h-full w-full object-cover"
+                        />
+                      </a>
+                    ) : (
+                      <div className="flex h-12 w-16 shrink-0 items-center justify-center rounded border bg-muted text-muted-foreground">
+                        <ImageIcon className="h-4 w-4" />
+                      </div>
+                    )}
+                    <div className="min-w-0 leading-tight">
+                      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                        {formatIdType(details?.guest_id_type)}
+                      </div>
+                      <div className="truncate font-mono text-sm">
+                        {details?.guest_id_number || '—'}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Yêu cầu khách xuất trình CCCD/Hộ chiếu để bổ sung vào hồ sơ.
+                  </p>
+                )}
+              </section>
+
+              {/* CRM khách */}
+              {crm && (
+                <section className="border-b px-5 py-4">
+                  <div className="mb-2 flex items-baseline justify-between">
+                    <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Hồ sơ khách
+                    </h3>
+                    {vip && (
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">
+                        {vip}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onOpenChange(false)
+                      navigate(`/guests/${crm.id}`)
+                    }}
+                    className="flex w-full items-center justify-between gap-2 rounded border px-3 py-2 text-left text-sm hover:bg-accent"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate font-medium">{crm.full_name}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {crm.total_stays} lượt lưu trú ·{' '}
+                        {formatCurrency(crm.total_spent || 0)}
+                        {crm.last_stay_date &&
+                          ` · Gần nhất ${format(
+                            parseISO(crm.last_stay_date),
+                            'dd/MM/yy',
+                          )}`}
+                      </div>
+                    </div>
+                    <Link2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </button>
+                </section>
+              )}
+
               {/* Tài chính */}
               <section className="border-b px-5 py-4">
                 <div className="mb-2 flex items-baseline justify-between">
@@ -277,15 +367,124 @@ export function TapeChartBookingSheet({
                 </div>
 
                 <div className="space-y-1 text-sm">
-                  {total > 0 && nights > 0 && (
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>Trung bình / đêm</span>
+                  {/* Tiền phòng */}
+                  {breakdown?.subtotal != null && breakdown.subtotal > 0 ? (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        Tiền phòng
+                        {breakdown.room_price
+                          ? ` (${formatCurrency(breakdown.room_price)} × ${nights}đ)`
+                          : ` (${nights} đêm)`}
+                      </span>
                       <span className="tabular-nums">
-                        {formatCurrency(Math.round(total / nights))}
+                        {formatCurrency(breakdown.subtotal)}
+                      </span>
+                    </div>
+                  ) : (
+                    total > 0 &&
+                    nights > 0 && (
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>Trung bình / đêm</span>
+                        <span className="tabular-nums">
+                          {formatCurrency(Math.round(total / nights))}
+                        </span>
+                      </div>
+                    )
+                  )}
+
+                  {/* Phụ thu */}
+                  {breakdown && breakdown.early_checkin_charge > 0 && (
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Phụ thu nhận sớm</span>
+                      <span className="tabular-nums">
+                        {formatCurrency(breakdown.early_checkin_charge)}
                       </span>
                     </div>
                   )}
-                  <div className="flex justify-between">
+                  {breakdown && breakdown.late_checkout_charge > 0 && (
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Phụ thu trả muộn</span>
+                      <span className="tabular-nums">
+                        {formatCurrency(breakdown.late_checkout_charge)}
+                      </span>
+                    </div>
+                  )}
+                  {breakdown && breakdown.extra_charges > 0 && (
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Phụ thu khác</span>
+                      <span className="tabular-nums">
+                        {formatCurrency(breakdown.extra_charges)}
+                      </span>
+                    </div>
+                  )}
+                  {breakdown && breakdown.damage_charges > 0 && (
+                    <div className="flex justify-between text-red-700">
+                      <span>Đền bù hư hỏng</span>
+                      <span className="tabular-nums">
+                        {formatCurrency(breakdown.damage_charges)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Dịch vụ */}
+                  {breakdown && breakdown.service_items.length > 0 && (
+                    <div className="pt-1">
+                      <div className="flex justify-between font-medium">
+                        <span>Dịch vụ ({breakdown.service_items.length})</span>
+                        <span className="tabular-nums">
+                          {formatCurrency(breakdown.service_items_total)}
+                        </span>
+                      </div>
+                      <ul className="mt-0.5 space-y-0.5 pl-3 text-[11px] text-muted-foreground">
+                        {breakdown.service_items.slice(0, 4).map((s) => (
+                          <li key={s.id} className="flex justify-between gap-2">
+                            <span className="truncate">
+                              {s.name} × {s.qty}
+                            </span>
+                            <span className="tabular-nums">
+                              {formatCurrency(s.total)}
+                            </span>
+                          </li>
+                        ))}
+                        {breakdown.service_items.length > 4 && (
+                          <li className="italic">
+                            … và {breakdown.service_items.length - 4} mục khác
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Minibar / tiêu hao tính tiền */}
+                  {breakdown && breakdown.minibar_items.length > 0 && (
+                    <div className="pt-1">
+                      <div className="flex justify-between font-medium">
+                        <span>Minibar ({breakdown.minibar_items.length})</span>
+                        <span className="tabular-nums">
+                          {formatCurrency(breakdown.minibar_items_total)}
+                        </span>
+                      </div>
+                      <ul className="mt-0.5 space-y-0.5 pl-3 text-[11px] text-muted-foreground">
+                        {breakdown.minibar_items.slice(0, 4).map((s) => (
+                          <li key={s.id} className="flex justify-between gap-2">
+                            <span className="truncate">
+                              {s.name} × {s.qty}
+                            </span>
+                            <span className="tabular-nums">
+                              {formatCurrency(s.total)}
+                            </span>
+                          </li>
+                        ))}
+                        {breakdown.minibar_items.length > 4 && (
+                          <li className="italic">
+                            … và {breakdown.minibar_items.length - 4} mục khác
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="mt-2 flex justify-between border-t pt-2">
                     <span className="text-muted-foreground">Đã cọc</span>
                     <span className="tabular-nums">{formatCurrency(deposit)}</span>
                   </div>
@@ -326,6 +525,40 @@ export function TapeChartBookingSheet({
                   </div>
                 )}
               </section>
+
+              {/* Lịch sử thay đổi */}
+              {details && details.history.length > 0 && (
+                <section className="border-b px-5 py-4">
+                  <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Lịch sử ({details.history.length})
+                  </h3>
+                  <ul className="space-y-1.5">
+                    {details.history.slice(0, 6).map((h) => (
+                      <li
+                        key={h.id}
+                        className="flex items-start gap-2 text-[11px] leading-snug"
+                      >
+                        <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-border" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex justify-between gap-2">
+                            <span className="font-medium text-foreground/90">
+                              {actionLabel(h.action)}
+                            </span>
+                            <span className="tabular-nums text-muted-foreground">
+                              {format(parseISO(h.created_at), 'dd/MM HH:mm')}
+                            </span>
+                          </div>
+                          {h.changed_fields && h.changed_fields.length > 0 && (
+                            <div className="truncate text-muted-foreground">
+                              {h.changed_fields.slice(0, 4).join(', ')}
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
 
               {/* Nhóm đặt phòng */}
               {groupBookings && groupBookings.length > 1 && (
