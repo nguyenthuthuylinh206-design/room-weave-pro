@@ -76,7 +76,7 @@ function formatArriveIn(checkInDate: string, time: string | null | undefined): s
 export function RoomFloorMapView() {
   const { t: _t } = useTranslation(['rooms'])
   const { selectedHotel } = useHotelContext()
-  const { user, role } = useUser()
+  const { role, tenantId } = useUser()
   const navigate = useNavigate()
   const { data, isLoading } = useFloorPlanLive()
   const [detailBookingId, setDetailBookingId] = useState<string | null>(null)
