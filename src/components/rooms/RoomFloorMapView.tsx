@@ -450,7 +450,6 @@ export function RoomFloorMapView({
         open={!!detailBookingId}
         onOpenChange={(v) => !v && setDetailBookingId(null)}
       />
-
       {/* Quick new booking */}
       {bookingDialog && selectedHotel && tenantId && (
         <RoomBookingDialog
@@ -461,6 +460,18 @@ export function RoomFloorMapView({
           hotelId={selectedHotel.id}
           tenantId={tenantId}
         />
+      )}
+
+      {/* Room audit log */}
+      {auditDialog && (
+        <RoomAuditLogDialog
+          open={!!auditDialog}
+          onOpenChange={(v) => !v && setAuditDialog(null)}
+          roomId={auditDialog.roomId}
+          roomNumber={auditDialog.roomNumber}
+        />
+      )}
+
       )}
     </div>
   )
