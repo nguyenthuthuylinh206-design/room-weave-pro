@@ -76,10 +76,9 @@ function formatArriveIn(checkInDate: string, time: string | null | undefined): s
 export function RoomFloorMapView() {
   const { t: _t } = useTranslation(['rooms'])
   const { selectedHotel } = useHotelContext()
-  const { user } = useUser()
+  const { user, role } = useUser()
   const navigate = useNavigate()
   const { data, isLoading } = useFloorPlanLive()
-  const { user, role } = useUser()
   const [detailBookingId, setDetailBookingId] = useState<string | null>(null)
   const [bookingDialog, setBookingDialog] = useState<{ roomId: string; roomNumber: string } | null>(null)
   const [typeFilter, setTypeFilter] = useState<string[]>([])
@@ -99,7 +98,7 @@ export function RoomFloorMapView() {
     return { floors: _floors, totals: _totals, types: Array.from(_types).sort() }
   }, [data])
 
-  const canBook = hasPermission(user, 'manage_bookings')
+  const canBook = hasPermission(role, 'manage_bookings')
 
   const handleRoomClick = (room: FloorPlanRoom) => {
     if (room.current_booking?.id) {
