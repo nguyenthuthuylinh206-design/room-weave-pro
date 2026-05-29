@@ -459,7 +459,7 @@ export function RoomFloorMapView({
                 <div className="text-sm font-semibold">Tầng {floor}</div>
                 <div className="text-xs text-muted-foreground">{rooms.length} phòng</div>
               </div>
-              <div className={cn('p-2 grid gap-2', cellSize.classes.grid)}>
+              <div className="p-2 grid gap-2" style={cellSize.classes.gridStyle}>
                 {rooms.map((room) => {
                   const bucket = getBucket(room)
                   const m = BUCKET_META[bucket]
