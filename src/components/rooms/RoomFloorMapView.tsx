@@ -98,7 +98,7 @@ export function RoomFloorMapView() {
     return { floors: _floors, totals: _totals, types: Array.from(_types).sort() }
   }, [data])
 
-  const canBook = hasPermission(role, 'manage_bookings')
+  const canBook = hasPermission(role, 'manage_rooms')
 
   const handleRoomClick = (room: FloorPlanRoom) => {
     if (room.current_booking?.id) {
