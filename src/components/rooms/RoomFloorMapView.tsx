@@ -369,25 +369,28 @@ export function RoomFloorMapView({
                 <div className="text-sm font-semibold">Tầng {floor}</div>
                 <div className="text-xs text-muted-foreground">{rooms.length} phòng</div>
               </div>
-              <div className="p-2 grid gap-1.5 grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-12">
+              <div className="p-2 grid gap-2 grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-12">
                 {rooms.map((room) => {
-                  const st = getStatusStyle(room.status)
+                  const bucket = getBucket(room)
+                  const m = BUCKET_META[bucket]
                   const dim = typeFilter.length > 0 && !typeFilter.includes(room.room_type)
                   const bk = room.current_booking
-                  const next = room.next_booking
-                  const showAsArriving = !bk && next
-                  const bgClass = showAsArriving ? 'bg-orange-500' : st.bg
-                  const guest = bk?.guest_name || next?.guest_name
-                  const guestCount = bk?.guest_count || next?.guest_count
-                  const chip = bk
-                    ? formatStayDuration(bk.actual_check_in || `${bk.check_in_date}T${(bk.expected_check_in_time || '14:00').slice(0, 5)}:00`)
-                    : next
-                    ? formatArriveIn(next.check_in_date, next.expected_check_in_time)
-                    : ''
-                  const gid = bk?.booking_group_id || next?.booking_group_id
+                  const gid = bk?.booking_group_id || room.next_booking?.booking_group_id
                   const showGroupRing = gid && (groupCounts[gid] || 0) > 1
                   const openTasks = room.open_tasks || 0
                   const canLift = LIFTABLE_STATUSES.has(room.status)
+
+                  // Countdown chỉ hiện khi sắp checkout (bucket due_out hoặc còn <12h)
+                  let countdown = ''
+                  if (bk?.check_out_date) {
+                    try {
+                      const t = (bk.expected_check_out_time || '12:00').slice(0, 5)
+                      const out = parseISO(`${bk.check_out_date}T${t}:00`)
+                      const hrs = differenceInHours(out, new Date())
+                      if (hrs < 0) countdown = 'Trễ'
+                      else if (hrs < 24) countdown = `${hrs}h`
+                    } catch {}
+                  }
 
                   return (
                     <Tooltip key={room.id}>
@@ -396,66 +399,78 @@ export function RoomFloorMapView({
                           type="button"
                           onClick={() => handleRoomClick(room)}
                           className={cn(
-                            'group relative flex h-20 flex-col items-stretch justify-between rounded-md border-l-[3px] p-1.5 text-left text-white shadow-sm transition-all hover:brightness-110 active:scale-95',
-                            bgClass,
-                            TYPE_BORDER[room.room_type] || 'border-l-white/40',
+                            'group relative flex h-24 flex-col items-center justify-between rounded-lg border-2 bg-card p-2 text-center transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-95',
+                            m.bg,
                             showGroupRing && cn('ring-2 ring-offset-1', ringForGroup(gid!)),
                             dim && 'opacity-30',
                           )}
+                          style={{ borderColor: 'transparent' }}
                         >
-                          {/* Service request dot */}
+                          {/* Service request badge */}
                           {openTasks > 0 && (
                             <span
-                              className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white shadow ring-1 ring-white"
+                              className="absolute -right-1.5 -top-1.5 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow ring-2 ring-card"
                               title={`${openTasks} việc cần làm`}
                             >
                               {openTasks}
                             </span>
                           )}
+
                           {/* Quick actions (hover) */}
-                          <span className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-1 rounded-b-md bg-black/45 py-0.5 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
+                          <span className="pointer-events-none absolute right-1 top-1 z-10 flex gap-0.5 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
                             {canLift && (
                               <button
                                 type="button"
                                 onClick={(e) => handleLiftStatus(e, room)}
                                 disabled={transitionRoom.isPending}
-                                className="rounded bg-emerald-500/90 px-1.5 py-0.5 text-[9px] font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+                                className="rounded bg-emerald-600 p-0.5 text-white shadow hover:bg-emerald-700 disabled:opacity-50"
                                 title="Gỡ DND/OOS · về Trống sạch"
                               >
-                                <Unlock className="inline h-2.5 w-2.5 mr-0.5" />Gỡ
+                                <Unlock className="h-3 w-3" />
                               </button>
                             )}
                             <button
                               type="button"
                               onClick={(e) => handleShowHistory(e, room)}
-                              className="rounded bg-white/20 px-1.5 py-0.5 text-[9px] font-semibold text-white hover:bg-white/30"
+                              className="rounded bg-slate-600 p-0.5 text-white shadow hover:bg-slate-700"
                               title="Lịch sử trạng thái"
                             >
-                              <History className="inline h-2.5 w-2.5 mr-0.5" />Sử
+                              <History className="h-3 w-3" />
                             </button>
                           </span>
-                          <div className="flex items-start justify-between gap-1">
-                            <span className="text-base font-bold leading-none">{room.room_number}</span>
-                            {chip && (
-                              <span className="shrink-0 rounded bg-white/25 px-1 py-0.5 text-[9px] font-medium leading-none">
-                                {chip}
-                              </span>
-                            )}
+
+                          {/* Số phòng to ở trên */}
+                          <div className="text-xl font-bold leading-none text-foreground">
+                            {room.room_number}
                           </div>
-                          {guest ? (
-                            <div className="truncate text-[10px] font-medium leading-tight">
-                              {guestCount ? `(${guestCount}) ` : ''}{guest.toUpperCase()}
+
+                          {/* Chấm màu lớn ở giữa — lễ tân chỉ nhìn màu */}
+                          <div className={cn('h-5 w-5 rounded-full shadow-sm', m.dot)} />
+
+                          {/* Dòng đáy: loại phòng HOẶC tên khách + countdown */}
+                          {bk?.guest_name ? (
+                            <div className="w-full leading-tight">
+                              <div className={cn('truncate text-[10px] font-semibold', m.text)}>
+                                {bk.guest_name.split(' ').slice(-1)[0]}
+                              </div>
+                              {countdown && (
+                                <div className={cn('text-[9px] font-bold', bucket === 'due_out' ? 'text-amber-700' : 'text-muted-foreground')}>
+                                  {bucket === 'due_out' ? `← ${countdown}` : countdown}
+                                </div>
+                              )}
                             </div>
                           ) : (
-                            <div className="text-[10px] opacity-80 leading-tight">{st.label}</div>
+                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground truncate w-full">
+                              {room.room_type}
+                            </div>
                           )}
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-xs">
                         <RoomTooltip
                           room={room}
-                          bk={bk || next}
-                          isArriving={!!showAsArriving}
+                          bk={bk || room.next_booking}
+                          isArriving={!bk && !!room.next_booking}
                           isGroup={!!showGroupRing}
                         />
                       </TooltipContent>
@@ -463,9 +478,7 @@ export function RoomFloorMapView({
                   )
                 })}
               </div>
-            </div>
-          ))}
-        </TooltipProvider>
+
       )}
 
 
