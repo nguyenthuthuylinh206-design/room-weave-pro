@@ -139,17 +139,13 @@ export function useFloorMapCellSize(hotelId?: string | null) {
   }, [setPreset])
 
   const classes = useMemo(() => {
-    const cols = size.cols
-    // Bỏ Tailwind class — dùng CSS variable + inline style trên container để chắc chắn
-    // grid hoạt động ở mọi cols (kể cả 14/16) và mọi viewport.
-    // Responsive: scale theo breakpoint qua minmax + auto-fill fallback.
-    const minCellPx = Math.max(64, Math.round(size.height * 0.9)) // tỉ lệ với chiều cao
+    // Min cell width tỉ lệ chiều cao (ô vuông-ish). Cell càng cao càng rộng.
+    const minCellPx = Math.max(72, Math.round(size.height * 0.85))
+    // auto-fill + minmax: tự co giãn theo container, ô càng to → cột càng ít. Cols slider gián
+    // tiếp ảnh hưởng qua việc tăng/giảm minCellPx nhẹ để gần với mục tiêu của user.
+    const targetMin = Math.round(minCellPx * (12 / Math.max(4, size.cols)))
     const gridStyle: React.CSSProperties = {
-      gridTemplateColumns: `repeat(auto-fill, minmax(${minCellPx}px, 1fr))`,
-    }
-    // Khi viewport đủ rộng, ép đúng số cột người dùng chọn (>= xl 1280px)
-    const gridStyleXL: React.CSSProperties = {
-      gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+      gridTemplateColumns: `repeat(auto-fill, minmax(${targetMin}px, 1fr))`,
     }
 
     // Font scale theo chiều cao ô
@@ -158,7 +154,7 @@ export function useFloorMapCellSize(hotelId?: string | null) {
     const labelCls = h >= 110 ? 'text-[11px]' : 'text-[10px]'
     const dotPx = h >= 120 ? 'h-6 w-6' : h >= 90 ? 'h-5 w-5' : 'h-4 w-4'
 
-    return { gridStyle, gridStyleXL, numberCls, labelCls, dotPx }
+    return { gridStyle, numberCls, labelCls, dotPx }
   }, [size])
 
   const summaryLabel = useMemo(() => {
