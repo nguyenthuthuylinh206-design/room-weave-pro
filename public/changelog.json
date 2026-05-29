@@ -1,6 +1,17 @@
 {
-  "current": "1.0.98",
+  "current": "1.0.99",
   "versions": [
+    {
+      "version": "1.0.99",
+      "releaseDate": "2026-05-29",
+      "title": "Sơ đồ phòng: tuỳ chỉnh kích thước ô phòng (Nhỏ / Vừa / Lớn / Tuỳ chỉnh)",
+      "changes": [
+        { "type": "feature", "text": "Thanh công cụ thêm 3 nút Nhỏ / Vừa / Lớn để thay đổi nhanh kích thước ô phòng + popover tuỳ chỉnh chiều cao (72–160px) và số cột (4–16)" },
+        { "type": "feature", "text": "Cài đặt lưu riêng theo từng khách sạn (localStorage), tự load lại khi đổi khách sạn hoặc reload trang" },
+        { "type": "feature", "text": "Phím tắt Ctrl/Cmd + + / - / 0 để tăng / giảm / reset kích thước ô (không trigger khi đang gõ trong ô tìm kiếm)" },
+        { "type": "improvement", "text": "Số phòng và chấm màu auto scale theo chiều cao ô — đọc rõ ở mọi cỡ từ TV đến laptop nhỏ" }
+      ]
+    },
     {
       "version": "1.0.98",
       "releaseDate": "2026-05-29",
