@@ -1,6 +1,18 @@
 {
-  "current": "1.0.88",
+  "current": "1.0.89",
   "versions": [
+    {
+      "version": "1.0.89",
+      "releaseDate": "2026-05-29",
+      "title": "Tape chart sheet — breakdown tài chính, CCCD, CRM khách & lịch sử",
+      "changes": [
+        { "type": "feature", "text": "Tài chính: hiển thị tiền phòng (giá × đêm), phụ thu nhận sớm/trả muộn/khác, đền bù hư hỏng, danh sách dịch vụ và minibar chi tiết" },
+        { "type": "feature", "text": "Mục Giấy tờ: trạng thái Đã scan / Chưa scan + preview ảnh CCCD/Hộ chiếu, cảnh báo bổ sung trước khi nhận phòng" },
+        { "type": "feature", "text": "Hồ sơ khách (CRM): match theo số CCCD hoặc SĐT, hiển thị VIP, số lượt lưu trú, tổng chi tiêu, lần gần nhất, mở thẳng sang trang khách" },
+        { "type": "feature", "text": "Lịch sử thay đổi: lấy 6 bản ghi mới nhất từ audit_log với hành động và trường thay đổi" }
+      ]
+    },
+
     {
       "version": "1.0.88",
       "releaseDate": "2026-05-29",
