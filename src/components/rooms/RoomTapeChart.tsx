@@ -718,11 +718,12 @@ export function RoomTapeChart() {
                 style={{ width: totalChartWidth + ROOM_COL_W, height: HEADER_H }}
               >
                 <div
-                  className="sticky left-0 z-40 flex items-center border-r bg-muted/40 px-3 text-xs font-medium text-muted-foreground"
+                  className="sticky left-0 z-40 flex items-center border-r bg-muted px-3 text-xs font-medium text-muted-foreground"
                   style={{ width: ROOM_COL_W, minWidth: ROOM_COL_W }}
                 >
                   Phòng
                 </div>
+
                 {Array.from({ length: days }).map((_, i) => {
                   const date = addDays(startDate, i)
                   const today = isToday(date)
@@ -766,8 +767,9 @@ export function RoomTapeChart() {
                 if (row.type === 'group') {
                   return (
                     <div
+
                       key={vi.key}
-                      className="sticky left-0 z-20 flex items-center border-b border-t bg-muted/30 px-3 text-[11px] font-medium text-muted-foreground"
+                      className="flex items-center border-b border-t bg-muted/30 text-[11px] font-medium text-muted-foreground"
                       style={{
                         position: 'absolute',
                         top: 0,
@@ -777,13 +779,19 @@ export function RoomTapeChart() {
                         transform: `translateY(${vi.start}px)`,
                       }}
                     >
-                      Tầng {row.group!.floor}{' '}
-                      <span className="ml-1 text-muted-foreground/70">
-                        ({row.group!.count} phòng)
-                      </span>
+                      <div
+                        className="sticky left-0 z-20 flex h-full items-center border-r bg-muted px-3"
+                        style={{ width: ROOM_COL_W, minWidth: ROOM_COL_W }}
+                      >
+                        Tầng {row.group!.floor}
+                        <span className="ml-1 text-muted-foreground/70">
+                          ({row.group!.count} phòng)
+                        </span>
+                      </div>
                     </div>
                   )
                 }
+
                 return (
                   <Row
                     key={vi.key}

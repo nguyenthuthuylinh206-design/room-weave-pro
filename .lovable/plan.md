@@ -1,40 +1,40 @@
-# Fix: Bar booking đè chữ cột phòng (P101, Deluxe · Bẩn...)
+## Mục tiêu
+Khi cuộn ngang trong Tape Chart, các ô ngày không được "xuyên" lên cột "Phòng" sticky bên trái.
 
 ## Nguyên nhân
-Trong `RoomTapeChart.tsx`:
-- Header sticky: `z-30` (góc trái `z-40`)
-- Cột phòng sticky của từng hàng: **`z-[2]`** (line 942)
-- Booking bar render: **`z-[3]`** (line 1090)
-- Block bar: `z-[1]`
+File `src/components/rooms/RoomTapeChart.tsx`:
+- L721: header cell "Phòng" dùng `bg-muted/40` (40% opacity)
+- L770: row group "Tầng X" dùng `bg-muted/30` (30% opacity), sticky `left-0` full width
 
-→ Khi cuộn ngang, các bar booking (z-3) đè lên cột phòng sticky (z-2) gây chồng chữ "P105 · Standard · Bẩn".
+Khi scroll ngang, ô ngày nằm cùng row, có z thấp hơn nhưng vẫn hiện xuyên qua phần nền bán trong suốt của cột Phòng.
 
-Ngoài ra row group header cũng chỉ `z-10` nhưng OK vì nằm trên hàng riêng.
+## Thay đổi
 
-## Thay đổi (chỉ UI, 1 file)
+### `src/components/rooms/RoomTapeChart.tsx`
 
-**`src/components/rooms/RoomTapeChart.tsx`**
+1. **Header "Phòng" (L720-725)**: thêm lớp nền opaque phía dưới
+   - Thay `bg-muted/40` → `bg-muted` (solid) + giữ `border-r border-b` để không lộ viền
 
-1. **Cột phòng sticky của từng row** (line 942): `z-[2]` → `z-20`
-   - Cao hơn bar (z-3), block (z-1), now-line (z-5)
-   - Vẫn thấp hơn header sticky (z-30) và corner (z-40)
+2. **Header date strip wrapper (L716-719)**: `bg-muted/40` giữ nguyên vì là phần header — không cần opaque (không bị che bởi gì cả). OK.
 
-2. **Row group header** (line 770): `z-10` → `z-20` để đồng bộ với cột phòng (header floor cũng cần che bar khi scroll).
+3. **Row group "Tầng X" (L768-784)**: hiện sticky `left-0` full width nền `bg-muted/30`. Tách thành 2 phần:
+   - Box sticky chỉ rộng `ROOM_COL_W` với `bg-background` (opaque) chứa text "Tầng X (n phòng)"
+   - Phần còn lại width = `days * cellW` nền `bg-muted/30` (cho đẹp)
+   
+   Hoặc đơn giản: giữ nguyên cấu trúc nhưng đổi nền sang `bg-muted` (opaque). Vì group header không cần thấy gì phía sau, opaque hoàn toàn ổn.
 
-3. **Đảm bảo bar không tràn vào vùng cột phòng**: Bar đã được render với `left = ROOM_COL_W + offset` nên về mặt toạ độ không tràn; vấn đề chỉ là z-index khi cột phòng sticky lướt qua bar lúc scroll ngang. Fix z-index là đủ.
+4. **Row room cell (L941-956)**: đã dùng `bg-background` (opaque) — OK, không sửa.
 
-4. **Thêm `bg-background` rõ ràng** cho cột phòng (đã có) — giữ nguyên, chỉ cần đảm bảo không có `bg-transparent` ở wrapper bên ngoài.
+### Version bump
+- `src/lib/app-version.ts`: `1.0.86` → `1.0.87`
+- `public/changelog.json`: thêm entry "Sửa overlap cột Phòng khi cuộn ngang Tape Chart"
 
-## Version
-- Bump `APP_VERSION` → `1.0.86`
-- Thêm entry `public/changelog.json`: "Sửa booking bar đè chữ cột phòng trong Tape Chart"
+## Files sửa
+- `src/components/rooms/RoomTapeChart.tsx` (2 dòng nền)
+- `src/lib/app-version.ts`
+- `public/changelog.json`
 
-## Test thủ công
-1. Mở `/rooms` → tab Sơ đồ
-2. Cuộn ngang sang trái/phải
-3. Xác nhận text "P101", "Deluxe · Bẩn"... luôn hiển thị rõ, không bị booking bar đè lên
-4. Header ngày vẫn nằm trên cùng, góc trái "Phòng" vẫn che cả header lẫn cột phòng
-
-## Không thay đổi
-- Không sửa logic, hook, RPC, schema
-- Không sửa kích thước cell, lane, layout
+## QA
+1. Mở `/rooms` → Tape Chart
+2. Cuộn ngang → text "Phòng" và "Tầng X" phải đứng rõ, không có chữ ngày xuyên qua
+3. Today highlight, weekend, holiday vẫn hiển thị đúng ở dải date header
