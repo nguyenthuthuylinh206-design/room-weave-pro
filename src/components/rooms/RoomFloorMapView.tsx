@@ -280,7 +280,6 @@ export function RoomFloorMapView() {
           tenantId={tenantId}
         />
       )}
-      )}
     </div>
   )
 }
