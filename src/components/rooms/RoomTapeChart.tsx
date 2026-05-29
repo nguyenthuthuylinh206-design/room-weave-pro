@@ -685,12 +685,13 @@ export function RoomTapeChart() {
 
       {/* Legend */}
       <div className="flex flex-wrap gap-x-4 gap-y-1 px-1 text-[11px] text-muted-foreground">
-        <LegendDot className="border-l-emerald-500 bg-emerald-50" label="Đã cọc đủ" />
-        <LegendDot className="border-l-amber-500 bg-amber-50" label="Cọc một phần" />
-        <LegendDot className="border-l-orange-500 bg-orange-50" label="Chưa cọc" />
-        <LegendDot className="border-l-blue-500 bg-blue-100" label="Đang lưu trú" />
-        <LegendDot className="border-l-slate-400 bg-slate-100" label="Đã trả phòng" />
-        <LegendDot className="border-l-red-500 bg-red-50" label="Còn nợ" />
+        <LegendDot className="border-l-emerald-700 bg-emerald-500" label="Đã cọc đủ" />
+        <LegendDot className="border-l-amber-700 bg-amber-500" label="Cọc một phần" />
+        <LegendDot className="border-l-orange-700 bg-orange-500" label="Chưa cọc" />
+        <LegendDot className="border-l-blue-700 bg-blue-500" label="Đang lưu trú" />
+        <LegendDot className="border-l-slate-600 bg-slate-400" label="Đã trả phòng" />
+        <LegendDot className="border-l-red-700 bg-red-500" label="Còn nợ" />
+
         <LegendDot className="border-l-slate-500 bg-[repeating-linear-gradient(45deg,#e2e8f0,#e2e8f0_4px,#cbd5e1_4px,#cbd5e1_6px)]" label="Phòng bị block" />
       </div>
 
@@ -1113,10 +1114,12 @@ function Row({
                         }}
                       >
                         {sourceBadge && (
-                          <span className="shrink-0 rounded bg-background/60 px-1 font-mono text-[9px] opacity-80">
+                          <span className="shrink-0 rounded bg-white/25 px-1 font-mono text-[9px] text-white">
                             {sourceBadge}
                           </span>
                         )}
+
+
                         <span className="truncate">{l.booking.guest_name}</span>
                         {l.booking.guest_count ? (
                           <span className="shrink-0 opacity-70">·{l.booking.guest_count}</span>

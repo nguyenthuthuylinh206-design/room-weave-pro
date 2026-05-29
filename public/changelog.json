@@ -1,6 +1,16 @@
 {
-  "current": "1.0.91",
+  "current": "1.0.92",
   "versions": [
+    {
+      "version": "1.0.92",
+      "releaseDate": "2026-05-29",
+      "title": "Tape chart — thanh booking đậm màu, dễ nhìn",
+      "changes": [
+        { "type": "improvement", "text": "Đổi nền thanh booking từ pastel sang màu đậm (500) chữ trắng — tương phản cao, nhìn rõ trên màn LCD lễ tân" },
+        { "type": "improvement", "text": "Cập nhật chú giải (legend) khớp màu mới: xanh dương đang lưu trú, xanh lá đã cọc đủ, vàng cọc một phần, cam chưa cọc, đỏ còn nợ, xám đã trả phòng" }
+      ]
+    },
+
     {
       "version": "1.0.91",
       "releaseDate": "2026-05-29",
