@@ -1,131 +1,81 @@
-
-# Nâng cấp Reception Quick Dialog — popup vận hành đầy đủ
-
 ## Mục tiêu
-Biến popup hiện tại (chỉ hiện vài dòng cơ bản) thành **trung tâm điều phối phòng 1-click**: lễ tân không cần rời sơ đồ phòng để xem booking/CCCD/tài chính/operations và thực hiện các thao tác phổ biến nhất.
 
-## Cấu trúc mới (1 popup, 3 tab + sticky footer)
+Cho phép người dùng tự điều chỉnh **kích thước ô phòng** trên màn `Sơ đồ phòng` (`/rooms?view=map`), để màn hình hiển thị dày đặc (xem nhiều phòng cùng lúc) hoặc thoáng hơn (đọc rõ thông tin). Cài đặt lưu local theo từng người dùng + từng khách sạn.
 
-```text
-┌──────────────────────────────────────────┐
-│ Phòng P102      Đang ở – đã dọn   [···] │  ← Header có menu Đổi trạng thái
-│ Deluxe · King · Tầng 1 · 28m²           │
-├──────────────────────────────────────────┤
-│ [Tổng quan] [Tài chính] [Vận hành]      │  ← Tabs
-├──────────────────────────────────────────┤
-│ (nội dung tab)                          │
-├──────────────────────────────────────────┤
-│ [Gia hạn] [Chuyển phòng] [Chi tiết →]   │  ← Sticky footer (đổi theo trạng thái)
-└──────────────────────────────────────────┘
-```
+## Phạm vi (chỉ frontend)
 
-### Tab 1 — Tổng quan
-**Phòng đang có khách:**
-- Khách: tên, SĐT (tap-to-call), email, số khách lớn/trẻ em, **VIP tag** (nếu có), quốc tịch
-- CCCD/Passport: số giấy tờ + thumbnail ảnh (mở lightbox), nút "Xem CRM" → mở guest detail
-- Booking meta: mã booking, nguồn (Walk-in/OTA/Direct), check-in thực tế, đêm đã ở / còn lại
-- Checkout countdown card (giữ nguyên design hiện tại)
-- Lịch sử: 2 lần lưu trú gần nhất tại hệ thống (tên ks + ngày)
+Chỉ chạm `RoomFloorMapView.tsx` và thêm 1 hook nhỏ. Không đổi RPC / schema / quyền.
 
-**Phòng trống:**
-- Giá đa kênh: card 3 cột Đêm / Giờ / Tháng + dòng nhỏ "Hôm nay là cuối tuần (+20%)" nếu match holiday/weekend
-- Tiện nghi: chip list từ `rooms.amenities` jsonb (View biển, Ban công, Bồn tắm, Smoking, Wifi...)
-- Mini-calendar 7 ngày: ô xanh = trống, ô đỏ = đã đặt (hover hiện tên khách)
-- Booking gần nhất: tên + ngày + nguồn
-- Banner cam "Sắp có khách lúc X" nếu next_booking < 24h (giữ)
+## A. UX
 
-### Tab 2 — Tài chính (chỉ hiện khi có booking)
-```text
-Tiền phòng              1.600.000 ₫
-Dịch vụ thêm              250.000 ₫   (3 mục)
-Minibar                    80.000 ₫   (2 mục)
-Phụ thu sớm/muộn          100.000 ₫
-─────────────────────────────────────
-Tạm tính                1.930.000 ₫
-Thuế GTGT (10%)           193.000 ₫
-─────────────────────────────────────
-Tổng tiền               2.123.000 ₫
-Đã cọc                   -500.000 ₫
-Đã thanh toán          -1.000.000 ₫
-─────────────────────────────────────
-CÒN PHẢI THU             623.000 ₫   ← đỏ nếu > 0
-Trạng thái: Đã cọc · Chờ thanh toán
-```
-- Mở rộng từng nhóm (services/minibar) để xem item list
-- Link nhỏ "Mở hoá đơn đầy đủ →" → `/bookings/:id?tab=invoice`
+Thêm 1 control nhỏ bên cạnh các nút thanh công cụ phía trên (gần ô Search / nút "Xoá lọc"):
 
-### Tab 3 — Vận hành
-- **Task đang mở**: list ngắn (HK + Maintenance) — title, priority dot, người được giao, "Xem →"
-- **Lần dọn cuối**: thời gian + nhân viên + điểm QC
-- **Minibar cần bổ sung**: nếu có item dưới chuẩn → list + nút "Tạo distribution order"
-- **Audit gần nhất**: 3 transition cuối của phòng (đã có hook `useRoomAuditLog`)
+- **Dropdown "Kích thước ô"** với 4 preset:
+  - `Nhỏ` (Compact) — nhiều phòng/dòng, ô vuông gọn
+  - `Vừa` (Default) — mặc định hiện tại
+  - `Lớn` — ô cao, chữ to, dễ đọc trên TV/màn lớn
+  - `Tuỳ chỉnh` — mở popover có **2 slider**: chiều cao ô (72–160px) và số cột tối đa (4–16)
+- Hiển thị mức zoom hiện tại dạng chữ nhỏ: "Vừa · 12 cột".
+- Phím tắt: `Ctrl/Cmd + +` / `-` để tăng/giảm preset; `0` về mặc định.
 
-## Sticky footer actions (đổi theo trạng thái)
+Mỗi preset map sang 2 thông số:
 
-**Phòng có khách:**
-- `[Gia hạn]` → mở `ExtendStayDialog` (đã có)
-- `[Chuyển phòng]` → mở `MoveRoomDialog` (mới — chọn phòng cùng loại đang trống)
-- `[Chi tiết booking →]` (giữ)
+| Preset | Chiều cao ô (h) | Cột (xl) | Font số phòng |
+|---|---|---|---|
+| Nhỏ | 80px | 16 | text-sm |
+| Vừa | 96px (h-24 hiện tại) | 12 | text-base |
+| Lớn | 128px | 8 | text-lg |
+| Tuỳ chỉnh | user chọn | user chọn | auto theo h |
 
-**Phòng trống:**
-- `[Đặt phòng]` (primary) + `[Checkin nhanh]` (giữ)
-- `[Tạo task]` → mở `QuickTaskDialog` chọn HK / Maintenance
+Responsive: số cột chỉ áp dụng ở breakpoint `xl`; các breakpoint nhỏ hơn co lại tỉ lệ (sm = ⌈cols/2⌉, md = ⌈cols·0.6⌉, lg = ⌈cols·0.75⌉).
 
-**Menu `[···]` ở header (mọi trạng thái):**
-- Đổi trạng thái: DND / OOS / Bảo trì / Gỡ về sạch (gọi `transition_room_status` RPC, đã có)
-- Tạo task HK
-- Tạo task Maintenance
-- Xem lịch sử phòng (audit log)
+## B. Persist
 
-## Technical
+- Key: `localStorage["rooms.floorMap.cellSize:" + hotelId]`
+- Schema: `{ preset: 'sm'|'md'|'lg'|'custom', height: number, cols: number }`
+- Đọc lúc mount, ghi khi đổi (debounce 300ms cho slider).
+- Đổi khách sạn → reload setting theo hotel mới.
 
-### Files mới
-- `src/components/rooms/ReceptionQuickDialog.tsx` (refactor lớn — tách tabs)
-- `src/components/rooms/reception-quick/OverviewTab.tsx`
-- `src/components/rooms/reception-quick/FinanceTab.tsx`
-- `src/components/rooms/reception-quick/OperationsTab.tsx`
-- `src/components/rooms/reception-quick/QuickStatusMenu.tsx` (dropdown header)
-- `src/components/rooms/reception-quick/MoveRoomDialog.tsx`
-- `src/components/rooms/reception-quick/QuickTaskDialog.tsx`
-- `src/hooks/useReceptionRoomDetail.ts` — 1 query gộp:
-  - `rooms` (amenities, view, bed, max_guests, floor, base/hourly/monthly price)
-  - `room_bookings` join `guests` (CCCD, VIP)
-  - `service_charges` + `minibar_consumption` của booking hiện tại
-  - `housekeeping_tasks` + `maintenance_requests` open
-  - 2 lần lưu trú gần nhất của guest (qua phone)
-  - Lịch 7 ngày tới (reuse `useRoomAvailability` nếu có)
+## C. Implementation
 
-### Reuse
-- `useRoomAuditLog`, `transition_room_status` RPC
-- `ExtendStayDialog` đã có ở `/bookings`
-- `getRoomStatusMeta`, `formatCurrency`, `useGuestByPhone`
+**File mới**
+- `src/hooks/useFloorMapCellSize.ts` — quản lý state + persist + 4 preset, expose `{ size, setPreset, setCustom, classes }`.
+  - `classes.grid` → string Tailwind cho `grid-cols-*` theo breakpoint (dùng `cn` + map cứng để tránh purge mất class)
+  - `classes.cell` → `h-[Npx]` inline style (vì cao tuỳ chỉnh) + font-size class
 
-### Refactor
-- Tách logic countdown & badge ra `lib/receptionFormat.ts` để reuse
-- Đổi `max-w-sm` → `max-w-lg` (desktop) / fullscreen sheet (mobile <768)
+**File sửa**
+- `src/components/rooms/RoomFloorMapView.tsx`
+  - Import & gọi hook
+  - Thêm component `<CellSizeControl />` inline trong thanh toolbar trên cùng (cạnh search/filter)
+  - Thay class cứng dòng 372: `grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-12` bằng `classes.grid`
+  - Thay `h-24` ở dòng 402 bằng `style={{ height: size.height }}` + class font theo size
+  - Thêm key listener cho phím tắt (chỉ khi không focus input)
 
-### Mới (RPC nhỏ, optional)
-- `get_room_reception_snapshot(p_room_id uuid)` — gộp toàn bộ query trên thành 1 RPC (giảm 5 round trip). Nếu không, dùng `Promise.all` ở client.
+**Lưu ý kỹ thuật**
+- Vì Tailwind cần class tĩnh, dùng **safelist map** trong hook:
+  ```ts
+  const COL_CLASSES: Record<number,string> = { 4:'xl:grid-cols-4', 6:'xl:grid-cols-6', 8:'xl:grid-cols-8', 10:'xl:grid-cols-10', 12:'xl:grid-cols-12', 14:'xl:grid-cols-14', 16:'xl:grid-cols-16' }
+  ```
+  Slider snap về các giá trị có trong map. (14/16 cần thêm vào `tailwind.config.ts` nếu chưa có.)
+- Chiều cao dùng inline `style.height` để hỗ trợ giá trị bất kỳ.
 
-## Permission
-- Tab Tài chính: ẩn nếu user không có `bookings.view_finance`
-- Action Gia hạn/Chuyển phòng: cần `bookings.update`
-- Đổi trạng thái DND/OOS: cần `rooms.update`
-- Tạo task: cần `housekeeping.create` hoặc `maintenance.create`
+## D. Test thủ công (QA checklist)
 
-## Mobile
-- < 640px: dùng `Sheet` (bottom-up) thay `Dialog`, tabs scroll ngang
-- Tap target ≥ 44px, footer sticky bám đáy
+1. Đổi preset Nhỏ/Vừa/Lớn → ô phòng resize ngay, layout không vỡ.
+2. Mở "Tuỳ chỉnh", kéo slider → ô resize realtime, không lag.
+3. Reload trang → giữ nguyên setting.
+4. Đổi sang khách sạn khác → load setting riêng của khách sạn đó.
+5. Phím tắt `Ctrl +/-/0` hoạt động, không trigger khi đang gõ trong ô Search.
+6. Responsive: thu nhỏ trình duyệt → grid vẫn đẹp ở `sm/md/lg`.
+7. Badge "việc cần làm", ring nhóm, countdown vẫn căn chỉnh đúng ở mọi cỡ.
 
-## QA checklist
-- Phòng vacant_clean → hiện giá + amenities + lịch 7 ngày
-- Phòng occupied có deposit + partial paid → financial tab tính đúng "còn phải thu"
-- Phòng có 2 HK task open → operations tab hiện 2 row
-- Tap `tel:` mở dialer trên iOS
-- Đổi DND → realtime invalidate floor-plan + đóng popup
-- Chuyển phòng: chỉ list phòng cùng loại, trạng thái sellable
-- Không có permission finance → tab Tài chính không render
+## E. Rollout
 
-## Rollout
-- Feature flag tạm thời `settings.reception.quick_dialog_v2` (default ON cho test hotel, sau 1 tuần bật toàn hệ thống)
-- Bump version 1.0.98 + changelog
+- Không cần feature flag — thay đổi cosmetic, fallback về preset Vừa nếu localStorage lỗi.
+- Bump version `1.0.99` + thêm entry `public/changelog.json`: "Sơ đồ phòng: cho phép tuỳ chỉnh kích thước ô phòng (Nhỏ/Vừa/Lớn/Tuỳ chỉnh) + phím tắt Ctrl +/-".
+
+## F. Phần KHÔNG làm (đề xuất sau)
+
+- Drag-resize trực tiếp trên ô (phức tạp, ít giá trị hơn preset).
+- Đồng bộ setting qua DB cho nhiều thiết bị — hiện local là đủ.
+- Tuỳ chỉnh layout từng tầng riêng — để sprint sau nếu có yêu cầu.

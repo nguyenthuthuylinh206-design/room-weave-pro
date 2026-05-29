@@ -24,7 +24,10 @@ import { useRoomTransition } from '@/hooks/useRoomTransition'
 import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNowStrict, parseISO, differenceInHours, format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { Search, Plus, FileSpreadsheet, History, Unlock } from 'lucide-react'
+import { Search, Plus, FileSpreadsheet, History, Unlock, Maximize2 } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Slider } from '@/components/ui/slider'
+import { useFloorMapCellSize } from '@/hooks/useFloorMapCellSize'
 
 // "Bucket" hiển thị cho lễ tân — gom 11 trạng thái nội bộ vào 5 nhóm dễ hiểu
 type ReceptionBucket = 'sellable' | 'due_out' | 'dirty' | 'occupied' | 'blocked'
@@ -148,6 +151,7 @@ export function RoomFloorMapView({
   const [floorFilter, setFloorFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
   const transitionRoom = useRoomTransition()
+  const cellSize = useFloorMapCellSize(selectedHotel?.id)
 
   const handleLiftStatus = (e: React.MouseEvent, room: FloorPlanRoom) => {
     e.stopPropagation()
@@ -353,6 +357,92 @@ export function RoomFloorMapView({
             Xoá lọc
           </Button>
         ) : null}
+
+        {/* Cell size control */}
+        <div className="ml-auto flex items-center gap-1">
+          <div className="hidden lg:flex items-center rounded-md border bg-background p-0.5">
+            {(['sm', 'md', 'lg'] as const).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => cellSize.setPreset(p)}
+                className={cn(
+                  'h-6 rounded px-2 text-[11px] font-medium transition-colors',
+                  cellSize.size.preset === p
+                    ? 'bg-foreground text-background'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+                title={p === 'sm' ? 'Nhỏ (Ctrl -)' : p === 'lg' ? 'Lớn (Ctrl +)' : 'Vừa (Ctrl 0)'}
+              >
+                {p === 'sm' ? 'Nhỏ' : p === 'lg' ? 'Lớn' : 'Vừa'}
+              </button>
+            ))}
+          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1.5 px-2 text-xs"
+                title="Tuỳ chỉnh kích thước ô phòng"
+              >
+                <Maximize2 className="h-3.5 w-3.5" />
+                <span className="hidden md:inline">{cellSize.summaryLabel}</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-72 space-y-4">
+              <div>
+                <div className="mb-2 text-xs font-semibold">Kích thước ô phòng</div>
+                <div className="grid grid-cols-3 gap-1">
+                  {(['sm', 'md', 'lg'] as const).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => cellSize.setPreset(p)}
+                      className={cn(
+                        'rounded-md border py-1.5 text-xs font-medium transition-colors',
+                        cellSize.size.preset === p
+                          ? 'border-foreground bg-foreground text-background'
+                          : 'hover:bg-muted',
+                      )}
+                    >
+                      {p === 'sm' ? 'Nhỏ' : p === 'lg' ? 'Lớn' : 'Vừa'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-muted-foreground">Chiều cao ô</span>
+                  <span className="font-mono font-medium">{cellSize.size.height}px</span>
+                </div>
+                <Slider
+                  min={72}
+                  max={160}
+                  step={4}
+                  value={[cellSize.size.height]}
+                  onValueChange={([v]) => cellSize.setCustom({ height: v })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-muted-foreground">Số cột (màn rộng)</span>
+                  <span className="font-mono font-medium">{cellSize.size.cols} cột</span>
+                </div>
+                <Slider
+                  min={4}
+                  max={16}
+                  step={2}
+                  value={[cellSize.size.cols]}
+                  onValueChange={([v]) => cellSize.setCustom({ cols: v })}
+                />
+              </div>
+              <div className="border-t pt-2 text-[10px] text-muted-foreground">
+                Phím tắt: <kbd className="rounded border px-1">Ctrl</kbd> + <kbd className="rounded border px-1">+</kbd> / <kbd className="rounded border px-1">-</kbd> / <kbd className="rounded border px-1">0</kbd>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
 
@@ -369,7 +459,7 @@ export function RoomFloorMapView({
                 <div className="text-sm font-semibold">Tầng {floor}</div>
                 <div className="text-xs text-muted-foreground">{rooms.length} phòng</div>
               </div>
-              <div className="p-2 grid gap-2 grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-12">
+              <div className={cn('p-2 grid gap-2', cellSize.classes.grid)}>
                 {rooms.map((room) => {
                   const bucket = getBucket(room)
                   const m = BUCKET_META[bucket]
@@ -399,12 +489,12 @@ export function RoomFloorMapView({
                           type="button"
                           onClick={() => handleRoomClick(room)}
                           className={cn(
-                            'group relative flex h-24 flex-col items-center justify-between rounded-lg border-2 bg-card p-2 text-center transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-95',
+                            'group relative flex flex-col items-center justify-between rounded-lg border-2 bg-card p-2 text-center transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-95',
                             m.bg,
                             showGroupRing && cn('ring-2 ring-offset-1', ringForGroup(gid!)),
                             dim && 'opacity-30',
                           )}
-                          style={{ borderColor: 'transparent' }}
+                          style={{ borderColor: 'transparent', height: cellSize.size.height }}
                         >
                           {/* Service request badge */}
                           {openTasks > 0 && (
@@ -440,12 +530,12 @@ export function RoomFloorMapView({
                           </span>
 
                           {/* Số phòng to ở trên */}
-                          <div className="text-xl font-bold leading-none text-foreground">
+                          <div className={cn('font-bold leading-none text-foreground', cellSize.classes.numberCls)}>
                             {room.room_number}
                           </div>
 
                           {/* Chấm màu lớn ở giữa — lễ tân chỉ nhìn màu */}
-                          <div className={cn('h-5 w-5 rounded-full shadow-sm', m.dot)} />
+                          <div className={cn('rounded-full shadow-sm', cellSize.classes.dotPx, m.dot)} />
 
                           {/* Dòng đáy: loại phòng HOẶC tên khách + countdown */}
                           {bk?.guest_name ? (
