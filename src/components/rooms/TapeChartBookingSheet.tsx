@@ -16,6 +16,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import { cn, formatCurrency } from '@/lib/utils'
+import { BookingDetailDialog } from '@/components/bookings/BookingDetailDialog'
 import type { TapeChartBooking, TapeChartRoom } from '@/hooks/useTapeChart'
 import {
   getBarColor,
@@ -153,11 +154,18 @@ export function TapeChartBookingSheet({
     return { label: 'Mở phiếu booking', emphasize: false }
   }, [booking, remaining])
 
-  const goDetail = () => {
-    if (!booking) return
-    onOpenChange(false)
-    navigate(`/bookings/${booking.id}`)
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [detailBookingId, setDetailBookingId] = useState<string | null>(null)
+
+  const openDetail = (id?: string) => {
+    const targetId = id ?? booking?.id
+    if (!targetId) return
+    setDetailBookingId(targetId)
+    setDetailOpen(true)
   }
+
+  const goDetail = () => openDetail()
+
 
   // Format ngày kiểu lễ tân: "T6 29/05 · 14:00"
   const fmtDateTime = (date: string, time?: string | null, fallback?: string) =>
