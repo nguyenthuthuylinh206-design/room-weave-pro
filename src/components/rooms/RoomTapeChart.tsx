@@ -939,7 +939,7 @@ function Row({
       }}
     >
       <div
-        className="sticky left-0 z-[2] flex items-center gap-2 border-r bg-background px-3"
+        className="sticky left-0 z-20 flex items-center gap-2 border-r bg-background px-3"
         style={{ width: ROOM_COL_W, minWidth: ROOM_COL_W, height }}
       >
         <span
