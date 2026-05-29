@@ -1,6 +1,20 @@
 {
-  "current": "1.0.93",
+  "current": "1.0.95",
   "versions": [
+    {
+      "version": "1.0.95",
+      "releaseDate": "2026-05-29",
+      "title": "Sơ đồ phòng & trải nghiệm — đợt nâng cấp #1–#6",
+      "changes": [
+        { "type": "feature", "text": "Sơ đồ phòng: thêm toolbar tìm số phòng, lọc theo trạng thái và tầng; cảnh báo công việc tồn đọng (housekeeping/maintenance) bằng chấm đỏ + số trên góc ô phòng" },
+        { "type": "feature", "text": "Sơ đồ phòng: viền màu nhóm cho các phòng cùng booking_group_id (>1 phòng) — giúp nhận diện nhóm đoàn nhanh" },
+        { "type": "improvement", "text": "RPC get_floor_plan_live: mở rộng cửa sổ 'sắp đến' từ 24h lên 48h (hỗ trợ ca đêm), bổ sung open_tasks/open_hk_tasks/open_maintenance, subscribe realtime thêm bảng housekeeping_tasks + maintenance_requests" },
+        { "type": "improvement", "text": "RoomsPage: lưu tab đang chọn qua ?view= + localStorage; Sơ đồ phòng có CTA 'Thêm phòng' và 'Import từ Excel' khi rỗng" },
+        { "type": "improvement", "text": "BookingDetailDialog: lazy-load + skeleton loading, mở popup nhanh và mượt hơn" },
+        { "type": "fix", "text": "RoomTapeChart: thay useIsMobile (deprecated) bằng useBreakpoint, hết cảnh báo console" }
+      ]
+    },
+    {
     {
       "version": "1.0.93",
       "releaseDate": "2026-05-29",
