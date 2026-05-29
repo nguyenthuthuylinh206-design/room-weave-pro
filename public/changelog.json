@@ -1,6 +1,22 @@
 {
-  "current": "1.0.96",
+  "current": "1.0.97",
   "versions": [
+    {
+      "version": "1.0.97",
+      "releaseDate": "2026-05-29",
+      "title": "Sơ đồ phòng → màn tác nghiệp Lễ tân (nhìn 3 giây, click đặt phòng)",
+      "changes": [
+        { "type": "feature", "text": "KPI bar 4 ô lớn ở đầu sơ đồ: 🟢 Bán được · 🟡 Checkout hôm nay · 🔴 Đang dọn · 🔵 Có khách — click để lọc tức thì" },
+        { "type": "feature", "text": "Ô phòng tối giản: số phòng to + chấm màu lớn ở giữa + loại phòng — lễ tân chỉ nhìn màu là biết, không cần đọc chữ" },
+        { "type": "feature", "text": "Click phòng trống → popup nhanh hiện giá hôm nay, sức chứa, tầng + 2 nút 'Đặt phòng' / 'Checkin nhanh' (5 giây từ điện thoại đến xong)" },
+        { "type": "feature", "text": "Click phòng có khách → popup tên khách, SĐT (bấm gọi), giờ checkout dự kiến + countdown 'Còn 3h' (xanh/cam/đỏ theo độ khẩn), nút mở chi tiết booking" },
+        { "type": "improvement", "text": "Gom 11 trạng thái nội bộ thành 5 nhóm nghiệp vụ (Bán được / Sắp trả / Đang dọn / Có khách / Khoá): đổi 'vacant_clean' thành 🟢 Bán được — ngôn ngữ lễ tân, không phải ngôn ngữ hệ thống" },
+        { "type": "improvement", "text": "Phòng có khách trên ô vẫn hiện họ khách và countdown giờ ra; phòng sắp trả (Checkout hôm nay) tự gán bucket riêng để lễ tân ưu tiên xử lý" }
+      ]
+    },
+
+    {
+
     {
       "version": "1.0.96",
       "releaseDate": "2026-05-29",

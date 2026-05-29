@@ -19,11 +19,39 @@ import { hasPermission } from '@/lib/permissions'
 import { BookingDetailDialog } from '@/components/bookings/BookingDetailDialog'
 import { RoomBookingDialog } from './RoomBookingDialog'
 import { RoomAuditLogDialog } from './RoomAuditLogDialog'
+import { ReceptionQuickDialog } from './ReceptionQuickDialog'
 import { useRoomTransition } from '@/hooks/useRoomTransition'
 import { useNavigate } from 'react-router-dom'
-import { formatDistanceToNowStrict, parseISO, differenceInHours } from 'date-fns'
+import { formatDistanceToNowStrict, parseISO, differenceInHours, format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { Search, Plus, FileSpreadsheet, History, Unlock } from 'lucide-react'
+
+// "Bucket" hiển thị cho lễ tân — gom 11 trạng thái nội bộ vào 5 nhóm dễ hiểu
+type ReceptionBucket = 'sellable' | 'due_out' | 'dirty' | 'occupied' | 'blocked'
+
+const BUCKET_META: Record<ReceptionBucket, { label: string; short: string; dot: string; ring: string; bg: string; text: string }> = {
+  sellable: { label: 'Bán được',        short: 'Bán được',   dot: 'bg-emerald-500', ring: 'ring-emerald-300', bg: 'bg-emerald-50',  text: 'text-emerald-700' },
+  due_out:  { label: 'Checkout hôm nay', short: 'Sắp trả',    dot: 'bg-amber-500',   ring: 'ring-amber-300',   bg: 'bg-amber-50',    text: 'text-amber-700' },
+  dirty:    { label: 'Đang dọn',         short: 'Đang dọn',   dot: 'bg-rose-500',    ring: 'ring-rose-300',    bg: 'bg-rose-50',     text: 'text-rose-700' },
+  occupied: { label: 'Có khách',         short: 'Có khách',   dot: 'bg-sky-500',     ring: 'ring-sky-300',     bg: 'bg-sky-50',      text: 'text-sky-700' },
+  blocked:  { label: 'Khoá / Bảo trì',   short: 'Khoá',       dot: 'bg-slate-500',   ring: 'ring-slate-300',   bg: 'bg-slate-50',    text: 'text-slate-700' },
+}
+
+function getBucket(room: FloorPlanRoom): ReceptionBucket {
+  const s = room.status
+  if (s === 'out_of_order' || s === 'out_of_service' || s === 'dnd' || s === 'skipper') return 'blocked'
+  if (s === 'vacant_dirty' || s === 'occupied_dirty' || s === 'cleaning') return 'dirty'
+  // Occupied bucket: có booking hiện tại
+  if (room.current_booking) {
+    const today = format(new Date(), 'yyyy-MM-dd')
+    if (room.current_booking.check_out_date === today) return 'due_out'
+    return 'occupied'
+  }
+  if (s === 'occupied' || s === 'occupied_clean') return 'occupied'
+  // Còn lại: trống sạch / đã QC / vacant / reserved → bán được
+  return 'sellable'
+}
+
 
 const LIFTABLE_STATUSES = new Set(['dnd', 'out_of_service', 'out_of_order'])
 
@@ -114,8 +142,9 @@ export function RoomFloorMapView({
   const [detailBookingId, setDetailBookingId] = useState<string | null>(null)
   const [bookingDialog, setBookingDialog] = useState<{ roomId: string; roomNumber: string } | null>(null)
   const [auditDialog, setAuditDialog] = useState<{ roomId: string; roomNumber: string } | null>(null)
+  const [quickRoom, setQuickRoom] = useState<FloorPlanRoom | null>(null)
   const [typeFilter, setTypeFilter] = useState<string[]>([])
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [bucketFilter, setBucketFilter] = useState<ReceptionBucket | 'all'>('all')
   const [floorFilter, setFloorFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
   const transitionRoom = useRoomTransition()
@@ -135,16 +164,15 @@ export function RoomFloorMapView({
     setAuditDialog({ roomId: room.id, roomNumber: room.room_number })
   }
 
-
-  const { floors, totals, types, groupCounts } = useMemo(() => {
+  const { floors, bucketCounts, types, groupCounts } = useMemo(() => {
     const _floors = data ? Object.keys(data).sort((a, b) => parseInt(b) - parseInt(a)) : []
-    const _totals: Record<string, number> = {}
+    const _bucketCounts: Record<ReceptionBucket, number> = { sellable: 0, due_out: 0, dirty: 0, occupied: 0, blocked: 0 }
     const _types = new Set<string>()
     const _groupCounts: Record<string, number> = {}
     if (data) {
       for (const f of _floors) {
         for (const r of data[f]) {
-          _totals[r.status] = (_totals[r.status] || 0) + 1
+          _bucketCounts[getBucket(r)] += 1
           if (r.room_type) _types.add(r.room_type)
           const gid = r.current_booking?.booking_group_id || r.next_booking?.booking_group_id
           if (gid) _groupCounts[gid] = (_groupCounts[gid] || 0) + 1
@@ -153,7 +181,7 @@ export function RoomFloorMapView({
     }
     return {
       floors: _floors,
-      totals: _totals,
+      bucketCounts: _bucketCounts,
       types: Array.from(_types).sort(),
       groupCounts: _groupCounts,
     }
@@ -161,21 +189,12 @@ export function RoomFloorMapView({
 
   const canBook = hasPermission(role, 'manage_rooms')
 
+  // Click phòng → mở Reception Quick Dialog cho mọi trạng thái.
+  // Dialog sẽ render khác nhau dựa trên có booking hay không.
   const handleRoomClick = (room: FloorPlanRoom) => {
-    if (room.current_booking?.id) {
-      setDetailBookingId(room.current_booking.id)
-      return
-    }
-    if (room.next_booking?.id) {
-      setDetailBookingId(room.next_booking.id)
-      return
-    }
-    if ((room.status === 'available' || room.status === 'vacant') && canBook && selectedHotel) {
-      setBookingDialog({ roomId: room.id, roomNumber: room.room_number })
-      return
-    }
-    navigate(`/rooms/${room.id}`)
+    setQuickRoom(room)
   }
+
 
   if (isLoading) {
     return (
@@ -216,27 +235,70 @@ export function RoomFloorMapView({
     )
   }
 
-  const statusKeys = Object.keys(totals).sort()
   const allFloorNums = floors.slice()
 
-  // Áp filter floor + search + status
+  // Áp filter floor + search + bucket
   const visibleFloors = floors
     .filter((f) => floorFilter === 'all' || f === floorFilter)
     .map((f) => ({
       floor: f,
       rooms: data![f].filter((r) => {
-        if (statusFilter !== 'all' && r.status !== statusFilter) return false
+        if (bucketFilter !== 'all' && getBucket(r) !== bucketFilter) return false
         if (search.trim() && !r.room_number.toLowerCase().includes(search.trim().toLowerCase())) return false
         return true
       }),
     }))
     .filter((g) => g.rooms.length > 0)
 
+  // 4 KPI chính cho lễ tân — Khoá/bảo trì gom vào "Khác"
+  const KPI_ORDER: ReceptionBucket[] = ['sellable', 'due_out', 'dirty', 'occupied']
+
   return (
     <div className="space-y-3">
-      {/* Toolbar: search + filters */}
+      {/* === KPI BAR — Lễ tân nhìn 3 giây là biết còn phòng nào để bán === */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        {KPI_ORDER.map((b) => {
+          const m = BUCKET_META[b]
+          const active = bucketFilter === b
+          const count = bucketCounts[b]
+          return (
+            <button
+              key={b}
+              type="button"
+              onClick={() => setBucketFilter(active ? 'all' : b)}
+              className={cn(
+                'flex items-center gap-3 rounded-lg border bg-card px-4 py-3 text-left transition-all hover:shadow-sm',
+                active && `ring-2 ${m.ring} ${m.bg}`,
+              )}
+            >
+              <span className={cn('inline-block h-4 w-4 rounded-full shrink-0', m.dot)} />
+              <div className="flex-1 min-w-0">
+                <div className="text-xs text-muted-foreground truncate">{m.label}</div>
+                <div className={cn('text-2xl font-bold leading-tight', m.text)}>{count}</div>
+              </div>
+              <div className="text-[10px] text-muted-foreground self-end">phòng</div>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Hàng thứ cấp: Khoá/Bảo trì + Toolbar filter */}
       <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-2">
-        <div className="relative flex-1 min-w-[180px]">
+        {bucketCounts.blocked > 0 && (
+          <button
+            type="button"
+            onClick={() => setBucketFilter(bucketFilter === 'blocked' ? 'all' : 'blocked')}
+            className={cn(
+              'flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs hover:bg-muted',
+              bucketFilter === 'blocked' && `ring-2 ${BUCKET_META.blocked.ring}`,
+            )}
+          >
+            <span className={cn('inline-block h-2.5 w-2.5 rounded-full', BUCKET_META.blocked.dot)} />
+            <span className="font-medium">{BUCKET_META.blocked.label}</span>
+            <span className="text-muted-foreground">{bucketCounts.blocked}</span>
+          </button>
+        )}
+        <div className="relative flex-1 min-w-[160px]">
           <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
@@ -245,19 +307,6 @@ export function RoomFloorMapView({
             className="h-8 pl-7 text-sm"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="h-8 w-[140px] text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tất cả trạng thái</SelectItem>
-            {statusKeys.map((s) => (
-              <SelectItem key={s} value={s}>
-                {getStatusStyle(s).label} ({totals[s]})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
         <Select value={floorFilter} onValueChange={setFloorFilter}>
           <SelectTrigger className="h-8 w-[110px] text-xs">
             <SelectValue />
@@ -269,14 +318,34 @@ export function RoomFloorMapView({
             ))}
           </SelectContent>
         </Select>
-        {(search || statusFilter !== 'all' || floorFilter !== 'all' || typeFilter.length) ? (
+        {types.length > 1 && types.map((tp) => {
+          const active = typeFilter.length === 0 || typeFilter.includes(tp)
+          return (
+            <button
+              key={tp}
+              type="button"
+              onClick={() =>
+                setTypeFilter((prev) =>
+                  prev.includes(tp) ? prev.filter((x) => x !== tp) : [...prev, tp],
+                )
+              }
+              className={cn(
+                'h-7 rounded border px-2 text-[11px] font-medium transition-colors',
+                active ? 'bg-foreground text-background' : 'bg-background text-muted-foreground',
+              )}
+            >
+              {tp}
+            </button>
+          )
+        })}
+        {(search || bucketFilter !== 'all' || floorFilter !== 'all' || typeFilter.length) ? (
           <Button
             size="sm"
             variant="ghost"
-            className="h-8 px-2 text-xs"
+            className="h-7 px-2 text-xs"
             onClick={() => {
               setSearch('')
-              setStatusFilter('all')
+              setBucketFilter('all')
               setFloorFilter('all')
               setTypeFilter([])
             }}
@@ -286,50 +355,6 @@ export function RoomFloorMapView({
         ) : null}
       </div>
 
-      {/* Legend + type filter */}
-      <div className="rounded-lg border bg-card p-3">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          {statusKeys.map((s) => {
-            const st = getStatusStyle(s)
-            return (
-              <div key={s} className="flex items-center gap-1.5 text-xs">
-                <span className={cn('inline-block h-3 w-3 rounded', st.bg)} />
-                <span className={cn('font-medium', st.textCls)}>{st.label}</span>
-                <span className="text-muted-foreground">({totals[s]})</span>
-              </div>
-            )
-          })}
-          <div className="flex items-center gap-1.5 text-xs">
-            <span className="inline-block h-2 w-2 rounded-full bg-red-500" />
-            <span className="text-muted-foreground">Có việc cần làm</span>
-          </div>
-        </div>
-        {types.length > 1 && (
-          <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t pt-2">
-            <span className="text-xs text-muted-foreground mr-1">Loại:</span>
-            {types.map((tp) => {
-              const active = typeFilter.length === 0 || typeFilter.includes(tp)
-              return (
-                <button
-                  key={tp}
-                  type="button"
-                  onClick={() =>
-                    setTypeFilter((prev) =>
-                      prev.includes(tp) ? prev.filter((x) => x !== tp) : [...prev, tp],
-                    )
-                  }
-                  className={cn(
-                    'h-6 rounded border px-2 text-[11px] font-medium transition-colors',
-                    active ? 'bg-foreground text-background' : 'bg-background text-muted-foreground',
-                  )}
-                >
-                  {tp}
-                </button>
-              )
-            })}
-          </div>
-        )}
-      </div>
 
       {/* Floor panels */}
       {visibleFloors.length === 0 ? (
@@ -344,25 +369,28 @@ export function RoomFloorMapView({
                 <div className="text-sm font-semibold">Tầng {floor}</div>
                 <div className="text-xs text-muted-foreground">{rooms.length} phòng</div>
               </div>
-              <div className="p-2 grid gap-1.5 grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-12">
+              <div className="p-2 grid gap-2 grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-12">
                 {rooms.map((room) => {
-                  const st = getStatusStyle(room.status)
+                  const bucket = getBucket(room)
+                  const m = BUCKET_META[bucket]
                   const dim = typeFilter.length > 0 && !typeFilter.includes(room.room_type)
                   const bk = room.current_booking
-                  const next = room.next_booking
-                  const showAsArriving = !bk && next
-                  const bgClass = showAsArriving ? 'bg-orange-500' : st.bg
-                  const guest = bk?.guest_name || next?.guest_name
-                  const guestCount = bk?.guest_count || next?.guest_count
-                  const chip = bk
-                    ? formatStayDuration(bk.actual_check_in || `${bk.check_in_date}T${(bk.expected_check_in_time || '14:00').slice(0, 5)}:00`)
-                    : next
-                    ? formatArriveIn(next.check_in_date, next.expected_check_in_time)
-                    : ''
-                  const gid = bk?.booking_group_id || next?.booking_group_id
+                  const gid = bk?.booking_group_id || room.next_booking?.booking_group_id
                   const showGroupRing = gid && (groupCounts[gid] || 0) > 1
                   const openTasks = room.open_tasks || 0
                   const canLift = LIFTABLE_STATUSES.has(room.status)
+
+                  // Countdown chỉ hiện khi sắp checkout (bucket due_out hoặc còn <12h)
+                  let countdown = ''
+                  if (bk?.check_out_date) {
+                    try {
+                      const t = (bk.expected_check_out_time || '12:00').slice(0, 5)
+                      const out = parseISO(`${bk.check_out_date}T${t}:00`)
+                      const hrs = differenceInHours(out, new Date())
+                      if (hrs < 0) countdown = 'Trễ'
+                      else if (hrs < 24) countdown = `${hrs}h`
+                    } catch {}
+                  }
 
                   return (
                     <Tooltip key={room.id}>
@@ -371,66 +399,78 @@ export function RoomFloorMapView({
                           type="button"
                           onClick={() => handleRoomClick(room)}
                           className={cn(
-                            'group relative flex h-20 flex-col items-stretch justify-between rounded-md border-l-[3px] p-1.5 text-left text-white shadow-sm transition-all hover:brightness-110 active:scale-95',
-                            bgClass,
-                            TYPE_BORDER[room.room_type] || 'border-l-white/40',
+                            'group relative flex h-24 flex-col items-center justify-between rounded-lg border-2 bg-card p-2 text-center transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-95',
+                            m.bg,
                             showGroupRing && cn('ring-2 ring-offset-1', ringForGroup(gid!)),
                             dim && 'opacity-30',
                           )}
+                          style={{ borderColor: 'transparent' }}
                         >
-                          {/* Service request dot */}
+                          {/* Service request badge */}
                           {openTasks > 0 && (
                             <span
-                              className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white shadow ring-1 ring-white"
+                              className="absolute -right-1.5 -top-1.5 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow ring-2 ring-card"
                               title={`${openTasks} việc cần làm`}
                             >
                               {openTasks}
                             </span>
                           )}
+
                           {/* Quick actions (hover) */}
-                          <span className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-1 rounded-b-md bg-black/45 py-0.5 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
+                          <span className="pointer-events-none absolute right-1 top-1 z-10 flex gap-0.5 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
                             {canLift && (
                               <button
                                 type="button"
                                 onClick={(e) => handleLiftStatus(e, room)}
                                 disabled={transitionRoom.isPending}
-                                className="rounded bg-emerald-500/90 px-1.5 py-0.5 text-[9px] font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+                                className="rounded bg-emerald-600 p-0.5 text-white shadow hover:bg-emerald-700 disabled:opacity-50"
                                 title="Gỡ DND/OOS · về Trống sạch"
                               >
-                                <Unlock className="inline h-2.5 w-2.5 mr-0.5" />Gỡ
+                                <Unlock className="h-3 w-3" />
                               </button>
                             )}
                             <button
                               type="button"
                               onClick={(e) => handleShowHistory(e, room)}
-                              className="rounded bg-white/20 px-1.5 py-0.5 text-[9px] font-semibold text-white hover:bg-white/30"
+                              className="rounded bg-slate-600 p-0.5 text-white shadow hover:bg-slate-700"
                               title="Lịch sử trạng thái"
                             >
-                              <History className="inline h-2.5 w-2.5 mr-0.5" />Sử
+                              <History className="h-3 w-3" />
                             </button>
                           </span>
-                          <div className="flex items-start justify-between gap-1">
-                            <span className="text-base font-bold leading-none">{room.room_number}</span>
-                            {chip && (
-                              <span className="shrink-0 rounded bg-white/25 px-1 py-0.5 text-[9px] font-medium leading-none">
-                                {chip}
-                              </span>
-                            )}
+
+                          {/* Số phòng to ở trên */}
+                          <div className="text-xl font-bold leading-none text-foreground">
+                            {room.room_number}
                           </div>
-                          {guest ? (
-                            <div className="truncate text-[10px] font-medium leading-tight">
-                              {guestCount ? `(${guestCount}) ` : ''}{guest.toUpperCase()}
+
+                          {/* Chấm màu lớn ở giữa — lễ tân chỉ nhìn màu */}
+                          <div className={cn('h-5 w-5 rounded-full shadow-sm', m.dot)} />
+
+                          {/* Dòng đáy: loại phòng HOẶC tên khách + countdown */}
+                          {bk?.guest_name ? (
+                            <div className="w-full leading-tight">
+                              <div className={cn('truncate text-[10px] font-semibold', m.text)}>
+                                {bk.guest_name.split(' ').slice(-1)[0]}
+                              </div>
+                              {countdown && (
+                                <div className={cn('text-[9px] font-bold', bucket === 'due_out' ? 'text-amber-700' : 'text-muted-foreground')}>
+                                  {bucket === 'due_out' ? `← ${countdown}` : countdown}
+                                </div>
+                              )}
                             </div>
                           ) : (
-                            <div className="text-[10px] opacity-80 leading-tight">{st.label}</div>
+                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground truncate w-full">
+                              {room.room_type}
+                            </div>
                           )}
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-xs">
                         <RoomTooltip
                           room={room}
-                          bk={bk || next}
-                          isArriving={!!showAsArriving}
+                          bk={bk || room.next_booking}
+                          isArriving={!bk && !!room.next_booking}
                           isGroup={!!showGroupRing}
                         />
                       </TooltipContent>
@@ -440,8 +480,10 @@ export function RoomFloorMapView({
               </div>
             </div>
           ))}
+
         </TooltipProvider>
       )}
+
 
 
       {/* Booking detail popup */}
@@ -472,8 +514,16 @@ export function RoomFloorMapView({
         />
       )}
 
-
+      {/* Reception quick action popup — focus của lễ tân */}
+      <ReceptionQuickDialog
+        open={!!quickRoom}
+        onOpenChange={(v) => !v && setQuickRoom(null)}
+        room={quickRoom}
+        onBookRoom={(roomId, roomNumber) => setBookingDialog({ roomId, roomNumber })}
+        onOpenBookingDetail={(bookingId) => setDetailBookingId(bookingId)}
+      />
     </div>
+
   )
 }
 
