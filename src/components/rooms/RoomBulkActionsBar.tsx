@@ -38,15 +38,37 @@ interface RoomBulkActionsBarProps {
   rooms?: RoomInfo[]
 }
 
-const statusKeys: RoomStatus[] = [
-  'vacant',
-  'occupied', 
-  'cleaning',
-  'maintenance',
-  'out_of_order',
-  'check_in',
-  'check_out',
+/**
+ * Bulk statuses chia thành 2 nhóm hiển thị trong Select:
+ * - Vận hành thường nhật (sạch / bẩn / cần dọn)
+ * - Trạng thái đặc biệt (DND, OOO, OOS, ...)
+ * Bao gồm option đặc biệt "lift_to_vacant_clean" để Gỡ DND/OOS hàng loạt.
+ */
+const STATUS_GROUPS: Array<{ label: string; items: Array<{ value: RoomStatus; label: string }> }> = [
+  {
+    label: 'Vận hành',
+    items: [
+      { value: 'vacant_clean', label: 'Trống – đã dọn' },
+      { value: 'vacant_inspected', label: 'Trống – đã QC' },
+      { value: 'vacant_dirty', label: 'Trống – chưa dọn' },
+      { value: 'occupied_dirty', label: 'Đang ở – cần dọn' },
+      { value: 'occupied_clean', label: 'Đang ở – đã dọn' },
+    ],
+  },
+  {
+    label: 'Đặc biệt',
+    items: [
+      { value: 'dnd', label: 'Không làm phiền (DND)' },
+      { value: 'service_refused', label: 'Khách từ chối dọn' },
+      { value: 'sleep_out', label: 'Khách ngủ ngoài' },
+      { value: 'out_of_order', label: 'Phòng hỏng (OOO)' },
+      { value: 'out_of_service', label: 'Tạm ngừng (OOS)' },
+    ],
+  },
 ]
+
+const LIFT_OPTION_VALUE = '__lift_to_vacant_clean__'
+
 
 export function RoomBulkActionsBar({ selectedIds, onClearSelection, rooms = [] }: RoomBulkActionsBarProps) {
   const { t } = useTranslation('rooms')
