@@ -235,27 +235,70 @@ export function RoomFloorMapView({
     )
   }
 
-  const statusKeys = Object.keys(totals).sort()
   const allFloorNums = floors.slice()
 
-  // Áp filter floor + search + status
+  // Áp filter floor + search + bucket
   const visibleFloors = floors
     .filter((f) => floorFilter === 'all' || f === floorFilter)
     .map((f) => ({
       floor: f,
       rooms: data![f].filter((r) => {
-        if (statusFilter !== 'all' && r.status !== statusFilter) return false
+        if (bucketFilter !== 'all' && getBucket(r) !== bucketFilter) return false
         if (search.trim() && !r.room_number.toLowerCase().includes(search.trim().toLowerCase())) return false
         return true
       }),
     }))
     .filter((g) => g.rooms.length > 0)
 
+  // 4 KPI chính cho lễ tân — Khoá/bảo trì gom vào "Khác"
+  const KPI_ORDER: ReceptionBucket[] = ['sellable', 'due_out', 'dirty', 'occupied']
+
   return (
     <div className="space-y-3">
-      {/* Toolbar: search + filters */}
+      {/* === KPI BAR — Lễ tân nhìn 3 giây là biết còn phòng nào để bán === */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        {KPI_ORDER.map((b) => {
+          const m = BUCKET_META[b]
+          const active = bucketFilter === b
+          const count = bucketCounts[b]
+          return (
+            <button
+              key={b}
+              type="button"
+              onClick={() => setBucketFilter(active ? 'all' : b)}
+              className={cn(
+                'flex items-center gap-3 rounded-lg border bg-card px-4 py-3 text-left transition-all hover:shadow-sm',
+                active && `ring-2 ${m.ring} ${m.bg}`,
+              )}
+            >
+              <span className={cn('inline-block h-4 w-4 rounded-full shrink-0', m.dot)} />
+              <div className="flex-1 min-w-0">
+                <div className="text-xs text-muted-foreground truncate">{m.label}</div>
+                <div className={cn('text-2xl font-bold leading-tight', m.text)}>{count}</div>
+              </div>
+              <div className="text-[10px] text-muted-foreground self-end">phòng</div>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Hàng thứ cấp: Khoá/Bảo trì + Toolbar filter */}
       <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-2">
-        <div className="relative flex-1 min-w-[180px]">
+        {bucketCounts.blocked > 0 && (
+          <button
+            type="button"
+            onClick={() => setBucketFilter(bucketFilter === 'blocked' ? 'all' : 'blocked')}
+            className={cn(
+              'flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs hover:bg-muted',
+              bucketFilter === 'blocked' && `ring-2 ${BUCKET_META.blocked.ring}`,
+            )}
+          >
+            <span className={cn('inline-block h-2.5 w-2.5 rounded-full', BUCKET_META.blocked.dot)} />
+            <span className="font-medium">{BUCKET_META.blocked.label}</span>
+            <span className="text-muted-foreground">{bucketCounts.blocked}</span>
+          </button>
+        )}
+        <div className="relative flex-1 min-w-[160px]">
           <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
@@ -264,19 +307,6 @@ export function RoomFloorMapView({
             className="h-8 pl-7 text-sm"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="h-8 w-[140px] text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tất cả trạng thái</SelectItem>
-            {statusKeys.map((s) => (
-              <SelectItem key={s} value={s}>
-                {getStatusStyle(s).label} ({totals[s]})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
         <Select value={floorFilter} onValueChange={setFloorFilter}>
           <SelectTrigger className="h-8 w-[110px] text-xs">
             <SelectValue />
@@ -288,14 +318,34 @@ export function RoomFloorMapView({
             ))}
           </SelectContent>
         </Select>
-        {(search || statusFilter !== 'all' || floorFilter !== 'all' || typeFilter.length) ? (
+        {types.length > 1 && types.map((tp) => {
+          const active = typeFilter.length === 0 || typeFilter.includes(tp)
+          return (
+            <button
+              key={tp}
+              type="button"
+              onClick={() =>
+                setTypeFilter((prev) =>
+                  prev.includes(tp) ? prev.filter((x) => x !== tp) : [...prev, tp],
+                )
+              }
+              className={cn(
+                'h-7 rounded border px-2 text-[11px] font-medium transition-colors',
+                active ? 'bg-foreground text-background' : 'bg-background text-muted-foreground',
+              )}
+            >
+              {tp}
+            </button>
+          )
+        })}
+        {(search || bucketFilter !== 'all' || floorFilter !== 'all' || typeFilter.length) ? (
           <Button
             size="sm"
             variant="ghost"
-            className="h-8 px-2 text-xs"
+            className="h-7 px-2 text-xs"
             onClick={() => {
               setSearch('')
-              setStatusFilter('all')
+              setBucketFilter('all')
               setFloorFilter('all')
               setTypeFilter([])
             }}
@@ -305,31 +355,6 @@ export function RoomFloorMapView({
         ) : null}
       </div>
 
-      {/* Legend + type filter */}
-      <div className="rounded-lg border bg-card p-3">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          {statusKeys.map((s) => {
-            const st = getStatusStyle(s)
-            return (
-              <div key={s} className="flex items-center gap-1.5 text-xs">
-                <span className={cn('inline-block h-3 w-3 rounded', st.bg)} />
-                <span className={cn('font-medium', st.textCls)}>{st.label}</span>
-                <span className="text-muted-foreground">({totals[s]})</span>
-              </div>
-            )
-          })}
-          <div className="flex items-center gap-1.5 text-xs">
-            <span className="inline-block h-2 w-2 rounded-full bg-red-500" />
-            <span className="text-muted-foreground">Có việc cần làm</span>
-          </div>
-        </div>
-        {types.length > 1 && (
-          <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t pt-2">
-            <span className="text-xs text-muted-foreground mr-1">Loại:</span>
-            {types.map((tp) => {
-              const active = typeFilter.length === 0 || typeFilter.includes(tp)
-              return (
-                <button
                   key={tp}
                   type="button"
                   onClick={() =>
