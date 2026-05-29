@@ -43,7 +43,7 @@ export function useFloorPlanLive() {
       if (!hotelId) return {}
       const { data, error } = await supabase.rpc('get_floor_plan_live', { p_hotel_id: hotelId })
       if (error) throw error
-      return (data as FloorPlanLiveData) || {}
+      return ((data as unknown) as FloorPlanLiveData) || {}
     },
     enabled: !!hotelId,
     staleTime: 30_000,
