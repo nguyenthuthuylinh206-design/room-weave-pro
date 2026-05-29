@@ -12014,6 +12014,7 @@ export type Database = {
         Returns: Json
       }
       get_floor_plan: { Args: { p_hotel_id: string }; Returns: Json }
+      get_floor_plan_live: { Args: { p_hotel_id: string }; Returns: Json }
       get_hotel_performance_stats: {
         Args: {
           p_from_date: string
