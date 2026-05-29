@@ -24,6 +24,13 @@ import {
   isRoomDirty,
   isRoomBlockedForMaintenance,
 } from '@/lib/roomStatus'
+import {
+  useBookingSheetDetails,
+  formatIdType,
+  vipLabel,
+  actionLabel,
+} from '@/hooks/useBookingSheetDetails'
+import { Link2, AlertCircle, CheckCircle2, ImageIcon } from 'lucide-react'
 
 interface Props {
   booking: TapeChartBooking | null
