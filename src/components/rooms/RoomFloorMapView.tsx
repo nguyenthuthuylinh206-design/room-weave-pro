@@ -459,7 +459,7 @@ export function RoomFloorMapView({
                 <div className="text-sm font-semibold">Tầng {floor}</div>
                 <div className="text-xs text-muted-foreground">{rooms.length} phòng</div>
               </div>
-              <div className="p-2 grid gap-2 grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-12">
+              <div className={cn('p-2 grid gap-2', cellSize.classes.grid)}>
                 {rooms.map((room) => {
                   const bucket = getBucket(room)
                   const m = BUCKET_META[bucket]
@@ -489,12 +489,12 @@ export function RoomFloorMapView({
                           type="button"
                           onClick={() => handleRoomClick(room)}
                           className={cn(
-                            'group relative flex h-24 flex-col items-center justify-between rounded-lg border-2 bg-card p-2 text-center transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-95',
+                            'group relative flex flex-col items-center justify-between rounded-lg border-2 bg-card p-2 text-center transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-95',
                             m.bg,
                             showGroupRing && cn('ring-2 ring-offset-1', ringForGroup(gid!)),
                             dim && 'opacity-30',
                           )}
-                          style={{ borderColor: 'transparent' }}
+                          style={{ borderColor: 'transparent', height: cellSize.size.height }}
                         >
                           {/* Service request badge */}
                           {openTasks > 0 && (
@@ -530,12 +530,12 @@ export function RoomFloorMapView({
                           </span>
 
                           {/* Số phòng to ở trên */}
-                          <div className="text-xl font-bold leading-none text-foreground">
+                          <div className={cn('font-bold leading-none text-foreground', cellSize.classes.numberCls)}>
                             {room.room_number}
                           </div>
 
                           {/* Chấm màu lớn ở giữa — lễ tân chỉ nhìn màu */}
-                          <div className={cn('h-5 w-5 rounded-full shadow-sm', m.dot)} />
+                          <div className={cn('rounded-full shadow-sm', cellSize.classes.dotPx, m.dot)} />
 
                           {/* Dòng đáy: loại phòng HOẶC tên khách + countdown */}
                           {bk?.guest_name ? (
