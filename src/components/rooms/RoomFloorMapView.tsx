@@ -472,7 +472,7 @@ export function RoomFloorMapView({
         />
       )}
 
-      )}
+
     </div>
   )
 }
