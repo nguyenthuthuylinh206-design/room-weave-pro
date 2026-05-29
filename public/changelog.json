@@ -1,6 +1,21 @@
 {
-  "current": "1.0.97",
+  "current": "1.0.98",
   "versions": [
+    {
+      "version": "1.0.98",
+      "releaseDate": "2026-05-29",
+      "title": "Popup phòng nâng cấp: 3 tab (Tổng quan / Tài chính / Vận hành) + menu đổi trạng thái + gia hạn 1-click",
+      "changes": [
+        { "type": "feature", "text": "Tab Tổng quan: hiện đầy đủ khách (VIP tag, SĐT bấm gọi, CCCD + ảnh, quốc tịch, khách thân thiết), mã booking, nguồn, số đêm đã ở / tổng đêm, lịch sử lưu trú 3 lần gần nhất" },
+        { "type": "feature", "text": "Tab Tài chính: chi tiết tiền phòng / dịch vụ / minibar / phụ thu / VAT / đã cọc / đã thanh toán / còn phải thu — kèm danh sách item dịch vụ-minibar đã dùng" },
+        { "type": "feature", "text": "Tab Vận hành: danh sách HK task + maintenance đang mở (chấm màu priority), lần dọn cuối, link xem audit log đầy đủ" },
+        { "type": "feature", "text": "Phòng trống: hiện 3 bảng giá (Đêm/Giờ/Tháng), tiện nghi chip, booking 7 ngày tới — chốt bán nhanh không cần rời popup" },
+        { "type": "feature", "text": "Menu [···] header: Gỡ trạng thái / DND / OOS / OOO + tạo task HK / Maintenance + Lịch sử phòng (gọi RPC transition_room_status có audit)" },
+        { "type": "feature", "text": "Nút Gia hạn ở footer mở ExtendBookingDialog trực tiếp; nút Checkout đi thẳng vào flow checkout" },
+        { "type": "improvement", "text": "Popup mở rộng lên max-w-2xl, tabs scrollable, footer sticky bám đáy" }
+      ]
+    },
+
     {
       "version": "1.0.97",
       "releaseDate": "2026-05-29",
