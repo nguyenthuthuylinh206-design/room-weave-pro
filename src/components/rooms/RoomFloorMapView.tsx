@@ -18,10 +18,14 @@ import { useUser } from '@/hooks/useUser'
 import { hasPermission } from '@/lib/permissions'
 import { BookingDetailDialog } from '@/components/bookings/BookingDetailDialog'
 import { RoomBookingDialog } from './RoomBookingDialog'
+import { RoomAuditLogDialog } from './RoomAuditLogDialog'
+import { useRoomTransition } from '@/hooks/useRoomTransition'
 import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNowStrict, parseISO, differenceInHours } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { Search, Plus, FileSpreadsheet } from 'lucide-react'
+import { Search, Plus, FileSpreadsheet, History, Unlock } from 'lucide-react'
+
+const LIFTABLE_STATUSES = new Set(['dnd', 'out_of_service', 'out_of_order'])
 
 // Status → solid colors
 const STATUS_STYLE: Record<string, { bg: string; label: string; textCls: string }> = {
