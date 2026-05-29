@@ -718,11 +718,12 @@ export function RoomTapeChart() {
                 style={{ width: totalChartWidth + ROOM_COL_W, height: HEADER_H }}
               >
                 <div
-                  className="sticky left-0 z-40 flex items-center border-r bg-muted/40 px-3 text-xs font-medium text-muted-foreground"
+                  className="sticky left-0 z-40 flex items-center border-r bg-muted px-3 text-xs font-medium text-muted-foreground"
                   style={{ width: ROOM_COL_W, minWidth: ROOM_COL_W }}
                 >
                   Phòng
                 </div>
+
                 {Array.from({ length: days }).map((_, i) => {
                   const date = addDays(startDate, i)
                   const today = isToday(date)
