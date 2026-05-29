@@ -1,6 +1,16 @@
 {
-  "current": "1.0.90",
+  "current": "1.0.91",
   "versions": [
+    {
+      "version": "1.0.91",
+      "releaseDate": "2026-05-29",
+      "title": "Tape chart — mở phiếu booking dạng popup, không rời trang",
+      "changes": [
+        { "type": "improvement", "text": "Click 'Mở phiếu booking' từ tape chart sheet mở dialog overlay (95vw × 92vh) thay vì điều hướng — lễ tân không phải bấm Back" },
+        { "type": "improvement", "text": "Click booking khác trong nhóm đặt phòng cũng mở dialog inline thay vì rời trang" }
+      ]
+    },
+
     {
       "version": "1.0.90",
       "releaseDate": "2026-05-29",
