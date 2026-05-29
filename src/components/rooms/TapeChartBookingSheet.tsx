@@ -59,6 +59,12 @@ export function TapeChartBookingSheet({
   const sourceBadge = getSourceBadge(booking?.booking_source)
   const roomMeta = room ? getRoomStatusMeta(room.status) : null
 
+  const { data: details } = useBookingSheetDetails(booking?.id, open && !!booking)
+  const breakdown = details?.breakdown
+  const hasIdScan = !!details?.guest_id_image_url || !!details?.guest_id_number
+  const crm = details?.crmGuest
+  const vip = vipLabel(crm?.vip_level)
+
   const statusLabel = useMemo(() => {
     if (!booking) return ''
     switch (booking.status) {
