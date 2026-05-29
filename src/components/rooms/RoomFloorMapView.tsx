@@ -514,8 +514,16 @@ export function RoomFloorMapView({
         />
       )}
 
-
+      {/* Reception quick action popup — focus của lễ tân */}
+      <ReceptionQuickDialog
+        open={!!quickRoom}
+        onOpenChange={(v) => !v && setQuickRoom(null)}
+        room={quickRoom}
+        onBookRoom={(roomId, roomNumber) => setBookingDialog({ roomId, roomNumber })}
+        onOpenBookingDetail={(bookingId) => setDetailBookingId(bookingId)}
+      />
     </div>
+
   )
 }
 
