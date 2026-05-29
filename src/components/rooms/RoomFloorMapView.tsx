@@ -477,9 +477,11 @@ export function RoomFloorMapView({
                     </Tooltip>
                   )
                 })}
-              </div>
-
+            </div>
+          ))}
+        </TooltipProvider>
       )}
+
 
 
       {/* Booking detail popup */}
