@@ -140,12 +140,17 @@ export function useFloorMapCellSize(hotelId?: string | null) {
 
   const classes = useMemo(() => {
     const cols = size.cols
-    const xl = XL_COLS[cols] || XL_COLS[12]
-    const lg = LG_COLS[clamp(Math.ceil(cols * 0.75), 3, 12)] || 'lg:grid-cols-9'
-    const md = MD_COLS[clamp(Math.ceil(cols * 0.6), 3, 10)] || 'md:grid-cols-7'
-    const sm = SM_COLS[clamp(Math.ceil(cols * 0.4), 3, 8)] || 'sm:grid-cols-5'
-    const base = 'grid-cols-3'
-    const grid = `${base} ${sm} ${md} ${lg} ${xl}`
+    // Bỏ Tailwind class — dùng CSS variable + inline style trên container để chắc chắn
+    // grid hoạt động ở mọi cols (kể cả 14/16) và mọi viewport.
+    // Responsive: scale theo breakpoint qua minmax + auto-fill fallback.
+    const minCellPx = Math.max(64, Math.round(size.height * 0.9)) // tỉ lệ với chiều cao
+    const gridStyle: React.CSSProperties = {
+      gridTemplateColumns: `repeat(auto-fill, minmax(${minCellPx}px, 1fr))`,
+    }
+    // Khi viewport đủ rộng, ép đúng số cột người dùng chọn (>= xl 1280px)
+    const gridStyleXL: React.CSSProperties = {
+      gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+    }
 
     // Font scale theo chiều cao ô
     const h = size.height
@@ -153,7 +158,7 @@ export function useFloorMapCellSize(hotelId?: string | null) {
     const labelCls = h >= 110 ? 'text-[11px]' : 'text-[10px]'
     const dotPx = h >= 120 ? 'h-6 w-6' : h >= 90 ? 'h-5 w-5' : 'h-4 w-4'
 
-    return { grid, numberCls, labelCls, dotPx }
+    return { gridStyle, gridStyleXL, numberCls, labelCls, dotPx }
   }, [size])
 
   const summaryLabel = useMemo(() => {
