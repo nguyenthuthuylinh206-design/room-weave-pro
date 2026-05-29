@@ -142,8 +142,9 @@ export function RoomFloorMapView({
   const [detailBookingId, setDetailBookingId] = useState<string | null>(null)
   const [bookingDialog, setBookingDialog] = useState<{ roomId: string; roomNumber: string } | null>(null)
   const [auditDialog, setAuditDialog] = useState<{ roomId: string; roomNumber: string } | null>(null)
+  const [quickRoom, setQuickRoom] = useState<FloorPlanRoom | null>(null)
   const [typeFilter, setTypeFilter] = useState<string[]>([])
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [bucketFilter, setBucketFilter] = useState<ReceptionBucket | 'all'>('all')
   const [floorFilter, setFloorFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
   const transitionRoom = useRoomTransition()
@@ -163,16 +164,15 @@ export function RoomFloorMapView({
     setAuditDialog({ roomId: room.id, roomNumber: room.room_number })
   }
 
-
-  const { floors, totals, types, groupCounts } = useMemo(() => {
+  const { floors, bucketCounts, types, groupCounts } = useMemo(() => {
     const _floors = data ? Object.keys(data).sort((a, b) => parseInt(b) - parseInt(a)) : []
-    const _totals: Record<string, number> = {}
+    const _bucketCounts: Record<ReceptionBucket, number> = { sellable: 0, due_out: 0, dirty: 0, occupied: 0, blocked: 0 }
     const _types = new Set<string>()
     const _groupCounts: Record<string, number> = {}
     if (data) {
       for (const f of _floors) {
         for (const r of data[f]) {
-          _totals[r.status] = (_totals[r.status] || 0) + 1
+          _bucketCounts[getBucket(r)] += 1
           if (r.room_type) _types.add(r.room_type)
           const gid = r.current_booking?.booking_group_id || r.next_booking?.booking_group_id
           if (gid) _groupCounts[gid] = (_groupCounts[gid] || 0) + 1
@@ -181,7 +181,7 @@ export function RoomFloorMapView({
     }
     return {
       floors: _floors,
-      totals: _totals,
+      bucketCounts: _bucketCounts,
       types: Array.from(_types).sort(),
       groupCounts: _groupCounts,
     }
@@ -189,21 +189,12 @@ export function RoomFloorMapView({
 
   const canBook = hasPermission(role, 'manage_rooms')
 
+  // Click phòng → mở Reception Quick Dialog cho mọi trạng thái.
+  // Dialog sẽ render khác nhau dựa trên có booking hay không.
   const handleRoomClick = (room: FloorPlanRoom) => {
-    if (room.current_booking?.id) {
-      setDetailBookingId(room.current_booking.id)
-      return
-    }
-    if (room.next_booking?.id) {
-      setDetailBookingId(room.next_booking.id)
-      return
-    }
-    if ((room.status === 'available' || room.status === 'vacant') && canBook && selectedHotel) {
-      setBookingDialog({ roomId: room.id, roomNumber: room.room_number })
-      return
-    }
-    navigate(`/rooms/${room.id}`)
+    setQuickRoom(room)
   }
+
 
   if (isLoading) {
     return (
