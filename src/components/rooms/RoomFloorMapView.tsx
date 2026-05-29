@@ -151,6 +151,7 @@ export function RoomFloorMapView({
   const [floorFilter, setFloorFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
   const transitionRoom = useRoomTransition()
+  const cellSize = useFloorMapCellSize(selectedHotel?.id)
 
   const handleLiftStatus = (e: React.MouseEvent, room: FloorPlanRoom) => {
     e.stopPropagation()
