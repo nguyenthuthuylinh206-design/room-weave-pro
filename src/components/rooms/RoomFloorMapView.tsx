@@ -357,6 +357,92 @@ export function RoomFloorMapView({
             Xoá lọc
           </Button>
         ) : null}
+
+        {/* Cell size control */}
+        <div className="ml-auto flex items-center gap-1">
+          <div className="hidden lg:flex items-center rounded-md border bg-background p-0.5">
+            {(['sm', 'md', 'lg'] as const).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => cellSize.setPreset(p)}
+                className={cn(
+                  'h-6 rounded px-2 text-[11px] font-medium transition-colors',
+                  cellSize.size.preset === p
+                    ? 'bg-foreground text-background'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+                title={p === 'sm' ? 'Nhỏ (Ctrl -)' : p === 'lg' ? 'Lớn (Ctrl +)' : 'Vừa (Ctrl 0)'}
+              >
+                {p === 'sm' ? 'Nhỏ' : p === 'lg' ? 'Lớn' : 'Vừa'}
+              </button>
+            ))}
+          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1.5 px-2 text-xs"
+                title="Tuỳ chỉnh kích thước ô phòng"
+              >
+                <Maximize2 className="h-3.5 w-3.5" />
+                <span className="hidden md:inline">{cellSize.summaryLabel}</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-72 space-y-4">
+              <div>
+                <div className="mb-2 text-xs font-semibold">Kích thước ô phòng</div>
+                <div className="grid grid-cols-3 gap-1">
+                  {(['sm', 'md', 'lg'] as const).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => cellSize.setPreset(p)}
+                      className={cn(
+                        'rounded-md border py-1.5 text-xs font-medium transition-colors',
+                        cellSize.size.preset === p
+                          ? 'border-foreground bg-foreground text-background'
+                          : 'hover:bg-muted',
+                      )}
+                    >
+                      {p === 'sm' ? 'Nhỏ' : p === 'lg' ? 'Lớn' : 'Vừa'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-muted-foreground">Chiều cao ô</span>
+                  <span className="font-mono font-medium">{cellSize.size.height}px</span>
+                </div>
+                <Slider
+                  min={72}
+                  max={160}
+                  step={4}
+                  value={[cellSize.size.height]}
+                  onValueChange={([v]) => cellSize.setCustom({ height: v })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-muted-foreground">Số cột (màn rộng)</span>
+                  <span className="font-mono font-medium">{cellSize.size.cols} cột</span>
+                </div>
+                <Slider
+                  min={4}
+                  max={16}
+                  step={2}
+                  value={[cellSize.size.cols]}
+                  onValueChange={([v]) => cellSize.setCustom({ cols: v })}
+                />
+              </div>
+              <div className="border-t pt-2 text-[10px] text-muted-foreground">
+                Phím tắt: <kbd className="rounded border px-1">Ctrl</kbd> + <kbd className="rounded border px-1">+</kbd> / <kbd className="rounded border px-1">-</kbd> / <kbd className="rounded border px-1">0</kbd>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
 
