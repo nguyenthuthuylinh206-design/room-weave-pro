@@ -362,6 +362,7 @@ export function RoomFloorMapView({
                   const gid = bk?.booking_group_id || next?.booking_group_id
                   const showGroupRing = gid && (groupCounts[gid] || 0) > 1
                   const openTasks = room.open_tasks || 0
+                  const canLift = LIFTABLE_STATUSES.has(room.status)
 
                   return (
                     <Tooltip key={room.id}>
@@ -370,7 +371,7 @@ export function RoomFloorMapView({
                           type="button"
                           onClick={() => handleRoomClick(room)}
                           className={cn(
-                            'relative flex h-20 flex-col items-stretch justify-between rounded-md border-l-[3px] p-1.5 text-left text-white shadow-sm transition-all hover:brightness-110 active:scale-95',
+                            'group relative flex h-20 flex-col items-stretch justify-between rounded-md border-l-[3px] p-1.5 text-left text-white shadow-sm transition-all hover:brightness-110 active:scale-95',
                             bgClass,
                             TYPE_BORDER[room.room_type] || 'border-l-white/40',
                             showGroupRing && cn('ring-2 ring-offset-1', ringForGroup(gid!)),
@@ -386,6 +387,28 @@ export function RoomFloorMapView({
                               {openTasks}
                             </span>
                           )}
+                          {/* Quick actions (hover) */}
+                          <span className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-1 rounded-b-md bg-black/45 py-0.5 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
+                            {canLift && (
+                              <button
+                                type="button"
+                                onClick={(e) => handleLiftStatus(e, room)}
+                                disabled={transitionRoom.isPending}
+                                className="rounded bg-emerald-500/90 px-1.5 py-0.5 text-[9px] font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+                                title="Gỡ DND/OOS · về Trống sạch"
+                              >
+                                <Unlock className="inline h-2.5 w-2.5 mr-0.5" />Gỡ
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => handleShowHistory(e, room)}
+                              className="rounded bg-white/20 px-1.5 py-0.5 text-[9px] font-semibold text-white hover:bg-white/30"
+                              title="Lịch sử trạng thái"
+                            >
+                              <History className="inline h-2.5 w-2.5 mr-0.5" />Sử
+                            </button>
+                          </span>
                           <div className="flex items-start justify-between gap-1">
                             <span className="text-base font-bold leading-none">{room.room_number}</span>
                             {chip && (
@@ -412,6 +435,8 @@ export function RoomFloorMapView({
                         />
                       </TooltipContent>
                     </Tooltip>
+                  )
+
                   )
                 })}
               </div>
