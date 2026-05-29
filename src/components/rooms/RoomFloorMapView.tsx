@@ -24,7 +24,10 @@ import { useRoomTransition } from '@/hooks/useRoomTransition'
 import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNowStrict, parseISO, differenceInHours, format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { Search, Plus, FileSpreadsheet, History, Unlock } from 'lucide-react'
+import { Search, Plus, FileSpreadsheet, History, Unlock, Maximize2 } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Slider } from '@/components/ui/slider'
+import { useFloorMapCellSize } from '@/hooks/useFloorMapCellSize'
 
 // "Bucket" hiển thị cho lễ tân — gom 11 trạng thái nội bộ vào 5 nhóm dễ hiểu
 type ReceptionBucket = 'sellable' | 'due_out' | 'dirty' | 'occupied' | 'blocked'
