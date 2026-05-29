@@ -787,11 +787,11 @@ export function RoomTapeChart() {
                         <span className="ml-1 text-muted-foreground/70">
                           ({row.group!.count} phòng)
                         </span>
+                      </div>
                     </div>
                   )
                 }
 
-                }
                 return (
                   <Row
                     key={vi.key}
