@@ -7,7 +7,10 @@ import {
   ArrowLeft,
   RotateCcw,
   Wrench,
+  History,
 } from 'lucide-react'
+import { RoomAuditLogDialog } from '@/components/rooms/RoomAuditLogDialog'
+
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
