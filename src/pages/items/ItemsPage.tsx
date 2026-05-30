@@ -46,7 +46,9 @@ export function ItemsPage() {
     if (filters.status) params.set('status', filters.status)
     if (page !== 1) params.set('page', page.toString())
     if (pageSize !== 25) params.set('pageSize', pageSize.toString())
-    setSearchParams(params, { replace: true })
+    if (params.toString() !== searchParams.toString()) {
+      setSearchParams(params, { replace: true })
+    }
   }, [filters, page, pageSize, setSearchParams, isMobile, searchParams])
   
   const { data, isLoading, error } = useItems(filters, page, pageSize)
