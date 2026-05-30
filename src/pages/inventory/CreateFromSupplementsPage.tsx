@@ -298,13 +298,15 @@ export default function CreateFromSupplementsPage({ embedded = false }: CreateFr
           ? 'sticky bottom-0 bg-background border-t p-4 flex gap-3'
           : 'flex justify-end gap-3'
         }>
-          <Button 
-            variant="outline" 
-            onClick={() => navigate(-1)}
-            className={isMobile ? 'flex-1' : ''}
-          >
-            Hủy
-          </Button>
+          {!embedded && (
+            <Button 
+              variant="outline" 
+              onClick={() => navigate(-1)}
+              className={isMobile ? 'flex-1' : ''}
+            >
+              Hủy
+            </Button>
+          )}
           <Button 
             onClick={handleSubmit} 
             disabled={isPending || selectedIds.length === 0}
