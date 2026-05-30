@@ -47,8 +47,8 @@ const TabFallback = () => (
 )
 
 type MainTab = 'overview' | 'assets' | 'operations' | 'analytics' | 'settings'
-type OpSub = 'transactions' | 'adjustments' | 'distributions' | 'reorder'
-type AssetsSub = 'items' | 'categories'
+type OpSub = 'transactions' | 'inbound' | 'outbound' | 'transfer' | 'adjustments' | 'distributions' | 'reorder'
+type AssetsSub = 'items' | 'categories' | 'new'
 type AnalyticsSub = 'consumption' | 'dead-stock'
 type SettingsSub = 'supplements' | 'warehouses'
 
