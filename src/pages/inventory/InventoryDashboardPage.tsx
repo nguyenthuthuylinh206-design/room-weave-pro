@@ -52,14 +52,13 @@ export function InventoryDashboardPage() {
   const { isMobile } = useBreakpoint()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { hasPermission } = useUser()
-
+  const { hasAnyRole } = useUser()
   const tab = (searchParams.get('tab') as MainTab) || 'overview'
   const sub = searchParams.get('sub') || ''
 
   const canManageSettings = useMemo(
-    () => hasPermission?.('manage_inventory') ?? true,
-    [hasPermission]
+    () => hasAnyRole(['super_admin', 'owner', 'hotel_manager', 'department_manager'] as AppRole[]),
+    [hasAnyRole]
   )
 
   const setTab = (next: MainTab, nextSub?: string) => {
