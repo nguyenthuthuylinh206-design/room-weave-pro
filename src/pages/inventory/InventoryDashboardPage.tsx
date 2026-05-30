@@ -327,10 +327,12 @@ export function InventoryDashboardPage() {
             value={(sub as AnalyticsSub) || 'consumption'}
             onValueChange={setSub}
           >
-            <TabsList>
-              <TabsTrigger value="consumption">Phân tích tiêu thụ</TabsTrigger>
-              <TabsTrigger value="dead-stock">Tồn ứ đọng</TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto -mx-1 px-1">
+              <TabsList>
+                <TabsTrigger value="dead-stock">Tồn kho ứ đọng</TabsTrigger>
+                <TabsTrigger value="consumption">Phân tích tiêu thụ</TabsTrigger>
+              </TabsList>
+            </div>
             <TabsContent value="consumption" className="mt-4">
               <Suspense fallback={<TabFallback />}>
                 <InventoryAnalyticsPage />
@@ -350,10 +352,12 @@ export function InventoryDashboardPage() {
               value={(sub as SettingsSub) || 'supplements'}
               onValueChange={setSub}
             >
-              <TabsList>
-                <TabsTrigger value="supplements">Bổ sung đồ</TabsTrigger>
-                <TabsTrigger value="warehouses">Quản lý kho</TabsTrigger>
-              </TabsList>
+              <div className="overflow-x-auto -mx-1 px-1">
+                <TabsList>
+                  <TabsTrigger value="supplements">Bổ sung đồ</TabsTrigger>
+                  <TabsTrigger value="warehouses">Quản lý kho</TabsTrigger>
+                </TabsList>
+              </div>
               <TabsContent value="supplements" className="mt-4">
                 <Suspense fallback={<TabFallback />}>
                   <SupplementsPage />
