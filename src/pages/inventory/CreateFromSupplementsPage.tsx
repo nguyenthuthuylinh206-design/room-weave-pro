@@ -106,7 +106,16 @@ export default function CreateFromSupplementsPage({ embedded = false }: CreateFr
       autoRelease,
     }, {
       onSuccess: (result) => {
-        navigate(`/inventory/distributions/${result.order_id}`)
+        if (embedded) {
+          // Quay về tab Danh sách phiếu trong hub Xuất kho
+          const next = new URLSearchParams(searchParams)
+          next.set('tab', 'operations')
+          next.set('sub', 'outbound')
+          next.set('view', 'list')
+          setSearchParams(next, { replace: true })
+        } else {
+          navigate(`/inventory/distributions/${result.order_id}`)
+        }
       }
     })
   }
