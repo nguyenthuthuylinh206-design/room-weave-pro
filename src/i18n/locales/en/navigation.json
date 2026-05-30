@@ -83,5 +83,9 @@
   "assetGroupMigration": "Asset Classification",
   "hotelPolicy": "Hotel Policy",
   "staffList": "Staff List",
-  "shiftHandoverReport": "Shift Handover Report"
+  "shiftHandoverReport": "Shift Handover Report",
+  "pricingV2": "Room Type Rates",
+  "seasonalRules": "Seasonal Rules",
+  "bcaConfig": "BCA Submission Config",
+  "stayRegistrations": "Stay Registrations"
 }

@@ -88,5 +88,9 @@
   "telegram": "Telegram",
   "notifications": "Thông báo",
   "assetGroupMigration": "Phân loại tài sản",
-  "hotelPolicy": "Cấu hình khách sạn"
+  "hotelPolicy": "Cấu hình khách sạn",
+  "pricingV2": "Bảng giá 4 trục",
+  "seasonalRules": "Quy tắc mùa giá",
+  "bcaConfig": "Cấu hình khai báo BCA",
+  "stayRegistrations": "Khai báo lưu trú"
 }

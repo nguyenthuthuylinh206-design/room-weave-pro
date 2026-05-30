@@ -50,6 +50,9 @@ import {
   Brain,
   History,
   ScrollText,
+  CalendarRange,
+  ShieldCheck,
+  ClipboardList,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -137,6 +140,7 @@ const navigation: NavItem[] = [
       { titleKey: 'bookings', href: '/bookings', icon: CalendarDays, group: 'Đặt phòng & Khách' },
       { titleKey: 'guests', href: '/guests', icon: Users, group: 'Đặt phòng & Khách' },
       { titleKey: 'guestInvoices', href: '/guest-invoices', icon: FileText, group: 'Đặt phòng & Khách' },
+      { titleKey: 'stayRegistrations', href: '/legal/stay-registrations', icon: ClipboardList, group: 'Đặt phòng & Khách' },
       { titleKey: 'lostFound', href: '/lost-found', icon: PackageSearch, group: 'Khác' },
     ],
   },
@@ -222,6 +226,9 @@ const navigation: NavItem[] = [
       { titleKey: 'businessConfig', href: '/settings/business', icon: Briefcase, minMode: 'standard', group: 'Nghiệp vụ' },
       { titleKey: 'roomCheckSettings', href: '/settings/room-check', icon: ClipboardCheck, group: 'Nghiệp vụ' },
       { titleKey: 'pricingRules', href: '/settings/pricing-rules', icon: DollarSign, minMode: 'standard', group: 'Nghiệp vụ' },
+      { titleKey: 'pricingV2', href: '/settings/pricing', icon: DollarSign, minMode: 'standard', group: 'Nghiệp vụ' },
+      { titleKey: 'seasonalRules', href: '/settings/pricing/seasonal', icon: CalendarRange, minMode: 'standard', group: 'Nghiệp vụ' },
+      { titleKey: 'bcaConfig', href: '/settings/legal/stay-registration', icon: ShieldCheck, group: 'Pháp lý' },
       { titleKey: 'automation', href: '/settings/workflows', icon: Zap, minMode: 'full', group: 'Nghiệp vụ' },
       { titleKey: 'aiSettings', href: '/settings/ai', icon: Brain, group: 'Hệ thống' },
       { titleKey: 'auditLog', href: '/settings/audit-log', icon: History, group: 'Hệ thống' },
