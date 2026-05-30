@@ -1,16 +1,9 @@
 import { useState, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Plus, Package, ChevronLeft, ChevronRight, RefreshCw, Loader2, ChevronDown, FileText } from 'lucide-react'
+import { Plus, Package, ChevronLeft, ChevronRight, RefreshCw, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { DistributionOrderCard } from '@/components/distribution/components/DistributionOrderCard'
 import { DistributionOrderTable } from '@/components/distribution/components/DistributionOrderTable'
 import { RouteFiltersCard } from '@/components/distribution/components/RouteFiltersCard'
