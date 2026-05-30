@@ -121,6 +121,7 @@ const AssetGroupMigrationPage = lazy(() => import("./pages/settings/AssetGroupMi
 const HotelPolicyPage = lazy(() => import("./pages/settings/HotelPolicyPage"));
 const PricingV2Page = lazy(() => import("./pages/settings/PricingV2Page"));
 const StayRegistrationsPage = lazy(() => import("./pages/legal/StayRegistrationsPage"));
+const StayRegistrationSettingsPage = lazy(() => import("./pages/settings/StayRegistrationSettingsPage"));
 
 // Reports
 // ReportsDashboardPage đã loại bỏ — desktop landing redirect sang Finance Hub, mobile dùng MobileReportsDashboard riêng.
