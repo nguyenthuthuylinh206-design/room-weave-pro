@@ -167,6 +167,9 @@ export function InventoryDashboardPage() {
           >
             <TabsList>
               <TabsTrigger value="transactions">Giao dịch</TabsTrigger>
+              <TabsTrigger value="inbound">+ Nhập kho</TabsTrigger>
+              <TabsTrigger value="outbound">+ Xuất kho</TabsTrigger>
+              <TabsTrigger value="transfer">+ Chuyển kho</TabsTrigger>
               <TabsTrigger value="adjustments">Kiểm kê</TabsTrigger>
               <TabsTrigger value="distributions">Phiếu giao</TabsTrigger>
               <TabsTrigger value="reorder">Đề xuất nhập</TabsTrigger>
@@ -174,6 +177,21 @@ export function InventoryDashboardPage() {
             <TabsContent value="transactions" className="mt-4">
               <Suspense fallback={<TabFallback />}>
                 <TransactionListPage />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="inbound" className="mt-4">
+              <Suspense fallback={<TabFallback />}>
+                <InboundPage />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="outbound" className="mt-4">
+              <Suspense fallback={<TabFallback />}>
+                <OutboundPage />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="transfer" className="mt-4">
+              <Suspense fallback={<TabFallback />}>
+                <TransferPage />
               </Suspense>
             </TabsContent>
             <TabsContent value="adjustments" className="mt-4">
