@@ -46,6 +46,7 @@ const InboundPage = lazy(() => import('./InboundPage').then(m => ({ default: m.I
 const OutboundPage = lazy(() => import('./OutboundPage').then(m => ({ default: m.OutboundPage })))
 const TransferPage = lazy(() => import('./TransferPage'))
 const ItemFormPage = lazy(() => import('../items/ItemFormPage').then(m => ({ default: m.ItemFormPage })))
+const CreateFromSupplementsPage = lazy(() => import('./CreateFromSupplementsPage'))
 
 const TabFallback = () => (
   <div className="space-y-3 py-6">
