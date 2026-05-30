@@ -144,7 +144,7 @@ export function InventoryDashboardPage() {
     () => inventoryMenuGroups
       .map(group => ({
         ...group,
-        items: group.items.filter(item => !item.requiresSettings || canManageSettings),
+        items: group.items.filter(item => !item.requiresManager || canManageSettings),
       }))
       .filter(group => group.items.length > 0),
     [canManageSettings]
