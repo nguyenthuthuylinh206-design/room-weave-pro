@@ -127,9 +127,28 @@ export function InventoryDashboardPage() {
     const params = new URLSearchParams(searchParams)
     params.set('tab', next)
     if (nextSub) params.set('sub', nextSub)
+    else if (defaultSubByTab[next]) params.set('sub', defaultSubByTab[next]!)
     else params.delete('sub')
     setSearchParams(params, { replace: true })
   }
+
+  const activeSub = sub || defaultSubByTab[tab] || ''
+
+  const isMenuItemActive = (item: InventoryMenuItem) => {
+    if (item.tab !== tab) return false
+    if (!item.sub) return !sub
+    return activeSub === item.sub
+  }
+
+  const visibleMenuGroups = useMemo(
+    () => inventoryMenuGroups
+      .map(group => ({
+        ...group,
+        items: group.items.filter(item => !item.requiresSettings || canManageSettings),
+      }))
+      .filter(group => group.items.length > 0),
+    [canManageSettings]
+  )
 
   const setSub = (next: string) => {
     const params = new URLSearchParams(searchParams)
@@ -175,18 +194,52 @@ export function InventoryDashboardPage() {
         </DropdownMenu>
       </PageHeader>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as MainTab)}>
-        <div className="overflow-x-auto -mx-1 px-1">
-          <TabsList>
-            <TabsTrigger value="overview">Tổng quan</TabsTrigger>
-            <TabsTrigger value="assets">Tài sản</TabsTrigger>
-            <TabsTrigger value="operations">Xuất nhập</TabsTrigger>
-            <TabsTrigger value="analytics">Phân tích</TabsTrigger>
-            {canManageSettings && <TabsTrigger value="settings">Thiết lập</TabsTrigger>}
-          </TabsList>
-        </div>
+      <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <nav className="lg:sticky lg:top-4 lg:self-start border rounded-lg bg-background overflow-hidden">
+          <div className="max-h-[calc(100vh-9rem)] overflow-y-auto p-2">
+            {visibleMenuGroups.map((group) => (
+              <div key={group.title} className="mb-3 last:mb-0">
+                <div className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {group.title}
+                </div>
+                <div className="space-y-1">
+                  {group.items.map((item) => {
+                    const isActive = isMenuItemActive(item)
+                    return (
+                      <button
+                        key={`${item.tab}-${item.sub || 'root'}`}
+                        type="button"
+                        onClick={() => setTab(item.tab, item.sub)}
+                        className={cn(
+                          'w-full rounded-md px-2.5 py-2 text-left text-sm transition-colors',
+                          'hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                          isActive
+                            ? 'bg-primary text-primary-foreground font-medium'
+                            : 'text-foreground'
+                        )}
+                      >
+                        {item.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </nav>
 
-        <TabsContent value="overview" className="mt-4">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as MainTab)} className="min-w-0">
+          <div className="overflow-x-auto -mx-1 px-1">
+            <TabsList>
+              <TabsTrigger value="overview">Tổng quan</TabsTrigger>
+              <TabsTrigger value="assets">Tài sản</TabsTrigger>
+              <TabsTrigger value="operations">Xuất nhập</TabsTrigger>
+              <TabsTrigger value="analytics">Phân tích</TabsTrigger>
+              {canManageSettings && <TabsTrigger value="settings">Thiết lập</TabsTrigger>}
+            </TabsList>
+          </div>
+
+          <TabsContent value="overview" className="mt-4">
           <InventoryOverviewSection />
         </TabsContent>
 
@@ -229,8 +282,8 @@ export function InventoryDashboardPage() {
               <TabsTrigger value="outbound">+ Xuất kho</TabsTrigger>
               <TabsTrigger value="transfer">+ Chuyển kho</TabsTrigger>
               <TabsTrigger value="adjustments">Kiểm kê</TabsTrigger>
-              <TabsTrigger value="distributions">Phiếu giao</TabsTrigger>
-              <TabsTrigger value="reorder">Đề xuất nhập</TabsTrigger>
+              <TabsTrigger value="distributions">Phiếu giao hàng</TabsTrigger>
+              <TabsTrigger value="reorder">Đề xuất nhập hàng</TabsTrigger>
             </TabsList>
             <TabsContent value="transactions" className="mt-4">
               <Suspense fallback={<TabFallback />}>
@@ -315,7 +368,8 @@ export function InventoryDashboardPage() {
             </Tabs>
           </TabsContent>
         )}
-      </Tabs>
+        </Tabs>
+      </div>
     </div>
   )
 }
