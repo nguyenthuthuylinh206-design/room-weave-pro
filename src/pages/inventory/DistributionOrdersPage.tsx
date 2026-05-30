@@ -162,9 +162,18 @@ export default function DistributionOrdersPage() {
     </Tabs>
   )
 
+  const QuickDialog = (
+    <DistributionOrderQuickDialog
+      orderId={quickOrderId}
+      open={!!quickOrderId}
+      onOpenChange={(o) => !o && setQuickOrderId(null)}
+    />
+  )
+
   // Mobile view
   if (isMobile) {
     return (
+      <>
       <div className="flex flex-col h-full">
         <div className="sticky top-0 z-10 bg-background border-b px-3 py-2 space-y-2">
           <div className="flex items-center justify-between">
@@ -226,11 +235,14 @@ export default function DistributionOrdersPage() {
           )}
         </div>
       </div>
+      {QuickDialog}
+      </>
     )
   }
 
   // Desktop
   return (
+    <>
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -281,6 +293,8 @@ export default function DistributionOrdersPage() {
         )}
       </div>
     </div>
+    {QuickDialog}
+    </>
   )
 }
 
