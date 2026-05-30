@@ -39,7 +39,7 @@ import { cn } from '@/lib/utils';
 
 const createOutboundSchema = (t: (key: string) => string) => z.object({
   transaction_category: z.enum(['room_assign', 'laundry', 'maintenance', 'disposal', 'other']),
-  from_warehouse_id: z.string().uuid(t('inventory:validation.fromRequired')),
+  from_warehouse_id: z.string().optional(),
   to_location: z.string().optional(),
   vendor_id: z.string().uuid().optional(),
   maintenance_request_id: z.string().uuid().optional(),
@@ -65,6 +65,13 @@ const createOutboundSchema = (t: (key: string) => string) => z.object({
     available_quantity: z.number(),
     condition_note: z.string().optional()
   })).optional(),
+}).refine(data => {
+  // from_warehouse_id required for all except room_assign (which uses its own form state)
+  if (data.transaction_category === 'room_assign') return true;
+  return !!data.from_warehouse_id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.from_warehouse_id);
+}, {
+  message: t('inventory:validation.fromRequired'),
+  path: ['from_warehouse_id']
 }).refine(data => {
   if (data.transaction_category === 'room_assign') return true;
   if (data.transaction_category === 'laundry') {
@@ -93,6 +100,7 @@ const createOutboundSchema = (t: (key: string) => string) => z.object({
   message: t('inventory:validation.destinationRequired'),
   path: ['to_location']
 });
+
 
 type OutboundFormData = {
   transaction_category: 'room_assign' | 'laundry' | 'maintenance' | 'disposal' | 'other';
