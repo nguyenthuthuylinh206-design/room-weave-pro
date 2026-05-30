@@ -85,6 +85,7 @@ export function BookingWizard({ onSuccess, onCancel }: BookingWizardProps) {
             computed={computed} 
             onToggleRoom={toggleRoomSelection}
             onUpdateRoomPrice={updateRoomPrice}
+            onApplyPricingV2={applyPricingV2}
           />
         )}
         {currentStep === 3 && (
