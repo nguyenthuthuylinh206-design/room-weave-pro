@@ -1,6 +1,16 @@
 {
-  "current": "1.1.8",
+  "current": "1.1.9",
   "versions": [
+    {
+      "version": "1.1.9",
+      "releaseDate": "2026-05-30",
+      "title": "Hub Kho: sắp xếp lại layout Tổng quan cho cân đối",
+      "changes": [
+        { "type": "improvement", "text": "Thống nhất grid 12 cột, 2 hàng widget theo tỉ lệ 8/4 thẳng rãnh, đồng đều chiều cao" },
+        { "type": "improvement", "text": "Gộp Cảnh báo tồn kho thấp + Cảnh báo kho thành 1 card duy nhất với 3 chỉ số tổng + danh sách item" },
+        { "type": "improvement", "text": "Giao dịch gần đây tách thành hàng full-width, dễ đọc hơn" }
+      ]
+    },
     {
       "version": "1.1.8",
       "releaseDate": "2026-05-30",
