@@ -132,8 +132,8 @@ export function InventoryDashboardPage() {
     setSearchParams(params, { replace: true })
   }
 
-  const activeSub = sub || defaultSubByTab[tab] || ''
   const settingsSubValue: SettingsSub = canManageSettings && sub === 'warehouses' ? 'warehouses' : 'supplements'
+  const activeSub = tab === 'settings' ? settingsSubValue : (sub || defaultSubByTab[tab] || '')
 
   const isMenuItemActive = (item: InventoryMenuItem) => {
     if (item.tab !== tab) return false
