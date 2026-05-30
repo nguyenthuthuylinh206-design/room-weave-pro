@@ -1,13 +1,15 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, X, AlertTriangle, WashingMachine, Calendar, Scale, DollarSign } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
+import { Plus, X, AlertTriangle, WashingMachine, Calendar, Scale, DollarSign } from 'lucide-react';
+
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 import { format, addDays } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { PageHeader } from '@/components/shared/PageHeader';
+
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -37,7 +39,7 @@ import { cn } from '@/lib/utils';
 
 const createOutboundSchema = (t: (key: string) => string) => z.object({
   transaction_category: z.enum(['room_assign', 'laundry', 'maintenance', 'disposal', 'other']),
-  from_warehouse_id: z.string().uuid(t('inventory:validation.fromRequired')),
+  from_warehouse_id: z.string().optional(),
   to_location: z.string().optional(),
   vendor_id: z.string().uuid().optional(),
   maintenance_request_id: z.string().uuid().optional(),
@@ -63,6 +65,13 @@ const createOutboundSchema = (t: (key: string) => string) => z.object({
     available_quantity: z.number(),
     condition_note: z.string().optional()
   })).optional(),
+}).refine(data => {
+  // from_warehouse_id required for all except room_assign (which uses its own form state)
+  if (data.transaction_category === 'room_assign') return true;
+  return !!data.from_warehouse_id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.from_warehouse_id);
+}, {
+  message: t('inventory:validation.fromRequired'),
+  path: ['from_warehouse_id']
 }).refine(data => {
   if (data.transaction_category === 'room_assign') return true;
   if (data.transaction_category === 'laundry') {
@@ -92,6 +101,7 @@ const createOutboundSchema = (t: (key: string) => string) => z.object({
   path: ['to_location']
 });
 
+
 type OutboundFormData = {
   transaction_category: 'room_assign' | 'laundry' | 'maintenance' | 'disposal' | 'other';
   from_warehouse_id: string;
@@ -112,6 +122,8 @@ type OutboundFormData = {
 export function OutboundPage() {
   const { t } = useTranslation(['inventory', 'common', 'distribution', 'laundry'])
   const navigate = useNavigate();
+  const [, setSearchParams] = useSearchParams();
+
   
   const { isMobile } = useBreakpoint();
   
@@ -169,39 +181,73 @@ export function OutboundPage() {
 
   if (isMobile) return <MobileOutboundForm />;
   
+  const isAnyPending = isLoading || isDistributionLoading || isLaundryLoading;
+
+  const goToList = () => {
+    setSearchParams(prev => {
+      const p = new URLSearchParams(prev);
+      p.set('tab', 'operations');
+      p.set('sub', 'outbound');
+      p.set('view', 'list');
+      return p;
+    }, { replace: true });
+  };
+
   const onSubmit = (data: OutboundFormData) => {
     if (data.transaction_category === 'room_assign') {
       const validAllocations = distributionForm.allocations.filter(a => a.items.length > 0);
-      if (validAllocations.length === 0) return;
+      if (validAllocations.length === 0) {
+        toast.error('Vui lòng chọn phòng và thêm sản phẩm để giao');
+        return;
+      }
       createDistributionOrder({
         assigned_to: distributionForm.assignedTo || undefined,
         notes: distributionForm.notes || undefined,
         rooms: validAllocations,
-      }, { onSuccess: (result) => navigate(`/inventory/distributions/${result.order_id}`) });
+      }, {
+        onSuccess: () => {
+          toast.success('Đã tạo phiếu giao hàng');
+          distributionForm.reset?.();
+          goToList();
+        }
+      });
     } else if (data.transaction_category === 'laundry') {
-      if (!data.vendor_id || !data.delivery_date || !data.expected_return_date || !data.delivery_staff_id || !data.receiver_name) return;
+      if (!data.vendor_id || !data.delivery_date || !data.expected_return_date || !data.delivery_staff_id || !data.receiver_name) {
+        toast.error('Vui lòng điền đầy đủ thông tin lô giặt');
+        return;
+      }
       const validLaundryItems = (data.laundry_items || []).filter(item => item.item_id && item.quantity > 0);
-      if (validLaundryItems.length === 0) return;
+      if (validLaundryItems.length === 0) {
+        toast.error('Vui lòng thêm sản phẩm vào lô giặt');
+        return;
+      }
       createLaundryBatch({
         step1: { vendor_id: data.vendor_id, delivery_date: data.delivery_date, expected_return_date: data.expected_return_date, delivery_staff_id: data.delivery_staff_id, receiver_name: data.receiver_name, notes: data.notes },
         step2: { items: validLaundryItems.map(item => ({ item_id: item.item_id, quantity: item.quantity, weight_kg: item.weight_kg || 0, condition_note: item.condition_note })) },
         step3: { confirmed: true }
-      }, { onSuccess: (result) => navigate(`/laundry/batches/${result.id}`) });
+      }, {
+        onSuccess: () => {
+          toast.success('Đã tạo lô giặt');
+          form.reset();
+          goToList();
+        }
+      });
     } else {
-      createOutbound(data as any, { onSuccess: () => navigate('/inventory?tab=operations&sub=transactions') });
+      createOutbound(data as any, {
+        onSuccess: () => {
+          toast.success('Đã ghi nhận xuất kho');
+          form.reset();
+          goToList();
+        }
+      });
     }
   };
 
+
   return (
     <div className="space-y-4">
-      <PageHeader title={t('inventory:outbound.title')} description={t('inventory:outbound.description')}>
-        <Button variant="outline" size="sm" onClick={() => navigate('/inventory')}>
-          <ArrowLeft className="mr-1.5 h-4 w-4" />
-          {t('common:back')}
-        </Button>
-      </PageHeader>
-      
       <Form {...form}>
+
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {/* General Info */}
           <div className="border rounded-lg p-4 space-y-3">
@@ -215,11 +261,12 @@ export function OutboundPage() {
                       <SelectValue placeholder={t('inventory:outbound.type')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="room_assign">🏠 {t('inventory:outbound.toRoom')}</SelectItem>
-                      <SelectItem value="laundry">🧺 {t('inventory:outbound.toLaundry')}</SelectItem>
-                      <SelectItem value="maintenance">🔧 {t('inventory:outbound.toMaintenance')}</SelectItem>
-                      <SelectItem value="disposal">🗑️ {t('inventory:outbound.toDisposal')}</SelectItem>
-                      <SelectItem value="other">➖ {t('inventory:outbound.toOther')}</SelectItem>
+                      <SelectItem value="room_assign">{t('inventory:outbound.toRoom')}</SelectItem>
+                      <SelectItem value="laundry">{t('inventory:outbound.toLaundry')}</SelectItem>
+                      <SelectItem value="maintenance">{t('inventory:outbound.toMaintenance')}</SelectItem>
+                      <SelectItem value="disposal">{t('inventory:outbound.toDisposal')}</SelectItem>
+                      <SelectItem value="other">{t('inventory:outbound.toOther')}</SelectItem>
+
                     </SelectContent>
                   </Select>
                 </FormControl>
@@ -228,19 +275,22 @@ export function OutboundPage() {
             )} />
             
             <div className="grid gap-3 md:grid-cols-2">
-              <FormField control={form.control} name="from_warehouse_id" render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs">{t('inventory:outbound.fromLocation')} *</FormLabel>
-                  <FormControl>
-                    <WarehouseSelect
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      placeholder={t('inventory:outbound.placeholders.fromLocation')}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              {category !== 'room_assign' && (
+                <FormField control={form.control} name="from_warehouse_id" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">{t('inventory:outbound.fromLocation')} *</FormLabel>
+                    <FormControl>
+                      <WarehouseSelect
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder={t('inventory:outbound.placeholders.fromLocation')}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              )}
+
               
               {category === 'laundry' && (
                 <FormField control={form.control} name="vendor_id" render={({ field }) => (
@@ -524,9 +574,10 @@ export function OutboundPage() {
                 <span className="text-red-600 font-medium">-{totalQuantity} đơn vị</span>
               </div>
               <div className="flex gap-2">
-                <Button type="button" variant="ghost" size="sm" onClick={() => navigate('/inventory')}>{t('common:cancel')}</Button>
-                <Button type="submit" size="sm" disabled={isLoading || hasStockError}>{isLoading ? t('inventory:outbound.processing') : t('inventory:outbound.confirm')}</Button>
+                <Button type="button" variant="ghost" size="sm" onClick={goToList}>{t('common:cancel')}</Button>
+                <Button type="submit" size="sm" disabled={isAnyPending || hasStockError}>{isAnyPending ? t('inventory:outbound.processing') : t('inventory:outbound.confirm')}</Button>
               </div>
+
             </div>
           )}
           
@@ -539,20 +590,22 @@ export function OutboundPage() {
                 <span className="text-blue-600 font-medium">{distributionForm.summary.totalItems} đơn vị</span>
               </div>
               <div className="flex gap-2">
-                <Button type="button" variant="ghost" size="sm" onClick={() => navigate('/inventory')}>{t('common:cancel')}</Button>
-                <Button type="submit" size="sm" disabled={isDistributionLoading || !distributionForm.isValid}>{isDistributionLoading ? t('distribution:createOrder.creating') : t('distribution:createOrder.create')}</Button>
+                <Button type="button" variant="ghost" size="sm" onClick={goToList}>{t('common:cancel')}</Button>
+                <Button type="submit" size="sm" disabled={isAnyPending || !distributionForm.isValid}>{isAnyPending ? t('distribution:createOrder.creating') : t('distribution:createOrder.create')}</Button>
               </div>
+
             </div>
           )}
           
           {/* Summary for laundry */}
           {category === 'laundry' && (
             <div className="flex items-center justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" size="sm" onClick={() => navigate('/inventory')}>{t('common:cancel')}</Button>
-              <Button type="submit" size="sm" disabled={isLaundryLoading || laundryHasStockError || laundryItems.filter(i => i.item_id).length === 0}>
+              <Button type="button" variant="ghost" size="sm" onClick={goToList}>{t('common:cancel')}</Button>
+              <Button type="submit" size="sm" disabled={isAnyPending || laundryHasStockError || laundryItems.filter(i => i.item_id).length === 0}>
                 <WashingMachine className="mr-1.5 h-4 w-4" />
-                {isLaundryLoading ? t('laundry:batch.creating') : t('laundry:batch.createBatch')}
+                {isAnyPending ? t('laundry:batch.creating') : t('laundry:batch.createBatch')}
               </Button>
+
             </div>
           )}
         </form>

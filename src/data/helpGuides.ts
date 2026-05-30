@@ -774,7 +774,7 @@ export const helpGuides: RoleGuides[] = [
         description: 'Tạo phiếu giao đồ dùng từ kho đến các phòng',
         detailedDescription: 'Phiếu giao hàng dùng để giao đồ dùng từ kho đến các phòng cụ thể. Khác với "Xuất kho" thông thường, phiếu giao hàng theo dõi chi tiết: giao đến phòng nào, ai giao, đã giao chưa, và kiểm tra khi giao. Phù hợp khi cần phân bổ đồ dùng hàng loạt (ví dụ: bổ sung khăn cho 20 phòng).',
         icon: TruckIcon,
-        navigateTo: '/inventory/distributions/new',
+        navigateTo: '/inventory?tab=operations&sub=outbound&view=manual',
         prerequisites: [
           'Đã cấu hình chuẩn phòng (để tự động tính số lượng)',
           'Tồn kho đủ cho số lượng cần giao',

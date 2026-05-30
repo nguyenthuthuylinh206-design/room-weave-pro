@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
+
 import { AlertTriangle, ChevronDown, ChevronUp, Package, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -14,7 +15,7 @@ interface PendingSupplementsBannerProps {
 }
 
 export function PendingSupplementsBanner({ onCreateFromSupplements }: PendingSupplementsBannerProps) {
-  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { data: pendingCount = 0, isLoading: isLoadingCount } = usePendingSupplementCount()
   const { data: pendingRequests = [], isLoading: isLoadingRequests } = useSupplementRequests({ status: 'pending' })
   
@@ -42,14 +43,15 @@ export function PendingSupplementsBanner({ onCreateFromSupplements }: PendingSup
   }
 
   const handleCreateDistribution = () => {
-    if (selectedIds.length > 0) {
-      const params = new URLSearchParams()
-      selectedIds.forEach(id => params.append('ids', id))
-      navigate(`/inventory/distributions/from-supplements?${params.toString()}`)
-    } else {
-      navigate('/inventory/distributions/from-supplements')
-    }
+    const params = new URLSearchParams(searchParams)
+    params.set('tab', 'operations')
+    params.set('sub', 'outbound')
+    params.set('view', 'from-requests')
+    params.delete('ids')
+    selectedIds.forEach(id => params.append('ids', id))
+    setSearchParams(params, { replace: true })
   }
+
 
   const getRequestTypeClass = (type: string) => {
     switch (type) {

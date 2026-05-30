@@ -20,13 +20,15 @@ const lazyNamed = <T extends Record<string, any>>(
   name: keyof T
 ) => lazy(() => loader().then((m) => ({ default: m[name] })));
 
-const InventoryHubRedirect = ({ tab, sub }: { tab: string; sub?: string }) => {
+const InventoryHubRedirect = ({ tab, sub, view }: { tab: string; sub?: string; view?: string }) => {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   params.set('tab', tab);
   if (sub) params.set('sub', sub);
+  if (view) params.set('view', view);
   return <Navigate to={`/inventory?${params.toString()}`} replace />;
 };
+
 
 // Heavy layout shells — lazy-loaded so anonymous landing/auth/payment-QR
 // pages don't pull in HotelProvider, PWA prompts, banners, sidebars, etc.
@@ -55,8 +57,8 @@ const CreateAdjustmentPage = lazyNamed(() => import("./pages/inventory/CreateAdj
 const CheckAdjustmentPage = lazyNamed(() => import("./pages/inventory/CheckAdjustmentPage"), "CheckAdjustmentPage");
 const AdjustmentDetailPage = lazyNamed(() => import("./pages/inventory/AdjustmentDetailPage"), "AdjustmentDetailPage");
 const DistributionOrderDetailPage = lazy(() => import("./pages/inventory/DistributionOrderDetailPage"));
-const CreateDistributionPage = lazy(() => import("./pages/inventory/CreateDistributionPage"));
-const CreateFromSupplementsPage = lazy(() => import("./pages/inventory/CreateFromSupplementsPage"));
+
+
 const TransferPage = lazy(() => import("./pages/inventory/TransferPage"));
 
 // Items
@@ -406,8 +408,9 @@ const router = createBrowserRouter([
       { path: "inventory/adjustments/:id/check", element: <PermissionRoute module="inventory" action="update"><CheckAdjustmentPage /></PermissionRoute> },
       { path: "inventory/distributions", element: <InventoryHubRedirect tab="operations" sub="distributions" /> },
       { path: "inventory/transfer/new", element: <PermissionRoute module="inventory" action="create"><TransferPage /></PermissionRoute> },
-      { path: "inventory/distributions/new", element: <PermissionRoute module="inventory" action="create"><CreateDistributionPage /></PermissionRoute> },
-      { path: "inventory/distributions/from-supplements", element: <PermissionRoute module="inventory" action="create"><CreateFromSupplementsPage /></PermissionRoute> },
+      { path: "inventory/distributions/new", element: <InventoryHubRedirect tab="operations" sub="outbound" view="manual" /> },
+      { path: "inventory/distributions/from-supplements", element: <InventoryHubRedirect tab="operations" sub="outbound" view="from-requests" /> },
+
       { path: "inventory/distributions/:id", element: <PermissionRoute module="inventory"><DistributionOrderDetailPage /></PermissionRoute> },
       { path: "inventory/reorder", element: <InventoryHubRedirect tab="operations" sub="reorder" /> },
       { path: "inventory/dead-stock", element: <InventoryHubRedirect tab="analytics" sub="dead-stock" /> },

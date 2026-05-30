@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Plus, Package, ChevronLeft, ChevronRight, RefreshCw, Loader2, ChevronDown, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -32,9 +32,19 @@ type TabValue = 'todo' | 'delivering' | 'done' | 'all'
 
 export default function DistributionOrdersPage() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const isMobile = useIsMobile()
   const queryClient = useQueryClient()
   const { user } = useUser()
+
+  const switchView = (view: 'manual' | 'from-requests') => {
+    const p = new URLSearchParams(searchParams)
+    p.set('tab', 'operations')
+    p.set('sub', 'outbound')
+    p.set('view', view)
+    setSearchParams(p, { replace: true })
+  }
+
 
   const [filters, setFilters] = useState<RouteFilters>({})
   const [searchQuery, setSearchQuery] = useState('')
@@ -119,7 +129,7 @@ export default function DistributionOrdersPage() {
       <p className="text-sm text-muted-foreground">
         {tab === 'todo' ? 'Không có việc nào cần xử lý ngay' : 'Không có phiếu giao hàng nào'}
       </p>
-      <Button size="sm" className="mt-3" onClick={() => navigate('/inventory/distributions/new')}>
+      <Button size="sm" className="mt-3" onClick={() => switchView('manual')}>
         <Plus className="h-4 w-4 mr-1" />
         Tạo phiếu mới
       </Button>
@@ -184,8 +194,8 @@ export default function DistributionOrdersPage() {
               </Button>
               <CreateDropdown
                 pendingCount={pendingSupplementCount}
-                onCreateManual={() => navigate('/inventory/distributions/new')}
-                onCreateFromSupplements={() => navigate('/inventory/distributions/from-supplements')}
+                onCreateManual={() => switchView('manual')}
+                onCreateFromSupplements={() => switchView('from-requests')}
               />
             </div>
           </div>
@@ -255,8 +265,8 @@ export default function DistributionOrdersPage() {
           </Button>
           <CreateDropdown
             pendingCount={pendingSupplementCount}
-            onCreateManual={() => navigate('/inventory/distributions/new')}
-            onCreateFromSupplements={() => navigate('/inventory/distributions/from-supplements')}
+            onCreateManual={() => switchView('manual')}
+            onCreateFromSupplements={() => switchView('from-requests')}
           />
         </div>
       </div>

@@ -421,24 +421,20 @@ export function InventoryDashboardPage() {
               </Suspense>
             </TabsContent>
             <TabsContent value="outbound" className="mt-4">
-              <Tabs value={outboundView} onValueChange={(v) => setOutboundView(v as 'list' | 'manual' | 'from-requests')}>
+              <Tabs value={outboundView === 'from-requests' ? 'list' : outboundView} onValueChange={(v) => setOutboundView(v as 'list' | 'manual')}>
                 <ScrollableTabsList className="-mx-1 px-1">
                   <TabsList>
-                    <TabsTrigger value="list">
-                      Danh sách phiếu
-                      {(badges?.distributionsPending ?? 0) > 0 && (
-                        <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[10px]">
-                          {badges?.distributionsPending}
-                        </Badge>
-                      )}
-                    </TabsTrigger>
-                    <TabsTrigger value="manual">+ Tạo phiếu thủ công</TabsTrigger>
-                    <TabsTrigger value="from-requests">Từ yêu cầu bổ sung</TabsTrigger>
+                    <TabsTrigger value="list">Danh sách phiếu</TabsTrigger>
+                    <TabsTrigger value="manual">+ Tạo phiếu mới</TabsTrigger>
                   </TabsList>
                 </ScrollableTabsList>
                 <TabsContent value="list" className="mt-4">
                   <Suspense fallback={<TabFallback />}>
-                    <DistributionOrdersPage />
+                    {outboundView === 'from-requests' ? (
+                      <CreateFromSupplementsPage embedded />
+                    ) : (
+                      <DistributionOrdersPage />
+                    )}
                   </Suspense>
                 </TabsContent>
                 <TabsContent value="manual" className="mt-4">
@@ -446,13 +442,9 @@ export function InventoryDashboardPage() {
                     <OutboundPage />
                   </Suspense>
                 </TabsContent>
-                <TabsContent value="from-requests" className="mt-4">
-                  <Suspense fallback={<TabFallback />}>
-                    <CreateFromSupplementsPage embedded />
-                  </Suspense>
-                </TabsContent>
               </Tabs>
             </TabsContent>
+
             <TabsContent value="transfer" className="mt-4">
               <Suspense fallback={<TabFallback />}>
                 <TransferPage />
