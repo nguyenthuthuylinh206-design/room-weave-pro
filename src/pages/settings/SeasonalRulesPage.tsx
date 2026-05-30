@@ -1,6 +1,4 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,13 +9,14 @@ import {
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Trash2, Plus, Pencil } from 'lucide-react'
-import { useUser } from '@/hooks/useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
+import { useRoomTypes } from '@/hooks/useRoomTypes'
 import {
   useSeasonalRates, useUpsertSeasonalRate, useDeleteSeasonalRate,
   type SeasonalRateOverride, type SeasonalApplyTo,
 } from '@/hooks/useSeasonalRates'
 import { formatCurrency } from '@/lib/utils'
+
 
 const APPLY_TO_OPTIONS: { value: SeasonalApplyTo; label: string }[] = [
   { value: 'daily', label: 'Ngày' },
