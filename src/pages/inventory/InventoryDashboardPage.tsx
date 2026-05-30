@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { ScrollableTabsList } from '@/components/shared/ScrollableTabsList'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -300,15 +301,18 @@ export function InventoryDashboardPage() {
         </nav>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as MainTab)} className="min-w-0">
-          <div className="sticky top-0 z-10 bg-background pb-2 -mt-2 pt-2 overflow-x-auto -mx-1 px-1">
-            <TabsList>
-              <TabsTrigger value="overview">Tổng quan</TabsTrigger>
-              <TabsTrigger value="assets">Tài sản</TabsTrigger>
-              <TabsTrigger value="operations">Xuất nhập</TabsTrigger>
-              <TabsTrigger value="analytics">Phân tích</TabsTrigger>
-              <TabsTrigger value="settings">Thiết lập</TabsTrigger>
-            </TabsList>
+          <div className="sticky top-0 z-10 bg-background pb-2 -mt-2 pt-2 -mx-1 px-1">
+            <ScrollableTabsList>
+              <TabsList>
+                <TabsTrigger value="overview">Tổng quan</TabsTrigger>
+                <TabsTrigger value="assets">Tài sản</TabsTrigger>
+                <TabsTrigger value="operations">Xuất nhập</TabsTrigger>
+                <TabsTrigger value="analytics">Phân tích</TabsTrigger>
+                <TabsTrigger value="settings">Thiết lập</TabsTrigger>
+              </TabsList>
+            </ScrollableTabsList>
           </div>
+
 
           <TabsContent value="overview" className="mt-4">
             {isMobile ? <MobileInventoryDashboard /> : <InventoryOverviewSection onNavigate={setTab as (t: string, s?: string) => void} />}
@@ -319,13 +323,13 @@ export function InventoryDashboardPage() {
             value={(sub as AssetsSub) || 'items'}
             onValueChange={setSub}
           >
-            <div className="overflow-x-auto -mx-1 px-1">
+            <ScrollableTabsList className="-mx-1 px-1">
               <TabsList>
                 <TabsTrigger value="items">Danh sách tài sản</TabsTrigger>
                 <TabsTrigger value="categories">Danh mục</TabsTrigger>
                 <TabsTrigger value="new">+ Thêm tài sản</TabsTrigger>
               </TabsList>
-            </div>
+            </ScrollableTabsList>
             <TabsContent value="items" className="mt-4">
               <Suspense fallback={<TabFallback />}>
                 <ItemsPage />
@@ -349,7 +353,7 @@ export function InventoryDashboardPage() {
             value={(sub as OpSub) || 'transactions'}
             onValueChange={setSub}
           >
-            <div className="overflow-x-auto -mx-1 px-1">
+            <ScrollableTabsList className="-mx-1 px-1">
               <TabsList>
                 <TabsTrigger value="transactions">Giao dịch</TabsTrigger>
                 <TabsTrigger value="inbound">+ Nhập kho</TabsTrigger>
@@ -380,7 +384,7 @@ export function InventoryDashboardPage() {
                   )}
                 </TabsTrigger>
               </TabsList>
-            </div>
+            </ScrollableTabsList>
             <TabsContent value="transactions" className="mt-4">
               <Suspense fallback={<TabFallback />}>
                 <TransactionListPage />
@@ -424,12 +428,12 @@ export function InventoryDashboardPage() {
             value={(sub as AnalyticsSub) || 'consumption'}
             onValueChange={setSub}
           >
-            <div className="overflow-x-auto -mx-1 px-1">
+            <ScrollableTabsList className="-mx-1 px-1">
               <TabsList>
                 <TabsTrigger value="dead-stock">Tồn kho ứ đọng</TabsTrigger>
                 <TabsTrigger value="consumption">Phân tích tiêu thụ</TabsTrigger>
               </TabsList>
-            </div>
+            </ScrollableTabsList>
             <TabsContent value="consumption" className="mt-4">
               <Suspense fallback={<TabFallback />}>
                 <InventoryAnalyticsPage />
@@ -448,12 +452,12 @@ export function InventoryDashboardPage() {
               value={settingsSubValue}
               onValueChange={setSub}
             >
-              <div className="overflow-x-auto -mx-1 px-1">
+              <ScrollableTabsList className="-mx-1 px-1">
                 <TabsList>
                   <TabsTrigger value="supplements">Bổ sung đồ</TabsTrigger>
                   {canManageSettings && <TabsTrigger value="warehouses">Quản lý kho</TabsTrigger>}
                 </TabsList>
-              </div>
+              </ScrollableTabsList>
               <TabsContent value="supplements" className="mt-4">
                 <Suspense fallback={<TabFallback />}>
                   <SupplementsPage />
