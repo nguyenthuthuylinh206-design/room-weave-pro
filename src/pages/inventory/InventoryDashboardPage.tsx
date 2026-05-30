@@ -20,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { useUser } from '@/hooks/useUser'
 import type { AppRole } from '@/types/database.types'
+import { cn } from '@/lib/utils'
 import { InventoryOverviewSection } from '@/components/inventory/InventoryOverviewSection'
 import { MobileInventoryDashboard } from '@/components/inventory/MobileInventoryDashboard'
 
@@ -51,6 +52,63 @@ type OpSub = 'transactions' | 'inbound' | 'outbound' | 'transfer' | 'adjustments
 type AssetsSub = 'items' | 'categories' | 'new'
 type AnalyticsSub = 'consumption' | 'dead-stock'
 type SettingsSub = 'supplements' | 'warehouses'
+
+type InventoryMenuItem = {
+  label: string
+  tab: MainTab
+  sub?: OpSub | AssetsSub | AnalyticsSub | SettingsSub
+  requiresSettings?: boolean
+}
+
+const inventoryMenuGroups: Array<{ title: string; items: InventoryMenuItem[] }> = [
+  {
+    title: 'Tổng quan',
+    items: [
+      { label: 'Bảng điều khiển', tab: 'overview' },
+      { label: 'Giao dịch kho', tab: 'operations', sub: 'transactions' },
+    ],
+  },
+  {
+    title: 'Sản phẩm',
+    items: [
+      { label: 'Danh sách tài sản', tab: 'assets', sub: 'items' },
+      { label: 'Danh mục', tab: 'assets', sub: 'categories' },
+      { label: 'Thêm tài sản mới', tab: 'assets', sub: 'new' },
+    ],
+  },
+  {
+    title: 'Xuất nhập kho',
+    items: [
+      { label: 'Nhập kho', tab: 'operations', sub: 'inbound' },
+      { label: 'Xuất kho', tab: 'operations', sub: 'outbound' },
+      { label: 'Chuyển kho', tab: 'operations', sub: 'transfer' },
+      { label: 'Kiểm kê', tab: 'operations', sub: 'adjustments' },
+      { label: 'Phiếu giao hàng', tab: 'operations', sub: 'distributions' },
+      { label: 'Đề xuất nhập hàng', tab: 'operations', sub: 'reorder' },
+    ],
+  },
+  {
+    title: 'Phân tích',
+    items: [
+      { label: 'Tồn kho ứ đọng', tab: 'analytics', sub: 'dead-stock' },
+      { label: 'Phân tích tiêu thụ', tab: 'analytics', sub: 'consumption' },
+    ],
+  },
+  {
+    title: 'Thiết lập',
+    items: [
+      { label: 'Bổ sung đồ', tab: 'settings', sub: 'supplements', requiresSettings: true },
+      { label: 'Quản lý kho', tab: 'settings', sub: 'warehouses', requiresSettings: true },
+    ],
+  },
+]
+
+const defaultSubByTab: Partial<Record<MainTab, OpSub | AssetsSub | AnalyticsSub | SettingsSub>> = {
+  assets: 'items',
+  operations: 'transactions',
+  analytics: 'consumption',
+  settings: 'supplements',
+}
 
 export function InventoryDashboardPage() {
   const { isMobile } = useBreakpoint()
