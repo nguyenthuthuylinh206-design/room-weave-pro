@@ -708,6 +708,7 @@ export function useBookingForm() {
     setDateTimeData,
     toggleRoomSelection,
     updateRoomPrice,
+    applyPricingV2,
     reset,
     submit,
   }
