@@ -57,7 +57,7 @@ type InventoryMenuItem = {
   label: string
   tab: MainTab
   sub?: OpSub | AssetsSub | AnalyticsSub | SettingsSub
-  requiresSettings?: boolean
+  requiresManager?: boolean
 }
 
 const inventoryMenuGroups: Array<{ title: string; items: InventoryMenuItem[] }> = [
@@ -97,8 +97,8 @@ const inventoryMenuGroups: Array<{ title: string; items: InventoryMenuItem[] }> 
   {
     title: 'Thiết lập',
     items: [
-      { label: 'Bổ sung đồ', tab: 'settings', sub: 'supplements', requiresSettings: true },
-      { label: 'Quản lý kho', tab: 'settings', sub: 'warehouses', requiresSettings: true },
+      { label: 'Bổ sung đồ', tab: 'settings', sub: 'supplements' },
+      { label: 'Quản lý kho', tab: 'settings', sub: 'warehouses', requiresManager: true },
     ],
   },
 ]
