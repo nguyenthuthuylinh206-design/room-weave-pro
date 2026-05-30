@@ -101,7 +101,7 @@ export function QuickOutboundDialog({ open, onOpenChange }: QuickOutboundDialogP
         transaction_category: data.transaction_category as OutboundCategory,
         from_warehouse_id: data.from_warehouse_id,
         to_location: data.to_location,
-        items: data.items,
+        items: data.items as any,
       },
       {},
       {
