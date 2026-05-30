@@ -140,6 +140,7 @@ const navigation: NavItem[] = [
       { titleKey: 'bookings', href: '/bookings', icon: CalendarDays, group: 'Đặt phòng & Khách' },
       { titleKey: 'guests', href: '/guests', icon: Users, group: 'Đặt phòng & Khách' },
       { titleKey: 'guestInvoices', href: '/guest-invoices', icon: FileText, group: 'Đặt phòng & Khách' },
+      { titleKey: 'stayRegistrations', href: '/legal/stay-registrations', icon: ClipboardList, group: 'Đặt phòng & Khách' },
       { titleKey: 'lostFound', href: '/lost-found', icon: PackageSearch, group: 'Khác' },
     ],
   },
