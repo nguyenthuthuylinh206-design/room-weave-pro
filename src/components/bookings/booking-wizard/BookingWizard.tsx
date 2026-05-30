@@ -20,7 +20,7 @@ export function BookingWizard({ onSuccess, onCancel }: BookingWizardProps) {
   const [completedSteps, setCompletedSteps] = useState<Set<WizardStep>>(new Set())
   
   const form = useBookingForm()
-  const { state, computed, validation, isSubmitting, updateState, toggleRoomSelection, updateRoomPrice, submit } = form
+  const { state, computed, validation, isSubmitting, updateState, toggleRoomSelection, updateRoomPrice, applyPricingV2, submit } = form
 
   // Mark steps as completed when valid
   useEffect(() => {
