@@ -187,7 +187,7 @@ export function OutboundPage() {
         step3: { confirmed: true }
       }, { onSuccess: (result) => navigate(`/laundry/batches/${result.id}`) });
     } else {
-      createOutbound(data as any, { onSuccess: () => navigate('/inventory/transactions') });
+      createOutbound(data as any, { onSuccess: () => navigate('/inventory?tab=operations&sub=transactions') });
     }
   };
 

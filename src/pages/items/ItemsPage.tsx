@@ -38,15 +38,18 @@ export function ItemsPage() {
   useEffect(() => {
     if (isMobile) return
     
-    const params = new URLSearchParams()
+    const params = new URLSearchParams(searchParams)
+    ;['search', 'categoryId', 'stockStatus', 'status', 'page', 'pageSize'].forEach((key) => params.delete(key))
     if (filters.search) params.set('search', filters.search)
     if (filters.categoryId) params.set('categoryId', filters.categoryId)
     if (filters.stockStatus) params.set('stockStatus', filters.stockStatus)
     if (filters.status) params.set('status', filters.status)
     if (page !== 1) params.set('page', page.toString())
     if (pageSize !== 25) params.set('pageSize', pageSize.toString())
-    setSearchParams(params, { replace: true })
-  }, [filters, page, pageSize, setSearchParams, isMobile])
+    if (params.toString() !== searchParams.toString()) {
+      setSearchParams(params, { replace: true })
+    }
+  }, [filters, page, pageSize, setSearchParams, isMobile, searchParams])
   
   const { data, isLoading, error } = useItems(filters, page, pageSize)
   

@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Navigate, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
 
@@ -19,6 +19,14 @@ const lazyNamed = <T extends Record<string, any>>(
   loader: () => Promise<T>,
   name: keyof T
 ) => lazy(() => loader().then((m) => ({ default: m[name] })));
+
+const InventoryHubRedirect = ({ tab, sub }: { tab: string; sub?: string }) => {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  params.set('tab', tab);
+  if (sub) params.set('sub', sub);
+  return <Navigate to={`/inventory?${params.toString()}`} replace />;
+};
 
 // Heavy layout shells — lazy-loaded so anonymous landing/auth/payment-QR
 // pages don't pull in HotelProvider, PWA prompts, banners, sidebars, etc.
@@ -41,28 +49,19 @@ const DocsViewer = lazy(() => import("./pages/docs/DocsViewer"));
 
 // Inventory
 const InventoryDashboardPage = lazyNamed(() => import("./pages/inventory/InventoryDashboardPage"), "InventoryDashboardPage");
-const SupplementsPage = lazyNamed(() => import("./pages/supplements/SupplementsPage"), "SupplementsPage");
-const TransactionListPage = lazyNamed(() => import("./pages/inventory/TransactionListPage"), "TransactionListPage");
 const InboundPage = lazyNamed(() => import("./pages/inventory/InboundPage"), "InboundPage");
 const OutboundPage = lazyNamed(() => import("./pages/inventory/OutboundPage"), "OutboundPage");
-const AdjustmentListPage = lazyNamed(() => import("./pages/inventory/AdjustmentListPage"), "AdjustmentListPage");
 const CreateAdjustmentPage = lazyNamed(() => import("./pages/inventory/CreateAdjustmentPage"), "CreateAdjustmentPage");
 const CheckAdjustmentPage = lazyNamed(() => import("./pages/inventory/CheckAdjustmentPage"), "CheckAdjustmentPage");
 const AdjustmentDetailPage = lazyNamed(() => import("./pages/inventory/AdjustmentDetailPage"), "AdjustmentDetailPage");
-const DistributionOrdersPage = lazy(() => import("./pages/inventory/DistributionOrdersPage"));
 const DistributionOrderDetailPage = lazy(() => import("./pages/inventory/DistributionOrderDetailPage"));
 const CreateDistributionPage = lazy(() => import("./pages/inventory/CreateDistributionPage"));
 const CreateFromSupplementsPage = lazy(() => import("./pages/inventory/CreateFromSupplementsPage"));
 const TransferPage = lazy(() => import("./pages/inventory/TransferPage"));
-const ReorderSuggestionsPage = lazy(() => import("./pages/inventory/ReorderSuggestionsPage"));
-const DeadStockPage = lazy(() => import("./pages/inventory/DeadStockPage"));
-const InventoryAnalyticsPage = lazy(() => import("./pages/inventory/InventoryAnalyticsPage"));
 
 // Items
-const ItemsPage = lazyNamed(() => import("./pages/items/ItemsPage"), "ItemsPage");
 const ItemDetailPage = lazy(() => import("./pages/items/ItemDetailPage"));
 const ItemFormPage = lazyNamed(() => import("./pages/items/ItemFormPage"), "ItemFormPage");
-const CategoriesPage = lazyNamed(() => import("./pages/items/CategoriesPage"), "CategoriesPage");
 
 // Rooms
 const RoomsPage = lazyNamed(() => import("./pages/rooms/RoomsPage"), "RoomsPage");
@@ -396,30 +395,30 @@ const router = createBrowserRouter([
       
       // Inventory - Permission Based
       { path: "inventory", element: <PermissionRoute module="inventory"><InventoryDashboardPage /></PermissionRoute> },
-      { path: "inventory/transactions", element: <PermissionRoute module="inventory"><TransactionListPage /></PermissionRoute> },
-      { path: "inventory/inbound", element: <Navigate to="/inventory/transactions" replace /> },
+      { path: "inventory/transactions", element: <InventoryHubRedirect tab="operations" sub="transactions" /> },
+      { path: "inventory/inbound", element: <InventoryHubRedirect tab="operations" sub="inbound" /> },
       { path: "inventory/inbound/new", element: <PermissionRoute module="inventory" action="create"><InboundPage /></PermissionRoute> },
-      { path: "inventory/outbound", element: <Navigate to="/inventory/transactions" replace /> },
+      { path: "inventory/outbound", element: <InventoryHubRedirect tab="operations" sub="outbound" /> },
       { path: "inventory/outbound/new", element: <PermissionRoute module="inventory" action="create"><OutboundPage /></PermissionRoute> },
-      { path: "inventory/adjustments", element: <PermissionRoute module="inventory"><AdjustmentListPage /></PermissionRoute> },
+      { path: "inventory/adjustments", element: <InventoryHubRedirect tab="operations" sub="adjustments" /> },
       { path: "inventory/adjustments/new", element: <PermissionRoute module="inventory" action="create"><CreateAdjustmentPage /></PermissionRoute> },
       { path: "inventory/adjustments/:id", element: <PermissionRoute module="inventory"><AdjustmentDetailPage /></PermissionRoute> },
       { path: "inventory/adjustments/:id/check", element: <PermissionRoute module="inventory" action="update"><CheckAdjustmentPage /></PermissionRoute> },
-      { path: "inventory/distributions", element: <PermissionRoute module="inventory"><DistributionOrdersPage /></PermissionRoute> },
+      { path: "inventory/distributions", element: <InventoryHubRedirect tab="operations" sub="distributions" /> },
       { path: "inventory/transfer/new", element: <PermissionRoute module="inventory" action="create"><TransferPage /></PermissionRoute> },
       { path: "inventory/distributions/new", element: <PermissionRoute module="inventory" action="create"><CreateDistributionPage /></PermissionRoute> },
       { path: "inventory/distributions/from-supplements", element: <PermissionRoute module="inventory" action="create"><CreateFromSupplementsPage /></PermissionRoute> },
       { path: "inventory/distributions/:id", element: <PermissionRoute module="inventory"><DistributionOrderDetailPage /></PermissionRoute> },
-      { path: "inventory/reorder", element: <PermissionRoute module="inventory"><ReorderSuggestionsPage /></PermissionRoute> },
-      { path: "inventory/dead-stock", element: <PermissionRoute module="inventory"><DeadStockPage /></PermissionRoute> },
-      { path: "inventory/analytics", element: <PermissionRoute module="inventory"><InventoryAnalyticsPage /></PermissionRoute> },
+      { path: "inventory/reorder", element: <InventoryHubRedirect tab="operations" sub="reorder" /> },
+      { path: "inventory/dead-stock", element: <InventoryHubRedirect tab="analytics" sub="dead-stock" /> },
+      { path: "inventory/analytics", element: <InventoryHubRedirect tab="analytics" sub="consumption" /> },
 
       // Items
-      { path: "items", element: <PermissionRoute module="items"><ItemsPage /></PermissionRoute> },
+      { path: "items", element: <InventoryHubRedirect tab="assets" sub="items" /> },
       { path: "items/:id", element: <PermissionRoute module="items"><ItemDetailPage /></PermissionRoute> },
       { path: "items/new", element: <PermissionRoute module="items" action="create"><ItemFormPage /></PermissionRoute> },
       { path: "items/:id/edit", element: <PermissionRoute module="items" action="update"><ItemFormPage /></PermissionRoute> },
-      { path: "items/categories", element: <PermissionRoute module="items"><CategoriesPage /></PermissionRoute> },
+      { path: "items/categories", element: <InventoryHubRedirect tab="assets" sub="categories" /> },
 
       // Rooms
       { path: "rooms", element: <PermissionRoute module="rooms"><RoomsPage /></PermissionRoute> },
@@ -434,7 +433,7 @@ const router = createBrowserRouter([
       { path: "rooms/standards", element: <PermissionRoute module="rooms"><RoomStandardsPage /></PermissionRoute> },
 
       // Supplements
-      { path: "supplements", element: <PermissionRoute module="inventory"><SupplementsPage /></PermissionRoute> },
+      { path: "supplements", element: <InventoryHubRedirect tab="settings" sub="supplements" /> },
 
       // Bookings
       { path: "bookings", element: <PermissionRoute module="bookings"><BookingsPage /></PermissionRoute> },
@@ -483,7 +482,7 @@ const router = createBrowserRouter([
       { path: "housekeeping/review", element: <PermissionRoute module="rooms"><TasksPendingReviewPage /></PermissionRoute> },
       { path: "housekeeping/qc", element: <PermissionRoute module="rooms"><QcDashboardPage /></PermissionRoute> },
       { path: "housekeeping/issues-review", element: <RoleGuard allowedRoles={['super_admin', 'owner', 'hotel_manager', 'department_manager']}><IssuesReviewPage /></RoleGuard> },
-      { path: "settings/warehouses", element: <PermissionRoute module="inventory"><WarehouseListPage /></PermissionRoute> },
+      { path: "settings/warehouses", element: <InventoryHubRedirect tab="settings" sub="warehouses" /> },
       { path: "settings/subscription", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><SubscriptionPage /></RoleGuard> },
       { path: "settings/subscription/pay/:invoiceId", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><SubscriptionPaymentPage /></RoleGuard> },
       { path: "settings/usage", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><UsageDashboardPage /></RoleGuard> },

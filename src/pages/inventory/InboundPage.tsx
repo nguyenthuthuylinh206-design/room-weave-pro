@@ -115,7 +115,7 @@ export function InboundPage() {
       } as any,
       {
         onSuccess: () => {
-          navigate('/inventory/transactions')
+          navigate('/inventory?tab=operations&sub=transactions')
         },
       }
     )

@@ -229,7 +229,7 @@ export function ItemFormPage() {
         }
       }
       toast.success(isEdit ? t('items:messages.updateSuccess') : t('items:messages.createSuccess'));
-      navigate('/items');
+      navigate('/inventory?tab=assets&sub=items');
     } catch (error) {
       console.error('Submit error:', error);
       toast.error(t('items:messages.saveError'));
@@ -283,7 +283,7 @@ export function ItemFormPage() {
             <AlertCircle className="h-4 w-4 text-amber-600" />
             <AlertDescription className="text-sm flex items-center justify-between">
               <span>Vui lòng tạo kho hàng trước khi thêm tài sản.</span>
-              <Button size="sm" variant="outline" className="h-7 ml-3" type="button" onClick={() => navigate('/settings/warehouses')}>
+              <Button size="sm" variant="outline" className="h-7 ml-3" type="button" onClick={() => navigate('/inventory?tab=settings&sub=warehouses')}>
                 Tạo kho hàng
               </Button>
             </AlertDescription>
@@ -649,7 +649,7 @@ export function ItemFormPage() {
 
         {/* Submit buttons */}
         <div className={`flex gap-2 ${isMobile ? 'fixed bottom-16 left-0 right-0 p-3 bg-background border-t z-30' : 'justify-end'}`}>
-          <Button type="button" variant="outline" size="sm" onClick={() => navigate('/items')} className={isMobile ? 'flex-1' : ''}>
+          <Button type="button" variant="outline" size="sm" onClick={() => navigate('/inventory?tab=assets&sub=items')} className={isMobile ? 'flex-1' : ''}>
             {t('items:form.buttons.cancel')}
           </Button>
           <Button type="submit" size="sm" disabled={isSubmitting || isAllHotelsMode || !selectedHotel} className={isMobile ? 'flex-1' : ''}>
