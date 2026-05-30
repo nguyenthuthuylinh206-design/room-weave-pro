@@ -246,14 +246,8 @@ export function OutboundPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title={t('inventory:outbound.title')} description={t('inventory:outbound.description')}>
-        <Button variant="outline" size="sm" onClick={() => navigate('/inventory')}>
-          <ArrowLeft className="mr-1.5 h-4 w-4" />
-          {t('common:back')}
-        </Button>
-      </PageHeader>
-      
       <Form {...form}>
+
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {/* General Info */}
           <div className="border rounded-lg p-4 space-y-3">
