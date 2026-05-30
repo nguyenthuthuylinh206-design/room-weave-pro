@@ -1,80 +1,91 @@
-## Đồng bộ toàn bộ màu hardcoded với bộ Slate Professional
+# Gọn menu Kho & Tài sản — Hub 1 trang
 
-### Vấn đề
+## Mục tiêu
+Sidebar mục **Kho & Tài sản** hiện có **15 mục con** chia 5 nhóm → gây rối. Gom hết vào **1 mục duy nhất** trỏ về `/inventory`. Tại đây là **hub có tab** chứa toàn bộ chức năng, không phá vỡ các route hiện có.
 
-Có **2.659 lần** dùng class màu hardcoded (`text-green-600`, `bg-amber-50`, `text-blue-600`...) rải rác **459 file**. Đây là convention ghi trong project-knowledge (`text-green-600` = OK, `text-red-600` = lỗi, `text-amber-600` = cảnh báo) — không thể xoá, mà cần **chỉnh tông màu Tailwind palette mặc định** cho khớp bộ Slate Professional mới.
+## A. Thay đổi sidebar
 
-### Giải pháp: Override palette Tailwind tại `tailwind.config.ts`
+`src/components/layout/Sidebar.tsx` (dòng 107–130): rút children xuống còn **1 mục**:
 
-Thay vì sửa 459 file (rủi ro cao, dễ vỡ), override các tông màu hay dùng tại 1 nơi duy nhất. Mọi `text-green-600`, `bg-red-50`, `border-amber-200`... toàn dự án sẽ tự động dùng palette mới mà không cần đụng vào component nào.
-
-#### File sửa: `tailwind.config.ts` — thêm trong `extend.colors`
-
-Map lại 5 thang màu chính dùng nhiều nhất, đồng bộ với token semantic mới:
-
-```ts
-// Trục xanh dương (info / primary) — khớp #2563EB
-blue: {
-  50:'#EFF6FF', 100:'#DBEAFE', 200:'#BFDBFE', 300:'#93C5FD',
-  400:'#60A5FA', 500:'#3B82F6', 600:'#2563EB', 700:'#1D4ED8',
-  800:'#1E40AF', 900:'#1E3A8A', 950:'#172554',
-},
-// Trục xanh lá (success) — khớp #15803D
-green: {
-  50:'#F0FDF4', 100:'#DCFCE7', 200:'#BBF7D0', 300:'#86EFAC',
-  400:'#4ADE80', 500:'#22C55E', 600:'#16A34A', 700:'#15803D',
-  800:'#166534', 900:'#14532D', 950:'#052E16',
-},
-emerald: { /* alias = green để tránh tông cyan-emerald lệch */ ... },
-// Trục cam-nâu (warning) — khớp #B45309, bỏ vàng chói
-amber: {
-  50:'#FFFBEB', 100:'#FEF3C7', 200:'#FDE68A', 300:'#FCD34D',
-  400:'#FBBF24', 500:'#F59E0B', 600:'#D97706', 700:'#B45309',
-  800:'#92400E', 900:'#78350F', 950:'#451A03',
-},
-orange: { /* dùng cùng scale amber để tránh lệch tông */ ... },
-yellow: { /* dùng cùng scale amber */ ... },
-// Trục đỏ (destructive) — khớp #DC2626
-red: {
-  50:'#FEF2F2', 100:'#FEE2E2', 200:'#FECACA', 300:'#FCA5A5',
-  400:'#F87171', 500:'#EF4444', 600:'#DC2626', 700:'#B91C1C',
-  800:'#991B1B', 900:'#7F1D1D', 950:'#450A0A',
-},
-// Trục xám (neutral) — khớp foreground / muted Slate
-slate: {
-  50:'#F8FAFC', 100:'#F1F5F9', 200:'#E2E8F0', 300:'#CBD5E1',
-  400:'#94A3B8', 500:'#64748B', 600:'#475569', 700:'#334155',
-  800:'#1E293B', 900:'#0F172A', 950:'#020617',
-},
-gray: { /* alias = slate */ ... },
-zinc: { /* alias = slate */ ... },
-neutral: { /* alias = slate */ ... },
-stone: { /* alias = slate */ ... },
-// Bỏ tông cyan/sky/teal/indigo/violet/purple/pink/rose/fuchsia/lime
-// → map về blue hoặc slate gần nhất để không còn màu "lạc tông"
-sky: { 50:'#EFF6FF', ..., 600:'#2563EB', ... },   // = blue
-cyan: { ..., 600:'#2563EB', ... },                // = blue
-teal: { ..., 600:'#15803D', ... },                // = green
-indigo: { ..., 600:'#2563EB', ... },              // = blue
-violet/purple/fuchsia/pink/rose: { 600:'#DC2626', ... }, // = red (hiếm dùng)
+```
+Kho & Tài sản  →  /inventory   (badge: tổng các badge con)
 ```
 
-> **Lưu ý**: Chỉ thực sự cần map 5 trục `blue`, `green`, `amber`, `red`, `slate` + 4 alias xám (`gray/zinc/neutral/stone`). Các trục `sky/cyan/teal/indigo/violet/purple/pink/rose/fuchsia/lime/emerald/orange/yellow` chỉ map khi `rg` xác nhận có sử dụng — quét lại trước khi viết để giữ config gọn.
+Bỏ toàn bộ 14 mục con. Vẫn giữ `inventoryTotal` badge gộp (adjustments + distributions + reorderSuggestions + supplements) để Owner/Manager thấy việc cần làm ngay từ sidebar.
 
-### Bước thực hiện
+Các route con (`/inventory/transactions`, `/items`, `/inventory/inbound/new`, …) **giữ nguyên** — chỉ ẩn khỏi sidebar, vẫn truy cập được qua hub và deep-link cũ.
 
-1. **Quét chính xác** trục màu nào đang được dùng (`rg -o "(slate|gray|zinc|...|rose)-[0-9]{2,3}" src | sort -u`) → chỉ override những trục đó.
-2. **Sửa `tailwind.config.ts`** một lần — thêm `colors.<scale>` trong `extend`.
-3. **Loại bỏ trường hợp `sidebar-foreground` đè text trắng**: kiểm tra component nào hardcode `text-white` trên nền `bg-white` cũ — không có vì sidebar dùng `bg-sidebar`.
-4. **Bump version** `1.1.3 → 1.1.4` + entry changelog: "Đồng bộ palette: mọi tông xanh/đỏ/vàng/xám trùng bộ Slate Professional".
-5. **QA visual**: chụp 5 trang đại diện (`/dashboard`, `/rooms`, `/bookings`, `/reports/operations`, `/inventory`) — xác nhận không còn tông cyan chói, vàng chanh, tím lạc.
+## B. Refactor `InventoryDashboardPage.tsx` thành Hub
 
-### Rủi ro
+Cấu trúc trang mới (giữ desktop & mobile portrait first):
 
-- **Thấp**: Tailwind chỉ generate CSS theo class được dùng, override không ảnh hưởng component không liên quan.
-- **Cảnh báo**: Một số UI có thể trông "tối hơn" do tông warning chuyển từ vàng `#F59E0B` sang cam-nâu `#B45309` — đây chính là yêu cầu của user về tăng tương phản.
-- Nếu sau khi build user phát hiện 1 trang cụ thể vẫn lạc tông, fix nhanh bằng cách bổ sung scale còn thiếu trong cùng config — không cần rollback.
+```text
+┌──────────────────────────────────────────────────────┐
+│  Kho & Tài sản                       [+ Thao tác ▾]  │  ← header + menu nhanh (Nhập / Xuất / Chuyển / Kiểm kê)
+├──────────────────────────────────────────────────────┤
+│  KPI cards: Tổng SKU · Giá trị tồn · Cần đặt · Ứ đọng│
+├──────────────────────────────────────────────────────┤
+│  [Tổng quan] [Tài sản] [Xuất nhập] [Phân tích] [Cài đặt] │  ← Tabs (shadcn)
+├──────────────────────────────────────────────────────┤
+│  <Nội dung tab>                                      │
+└──────────────────────────────────────────────────────┘
+```
 
-### Rollback
+### Mapping 5 tab
 
-Revert `tailwind.config.ts` về bản trước → toàn bộ palette quay lại Tailwind default. Không có migration DB.
+| Tab | Nội dung (component reuse) |
+|---|---|
+| **Tổng quan** | Widget hiện tại của `InventoryDashboardPage` + bảng giao dịch gần đây (lấy từ `TransactionListPage`, giới hạn 10 dòng + nút "Xem tất cả") |
+| **Tài sản** | Embed `ItemsListPage` (kèm filter Danh mục); nút "Thêm tài sản" → `/items/new`; link "Danh mục" → `/items/categories` |
+| **Xuất nhập** | Sub-tabs: Nhập · Xuất · Chuyển · Kiểm kê · Phiếu giao · Đề xuất nhập (mỗi sub-tab embed component list tương ứng + nút tạo mới) |
+| **Phân tích** | Sub-tabs: Tiêu thụ (`InventoryAnalyticsPage`) · Tồn ứ đọng (`DeadStockPage`) |
+| **Cài đặt** | Bổ sung đồ (`/supplements`) · Quản lý kho (`/settings/warehouses`) — embed dạng card link hoặc embed list |
+
+Tab + sub-tab đồng bộ qua URL query `?tab=...&sub=...` để giữ deep-link, back/forward hoạt động, và sidebar badge có thể link thẳng vào sub-tab cụ thể (vd `/inventory?tab=xuat-nhap&sub=distribution`).
+
+### Mobile
+
+- Trên mobile: tab chính dùng horizontal scroll (giống `MobileSecondaryActions` đã có).
+- Menu "Thao tác" header → dropdown gồm 4 hành động chính (Nhập / Xuất / Chuyển / Kiểm kê), thay vì 4 nút riêng.
+- `MobileSecondaryActions` cũ trên `/inventory` → loại bỏ vì đã có tab.
+
+## C. Tương thích & rollout
+
+1. **Route cũ giữ nguyên** — không xoá page. Khi user vào `/inventory/transactions` vẫn ra trang full như cũ (để bookmark/QR cũ không vỡ).
+2. Trong các trang "list" có embed lại ở hub, dùng prop `embedded?: boolean` để ẩn header trùng khi nhúng trong tab.
+3. **Permission**: mỗi tab tự ẩn nếu user không có quyền (vd staff không thấy "Cài đặt"). Dùng `usePermissions()` như sidebar.
+4. **Badge sidebar**: chỉ còn 1 badge gộp. Click vào sidebar → mở hub ở tab "Tổng quan" nếu có việc cần làm, hoặc tab tương ứng nếu chỉ 1 loại việc.
+5. **Mobile bottom nav**: nếu "Kho" đang có trong bottom nav thì giữ — vẫn trỏ `/inventory`.
+6. **Bỏ memory cũ** (nếu có) tham chiếu cấu trúc menu Kho 15 mục — sẽ thêm memory mới `inventory-hub-consolidation-v1`.
+
+## D. Việc cụ thể
+
+| # | File | Hành động |
+|---|---|---|
+| 1 | `src/components/layout/Sidebar.tsx` | Rút children mục `inventory` xuống 0, để href trực tiếp `/inventory` |
+| 2 | `src/pages/inventory/InventoryDashboardPage.tsx` | Refactor thành hub với Tabs + sub-Tabs + URL sync |
+| 3 | `src/pages/inventory/*ListPage.tsx`, `TransactionListPage.tsx`, `DistributionOrdersPage.tsx`, `DeadStockPage.tsx`, `InventoryAnalyticsPage.tsx`, `AdjustmentListPage.tsx`, `ReorderSuggestionsPage.tsx` | Thêm prop `embedded?: boolean` để ẩn page header khi nhúng |
+| 4 | `src/pages/items/ItemsListPage.tsx` (nếu có) | Tương tự — thêm `embedded` |
+| 5 | `src/components/inventory/MobileSecondaryActions.tsx` | Có thể giữ làm "Thao tác nhanh" trong tab Tổng quan, hoặc xoá |
+| 6 | Mobile bottom nav (nếu có entry "Kho con") | Cleanup |
+| 7 | `src/lib/app-version.ts` + `public/changelog.json` + `CacheBuster.tsx` | Bump `1.1.5` |
+| 8 | `.lovable/memory/ux/inventory-hub-consolidation-v1.md` + cập nhật `mem://index.md` | Ghi convention mới |
+
+## E. Risk & rollback
+
+- **Risk**: trang `/inventory` sẽ nặng hơn do nhiều list được mount → giải pháp: **lazy-load mỗi tab** (chỉ render khi active), dùng `React.lazy` cho từng sub-component.
+- **Risk**: user quen click sidebar 1 lần → giờ phải click tab. Mitigation: deep-link từ badge + menu "Thao tác" header.
+- **Rollback**: revert đúng 2 file (`Sidebar.tsx` + `InventoryDashboardPage.tsx`); các route cũ không bị xoá nên không cần migrate dữ liệu.
+
+## F. QA checklist (sau khi build)
+
+- [ ] Sidebar chỉ còn 1 dòng "Kho & Tài sản"
+- [ ] `/inventory` mở ra hub có 5 tab; URL có `?tab=`
+- [ ] Reload trang giữ đúng tab/sub-tab
+- [ ] Deep-link `/inventory/transactions`, `/items/new`, `/inventory/distributions/:id` vẫn vào trang full (không qua hub)
+- [ ] Badge sidebar gộp đúng tổng việc
+- [ ] Mobile portrait: tab scroll ngang ok, nút "Thao tác" thumb-zone
+- [ ] Staff role không thấy tab "Cài đặt"
+- [ ] Lazy-load: chỉ tab active gọi query
+
+Bạn duyệt thì mình build luôn.
