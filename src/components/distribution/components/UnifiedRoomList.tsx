@@ -97,8 +97,9 @@ export function UnifiedRoomList({
 
   // Assignee có thể giao ngay khi phiếu đã released (sẽ tự xác nhận nhận hàng)
   // Manager/Storekeeper chỉ giao thay khi đã in_progress
+  // v1.1.15: chỉ cho giao khi đã in_progress. 'released' phải bấm "Tôi đã nhận đủ hàng" trước.
   const canDeliverStops =
-    (isAssignee && (orderStatus === 'released' || orderStatus === 'in_progress')) ||
+    (isAssignee && orderStatus === 'in_progress') ||
     (canDeliverAsManager && orderStatus === 'in_progress')
 
   const { groupedStops, hasMultipleBatches } = useMemo(() => {
@@ -155,14 +156,10 @@ export function UnifiedRoomList({
   }
 
   const handleDeliver = (stop: RouteStop) => {
-    // Nếu phiếu mới released và user là assignee → tự xác nhận nhận hàng trước rồi giao
-    if (orderStatus === 'released' && isAssignee) {
-      confirmReceiveOrder.mutate(
-        { orderId: stop.distribution_order_id, silent: true },
-        {
-          onSuccess: () => performDeliver(stop),
-        }
-      )
+    // v1.1.15: bỏ auto-confirm im lặng. NV phải bấm "Tôi đã nhận đủ hàng" trước
+    // (NextActionCard). Khi orderStatus === 'released' mà cố giao → toast nhắc.
+    if (orderStatus === 'released') {
+      toast.warning('Bạn cần xác nhận "Tôi đã nhận đủ hàng" trước khi giao phòng.')
       return
     }
     performDeliver(stop)

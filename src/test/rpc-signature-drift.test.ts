@@ -116,8 +116,6 @@ describe('RPC signature drift (vs _generated/db-functions.tsv)', () => {
     // Khi DROP xong từng cái, xoá khỏi danh sách này. Test sẽ chặn THÊM MỚI.
     const ALLOWED_OVERLOADS = new Set<string>([
       'apply_room_standards',
-      'complete_room_delivery',
-      'confirm_receive_order',
       'create_distribution_order',
       'create_inbound_transaction',
       'create_laundry_loss_transaction',
