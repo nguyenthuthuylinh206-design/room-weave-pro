@@ -279,7 +279,7 @@ export function InventoryDashboardPage() {
               Menu
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-72 p-0 overflow-y-auto">
+          <SheetContent side="left" className="w-72 p-0 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [scrollbar-width:thin]">
             <SheetTitle className="px-4 pt-4 text-sm font-semibold">Menu Kho</SheetTitle>
             {navContent}
           </SheetContent>
