@@ -437,11 +437,7 @@ export function InventoryDashboardPage() {
                 </ScrollableTabsList>
                 <TabsContent value="list" className="mt-4">
                   <Suspense fallback={<TabFallback />}>
-                    {outboundView === 'from-requests' ? (
-                      <CreateFromSupplementsPage embedded />
-                    ) : (
-                      <DistributionOrdersPage />
-                    )}
+                    <DistributionOrdersPage />
                   </Suspense>
                 </TabsContent>
                 <TabsContent value="manual" className="mt-4">
