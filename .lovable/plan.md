@@ -1,51 +1,35 @@
+# Dọn thanh trượt ngang ở các tab trong Kho
+
 ## Vấn đề
+Trong `/inventory`, có **5 hàng tabs** đang dùng `overflow-x-auto` thô — hiển thị thanh cuộn xám mặc định của trình duyệt ngay dưới tab, đặc biệt rõ ở:
+- **Xuất nhập** (7 tab + badge) — chắc chắn tràn ở 981px
+- **Tổng quan / Tài sản / Phân tích / Thiết lập** — có thể tràn ở mobile/tablet
 
-`src/components/items/ItemTabs.tsx` hiện đang để `overflow-x-auto` trên `TabsList`, làm hiện thanh cuộn ngang xám mặc định của browser — rất thô khi có nhiều danh mục (Tất cả, Ẩm thực, Điện tử, Phòng khách, Phòng tắm, Thiết bị, Tiêu hao, Vệ sinh, Đồ vải, …) ở màn ~980px hoặc nhỏ hơn.
+Trước đó đã làm sạch `ItemTabs.tsx` (chip strip + chevron + fade) nhưng `InventoryDashboardPage.tsx` thì chưa.
 
-## Hướng nâng cấp (UI-only, không đụng data/logic)
+## Giải pháp
+Tạo **1 component dùng chung** `ScrollableTabsList` (wrapper bọc `<TabsList>` của shadcn), tái sử dụng cùng pattern đã chốt ở `ItemTabs`:
 
-Refactor `ItemTabs.tsx` theo 2 chế độ responsive:
+- Ẩn scrollbar (`[&::-webkit-scrollbar]:hidden`, `[scrollbar-width:none]`)
+- `snap-x snap-mandatory` cho cuộn mượt
+- Fade gradient trái/phải khi có overflow (`pointer-events-none`)
+- Nút chevron tròn nổi (h-8 w-8, ghost + border + backdrop-blur) chỉ hiện khi `canLeft/canRight`
+- Auto-scroll tab active vào giữa qua `scrollIntoView({ inline: 'center' })` — dùng `data-state="active"` selector
+- `ResizeObserver` cập nhật trạng thái chevron khi đổi viewport
 
-### 1. Desktop / Tablet (≥ `sm`, ≥640px) — Chip strip ẩn scrollbar
+Sau đó **thay 5 chỗ** `<div className="overflow-x-auto ..."><TabsList>...</TabsList></div>` thành `<ScrollableTabsList>...</ScrollableTabsList>` trong `InventoryDashboardPage.tsx`. Không đụng nội dung trigger, không đổi logic state/URL.
 
-- Ẩn hoàn toàn native scrollbar: `[&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]` (giống pattern đã dùng ở `PeriodPresetChips.tsx`).
-- Thêm `snap-x snap-mandatory` + `snap-start` cho từng chip → vuốt mượt, dừng đúng chip.
-- Fade edges 2 bên bằng 2 lớp `pointer-events-none` gradient `from-background` (trái/phải) chỉ hiện khi có overflow.
-- Chevron trái/phải (icon-only, `h-8 w-8`, `variant="ghost"`) chỉ render khi `scrollWidth > clientWidth`; click scroll ±200px. Theo dõi qua `ResizeObserver` + scroll listener để bật/tắt disable state.
-- Auto-scroll tab đang active vào tầm nhìn khi `activeTab` thay đổi (`scrollIntoView({ inline: 'center', block: 'nearest' })`).
-- Chip giữ nguyên style hiện tại (`h-8 px-3 text-xs`, `data-[state=active]:bg-muted`) + thêm counter dạng muted nhỏ.
-
-### 2. Mobile (< `sm`, ~390–639px) — Select dropdown gọn
-
-- Thay strip bằng `Select` trigger full-width `h-9`:
-  - Label trigger: tên danh mục đang chọn + số lượng (vd. `Phòng tắm · 25`).
-  - Options render từ cùng danh sách (`Tất cả` + categories), kèm count bên phải.
-- Tiết kiệm chiều ngang quý giá trên iPhone SE/Android nhỏ, không còn thanh trượt rác.
-
-Quyết định breakpoint bằng `useBreakpoint()` từ `src/lib/breakpoints.ts` (`isMobile`).
-
-## File sẽ sửa
-
-- `src/components/items/ItemTabs.tsx` — refactor toàn bộ render, tách 2 nhánh `MobileSelect` + `DesktopStrip`. Giữ nguyên props `activeTab`, `onTabChange`, không đổi hook `useCategories`.
-
-## File mới (tùy chọn nội bộ)
-
-- Có thể tách `DesktopChipStrip` thành subcomponent trong cùng file để dễ đọc (≤120 dòng tổng).
-
-## Không đụng
-
-- `useCategories`, schema, RPC, permissions, các page sử dụng `ItemTabs`.
-- Không thay đổi version bump (UI nhỏ) — trừ khi sau khi build user yêu cầu publish, sẽ bump theo convention.
+## Phạm vi
+- **Tạo mới**: `src/components/shared/ScrollableTabsList.tsx`
+- **Sửa**: `src/pages/inventory/InventoryDashboardPage.tsx` (5 vị trí TabsList, dòng 303–311, 322–328, 352–383, 427–432, 451–456)
+- **Refactor tuỳ chọn**: `ItemTabs.tsx` dùng lại `ScrollableTabsList` để không trùng code (gọn ~50 dòng) — sẽ làm trong cùng commit.
+- **Không** đụng: data, RPC, permission, route, version bump (chỉ UI thuần).
 
 ## Test thủ công
-
-- 390px: thấy Select dropdown, không còn thanh cuộn.
-- 768px: thấy strip chip, không có scrollbar xám, có fade + chevron khi tràn.
-- 1280px: nếu đủ chỗ → không hiện chevron, không hiện fade.
-- Chuyển tab bằng click chevron / chọn dropdown → list items reload đúng.
-- Khi active tab nằm ngoài viewport, vào trang sẽ auto-scroll tới giữa.
-- Kiểm tra Safari iOS (smooth scroll + snap).
+- 981px (viewport hiện tại): tab "Xuất nhập" hiện chevron phải + fade, cuộn mượt, không còn thanh xám.
+- 1280px: không chevron, không fade với các tab ngắn.
+- 390px mobile: vẫn cuộn được, fade hiện đúng (TabsList trong InventoryDashboardPage không có mobile select riêng — chỉ ItemTabs có; giữ nguyên).
+- Click tab cuối → tab tự cuộn vào giữa.
 
 ## Rollback
-
-Revert duy nhất file `ItemTabs.tsx` — không ảnh hưởng module khác.
+Chỉ 2 file, revert `ScrollableTabsList` import + paste lại div cũ là xong.
