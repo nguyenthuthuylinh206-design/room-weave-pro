@@ -353,7 +353,7 @@ export function InventoryDashboardPage() {
             value={(sub as OpSub) || 'transactions'}
             onValueChange={setSub}
           >
-            <div className="overflow-x-auto -mx-1 px-1">
+            <ScrollableTabsList className="-mx-1 px-1">
               <TabsList>
                 <TabsTrigger value="transactions">Giao dịch</TabsTrigger>
                 <TabsTrigger value="inbound">+ Nhập kho</TabsTrigger>
@@ -384,7 +384,7 @@ export function InventoryDashboardPage() {
                   )}
                 </TabsTrigger>
               </TabsList>
-            </div>
+            </ScrollableTabsList>
             <TabsContent value="transactions" className="mt-4">
               <Suspense fallback={<TabFallback />}>
                 <TransactionListPage />
