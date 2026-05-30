@@ -495,6 +495,7 @@ const router = createBrowserRouter([
       { path: "settings/pricing-rules", element: <PermissionRoute module="settings"><PricingRulesPage /></PermissionRoute> },
       { path: "settings/pricing", element: <PermissionRoute module="settings"><PricingV2Page /></PermissionRoute> },
       { path: "legal/stay-registrations", element: <PermissionRoute module="bookings"><StayRegistrationsPage /></PermissionRoute> },
+      { path: "settings/legal/stay-registration", element: <PermissionRoute module="settings"><StayRegistrationSettingsPage /></PermissionRoute> },
       { path: "settings/ai", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><AISettingsPage /></RoleGuard> },
       { path: "settings/audit-log", element: <RoleGuard allowedRoles={['super_admin', 'owner', 'hotel_manager', 'department_manager']}><AuditLogPage /></RoleGuard> },
       { path: "settings/asset-group-migration", element: <RoleGuard allowedRoles={['super_admin', 'owner', 'hotel_manager']}><AssetGroupMigrationPage /></RoleGuard> },
