@@ -85,34 +85,33 @@ export function InventoryDashboardPage() {
       <PageHeader
         title="Kho & Tài sản"
         description="Trung tâm điều hành kho — tồn kho, xuất nhập, phân tích và thiết lập"
-        action={
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-1" />
-                Thao tác
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => navigate('/inventory/inbound/new')}>
-                <ArrowDownToLine className="h-4 w-4 mr-2" /> Nhập kho
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/inventory/outbound/new')}>
-                <ArrowUpFromLine className="h-4 w-4 mr-2" /> Xuất kho
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/inventory/transfer/new')}>
-                <GitCompare className="h-4 w-4 mr-2" /> Chuyển kho
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/inventory/adjustments/new')}>
-                <ClipboardCheck className="h-4 w-4 mr-2" /> Kiểm kê
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/items/new')}>
-                <Plus className="h-4 w-4 mr-2" /> Thêm tài sản
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        }
-      />
+      >
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm">
+              <Plus className="h-4 w-4 mr-1" />
+              Thao tác
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => navigate('/inventory/inbound/new')}>
+              <ArrowDownToLine className="h-4 w-4 mr-2" /> Nhập kho
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/inventory/outbound/new')}>
+              <ArrowUpFromLine className="h-4 w-4 mr-2" /> Xuất kho
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/inventory/transfer/new')}>
+              <GitCompare className="h-4 w-4 mr-2" /> Chuyển kho
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/inventory/adjustments/new')}>
+              <ClipboardCheck className="h-4 w-4 mr-2" /> Kiểm kê
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/items/new')}>
+              <Plus className="h-4 w-4 mr-2" /> Thêm tài sản
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </PageHeader>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as MainTab)}>
         <div className="overflow-x-auto -mx-1 px-1">
