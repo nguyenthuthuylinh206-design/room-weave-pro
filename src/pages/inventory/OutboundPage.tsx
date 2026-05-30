@@ -267,11 +267,12 @@ export function OutboundPage() {
                       <SelectValue placeholder={t('inventory:outbound.type')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="room_assign">🏠 {t('inventory:outbound.toRoom')}</SelectItem>
-                      <SelectItem value="laundry">🧺 {t('inventory:outbound.toLaundry')}</SelectItem>
-                      <SelectItem value="maintenance">🔧 {t('inventory:outbound.toMaintenance')}</SelectItem>
-                      <SelectItem value="disposal">🗑️ {t('inventory:outbound.toDisposal')}</SelectItem>
-                      <SelectItem value="other">➖ {t('inventory:outbound.toOther')}</SelectItem>
+                      <SelectItem value="room_assign">{t('inventory:outbound.toRoom')}</SelectItem>
+                      <SelectItem value="laundry">{t('inventory:outbound.toLaundry')}</SelectItem>
+                      <SelectItem value="maintenance">{t('inventory:outbound.toMaintenance')}</SelectItem>
+                      <SelectItem value="disposal">{t('inventory:outbound.toDisposal')}</SelectItem>
+                      <SelectItem value="other">{t('inventory:outbound.toOther')}</SelectItem>
+
                     </SelectContent>
                   </Select>
                 </FormControl>
