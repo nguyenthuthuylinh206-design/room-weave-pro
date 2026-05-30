@@ -428,12 +428,12 @@ export function InventoryDashboardPage() {
             value={(sub as AnalyticsSub) || 'consumption'}
             onValueChange={setSub}
           >
-            <div className="overflow-x-auto -mx-1 px-1">
+            <ScrollableTabsList className="-mx-1 px-1">
               <TabsList>
                 <TabsTrigger value="dead-stock">Tồn kho ứ đọng</TabsTrigger>
                 <TabsTrigger value="consumption">Phân tích tiêu thụ</TabsTrigger>
               </TabsList>
-            </div>
+            </ScrollableTabsList>
             <TabsContent value="consumption" className="mt-4">
               <Suspense fallback={<TabFallback />}>
                 <InventoryAnalyticsPage />
