@@ -93,7 +93,7 @@ export function UnifiedRoomList({
   const retryStop = useRetryStop()
   const returnToStock = useReturnToStock()
   const handoverStop = useHandoverStop()
-  const confirmReceiveOrder = useConfirmReceiveOrder()
+  // confirmReceiveOrder removed in v1.1.15 — NV phải xác nhận qua NextActionCard, không auto-confirm.
 
   // Assignee có thể giao ngay khi phiếu đã released (sẽ tự xác nhận nhận hàng)
   // Manager/Storekeeper chỉ giao thay khi đã in_progress
