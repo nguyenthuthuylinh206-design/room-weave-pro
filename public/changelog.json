@@ -1,6 +1,20 @@
 {
-  "current": "1.1.11",
+  "current": "1.1.12",
   "versions": [
+    {
+      "version": "1.1.12",
+      "releaseDate": "2026-05-30",
+      "title": "Xuất kho: rút gọn 2 view, dọn field rác, ở lại trong hub sau khi tạo",
+      "changes": [
+        { "type": "improvement", "text": "Gộp 3 sub-tab xuất kho thành 2: Danh sách phiếu (+ banner gợi ý 'Từ yêu cầu bổ sung' inline) và + Tạo phiếu mới — bớt 1 cấp tab" },
+        { "type": "improvement", "text": "Sau khi tạo phiếu (giao phòng / lô giặt / xuất khác) ở lại hub Kho và tự chuyển về Danh sách phiếu kèm toast, không nhảy sang trang khác" },
+        { "type": "improvement", "text": "Bỏ emoji ở dropdown Loại xuất kho cho đúng chuẩn minimalist; ẩn 'Kho nguồn' khi loại là 'Xuất cho phòng' để tránh field thừa" },
+        { "type": "improvement", "text": "Hợp nhất trạng thái loading của 3 mutation (xuất kho / giao phòng / lô giặt) để chống double-submit" },
+        { "type": "improvement", "text": "Hiển thị toast lỗi rõ ràng thay vì im lặng khi thiếu phòng/sản phẩm/lô giặt" },
+        { "type": "improvement", "text": "Bookmark cũ /inventory/distributions/new và /from-supplements giờ redirect vào hub view tương ứng; xoá trang CreateDistributionPage legacy" }
+      ]
+    },
+
     {
       "version": "1.1.11",
       "releaseDate": "2026-05-30",
