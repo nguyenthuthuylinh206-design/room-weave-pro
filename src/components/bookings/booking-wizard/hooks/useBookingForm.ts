@@ -597,7 +597,7 @@ export function useBookingForm() {
           guest_address: state.guestAddress || null,
           guest_id_image_url: state.guestIdImageUrl || null,
           guest_id: null as string | null,
-          price_breakdown: room.priceBreakdown ?? null,
+          price_breakdown: (room.priceBreakdown ?? null) as any,
         }
       })
 
