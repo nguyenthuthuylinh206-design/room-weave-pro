@@ -122,6 +122,8 @@ type OutboundFormData = {
 export function OutboundPage() {
   const { t } = useTranslation(['inventory', 'common', 'distribution', 'laundry'])
   const navigate = useNavigate();
+  const [, setSearchParams] = useSearchParams();
+
   
   const { isMobile } = useBreakpoint();
   
