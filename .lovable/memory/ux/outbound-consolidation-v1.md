@@ -1,24 +1,29 @@
 ---
 name: Outbound Hub Consolidation v1
-description: Trang Xuất kho (/inventory?tab=operations&sub=outbound) gộp Danh sách phiếu + Tạo thủ công + Từ yêu cầu bổ sung thành 3 tab nội bộ sync URL ?view=list|manual|from-requests
-type: design
+description: Trang Xuất kho gộp 2 view List+Manual, banner gợi ý 'Từ yêu cầu' inline mở view=from-requests; submit không navigate đi xa, toast + về list
+type: feature
 ---
 
-## Cấu trúc
-- Sidebar Kho: gỡ mục "Phiếu giao hàng" — gộp vào "Xuất kho" (giữ badge `distributionsPending`).
-- Top tab `sub=outbound` render Tabs nội bộ 3 view:
-  - `list` (default) → `DistributionOrdersPage`
-  - `manual` → `OutboundPage` (form xuất kho)
-  - `from-requests` → `CreateFromSupplementsPage embedded`
+## Cấu trúc tab `/inventory?tab=operations&sub=outbound`
 
-## Legacy redirect
-- `?tab=operations&sub=distributions` → `?sub=outbound&view=list` (useEffect trong `InventoryDashboardPage`).
-- Route standalone `/inventory/distributions/from-supplements` vẫn chạy (CreateFromSupplementsPage không embedded).
+- **Sub-tabs hiển thị**: chỉ 2 — `view=list` (Danh sách phiếu, default) | `view=manual` (+ Tạo phiếu mới).
+- **`view=from-requests`** vẫn hợp lệ qua URL nhưng KHÔNG có tab riêng — mở qua `PendingSupplementsBanner` (đặt trong DistributionOrdersPage), banner dùng `setSearchParams` để chuyển view, render `<CreateFromSupplementsPage embedded />` thay cho DistributionOrdersPage trong slot `value="list"`.
+- Badge `distributionsPending` chỉ hiện ở cấp 2 ("Xuất kho"), KHÔNG lặp lại ở cấp 3.
 
-## Embedded contract
-- `CreateFromSupplementsPage` nhận prop `embedded?: boolean`:
-  - Ẩn PageHeader + nút Back + nút Hủy ở footer.
-  - On success: setSearchParams `view=list` thay vì navigate route detail.
+## Logic submit (OutboundPage)
 
-## Form thủ công loại room_assign
-- Render `<DistributionForm form={distributionForm} />` inline, không còn nút "Mở phiếu giao hàng" nhảy tab.
+- `from_warehouse_id` optional khi `transaction_category === 'room_assign'` (room_assign dùng `useDistributionForm` riêng).
+- 3 mutation pending hợp nhất → `isAnyPending` cho mọi nút submit.
+- Sau success: toast + `form.reset()`/`distributionForm.reset()` + `goToList()` (chuyển `view=list`), KHÔNG `navigate()` ra ngoài hub.
+- Lỗi thiếu phòng/sản phẩm/lô giặt: `toast.error()` thay vì `return` im lặng.
+- Bỏ emoji 🏠🧺🔧🗑️➖ ở SelectItem.
+
+## Legacy redirects (App.tsx)
+
+- `/inventory/distributions/new` → `InventoryHubRedirect tab=operations sub=outbound view=manual`
+- `/inventory/distributions/from-supplements` → `... view=from-requests` (giữ query `?ids=`)
+- File `CreateDistributionPage.tsx` đã xoá; route `/inventory/distributions` (không có /new) vẫn redirect như cũ.
+
+## Banner contract
+
+`PendingSupplementsBanner` dùng `useSearchParams` (không `useNavigate`), set `tab/sub/view=from-requests` + append `ids` đã chọn.
