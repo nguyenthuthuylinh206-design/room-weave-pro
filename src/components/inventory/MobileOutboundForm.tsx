@@ -352,88 +352,55 @@ export function MobileOutboundForm() {
       toast.error(validation.error || t('inventory:mobileForm.validation.checkInfo'))
       return
     }
-    
+
     if (hasStockError) {
       toast.error(t('inventory:mobileForm.validation.exceededStock'))
       return
     }
-    
+
     const formData = form.getValues()
-    
-    try {
-      if (category === 'room_assign' && selectedRoomIds.length > 0) {
-        // Use distribution order for room assignment
-        const roomsData = selectedRoomIds.map(roomId => ({
-          room_id: roomId,
-          items: watchedItems.map(item => ({
-            item_id: item.item_id,
-            quantity: item.quantity,
-          }))
-        }))
-        
-        createDistribution({
-          rooms: roomsData,
-          notes: formData.notes,
-        }, {
-          onSuccess: () => {
-            localStorage.removeItem(DRAFT_KEY)
-            triggerHaptic('success')
+
+    submitOutbound(
+      {
+        transaction_category: category,
+        from_warehouse_id: formData.from_warehouse_id,
+        to_location: formData.to_location,
+        items: watchedItems.map(i => ({
+          item_id: i.item_id,
+          quantity: i.quantity,
+          available_quantity: i.available_quantity,
+          notes: i.notes,
+          weight_kg: i.weight_kg,
+        })),
+        recipient_name: formData.recipient_name,
+        photos: formData.photos,
+        notes: formData.notes,
+      },
+      {
+        selectedRoomIds,
+        laundryData,
+        selectedMaintenanceRequest,
+      },
+      {
+        onSuccess: (kind) => {
+          localStorage.removeItem(DRAFT_KEY)
+          triggerHaptic('success')
+          if (kind === 'distribution') {
             toast.success(t('inventory:mobileForm.outbound.successMessage'))
             navigate('/inventory/distribution')
-          }
-        })
-      } else if (category === 'laundry' && laundryData) {
-        // Use laundry batch creation
-        createLaundryBatch({
-          step1: {
-            vendor_id: laundryData.vendor_id,
-            delivery_date: laundryData.delivery_date,
-            expected_return_date: laundryData.expected_return_date,
-            delivery_staff_id: laundryData.delivery_staff_id,
-            receiver_name: laundryData.receiver_name,
-            notes: laundryData.notes,
-          },
-          step2: {
-            items: watchedItems.map(item => ({
-              item_id: item.item_id,
-              quantity: item.quantity,
-              weight_kg: item.weight_kg || 0,
-              condition_note: item.notes,
-            }))
-          },
-          step3: { confirmed: true }
-        }, {
-          onSuccess: () => {
-            localStorage.removeItem(DRAFT_KEY)
-            triggerHaptic('success')
+          } else if (kind === 'laundry') {
             toast.success(t('laundry:messages.createSuccess'))
             navigate('/laundry/batches')
-          }
-        })
-      } else {
-        // Standard outbound transaction
-        const toLocation = category === 'maintenance' && selectedMaintenanceRequest
-          ? `${t('maintenance:requests.title')}: ${selectedMaintenanceRequest.title}${selectedMaintenanceRequest.room_number ? ` (${t('rooms:room')} ${selectedMaintenanceRequest.room_number})` : ''}`
-          : formData.to_location || ''
-        
-        createOutbound({
-          ...formData,
-          to_location: toLocation,
-          from_location: '', // Will be set from warehouse
-          related_type: selectedMaintenanceRequest ? 'maintenance_request' : undefined,
-          related_id: selectedMaintenanceRequest?.id,
-        } as any, {
-          onSuccess: () => {
-            localStorage.removeItem(DRAFT_KEY)
-            triggerHaptic('success')
+          } else {
             toast.success(t('inventory:mobileForm.outbound.successMessage'))
             navigate('/inventory/transactions')
           }
-        })
-      }
-    } catch (error) {
-      console.error('Submit error:', error)
-    }
+        },
+        onError: (err) => {
+          console.error('Submit error:', err)
+        },
+      },
+    )
   }
   
   const addItem = (itemId: string, availableQty: number) => {
