@@ -29,9 +29,13 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
   mixed: 'Hỗn hợp',
 }
 
-export default function CreateFromSupplementsPage() {
+interface CreateFromSupplementsPageProps {
+  embedded?: boolean
+}
+
+export default function CreateFromSupplementsPage({ embedded = false }: CreateFromSupplementsPageProps = {}) {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const isMobile = useIsMobile()
   const { selectedHotel } = useHotelContext()
   const { data: requests = [], isLoading } = useSupplementRequests({ status: 'pending' })
