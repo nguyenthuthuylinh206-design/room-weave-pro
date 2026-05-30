@@ -66,7 +66,7 @@ export function DistributionOrderQuickDialog({ orderId, open, onOpenChange }: Pr
 
   const allRoomsPending = order?.rooms?.every((r) => r.status === 'pending') ?? false
   const canEdit = order?.status === 'pending' && allRoomsPending
-  const canCancel = order?.status === 'pending' || order?.status === 'in_progress'
+  const canCancel = order?.status === 'pending' || order?.status === 'released' || order?.status === 'in_progress'
 
   const handleCancelOrder = () => {
     if (!orderId || !order) return
