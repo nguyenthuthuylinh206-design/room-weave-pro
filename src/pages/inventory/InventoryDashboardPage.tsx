@@ -323,13 +323,13 @@ export function InventoryDashboardPage() {
             value={(sub as AssetsSub) || 'items'}
             onValueChange={setSub}
           >
-            <div className="overflow-x-auto -mx-1 px-1">
+            <ScrollableTabsList className="-mx-1 px-1">
               <TabsList>
                 <TabsTrigger value="items">Danh sách tài sản</TabsTrigger>
                 <TabsTrigger value="categories">Danh mục</TabsTrigger>
                 <TabsTrigger value="new">+ Thêm tài sản</TabsTrigger>
               </TabsList>
-            </div>
+            </ScrollableTabsList>
             <TabsContent value="items" className="mt-4">
               <Suspense fallback={<TabFallback />}>
                 <ItemsPage />
