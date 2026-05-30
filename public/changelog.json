@@ -1,6 +1,15 @@
 {
-  "current": "1.1.16",
+  "current": "1.1.17",
   "versions": [
+    {
+      "version": "1.1.17",
+      "date": "2026-05-30",
+      "title": "Sửa lỗi bấm phòng trong phiếu giao bị nhảy sang kiểm tra checkout",
+      "highlights": [
+        "Bấm tên phòng trong phiếu giao giờ vào đúng màn giao hàng, không còn nhảy sang kiểm tra checkout",
+        "Thêm guard ở RoomCheckPage: có context giao hàng thì không auto-redirect sang checkout inspection"
+      ]
+    },
     {
       "version": "1.1.16",
       "date": "2026-05-30",
