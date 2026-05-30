@@ -1,6 +1,21 @@
 {
-  "current": "1.1.4",
+  "current": "1.1.5",
   "versions": [
+    {
+      "version": "1.1.5",
+      "releaseDate": "2026-05-30",
+      "title": "Gọn menu Kho & Tài sản — gom thành 1 hub có tab",
+      "changes": [
+        { "type": "improvement", "text": "Sidebar Kho & Tài sản: từ 15 mục con xuống còn 1 lối vào duy nhất" },
+        { "type": "improvement", "text": "Trang /inventory là hub 5 tab: Tổng quan · Tài sản · Xuất nhập · Phân tích · Thiết lập" },
+        { "type": "improvement", "text": "Tab Xuất nhập gộp Giao dịch, Kiểm kê, Phiếu giao, Đề xuất nhập" },
+        { "type": "improvement", "text": "Nút 'Thao tác' header truy cập nhanh Nhập / Xuất / Chuyển / Kiểm kê / Thêm tài sản" },
+        { "type": "improvement", "text": "Lazy-load mỗi tab — chỉ tab đang xem mới gọi dữ liệu, không nặng trang" },
+        { "type": "improvement", "text": "URL ?tab=&sub= để giữ deep-link, F5 vẫn ở đúng tab" }
+      ]
+    },
+    {
+      "version": "1.1.4",
     {
       "version": "1.1.4",
       "releaseDate": "2026-05-30",
