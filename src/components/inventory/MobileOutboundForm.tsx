@@ -458,29 +458,16 @@ export function MobileOutboundForm() {
             <h2 className="text-lg font-semibold mb-1">{t('inventory:mobileForm.outbound.categoryTitle')}</h2>
             <p className="text-sm text-muted-foreground mb-4">{t('inventory:mobileForm.outbound.categoryDescription')}</p>
             
-            <div className="grid grid-cols-2 gap-3">
-              {categories.map((cat) => {
-                const Icon = cat.icon
-                const isSelected = category === cat.value
-                return (
-                  <TouchButton
-                    key={cat.value}
-                    variant={isSelected ? 'default' : 'outline'}
-                    className="h-28 flex-col gap-2 justify-center"
-                    onClick={() => {
-                      form.setValue('transaction_category', cat.value as any)
-                      triggerHaptic('light')
-                    }}
-                  >
-                    <Icon className="h-8 w-8" />
-                    <div className="text-center">
-                      <div className="text-sm font-medium">{cat.label}</div>
-                      <div className="text-xs opacity-70">{cat.description}</div>
-                    </div>
-                  </TouchButton>
-                )
-              })}
-            </div>
+            <OutboundCategoryGrid
+              value={category}
+              onChange={(value) => {
+                form.setValue('transaction_category', value as any)
+                triggerHaptic('light')
+              }}
+              options={categories}
+              variant="wizard"
+            />
+
           </div>
           
           <div className="space-y-3">
