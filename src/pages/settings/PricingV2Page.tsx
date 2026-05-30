@@ -77,11 +77,16 @@ export default function PricingV2Page() {
 
   return (
     <div className="p-4 space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">Bảng giá loại phòng</h1>
-        <p className="text-sm text-muted-foreground">
-          Cài đặt 4 trục giá (Ngày / Qua đêm / Giờ / Tháng) cho từng loại phòng tại {selectedHotel.name}.
-        </p>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h1 className="text-xl font-semibold">Bảng giá loại phòng</h1>
+          <p className="text-sm text-muted-foreground">
+            Cài đặt 4 trục giá (Ngày / Qua đêm / Giờ / Tháng) cho từng loại phòng tại {selectedHotel.name}.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" asChild>
+          <a href="/settings/pricing/seasonal">Quy tắc mùa giá →</a>
+        </Button>
       </div>
 
       {loading ? (
