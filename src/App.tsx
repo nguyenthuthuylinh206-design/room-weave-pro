@@ -57,8 +57,8 @@ const CreateAdjustmentPage = lazyNamed(() => import("./pages/inventory/CreateAdj
 const CheckAdjustmentPage = lazyNamed(() => import("./pages/inventory/CheckAdjustmentPage"), "CheckAdjustmentPage");
 const AdjustmentDetailPage = lazyNamed(() => import("./pages/inventory/AdjustmentDetailPage"), "AdjustmentDetailPage");
 const DistributionOrderDetailPage = lazy(() => import("./pages/inventory/DistributionOrderDetailPage"));
-const CreateDistributionPage = lazy(() => import("./pages/inventory/CreateDistributionPage"));
 const CreateFromSupplementsPage = lazy(() => import("./pages/inventory/CreateFromSupplementsPage"));
+
 const TransferPage = lazy(() => import("./pages/inventory/TransferPage"));
 
 // Items
