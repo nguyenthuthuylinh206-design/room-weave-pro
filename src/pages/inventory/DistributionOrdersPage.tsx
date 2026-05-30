@@ -32,9 +32,19 @@ type TabValue = 'todo' | 'delivering' | 'done' | 'all'
 
 export default function DistributionOrdersPage() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const isMobile = useIsMobile()
   const queryClient = useQueryClient()
   const { user } = useUser()
+
+  const switchView = (view: 'manual' | 'from-requests') => {
+    const p = new URLSearchParams(searchParams)
+    p.set('tab', 'operations')
+    p.set('sub', 'outbound')
+    p.set('view', view)
+    setSearchParams(p, { replace: true })
+  }
+
 
   const [filters, setFilters] = useState<RouteFilters>({})
   const [searchQuery, setSearchQuery] = useState('')
