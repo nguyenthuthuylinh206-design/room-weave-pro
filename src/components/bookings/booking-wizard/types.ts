@@ -1,9 +1,11 @@
 import { AvailableRoom } from '@/hooks/useAvailableRooms'
+import type { PriceBreakdown } from '@/hooks/useRoomTypeRates'
 
 export type BookingType = 'daily' | 'hourly' | 'monthly'
 
 export interface SelectedRoomWithPrice extends AvailableRoom {
   customPrice: number
+  priceBreakdown?: PriceBreakdown | null
 }
 
 export interface BookingFormState {

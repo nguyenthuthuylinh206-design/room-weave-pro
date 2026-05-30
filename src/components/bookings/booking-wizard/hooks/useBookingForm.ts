@@ -255,10 +255,91 @@ export function useBookingForm() {
     setState(prev => ({
       ...prev,
       selectedRooms: prev.selectedRooms.map(room => 
-        room.id === roomId ? { ...room, customPrice: newPrice } : room
+        room.id === roomId ? { ...room, customPrice: newPrice, priceBreakdown: null } : room
       )
     }))
   }, [])
+
+  const applyPricingV2 = useCallback(async (): Promise<{ ok: number; fail: number }> => {
+    if (state.selectedRooms.length === 0) return { ok: 0, fail: 0 }
+    if (!tenant?.id) return { ok: 0, fail: 0 }
+
+    // Determine date range
+    let fromTs: Date | undefined
+    let toTs: Date | undefined
+    let bookingTypeApi: 'daily' | 'overnight' | 'hourly' | 'monthly' = 'daily'
+
+    if (state.bookingType === 'daily' && state.checkInDate && state.checkOutDate) {
+      const [ih, im] = (state.checkInTime || '14:00').split(':').map(Number)
+      const [oh, om] = (state.checkOutTime || '12:00').split(':').map(Number)
+      fromTs = setMinutes(setHours(state.checkInDate, ih), im)
+      toTs = setMinutes(setHours(state.checkOutDate, oh), om)
+      bookingTypeApi = 'daily'
+    } else if (state.bookingType === 'hourly' && state.hourlyDate) {
+      const [sh, sm] = state.hourlyStartTime.split(':').map(Number)
+      fromTs = setMinutes(setHours(state.hourlyDate, sh), sm)
+      toTs = addHours(fromTs, state.bookingHours)
+      bookingTypeApi = 'hourly'
+    } else if (state.bookingType === 'monthly' && state.monthlyStartDate) {
+      fromTs = state.monthlyStartDate
+      toTs = addMonths(state.monthlyStartDate, state.bookingMonths)
+      bookingTypeApi = 'monthly'
+    }
+
+    if (!fromTs || !toTs) {
+      toast({ variant: 'destructive', title: 'Chưa đủ thông tin ngày/giờ' })
+      return { ok: 0, fail: 0 }
+    }
+
+    // Resolve room_type_id (rooms.room_type is a code; lookup room_types)
+    const codes = Array.from(new Set(state.selectedRooms.map(r => r.room_type).filter(Boolean)))
+    const { data: rtRows } = await supabase
+      .from('room_types')
+      .select('id, code, hotel_id')
+      .eq('tenant_id', tenant.id)
+      .in('code', codes)
+    const rtMap = new Map<string, string>()
+    ;(rtRows ?? []).forEach((r: any) => {
+      // prefer hotel-scoped match
+      const key = `${r.code}|${r.hotel_id ?? ''}`
+      rtMap.set(key, r.id)
+      if (!rtMap.has(r.code)) rtMap.set(r.code, r.id)
+    })
+
+    let ok = 0, fail = 0
+    const updates: Array<{ id: string; price: number; breakdown: any }> = []
+    for (const room of state.selectedRooms) {
+      const rtId = rtMap.get(`${room.room_type}|${room.hotel_id}`) ?? rtMap.get(room.room_type)
+      if (!rtId) { fail++; continue }
+      const { data, error } = await supabase.rpc('calculate_booking_price' as any, {
+        p_room_type_id: rtId,
+        p_booking_type: bookingTypeApi,
+        p_from_ts: fromTs.toISOString(),
+        p_to_ts: toTs.toISOString(),
+        p_hotel_id: room.hotel_id ?? null,
+        p_apply_early_late: true,
+      })
+      if (error || !data) { fail++; continue }
+      const bd = data as any
+      const units = Number(bd.units) || 1
+      const subtotal = Number(bd.subtotal ?? bd.total ?? 0)
+      // per-unit price (exclude early/late surcharges from per-unit rate)
+      const perUnit = units > 0 ? Math.round(subtotal / units) : subtotal
+      updates.push({ id: room.id, price: perUnit, breakdown: bd })
+      ok++
+    }
+
+    if (updates.length > 0) {
+      setState(prev => ({
+        ...prev,
+        selectedRooms: prev.selectedRooms.map(r => {
+          const u = updates.find(x => x.id === r.id)
+          return u ? { ...r, customPrice: u.price, priceBreakdown: u.breakdown } : r
+        }),
+      }))
+    }
+    return { ok, fail }
+  }, [state, tenant, toast])
 
   const reset = useCallback(() => {
     setState(initialState)
@@ -516,6 +597,7 @@ export function useBookingForm() {
           guest_address: state.guestAddress || null,
           guest_id_image_url: state.guestIdImageUrl || null,
           guest_id: null as string | null,
+          price_breakdown: (room.priceBreakdown ?? null) as any,
         }
       })
 
@@ -626,6 +708,7 @@ export function useBookingForm() {
     setDateTimeData,
     toggleRoomSelection,
     updateRoomPrice,
+    applyPricingV2,
     reset,
     submit,
   }

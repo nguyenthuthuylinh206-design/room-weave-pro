@@ -1,5 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { addMonths } from 'date-fns'
+import { Sparkle } from 'lucide-react'
 import { Building2, CheckCircle2, Loader2, Sparkles, Wrench, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -39,6 +40,7 @@ interface RoomSelectionStepProps {
   computed: BookingFormComputed
   onToggleRoom: (room: AvailableRoom) => void
   onUpdateRoomPrice: (roomId: string, price: number) => void
+  onApplyPricingV2?: () => Promise<{ ok: number; fail: number }>
 }
 
 const getRoomTypeLabel = (type: string) => {
@@ -81,9 +83,11 @@ export function RoomSelectionStep({
   state, 
   computed, 
   onToggleRoom, 
-  onUpdateRoomPrice 
+  onUpdateRoomPrice,
+  onApplyPricingV2,
 }: RoomSelectionStepProps) {
   const { isAllHotelsMode } = useHotelContext()
+  const [applying, setApplying] = useState(false)
   
   // Calculate availability dates based on booking type
   const availabilityDates = useMemo(() => {
@@ -200,48 +204,85 @@ export function RoomSelectionStep({
       {/* Selected Rooms with Price Inputs */}
       {state.selectedRooms.length > 0 && (
         <div className="p-3 bg-primary/5 rounded-lg space-y-3">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />
-            <span className="text-sm font-medium">
-              Đã chọn {state.selectedRooms.length} phòng - Nhập giá mỗi phòng:
-            </span>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />
+              <span className="text-sm font-medium">
+                Đã chọn {state.selectedRooms.length} phòng
+              </span>
+            </div>
+            {onApplyPricingV2 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                disabled={applying}
+                onClick={async () => {
+                  setApplying(true)
+                  try {
+                    const { ok, fail } = await onApplyPricingV2()
+                    if (ok > 0 && fail === 0) {
+                      // success toast handled implicitly by UI update
+                    }
+                  } finally {
+                    setApplying(false)
+                  }
+                }}
+              >
+                <Sparkle className="h-3 w-3 mr-1" />
+                {applying ? 'Đang tính...' : 'Áp dụng giá theo bảng'}
+              </Button>
+            )}
           </div>
           
           <div className="space-y-2">
             {state.selectedRooms.map(room => (
-              <div key={room.id} className="flex items-center gap-2 p-2 bg-background rounded border">
-                <div className="flex-1 min-w-0">
+              <div key={room.id} className="p-2 bg-background rounded border space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="font-medium text-sm">{room.room_number}</span>
+                      <span className="text-xs text-muted-foreground">
+                        T{room.floor} • {getRoomTypeLabel(room.room_type)}
+                      </span>
+                    </div>
+                  </div>
                   <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="font-medium text-sm">{room.room_number}</span>
-                    <span className="text-xs text-muted-foreground">
-                      T{room.floor} • {getRoomTypeLabel(room.room_type)}
-                    </span>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      value={room.customPrice > 0 ? formatNumber(room.customPrice) : ''}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9]/g, '')
+                        onUpdateRoomPrice(room.id, parseInt(value) || 0)
+                      }}
+                      placeholder={getPricePlaceholder(state.bookingType)}
+                      className="w-28 h-8 text-right"
+                    />
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">{getPriceUnitLabel(state.bookingType)}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => onToggleRoom(room)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="text"
-                    inputMode="numeric"
-                    value={room.customPrice > 0 ? formatNumber(room.customPrice) : ''}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9]/g, '')
-                      onUpdateRoomPrice(room.id, parseInt(value) || 0)
-                    }}
-                    placeholder={getPricePlaceholder(state.bookingType)}
-                    className="w-28 h-8 text-right"
-                  />
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">{getPriceUnitLabel(state.bookingType)}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    onClick={() => onToggleRoom(room)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
+                {room.priceBreakdown && (
+                  <div className="text-[11px] text-muted-foreground pl-6 font-mono">
+                    Cơ sở {formatNumber(room.priceBreakdown.base)} × {room.priceBreakdown.units}
+                    {room.priceBreakdown.weekday_multiplier !== 1 && ` × ${room.priceBreakdown.weekday_multiplier} (cuối tuần)`}
+                    {room.priceBreakdown.season_adjust !== 0 && ` ${room.priceBreakdown.season_adjust > 0 ? '+' : ''}${formatNumber(room.priceBreakdown.season_adjust)} (mùa)`}
+                    {(room.priceBreakdown.early_checkin_charge > 0 || room.priceBreakdown.late_checkout_charge > 0) &&
+                      ` + ${formatNumber(room.priceBreakdown.early_checkin_charge + room.priceBreakdown.late_checkout_charge)} (sớm/trễ)`}
+                    {' = '}<span className="text-primary">{formatNumber(room.priceBreakdown.total)}đ</span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
