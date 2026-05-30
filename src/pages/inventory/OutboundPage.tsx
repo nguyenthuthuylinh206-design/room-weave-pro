@@ -600,11 +600,12 @@ export function OutboundPage() {
           {/* Summary for laundry */}
           {category === 'laundry' && (
             <div className="flex items-center justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" size="sm" onClick={() => navigate('/inventory')}>{t('common:cancel')}</Button>
-              <Button type="submit" size="sm" disabled={isLaundryLoading || laundryHasStockError || laundryItems.filter(i => i.item_id).length === 0}>
+              <Button type="button" variant="ghost" size="sm" onClick={goToList}>{t('common:cancel')}</Button>
+              <Button type="submit" size="sm" disabled={isAnyPending || laundryHasStockError || laundryItems.filter(i => i.item_id).length === 0}>
                 <WashingMachine className="mr-1.5 h-4 w-4" />
-                {isLaundryLoading ? t('laundry:batch.creating') : t('laundry:batch.createBatch')}
+                {isAnyPending ? t('laundry:batch.creating') : t('laundry:batch.createBatch')}
               </Button>
+
             </div>
           )}
         </form>
