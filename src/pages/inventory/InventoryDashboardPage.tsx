@@ -219,19 +219,26 @@ export function InventoryDashboardPage() {
   }
 
   const navContent = (
-    <div className="p-2">
-      {visibleMenuGroups.map((group) => (
-        <div key={group.title} className="mb-3 last:mb-0">
-          <div className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+    <div className="py-1">
+      {visibleMenuGroups.map((group, idx) => (
+        <div
+          key={group.title}
+          className={cn(
+            'px-2 py-3',
+            idx > 0 && 'border-t border-border/60',
+          )}
+        >
+          <div className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/80">
             {group.title}
           </div>
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {group.items.map(renderMenuButton)}
           </div>
         </div>
       ))}
     </div>
   )
+
 
   return (
     <div className="space-y-4">
