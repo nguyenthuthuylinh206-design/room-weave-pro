@@ -40,6 +40,7 @@ interface RoomSelectionStepProps {
   computed: BookingFormComputed
   onToggleRoom: (room: AvailableRoom) => void
   onUpdateRoomPrice: (roomId: string, price: number) => void
+  onApplyPricingV2?: () => Promise<{ ok: number; fail: number }>
 }
 
 const getRoomTypeLabel = (type: string) => {
