@@ -1,6 +1,16 @@
 {
-  "current": "1.1.17",
+  "current": "1.1.18",
   "versions": [
+    {
+      "version": "1.1.18",
+      "date": "2026-05-30",
+      "title": "Sửa lỗi trùng khoá khi tạo phiếu xuất kho",
+      "highlights": [
+        "Khắc phục lỗi 'duplicate key ... distribution_order_batches_distribution_order_id_batch_numb_key' khi bấm Giao",
+        "RPC create_distribution_order dùng UPSERT cho bản ghi đợt giao để cùng tồn tại với trigger tự động",
+        "Auto-release (Giao thẳng cho NV) ghi đúng trạng thái handed_over + thông tin người xuất"
+      ]
+    },
     {
       "version": "1.1.17",
       "date": "2026-05-30",
