@@ -495,6 +495,7 @@ const router = createBrowserRouter([
       { path: "settings/workflows", element: <PermissionRoute module="settings" action="manage"><WorkflowsPage /></PermissionRoute> },
       { path: "settings/pricing-rules", element: <PermissionRoute module="settings"><PricingRulesPage /></PermissionRoute> },
       { path: "settings/pricing", element: <PermissionRoute module="settings"><PricingV2Page /></PermissionRoute> },
+      { path: "settings/pricing/seasonal", element: <PermissionRoute module="settings"><SeasonalRulesPage /></PermissionRoute> },
       { path: "legal/stay-registrations", element: <PermissionRoute module="bookings"><StayRegistrationsPage /></PermissionRoute> },
       { path: "settings/legal/stay-registration", element: <PermissionRoute module="settings"><StayRegistrationSettingsPage /></PermissionRoute> },
       { path: "settings/ai", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><AISettingsPage /></RoleGuard> },
