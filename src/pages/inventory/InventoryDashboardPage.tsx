@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo } from 'react'
+import { lazy, Suspense, useCallback, useMemo, useRef, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   ArrowDownToLine,
@@ -6,16 +6,19 @@ import {
   GitCompare,
   ClipboardCheck,
   Plus,
+  Menu as MenuIcon,
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { useUser } from '@/hooks/useUser'
@@ -23,8 +26,11 @@ import type { AppRole } from '@/types/database.types'
 import { cn } from '@/lib/utils'
 import { InventoryOverviewSection } from '@/components/inventory/InventoryOverviewSection'
 import { MobileInventoryDashboard } from '@/components/inventory/MobileInventoryDashboard'
+import { InventoryQuickSearch } from '@/components/inventory/hub/InventoryQuickSearch'
+import { InventoryHubBreadcrumb } from '@/components/inventory/hub/InventoryHubBreadcrumb'
+import { useInventoryHubBadges } from '@/hooks/useInventoryHubBadges'
+import { useInventoryHubShortcuts } from '@/hooks/useInventoryHubShortcuts'
 
-// Lazy-load each tab's heavy content so only the active tab fetches data
 const TransactionListPage = lazy(() => import('./TransactionListPage').then(m => ({ default: m.TransactionListPage })))
 const AdjustmentListPage = lazy(() => import('./AdjustmentListPage').then(m => ({ default: m.AdjustmentListPage })))
 const DistributionOrdersPage = lazy(() => import('./DistributionOrdersPage'))
@@ -58,6 +64,7 @@ type InventoryMenuItem = {
   tab: MainTab
   sub?: OpSub | AssetsSub | AnalyticsSub | SettingsSub
   requiresManager?: boolean
+  badgeKey?: 'reorderPending' | 'distributionsPending' | 'lowStock' | 'adjustmentsPending'
 }
 
 const inventoryMenuGroups: Array<{ title: string; items: InventoryMenuItem[] }> = [
@@ -82,9 +89,9 @@ const inventoryMenuGroups: Array<{ title: string; items: InventoryMenuItem[] }> 
       { label: 'Nhập kho', tab: 'operations', sub: 'inbound' },
       { label: 'Xuất kho', tab: 'operations', sub: 'outbound' },
       { label: 'Chuyển kho', tab: 'operations', sub: 'transfer' },
-      { label: 'Kiểm kê', tab: 'operations', sub: 'adjustments' },
-      { label: 'Phiếu giao hàng', tab: 'operations', sub: 'distributions' },
-      { label: 'Đề xuất nhập hàng', tab: 'operations', sub: 'reorder' },
+      { label: 'Kiểm kê', tab: 'operations', sub: 'adjustments', badgeKey: 'adjustmentsPending' },
+      { label: 'Phiếu giao hàng', tab: 'operations', sub: 'distributions', badgeKey: 'distributionsPending' },
+      { label: 'Đề xuất nhập hàng', tab: 'operations', sub: 'reorder', badgeKey: 'reorderPending' },
     ],
   },
   {
@@ -117,20 +124,34 @@ export function InventoryDashboardPage() {
   const { hasAnyRole } = useUser()
   const tab = (searchParams.get('tab') as MainTab) || 'overview'
   const sub = searchParams.get('sub') || ''
+  const searchRef = useRef<HTMLInputElement>(null)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const canManageSettings = useMemo(
     () => hasAnyRole(['super_admin', 'owner', 'hotel_manager', 'department_manager'] as AppRole[]),
     [hasAnyRole]
   )
 
-  const setTab = (next: MainTab, nextSub?: string) => {
+  const { data: badges } = useInventoryHubBadges()
+
+  const setTab = useCallback((next: MainTab, nextSub?: string) => {
     const params = new URLSearchParams(searchParams)
     params.set('tab', next)
     if (nextSub) params.set('sub', nextSub)
     else if (defaultSubByTab[next]) params.set('sub', defaultSubByTab[next]!)
     else params.delete('sub')
     setSearchParams(params, { replace: true })
-  }
+    setMobileMenuOpen(false)
+  }, [searchParams, setSearchParams])
+
+  useInventoryHubShortcuts(useCallback((key) => {
+    if (key === 'search') {
+      searchRef.current?.focus()
+    } else if (key === 'overview') setTab('overview')
+    else if (key === 'inbound') setTab('operations', 'inbound')
+    else if (key === 'outbound') setTab('operations', 'outbound')
+    else if (key === 'adjustments') setTab('operations', 'adjustments')
+  }, [setTab]))
 
   const settingsSubValue: SettingsSub = canManageSettings && sub === 'warehouses' ? 'warehouses' : 'supplements'
   const activeSub = tab === 'settings' ? settingsSubValue : (sub || defaultSubByTab[tab] || '')
@@ -151,11 +172,65 @@ export function InventoryDashboardPage() {
     [canManageSettings]
   )
 
+  // Compute breadcrumb
+  const breadcrumb = useMemo(() => {
+    for (const g of visibleMenuGroups) {
+      for (const it of g.items) {
+        if (isMenuItemActive(it)) return { group: g.title, item: it.label }
+      }
+    }
+    return { group: 'Tổng quan', item: 'Bảng điều khiển' }
+  }, [visibleMenuGroups, tab, sub, settingsSubValue])
+
   const setSub = (next: string) => {
     const params = new URLSearchParams(searchParams)
     params.set('sub', next)
     setSearchParams(params, { replace: true })
   }
+
+  const renderMenuButton = (item: InventoryMenuItem) => {
+    const isActive = isMenuItemActive(item)
+    const badgeCount = item.badgeKey ? badges?.[item.badgeKey] ?? 0 : 0
+    return (
+      <button
+        key={`${item.tab}-${item.sub || 'root'}`}
+        type="button"
+        onClick={() => setTab(item.tab, item.sub)}
+        className={cn(
+          'w-full flex items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left text-sm transition-colors',
+          'hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          isActive
+            ? 'bg-primary text-primary-foreground font-medium hover:bg-primary'
+            : 'text-foreground'
+        )}
+      >
+        <span className="truncate">{item.label}</span>
+        {badgeCount > 0 && (
+          <Badge
+            variant={isActive ? 'secondary' : 'outline'}
+            className="h-5 min-w-[20px] px-1.5 text-[10px] font-semibold tabular-nums"
+          >
+            {badgeCount > 99 ? '99+' : badgeCount}
+          </Badge>
+        )}
+      </button>
+    )
+  }
+
+  const navContent = (
+    <div className="p-2">
+      {visibleMenuGroups.map((group) => (
+        <div key={group.title} className="mb-3 last:mb-0">
+          <div className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {group.title}
+          </div>
+          <div className="space-y-1">
+            {group.items.map(renderMenuButton)}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
 
   return (
     <div className="space-y-4">
@@ -163,69 +238,69 @@ export function InventoryDashboardPage() {
         title="Kho & Tài sản"
         description="Trung tâm điều hành kho — tồn kho, xuất nhập, phân tích và thiết lập"
       >
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-1" />
-              Thao tác
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => navigate('/inventory/inbound/new')}>
-              <ArrowDownToLine className="h-4 w-4 mr-2" /> Nhập kho
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/inventory/outbound/new')}>
-              <ArrowUpFromLine className="h-4 w-4 mr-2" /> Xuất kho
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/inventory/transfer/new')}>
-              <GitCompare className="h-4 w-4 mr-2" /> Chuyển kho
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/inventory/adjustments/new')}>
-              <ClipboardCheck className="h-4 w-4 mr-2" /> Kiểm kê
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/items/new')}>
-              <Plus className="h-4 w-4 mr-2" /> Thêm tài sản
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-2">
+          <div className="hidden md:block">
+            <InventoryQuickSearch ref={searchRef} />
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-1" />
+                Thao tác
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => navigate('/inventory/inbound/new')}>
+                <ArrowDownToLine className="h-4 w-4 mr-2" /> Nhập kho
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/inventory/outbound/new')}>
+                <ArrowUpFromLine className="h-4 w-4 mr-2" /> Xuất kho
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/inventory/transfer/new')}>
+                <GitCompare className="h-4 w-4 mr-2" /> Chuyển kho
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/inventory/adjustments/new')}>
+                <ClipboardCheck className="h-4 w-4 mr-2" /> Kiểm kê
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/items/new')}>
+                <Plus className="h-4 w-4 mr-2" /> Thêm tài sản
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </PageHeader>
 
+      {/* Mobile: search + menu trigger */}
+      <div className="flex items-center gap-2 md:hidden">
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="sm" className="shrink-0">
+              <MenuIcon className="h-4 w-4 mr-1.5" />
+              Menu
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-72 p-0 overflow-y-auto">
+            <SheetTitle className="px-4 pt-4 text-sm font-semibold">Menu Kho</SheetTitle>
+            {navContent}
+          </SheetContent>
+        </Sheet>
+        <div className="flex-1">
+          <InventoryQuickSearch ref={searchRef} />
+        </div>
+      </div>
+
+      {/* Breadcrumb */}
+      <InventoryHubBreadcrumb groupTitle={breadcrumb.group} itemLabel={breadcrumb.item} />
+
       <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <nav className="lg:sticky lg:top-4 lg:self-start border rounded-lg bg-background overflow-hidden">
-          <div className="max-h-[calc(100vh-9rem)] overflow-y-auto p-2">
-            {visibleMenuGroups.map((group) => (
-              <div key={group.title} className="mb-3 last:mb-0">
-                <div className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {group.title}
-                </div>
-                <div className="space-y-1">
-                  {group.items.map((item) => {
-                    const isActive = isMenuItemActive(item)
-                    return (
-                      <button
-                        key={`${item.tab}-${item.sub || 'root'}`}
-                        type="button"
-                        onClick={() => setTab(item.tab, item.sub)}
-                        className={cn(
-                          'w-full rounded-md px-2.5 py-2 text-left text-sm transition-colors',
-                          'hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                          isActive
-                            ? 'bg-primary text-primary-foreground font-medium'
-                            : 'text-foreground'
-                        )}
-                      >
-                        {item.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
+        <nav className="hidden lg:block lg:sticky lg:top-4 lg:self-start border rounded-lg bg-background overflow-hidden">
+          <div className="max-h-[calc(100vh-9rem)] overflow-y-auto">
+            {navContent}
           </div>
         </nav>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as MainTab)} className="min-w-0">
-          <div className="overflow-x-auto -mx-1 px-1">
+          <div className="sticky top-0 z-10 bg-background pb-2 -mt-2 pt-2 overflow-x-auto -mx-1 px-1">
             <TabsList>
               <TabsTrigger value="overview">Tổng quan</TabsTrigger>
               <TabsTrigger value="assets">Tài sản</TabsTrigger>
@@ -236,7 +311,7 @@ export function InventoryDashboardPage() {
           </div>
 
           <TabsContent value="overview" className="mt-4">
-            {isMobile ? <MobileInventoryDashboard /> : <InventoryOverviewSection />}
+            {isMobile ? <MobileInventoryDashboard /> : <InventoryOverviewSection onNavigate={setTab as (t: string, s?: string) => void} />}
           </TabsContent>
 
         <TabsContent value="assets" className="mt-4">
@@ -280,9 +355,30 @@ export function InventoryDashboardPage() {
                 <TabsTrigger value="inbound">+ Nhập kho</TabsTrigger>
                 <TabsTrigger value="outbound">+ Xuất kho</TabsTrigger>
                 <TabsTrigger value="transfer">+ Chuyển kho</TabsTrigger>
-                <TabsTrigger value="adjustments">Kiểm kê</TabsTrigger>
-                <TabsTrigger value="distributions">Phiếu giao hàng</TabsTrigger>
-                <TabsTrigger value="reorder">Đề xuất nhập hàng</TabsTrigger>
+                <TabsTrigger value="adjustments">
+                  Kiểm kê
+                  {(badges?.adjustmentsPending ?? 0) > 0 && (
+                    <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[10px]">
+                      {badges?.adjustmentsPending}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="distributions">
+                  Phiếu giao hàng
+                  {(badges?.distributionsPending ?? 0) > 0 && (
+                    <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[10px]">
+                      {badges?.distributionsPending}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="reorder">
+                  Đề xuất nhập hàng
+                  {(badges?.reorderPending ?? 0) > 0 && (
+                    <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[10px]">
+                      {badges?.reorderPending}
+                    </Badge>
+                  )}
+                </TabsTrigger>
               </TabsList>
             </div>
             <TabsContent value="transactions" className="mt-4">
