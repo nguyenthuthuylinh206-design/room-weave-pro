@@ -41,9 +41,8 @@ import { WarehouseSelect } from '@/components/warehouse/WarehouseSelect'
 import { MobileRoomSelectSheet } from './outbound/MobileRoomSelectSheet'
 import { MobileMaintenanceSelectSheet } from './outbound/MobileMaintenanceSelectSheet'
 import { MobileLaundryVendorStep, MobileLaundryDeliveryStep, validateLaundryData } from './outbound/MobileLaundrySteps'
-import { useCreateOutboundTransaction } from '@/hooks/useInventoryTransactions'
-import { useCreateLaundryBatch } from '@/hooks/useLaundryBatches'
-import { useCreateDistributionOrder } from '@/hooks/useDistributionOrders'
+import { useOutboundSubmit } from './outbound/shared/useOutboundSubmit'
+import { OutboundCategoryGrid, type OutboundCategoryOption } from './outbound/shared/OutboundCategoryGrid'
 import { useItems } from '@/hooks/useItems'
 import { useDefaultWarehouse } from '@/hooks/useWarehouses'
 import { useMultipleWarehouseStock } from '@/hooks/useWarehouseStock'
@@ -142,23 +141,20 @@ export function MobileOutboundForm() {
   const [selectedMaintenanceRequest, setSelectedMaintenanceRequest] = useState<MaintenanceRequestRef | null>(null)
   const [laundryData, setLaundryData] = useState<LaundryFormData | null>(null)
 
-  const categories = [
+  const categories: OutboundCategoryOption[] = [
     { value: 'room_assign', label: t('inventory:outbound.categories.room_assign'), icon: DoorOpen, description: t('inventory:outbound.categories.room_assignDesc') },
     { value: 'laundry', label: t('inventory:outbound.categories.laundry'), icon: Shirt, description: t('inventory:outbound.categories.laundryDesc') },
     { value: 'maintenance', label: t('inventory:outbound.categories.maintenance'), icon: Wrench, description: t('inventory:outbound.categories.maintenanceDesc') },
     { value: 'disposal', label: t('inventory:outbound.categories.disposal'), icon: Trash2, description: t('inventory:outbound.categories.disposalDesc') },
     { value: 'other', label: t('inventory:outbound.categories.other'), icon: PackageMinus, description: t('inventory:outbound.categories.otherDesc') },
   ]
-  
-  const { mutate: createOutbound, isPending: isLoadingOutbound } = useCreateOutboundTransaction()
-  const { mutate: createLaundryBatch, isPending: isLoadingLaundry } = useCreateLaundryBatch()
-  const { mutate: createDistribution, isPending: isLoadingDistribution } = useCreateDistributionOrder()
+
+  const { submit: submitOutbound, isPending: isLoading } = useOutboundSubmit()
   const { data: itemsData, isLoading: isLoadingItems } = useItems({ search: searchQuery }, 1, 50)
   const { data: defaultWarehouse } = useDefaultWarehouse()
   const { data: rooms = [] } = useRooms({})
   const { data: vendors = [] } = useLaundryVendors({ status: 'active' })
-  
-  const isLoading = isLoadingOutbound || isLoadingLaundry || isLoadingDistribution
+
   
   const outboundSchema = createOutboundSchema(t)
 
@@ -356,88 +352,55 @@ export function MobileOutboundForm() {
       toast.error(validation.error || t('inventory:mobileForm.validation.checkInfo'))
       return
     }
-    
+
     if (hasStockError) {
       toast.error(t('inventory:mobileForm.validation.exceededStock'))
       return
     }
-    
+
     const formData = form.getValues()
-    
-    try {
-      if (category === 'room_assign' && selectedRoomIds.length > 0) {
-        // Use distribution order for room assignment
-        const roomsData = selectedRoomIds.map(roomId => ({
-          room_id: roomId,
-          items: watchedItems.map(item => ({
-            item_id: item.item_id,
-            quantity: item.quantity,
-          }))
-        }))
-        
-        createDistribution({
-          rooms: roomsData,
-          notes: formData.notes,
-        }, {
-          onSuccess: () => {
-            localStorage.removeItem(DRAFT_KEY)
-            triggerHaptic('success')
+
+    submitOutbound(
+      {
+        transaction_category: category,
+        from_warehouse_id: formData.from_warehouse_id,
+        to_location: formData.to_location,
+        items: watchedItems.map(i => ({
+          item_id: i.item_id,
+          quantity: i.quantity,
+          available_quantity: i.available_quantity,
+          notes: i.notes,
+          weight_kg: i.weight_kg,
+        })),
+        recipient_name: formData.recipient_name,
+        photos: formData.photos,
+        notes: formData.notes,
+      },
+      {
+        selectedRoomIds,
+        laundryData,
+        selectedMaintenanceRequest,
+      },
+      {
+        onSuccess: (kind) => {
+          localStorage.removeItem(DRAFT_KEY)
+          triggerHaptic('success')
+          if (kind === 'distribution') {
             toast.success(t('inventory:mobileForm.outbound.successMessage'))
             navigate('/inventory/distribution')
-          }
-        })
-      } else if (category === 'laundry' && laundryData) {
-        // Use laundry batch creation
-        createLaundryBatch({
-          step1: {
-            vendor_id: laundryData.vendor_id,
-            delivery_date: laundryData.delivery_date,
-            expected_return_date: laundryData.expected_return_date,
-            delivery_staff_id: laundryData.delivery_staff_id,
-            receiver_name: laundryData.receiver_name,
-            notes: laundryData.notes,
-          },
-          step2: {
-            items: watchedItems.map(item => ({
-              item_id: item.item_id,
-              quantity: item.quantity,
-              weight_kg: item.weight_kg || 0,
-              condition_note: item.notes,
-            }))
-          },
-          step3: { confirmed: true }
-        }, {
-          onSuccess: () => {
-            localStorage.removeItem(DRAFT_KEY)
-            triggerHaptic('success')
+          } else if (kind === 'laundry') {
             toast.success(t('laundry:messages.createSuccess'))
             navigate('/laundry/batches')
-          }
-        })
-      } else {
-        // Standard outbound transaction
-        const toLocation = category === 'maintenance' && selectedMaintenanceRequest
-          ? `${t('maintenance:requests.title')}: ${selectedMaintenanceRequest.title}${selectedMaintenanceRequest.room_number ? ` (${t('rooms:room')} ${selectedMaintenanceRequest.room_number})` : ''}`
-          : formData.to_location || ''
-        
-        createOutbound({
-          ...formData,
-          to_location: toLocation,
-          from_location: '', // Will be set from warehouse
-          related_type: selectedMaintenanceRequest ? 'maintenance_request' : undefined,
-          related_id: selectedMaintenanceRequest?.id,
-        } as any, {
-          onSuccess: () => {
-            localStorage.removeItem(DRAFT_KEY)
-            triggerHaptic('success')
+          } else {
             toast.success(t('inventory:mobileForm.outbound.successMessage'))
             navigate('/inventory/transactions')
           }
-        })
-      }
-    } catch (error) {
-      console.error('Submit error:', error)
-    }
+        },
+        onError: (err) => {
+          console.error('Submit error:', err)
+        },
+      },
+    )
   }
   
   const addItem = (itemId: string, availableQty: number) => {
@@ -495,29 +458,16 @@ export function MobileOutboundForm() {
             <h2 className="text-lg font-semibold mb-1">{t('inventory:mobileForm.outbound.categoryTitle')}</h2>
             <p className="text-sm text-muted-foreground mb-4">{t('inventory:mobileForm.outbound.categoryDescription')}</p>
             
-            <div className="grid grid-cols-2 gap-3">
-              {categories.map((cat) => {
-                const Icon = cat.icon
-                const isSelected = category === cat.value
-                return (
-                  <TouchButton
-                    key={cat.value}
-                    variant={isSelected ? 'default' : 'outline'}
-                    className="h-28 flex-col gap-2 justify-center"
-                    onClick={() => {
-                      form.setValue('transaction_category', cat.value as any)
-                      triggerHaptic('light')
-                    }}
-                  >
-                    <Icon className="h-8 w-8" />
-                    <div className="text-center">
-                      <div className="text-sm font-medium">{cat.label}</div>
-                      <div className="text-xs opacity-70">{cat.description}</div>
-                    </div>
-                  </TouchButton>
-                )
-              })}
-            </div>
+            <OutboundCategoryGrid
+              value={category}
+              onChange={(value) => {
+                form.setValue('transaction_category', value as any)
+                triggerHaptic('light')
+              }}
+              options={categories}
+              variant="wizard"
+            />
+
           </div>
           
           <div className="space-y-3">
