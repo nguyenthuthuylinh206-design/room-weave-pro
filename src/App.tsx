@@ -20,13 +20,15 @@ const lazyNamed = <T extends Record<string, any>>(
   name: keyof T
 ) => lazy(() => loader().then((m) => ({ default: m[name] })));
 
-const InventoryHubRedirect = ({ tab, sub }: { tab: string; sub?: string }) => {
+const InventoryHubRedirect = ({ tab, sub, view }: { tab: string; sub?: string; view?: string }) => {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   params.set('tab', tab);
   if (sub) params.set('sub', sub);
+  if (view) params.set('view', view);
   return <Navigate to={`/inventory?${params.toString()}`} replace />;
 };
+
 
 // Heavy layout shells — lazy-loaded so anonymous landing/auth/payment-QR
 // pages don't pull in HotelProvider, PWA prompts, banners, sidebars, etc.
