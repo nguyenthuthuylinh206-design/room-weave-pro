@@ -92,7 +92,7 @@ export function QuickOutboundDialog({ open, onOpenChange }: QuickOutboundDialogP
   })
 
   const items = form.watch('items')
-  const { hasStockError, lowStockWarnings } = useStockValidation(items)
+  const { hasStockError, lowStockWarnings } = useStockValidation(items as any)
   const selectedCategory = form.watch('transaction_category') as OutboundCategory
 
   const onSubmit = (data: QuickOutboundFormData) => {
