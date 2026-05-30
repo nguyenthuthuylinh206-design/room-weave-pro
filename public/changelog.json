@@ -1,6 +1,16 @@
 {
-  "current": "1.1.10",
+  "current": "1.1.11",
   "versions": [
+    {
+      "version": "1.1.11",
+      "releaseDate": "2026-05-30",
+      "title": "Xuất kho: gộp Danh sách phiếu + Tạo thủ công + Từ yêu cầu vào 1 trang",
+      "changes": [
+        { "type": "improvement", "text": "Trang Xuất kho có 3 tab nội bộ: Danh sách phiếu (mặc định), Tạo phiếu thủ công, Từ yêu cầu bổ sung — không phải nhảy giữa nhiều mục sidebar" },
+        { "type": "improvement", "text": "Khi tạo phiếu thủ công loại 'Xuất cho phòng', form phân phối hiển thị ngay tại chỗ thay vì nút mở tab khác" },
+        { "type": "improvement", "text": "Mục 'Phiếu giao hàng' cũ trong sidebar Kho được gộp vào Xuất kho; bookmark cũ tự redirect" }
+      ]
+    },
     {
       "version": "1.1.10",
       "releaseDate": "2026-05-30",

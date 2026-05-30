@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   ArrowDownToLine,
@@ -46,6 +46,7 @@ const InboundPage = lazy(() => import('./InboundPage').then(m => ({ default: m.I
 const OutboundPage = lazy(() => import('./OutboundPage').then(m => ({ default: m.OutboundPage })))
 const TransferPage = lazy(() => import('./TransferPage'))
 const ItemFormPage = lazy(() => import('../items/ItemFormPage').then(m => ({ default: m.ItemFormPage })))
+const CreateFromSupplementsPage = lazy(() => import('./CreateFromSupplementsPage'))
 
 const TabFallback = () => (
   <div className="space-y-3 py-6">
@@ -88,10 +89,9 @@ const inventoryMenuGroups: Array<{ title: string; items: InventoryMenuItem[] }> 
     title: 'Xuất nhập kho',
     items: [
       { label: 'Nhập kho', tab: 'operations', sub: 'inbound' },
-      { label: 'Xuất kho', tab: 'operations', sub: 'outbound' },
+      { label: 'Xuất kho', tab: 'operations', sub: 'outbound', badgeKey: 'distributionsPending' },
       { label: 'Chuyển kho', tab: 'operations', sub: 'transfer' },
       { label: 'Kiểm kê', tab: 'operations', sub: 'adjustments', badgeKey: 'adjustmentsPending' },
-      { label: 'Phiếu giao hàng', tab: 'operations', sub: 'distributions', badgeKey: 'distributionsPending' },
       { label: 'Đề xuất nhập hàng', tab: 'operations', sub: 'reorder', badgeKey: 'reorderPending' },
     ],
   },
@@ -134,6 +134,25 @@ export function InventoryDashboardPage() {
   )
 
   const { data: badges } = useInventoryHubBadges()
+
+  // Legacy redirect: ?sub=distributions → ?sub=outbound&view=list
+  useEffect(() => {
+    if (tab === 'operations' && sub === 'distributions') {
+      const next = new URLSearchParams(searchParams)
+      next.set('sub', 'outbound')
+      if (!next.get('view')) next.set('view', 'list')
+      setSearchParams(next, { replace: true })
+    }
+  }, [tab, sub, searchParams, setSearchParams])
+
+  const outboundView = (searchParams.get('view') as 'list' | 'manual' | 'from-requests') || 'list'
+  const setOutboundView = (next: 'list' | 'manual' | 'from-requests') => {
+    const params = new URLSearchParams(searchParams)
+    params.set('tab', 'operations')
+    params.set('sub', 'outbound')
+    params.set('view', next)
+    setSearchParams(params, { replace: true })
+  }
 
   const setTab = useCallback((next: MainTab, nextSub?: string) => {
     const params = new URLSearchParams(searchParams)
@@ -364,21 +383,20 @@ export function InventoryDashboardPage() {
               <TabsList>
                 <TabsTrigger value="transactions">Giao dịch</TabsTrigger>
                 <TabsTrigger value="inbound">+ Nhập kho</TabsTrigger>
-                <TabsTrigger value="outbound">+ Xuất kho</TabsTrigger>
+                <TabsTrigger value="outbound">
+                  Xuất kho
+                  {(badges?.distributionsPending ?? 0) > 0 && (
+                    <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[10px]">
+                      {badges?.distributionsPending}
+                    </Badge>
+                  )}
+                </TabsTrigger>
                 <TabsTrigger value="transfer">+ Chuyển kho</TabsTrigger>
                 <TabsTrigger value="adjustments">
                   Kiểm kê
                   {(badges?.adjustmentsPending ?? 0) > 0 && (
                     <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[10px]">
                       {badges?.adjustmentsPending}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-                <TabsTrigger value="distributions">
-                  Phiếu giao hàng
-                  {(badges?.distributionsPending ?? 0) > 0 && (
-                    <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[10px]">
-                      {badges?.distributionsPending}
                     </Badge>
                   )}
                 </TabsTrigger>
@@ -403,9 +421,37 @@ export function InventoryDashboardPage() {
               </Suspense>
             </TabsContent>
             <TabsContent value="outbound" className="mt-4">
-              <Suspense fallback={<TabFallback />}>
-                <OutboundPage />
-              </Suspense>
+              <Tabs value={outboundView} onValueChange={(v) => setOutboundView(v as 'list' | 'manual' | 'from-requests')}>
+                <ScrollableTabsList className="-mx-1 px-1">
+                  <TabsList>
+                    <TabsTrigger value="list">
+                      Danh sách phiếu
+                      {(badges?.distributionsPending ?? 0) > 0 && (
+                        <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[10px]">
+                          {badges?.distributionsPending}
+                        </Badge>
+                      )}
+                    </TabsTrigger>
+                    <TabsTrigger value="manual">+ Tạo phiếu thủ công</TabsTrigger>
+                    <TabsTrigger value="from-requests">Từ yêu cầu bổ sung</TabsTrigger>
+                  </TabsList>
+                </ScrollableTabsList>
+                <TabsContent value="list" className="mt-4">
+                  <Suspense fallback={<TabFallback />}>
+                    <DistributionOrdersPage />
+                  </Suspense>
+                </TabsContent>
+                <TabsContent value="manual" className="mt-4">
+                  <Suspense fallback={<TabFallback />}>
+                    <OutboundPage />
+                  </Suspense>
+                </TabsContent>
+                <TabsContent value="from-requests" className="mt-4">
+                  <Suspense fallback={<TabFallback />}>
+                    <CreateFromSupplementsPage embedded />
+                  </Suspense>
+                </TabsContent>
+              </Tabs>
             </TabsContent>
             <TabsContent value="transfer" className="mt-4">
               <Suspense fallback={<TabFallback />}>
@@ -415,11 +461,6 @@ export function InventoryDashboardPage() {
             <TabsContent value="adjustments" className="mt-4">
               <Suspense fallback={<TabFallback />}>
                 <AdjustmentListPage />
-              </Suspense>
-            </TabsContent>
-            <TabsContent value="distributions" className="mt-4">
-              <Suspense fallback={<TabFallback />}>
-                <DistributionOrdersPage />
               </Suspense>
             </TabsContent>
             <TabsContent value="reorder" className="mt-4">

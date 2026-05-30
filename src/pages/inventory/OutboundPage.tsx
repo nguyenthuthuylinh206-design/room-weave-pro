@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Plus, X, AlertTriangle, WashingMachine, Calendar, Scale, DollarSign, Package } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Plus, X, AlertTriangle, WashingMachine, Calendar, Scale, DollarSign } from 'lucide-react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -112,7 +112,7 @@ type OutboundFormData = {
 export function OutboundPage() {
   const { t } = useTranslation(['inventory', 'common', 'distribution', 'laundry'])
   const navigate = useNavigate();
-  const [, setSearchParams] = useSearchParams();
+  
   const { isMobile } = useBreakpoint();
   
   const distributionForm = useDistributionForm();
@@ -276,25 +276,9 @@ export function OutboundPage() {
             </div>
           </div>
           
-          {/* Distribution: chuyển sang tab phiếu giao hàng (vẫn trong Kho) */}
+          {/* Distribution form inline */}
           {category === 'room_assign' && (
-            <div className="border rounded-lg p-6 text-center space-y-3">
-              <Package className="h-8 w-8 mx-auto text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">Giao đồ đến phòng</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Mở mục Phiếu giao hàng để chọn phòng, phân bổ sản phẩm và theo dõi giao hàng.
-                </p>
-              </div>
-              <Button
-                type="button"
-                onClick={() => setSearchParams({ tab: 'operations', sub: 'distributions' }, { replace: true })}
-                className="gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Mở phiếu giao hàng
-              </Button>
-            </div>
+            <DistributionForm form={distributionForm} />
           )}
           
           {/* Laundry Batch Form */}

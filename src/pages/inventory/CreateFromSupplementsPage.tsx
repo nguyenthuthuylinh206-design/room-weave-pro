@@ -29,9 +29,13 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
   mixed: 'Hỗn hợp',
 }
 
-export default function CreateFromSupplementsPage() {
+interface CreateFromSupplementsPageProps {
+  embedded?: boolean
+}
+
+export default function CreateFromSupplementsPage({ embedded = false }: CreateFromSupplementsPageProps = {}) {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const isMobile = useIsMobile()
   const { selectedHotel } = useHotelContext()
   const { data: requests = [], isLoading } = useSupplementRequests({ status: 'pending' })
@@ -102,7 +106,16 @@ export default function CreateFromSupplementsPage() {
       autoRelease,
     }, {
       onSuccess: (result) => {
-        navigate(`/inventory/distributions/${result.order_id}`)
+        if (embedded) {
+          // Quay về tab Danh sách phiếu trong hub Xuất kho
+          const next = new URLSearchParams(searchParams)
+          next.set('tab', 'operations')
+          next.set('sub', 'outbound')
+          next.set('view', 'list')
+          setSearchParams(next, { replace: true })
+        } else {
+          navigate(`/inventory/distributions/${result.order_id}`)
+        }
       }
     })
   }
@@ -116,26 +129,28 @@ export default function CreateFromSupplementsPage() {
   }
 
   return (
-    <div className={isMobile ? 'flex flex-col h-full' : 'container mx-auto py-6 space-y-6'}>
-      {/* Header */}
-      <div className={isMobile 
-        ? 'sticky top-0 z-10 bg-background border-b p-4 flex items-center gap-3'
-        : 'flex items-center gap-4'
-      }>
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className={isMobile ? 'text-lg font-semibold' : 'text-2xl font-bold'}>
-            Tạo phiếu từ yêu cầu bổ sung
-          </h1>
-          {!isMobile && (
-            <p className="text-muted-foreground">
-              Chọn các yêu cầu để tạo phiếu giao hàng
-            </p>
-          )}
+    <div className={embedded ? 'space-y-4' : (isMobile ? 'flex flex-col h-full' : 'container mx-auto py-6 space-y-6')}>
+      {/* Header — ẩn khi embedded trong hub Xuất kho */}
+      {!embedded && (
+        <div className={isMobile 
+          ? 'sticky top-0 z-10 bg-background border-b p-4 flex items-center gap-3'
+          : 'flex items-center gap-4'
+        }>
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className={isMobile ? 'text-lg font-semibold' : 'text-2xl font-bold'}>
+              Tạo phiếu từ yêu cầu bổ sung
+            </h1>
+            {!isMobile && (
+              <p className="text-muted-foreground">
+                Chọn các yêu cầu để tạo phiếu giao hàng
+              </p>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Content */}
       <div className={cn("space-y-4", isMobile ? 'flex-1 overflow-auto p-4' : '')}>
@@ -283,13 +298,15 @@ export default function CreateFromSupplementsPage() {
           ? 'sticky bottom-0 bg-background border-t p-4 flex gap-3'
           : 'flex justify-end gap-3'
         }>
-          <Button 
-            variant="outline" 
-            onClick={() => navigate(-1)}
-            className={isMobile ? 'flex-1' : ''}
-          >
-            Hủy
-          </Button>
+          {!embedded && (
+            <Button 
+              variant="outline" 
+              onClick={() => navigate(-1)}
+              className={isMobile ? 'flex-1' : ''}
+            >
+              Hủy
+            </Button>
+          )}
           <Button 
             onClick={handleSubmit} 
             disabled={isPending || selectedIds.length === 0}
