@@ -33,6 +33,8 @@ project_id = "ehjtoajnlnuvuiwkpmbp"
     verify_jwt = false
   [functions.sync-sepay-transactions]
     verify_jwt = false
+  [functions.tbltkbtt-submit]
+    verify_jwt = false
   [functions.telegram-webhook]
     verify_jwt = false
   [functions.verify-otp]
