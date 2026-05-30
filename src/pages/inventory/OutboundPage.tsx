@@ -281,19 +281,22 @@ export function OutboundPage() {
             )} />
             
             <div className="grid gap-3 md:grid-cols-2">
-              <FormField control={form.control} name="from_warehouse_id" render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs">{t('inventory:outbound.fromLocation')} *</FormLabel>
-                  <FormControl>
-                    <WarehouseSelect
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      placeholder={t('inventory:outbound.placeholders.fromLocation')}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              {category !== 'room_assign' && (
+                <FormField control={form.control} name="from_warehouse_id" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">{t('inventory:outbound.fromLocation')} *</FormLabel>
+                    <FormControl>
+                      <WarehouseSelect
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder={t('inventory:outbound.placeholders.fromLocation')}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              )}
+
               
               {category === 'laundry' && (
                 <FormField control={form.control} name="vendor_id" render={({ field }) => (
