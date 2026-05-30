@@ -41,28 +41,19 @@ const DocsViewer = lazy(() => import("./pages/docs/DocsViewer"));
 
 // Inventory
 const InventoryDashboardPage = lazyNamed(() => import("./pages/inventory/InventoryDashboardPage"), "InventoryDashboardPage");
-const SupplementsPage = lazyNamed(() => import("./pages/supplements/SupplementsPage"), "SupplementsPage");
-const TransactionListPage = lazyNamed(() => import("./pages/inventory/TransactionListPage"), "TransactionListPage");
 const InboundPage = lazyNamed(() => import("./pages/inventory/InboundPage"), "InboundPage");
 const OutboundPage = lazyNamed(() => import("./pages/inventory/OutboundPage"), "OutboundPage");
-const AdjustmentListPage = lazyNamed(() => import("./pages/inventory/AdjustmentListPage"), "AdjustmentListPage");
 const CreateAdjustmentPage = lazyNamed(() => import("./pages/inventory/CreateAdjustmentPage"), "CreateAdjustmentPage");
 const CheckAdjustmentPage = lazyNamed(() => import("./pages/inventory/CheckAdjustmentPage"), "CheckAdjustmentPage");
 const AdjustmentDetailPage = lazyNamed(() => import("./pages/inventory/AdjustmentDetailPage"), "AdjustmentDetailPage");
-const DistributionOrdersPage = lazy(() => import("./pages/inventory/DistributionOrdersPage"));
 const DistributionOrderDetailPage = lazy(() => import("./pages/inventory/DistributionOrderDetailPage"));
 const CreateDistributionPage = lazy(() => import("./pages/inventory/CreateDistributionPage"));
 const CreateFromSupplementsPage = lazy(() => import("./pages/inventory/CreateFromSupplementsPage"));
 const TransferPage = lazy(() => import("./pages/inventory/TransferPage"));
-const ReorderSuggestionsPage = lazy(() => import("./pages/inventory/ReorderSuggestionsPage"));
-const DeadStockPage = lazy(() => import("./pages/inventory/DeadStockPage"));
-const InventoryAnalyticsPage = lazy(() => import("./pages/inventory/InventoryAnalyticsPage"));
 
 // Items
-const ItemsPage = lazyNamed(() => import("./pages/items/ItemsPage"), "ItemsPage");
 const ItemDetailPage = lazy(() => import("./pages/items/ItemDetailPage"));
 const ItemFormPage = lazyNamed(() => import("./pages/items/ItemFormPage"), "ItemFormPage");
-const CategoriesPage = lazyNamed(() => import("./pages/items/CategoriesPage"), "CategoriesPage");
 
 // Rooms
 const RoomsPage = lazyNamed(() => import("./pages/rooms/RoomsPage"), "RoomsPage");
