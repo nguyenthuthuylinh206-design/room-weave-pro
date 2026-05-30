@@ -136,11 +136,18 @@ export function InventoryDashboardPage() {
   const { data: badges } = useInventoryHubBadges()
 
   // Legacy redirect: ?sub=distributions → ?sub=outbound&view=list
+  // Legacy redirect: ?view=from-requests → ?view=list (flow giờ inline trong banner)
   useEffect(() => {
     if (tab === 'operations' && sub === 'distributions') {
       const next = new URLSearchParams(searchParams)
       next.set('sub', 'outbound')
       if (!next.get('view')) next.set('view', 'list')
+      setSearchParams(next, { replace: true })
+      return
+    }
+    if (tab === 'operations' && sub === 'outbound' && searchParams.get('view') === 'from-requests') {
+      const next = new URLSearchParams(searchParams)
+      next.set('view', 'list')
       setSearchParams(next, { replace: true })
     }
   }, [tab, sub, searchParams, setSearchParams])
