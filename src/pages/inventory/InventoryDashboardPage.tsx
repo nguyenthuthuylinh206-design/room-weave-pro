@@ -135,6 +135,25 @@ export function InventoryDashboardPage() {
 
   const { data: badges } = useInventoryHubBadges()
 
+  // Legacy redirect: ?sub=distributions → ?sub=outbound&view=list
+  useEffect(() => {
+    if (tab === 'operations' && sub === 'distributions') {
+      const next = new URLSearchParams(searchParams)
+      next.set('sub', 'outbound')
+      if (!next.get('view')) next.set('view', 'list')
+      setSearchParams(next, { replace: true })
+    }
+  }, [tab, sub, searchParams, setSearchParams])
+
+  const outboundView = (searchParams.get('view') as 'list' | 'manual' | 'from-requests') || 'list'
+  const setOutboundView = (next: 'list' | 'manual' | 'from-requests') => {
+    const params = new URLSearchParams(searchParams)
+    params.set('tab', 'operations')
+    params.set('sub', 'outbound')
+    params.set('view', next)
+    setSearchParams(params, { replace: true })
+  }
+
   const setTab = useCallback((next: MainTab, nextSub?: string) => {
     const params = new URLSearchParams(searchParams)
     params.set('tab', next)
