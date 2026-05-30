@@ -574,9 +574,10 @@ export function OutboundPage() {
                 <span className="text-red-600 font-medium">-{totalQuantity} đơn vị</span>
               </div>
               <div className="flex gap-2">
-                <Button type="button" variant="ghost" size="sm" onClick={() => navigate('/inventory')}>{t('common:cancel')}</Button>
-                <Button type="submit" size="sm" disabled={isLoading || hasStockError}>{isLoading ? t('inventory:outbound.processing') : t('inventory:outbound.confirm')}</Button>
+                <Button type="button" variant="ghost" size="sm" onClick={goToList}>{t('common:cancel')}</Button>
+                <Button type="submit" size="sm" disabled={isAnyPending || hasStockError}>{isAnyPending ? t('inventory:outbound.processing') : t('inventory:outbound.confirm')}</Button>
               </div>
+
             </div>
           )}
           
