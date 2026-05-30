@@ -396,30 +396,30 @@ const router = createBrowserRouter([
       
       // Inventory - Permission Based
       { path: "inventory", element: <PermissionRoute module="inventory"><InventoryDashboardPage /></PermissionRoute> },
-      { path: "inventory/transactions", element: <PermissionRoute module="inventory"><TransactionListPage /></PermissionRoute> },
-      { path: "inventory/inbound", element: <Navigate to="/inventory/transactions" replace /> },
+      { path: "inventory/transactions", element: <Navigate to="/inventory?tab=operations&sub=transactions" replace /> },
+      { path: "inventory/inbound", element: <Navigate to="/inventory?tab=operations&sub=inbound" replace /> },
       { path: "inventory/inbound/new", element: <PermissionRoute module="inventory" action="create"><InboundPage /></PermissionRoute> },
-      { path: "inventory/outbound", element: <Navigate to="/inventory/transactions" replace /> },
+      { path: "inventory/outbound", element: <Navigate to="/inventory?tab=operations&sub=outbound" replace /> },
       { path: "inventory/outbound/new", element: <PermissionRoute module="inventory" action="create"><OutboundPage /></PermissionRoute> },
-      { path: "inventory/adjustments", element: <PermissionRoute module="inventory"><AdjustmentListPage /></PermissionRoute> },
+      { path: "inventory/adjustments", element: <Navigate to="/inventory?tab=operations&sub=adjustments" replace /> },
       { path: "inventory/adjustments/new", element: <PermissionRoute module="inventory" action="create"><CreateAdjustmentPage /></PermissionRoute> },
       { path: "inventory/adjustments/:id", element: <PermissionRoute module="inventory"><AdjustmentDetailPage /></PermissionRoute> },
       { path: "inventory/adjustments/:id/check", element: <PermissionRoute module="inventory" action="update"><CheckAdjustmentPage /></PermissionRoute> },
-      { path: "inventory/distributions", element: <PermissionRoute module="inventory"><DistributionOrdersPage /></PermissionRoute> },
+      { path: "inventory/distributions", element: <Navigate to="/inventory?tab=operations&sub=distributions" replace /> },
       { path: "inventory/transfer/new", element: <PermissionRoute module="inventory" action="create"><TransferPage /></PermissionRoute> },
       { path: "inventory/distributions/new", element: <PermissionRoute module="inventory" action="create"><CreateDistributionPage /></PermissionRoute> },
       { path: "inventory/distributions/from-supplements", element: <PermissionRoute module="inventory" action="create"><CreateFromSupplementsPage /></PermissionRoute> },
       { path: "inventory/distributions/:id", element: <PermissionRoute module="inventory"><DistributionOrderDetailPage /></PermissionRoute> },
-      { path: "inventory/reorder", element: <PermissionRoute module="inventory"><ReorderSuggestionsPage /></PermissionRoute> },
-      { path: "inventory/dead-stock", element: <PermissionRoute module="inventory"><DeadStockPage /></PermissionRoute> },
-      { path: "inventory/analytics", element: <PermissionRoute module="inventory"><InventoryAnalyticsPage /></PermissionRoute> },
+      { path: "inventory/reorder", element: <Navigate to="/inventory?tab=operations&sub=reorder" replace /> },
+      { path: "inventory/dead-stock", element: <Navigate to="/inventory?tab=analytics&sub=dead-stock" replace /> },
+      { path: "inventory/analytics", element: <Navigate to="/inventory?tab=analytics&sub=consumption" replace /> },
 
       // Items
-      { path: "items", element: <PermissionRoute module="items"><ItemsPage /></PermissionRoute> },
+      { path: "items", element: <Navigate to="/inventory?tab=assets&sub=items" replace /> },
       { path: "items/:id", element: <PermissionRoute module="items"><ItemDetailPage /></PermissionRoute> },
       { path: "items/new", element: <PermissionRoute module="items" action="create"><ItemFormPage /></PermissionRoute> },
       { path: "items/:id/edit", element: <PermissionRoute module="items" action="update"><ItemFormPage /></PermissionRoute> },
-      { path: "items/categories", element: <PermissionRoute module="items"><CategoriesPage /></PermissionRoute> },
+      { path: "items/categories", element: <Navigate to="/inventory?tab=assets&sub=categories" replace /> },
 
       // Rooms
       { path: "rooms", element: <PermissionRoute module="rooms"><RoomsPage /></PermissionRoute> },
@@ -434,7 +434,7 @@ const router = createBrowserRouter([
       { path: "rooms/standards", element: <PermissionRoute module="rooms"><RoomStandardsPage /></PermissionRoute> },
 
       // Supplements
-      { path: "supplements", element: <PermissionRoute module="inventory"><SupplementsPage /></PermissionRoute> },
+      { path: "supplements", element: <Navigate to="/inventory?tab=settings&sub=supplements" replace /> },
 
       // Bookings
       { path: "bookings", element: <PermissionRoute module="bookings"><BookingsPage /></PermissionRoute> },
@@ -483,7 +483,7 @@ const router = createBrowserRouter([
       { path: "housekeeping/review", element: <PermissionRoute module="rooms"><TasksPendingReviewPage /></PermissionRoute> },
       { path: "housekeeping/qc", element: <PermissionRoute module="rooms"><QcDashboardPage /></PermissionRoute> },
       { path: "housekeeping/issues-review", element: <RoleGuard allowedRoles={['super_admin', 'owner', 'hotel_manager', 'department_manager']}><IssuesReviewPage /></RoleGuard> },
-      { path: "settings/warehouses", element: <PermissionRoute module="inventory"><WarehouseListPage /></PermissionRoute> },
+      { path: "settings/warehouses", element: <Navigate to="/inventory?tab=settings&sub=warehouses" replace /> },
       { path: "settings/subscription", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><SubscriptionPage /></RoleGuard> },
       { path: "settings/subscription/pay/:invoiceId", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><SubscriptionPaymentPage /></RoleGuard> },
       { path: "settings/usage", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><UsageDashboardPage /></RoleGuard> },
