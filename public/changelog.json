@@ -1,6 +1,20 @@
 {
-  "current": "1.1.7",
+  "current": "1.1.8",
   "versions": [
+    {
+      "version": "1.1.8",
+      "releaseDate": "2026-05-30",
+      "title": "Hub Kho v2: KPI thông minh, search nhanh, badge realtime, shortcut",
+      "changes": [
+        { "type": "improvement", "text": "Tab Tổng quan redesign theo Enterprise SaaS: 6 KPI compact (Tổng giá trị, SKU, Sắp hết <7d, Cần đặt lại, Tồn ứ đọng, Giao dịch hôm nay) — click thẳng vào tab tương ứng" },
+        { "type": "improvement", "text": "Widget Dự báo hết hàng (≤14 ngày) dùng consumption_snapshots, Top tiêu hao 30 ngày dạng bar chart, Phân bổ theo khách sạn ở chế độ Tất cả khách sạn" },
+        { "type": "improvement", "text": "Quick search Ctrl+/ — tìm item theo tên/mã, Enter để mở Danh sách tài sản với từ khoá" },
+        { "type": "improvement", "text": "Sidebar nội bộ hiển thị badge realtime: Đề xuất nhập, Phiếu giao hàng, Kiểm kê pending" },
+        { "type": "improvement", "text": "Shortcut bàn phím: g+o (Tổng quan), g+i (Nhập), g+x (Xuất), g+k (Kiểm kê), / (focus search)" },
+        { "type": "improvement", "text": "Mobile: menu 15 mục mở qua Sheet trượt trái, không tràn TabsList; sticky tabs khi cuộn" },
+        { "type": "improvement", "text": "Breadcrumb hiển thị Kho › Nhóm › Mục đang xem" }
+      ]
+    },
     {
       "version": "1.1.7",
       "releaseDate": "2026-05-30",

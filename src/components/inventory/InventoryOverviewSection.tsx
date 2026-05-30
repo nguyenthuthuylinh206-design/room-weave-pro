@@ -1,13 +1,4 @@
 import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import {
-  Package,
-  AlertTriangle,
-  ShoppingCart,
-  ArrowRightLeft,
-} from 'lucide-react'
-import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard'
-import { HeroStatCard } from '@/components/dashboard/HeroStatCard'
 import { CompactActionBar } from '@/components/inventory/CompactActionBar'
 import { LowStockAlert } from '@/components/inventory/LowStockAlert'
 import { RecentTransactions } from '@/components/inventory/RecentTransactions'
@@ -15,117 +6,57 @@ import { InventoryValueChart } from '@/components/inventory/InventoryValueChart'
 import { QuickInboundDialog } from '@/components/inventory/QuickInboundDialog'
 import { QuickOutboundDialog } from '@/components/inventory/QuickOutboundDialog'
 import { InventoryAlertsWidget } from '@/components/inventory/InventoryAlertsWidget'
-import { useInventoryDashboard } from '@/hooks/useInventoryDashboard'
+import { InventoryKpiGrid } from '@/components/inventory/hub/InventoryKpiGrid'
+import { InventoryForecastWidget } from '@/components/inventory/hub/InventoryForecastWidget'
+import { InventoryTopConsumedWidget } from '@/components/inventory/hub/InventoryTopConsumedWidget'
+import { InventoryHotelBreakdown } from '@/components/inventory/hub/InventoryHotelBreakdown'
 
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-  }).format(amount)
+interface Props {
+  onNavigate: (tab: string, sub?: string) => void
 }
 
-export function InventoryOverviewSection() {
-  const { t } = useTranslation('inventory')
+export function InventoryOverviewSection({ onNavigate }: Props) {
   const [showInboundDialog, setShowInboundDialog] = useState(false)
   const [showOutboundDialog, setShowOutboundDialog] = useState(false)
 
-  const { data: stats, isLoading } = useInventoryDashboard()
-
   return (
-    <div className="space-y-6">
-      {/* Hero Section: 8 cols Hero + 4 cols Quick Actions */}
+    <div className="space-y-4">
+      {/* KPI Grid - Enterprise SaaS minimalist 6 columns */}
+      <InventoryKpiGrid onNavigate={onNavigate} />
+
+      {/* Quick action bar */}
+      <CompactActionBar
+        onInbound={() => setShowInboundDialog(true)}
+        onOutbound={() => setShowOutboundDialog(true)}
+      />
+
+      {/* Main grid: chart + forecast */}
       <div className="grid gap-4 lg:grid-cols-12">
-        <div className="lg:col-span-8">
-          <HeroStatCard
-            title={t('stats.totalStockValue')}
-            value={stats ? formatCurrency(stats.total_stock_value) : '0 ₫'}
-            change={
-              stats?.stock_value_change_percent
-                ? {
-                    value: stats.stock_value_change_percent,
-                    label: t('stats.vsLastMonth'),
-                  }
-                : undefined
-            }
-            isLoading={isLoading}
-          />
+        <div className="lg:col-span-7">
+          <InventoryValueChart />
         </div>
+        <div className="lg:col-span-5">
+          <InventoryForecastWidget />
+        </div>
+      </div>
+
+      {/* Secondary grid: top consumed + low stock + alerts/transactions */}
+      <div className="grid gap-4 lg:grid-cols-12">
         <div className="lg:col-span-4">
-          <CompactActionBar
-            onInbound={() => setShowInboundDialog(true)}
-            onOutbound={() => setShowOutboundDialog(true)}
-          />
+          <InventoryTopConsumedWidget />
         </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <DashboardStatCard
-          title={t('stats.totalItems')}
-          value={stats ? stats.total_items_count.toString() : '0'}
-          icon={Package}
-          description={
-            stats ? `${stats.total_product_types} ${t('stats.productTypes')}` : undefined
-          }
-          isLoading={isLoading}
-          size="compact"
-        />
-
-        <DashboardStatCard
-          title={t('stats.lowStockAlert')}
-          value={stats ? stats.low_stock_count.toString() : '0'}
-          icon={AlertTriangle}
-          description={
-            stats && stats.low_stock_count > 0
-              ? t('stats.checkNow')
-              : t('stats.stockStable')
-          }
-          isLoading={isLoading}
-          size="compact"
-          onClick={() => {
-            const element = document.getElementById('low-stock-section')
-            element?.scrollIntoView({ behavior: 'smooth' })
-          }}
-        />
-
-        <DashboardStatCard
-          title={t('stats.reorderNeeded')}
-          value={stats ? stats.reorder_needed_count.toString() : '0'}
-          icon={ShoppingCart}
-          description={t('stats.itemsBelowReorder')}
-          isLoading={isLoading}
-          size="compact"
-        />
-
-        <DashboardStatCard
-          title={t('stats.todayTransactions')}
-          value={stats ? stats.today_transactions.total.toString() : '0'}
-          icon={ArrowRightLeft}
-          description={
-            stats
-              ? `${stats.today_transactions.out} ${t('transactionType.out')}, ${stats.today_transactions.in} ${t('transactionType.in')}`
-              : undefined
-          }
-          isLoading={isLoading}
-          size="compact"
-        />
-      </div>
-
-      {/* Main Content */}
-      <div className="grid gap-4 lg:grid-cols-12">
         <div id="low-stock-section" className="lg:col-span-4">
           <LowStockAlert />
         </div>
-        <div className="lg:col-span-5">
-          <InventoryValueChart />
-        </div>
-        <div className="lg:col-span-3 space-y-4">
+        <div className="lg:col-span-4 space-y-4">
           <InventoryAlertsWidget />
           <RecentTransactions />
         </div>
       </div>
 
-      {/* Dialogs */}
+      {/* Hotel breakdown - only in All Hotels mode */}
+      <InventoryHotelBreakdown />
+
       <QuickInboundDialog
         open={showInboundDialog}
         onOpenChange={setShowInboundDialog}
