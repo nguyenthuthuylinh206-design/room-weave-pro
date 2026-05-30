@@ -55,7 +55,6 @@ const emptyForm = (): FormState => ({
 })
 
 export default function SeasonalRulesPage() {
-  const { tenantId } = useUser()
   const { selectedHotel } = useHotelContext()
   const { data: rules = [], isLoading } = useSeasonalRates(selectedHotel?.id)
   const upsert = useUpsertSeasonalRate()
@@ -63,19 +62,8 @@ export default function SeasonalRulesPage() {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState<FormState>(emptyForm())
 
-  const { data: roomTypes = [] } = useQuery({
-    queryKey: ['room-types-all', tenantId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('room_types')
-        .select('id, name, code')
-        .eq('tenant_id', tenantId!)
-        .eq('status', 'active')
-        .order('display_order')
-      return data ?? []
-    },
-    enabled: !!tenantId,
-  })
+  const { data: roomTypes = [] } = useRoomTypes()
+
 
   const openCreate = () => { setForm({ ...emptyForm(), hotel_id: selectedHotel?.id ?? null }); setOpen(true) }
   const openEdit = (r: SeasonalRateOverride) => {
