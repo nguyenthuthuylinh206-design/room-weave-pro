@@ -238,39 +238,51 @@ export function RoomSelectionStep({
           
           <div className="space-y-2">
             {state.selectedRooms.map(room => (
-              <div key={room.id} className="flex items-center gap-2 p-2 bg-background rounded border">
-                <div className="flex-1 min-w-0">
+              <div key={room.id} className="p-2 bg-background rounded border space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="font-medium text-sm">{room.room_number}</span>
+                      <span className="text-xs text-muted-foreground">
+                        T{room.floor} • {getRoomTypeLabel(room.room_type)}
+                      </span>
+                    </div>
+                  </div>
                   <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="font-medium text-sm">{room.room_number}</span>
-                    <span className="text-xs text-muted-foreground">
-                      T{room.floor} • {getRoomTypeLabel(room.room_type)}
-                    </span>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      value={room.customPrice > 0 ? formatNumber(room.customPrice) : ''}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9]/g, '')
+                        onUpdateRoomPrice(room.id, parseInt(value) || 0)
+                      }}
+                      placeholder={getPricePlaceholder(state.bookingType)}
+                      className="w-28 h-8 text-right"
+                    />
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">{getPriceUnitLabel(state.bookingType)}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => onToggleRoom(room)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="text"
-                    inputMode="numeric"
-                    value={room.customPrice > 0 ? formatNumber(room.customPrice) : ''}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9]/g, '')
-                      onUpdateRoomPrice(room.id, parseInt(value) || 0)
-                    }}
-                    placeholder={getPricePlaceholder(state.bookingType)}
-                    className="w-28 h-8 text-right"
-                  />
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">{getPriceUnitLabel(state.bookingType)}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    onClick={() => onToggleRoom(room)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
+                {room.priceBreakdown && (
+                  <div className="text-[11px] text-muted-foreground pl-6 font-mono">
+                    Cơ sở {formatNumber(room.priceBreakdown.base)} × {room.priceBreakdown.units}
+                    {room.priceBreakdown.weekday_multiplier !== 1 && ` × ${room.priceBreakdown.weekday_multiplier} (cuối tuần)`}
+                    {room.priceBreakdown.season_adjust !== 0 && ` ${room.priceBreakdown.season_adjust > 0 ? '+' : ''}${formatNumber(room.priceBreakdown.season_adjust)} (mùa)`}
+                    {(room.priceBreakdown.early_checkin_charge > 0 || room.priceBreakdown.late_checkout_charge > 0) &&
+                      ` + ${formatNumber(room.priceBreakdown.early_checkin_charge + room.priceBreakdown.late_checkout_charge)} (sớm/trễ)`}
+                    {' = '}<span className="text-primary">{formatNumber(room.priceBreakdown.total)}đ</span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
