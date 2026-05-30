@@ -1,50 +1,72 @@
-# Bổ sung 4 sub-tab thiếu vào Hub Kho
-
 ## Mục tiêu
-Khôi phục đủ 15 mục của menu cũ vào hub `/inventory` bằng cách thêm 4 sub-tab tạo mới (Phương án A).
+Khôi phục Hub Kho đúng như menu cũ trong ảnh: đủ 15 mục, không mất `Phiếu giao hàng`, `Đề xuất nhập hàng`, `Bổ sung đồ`, `Quản lý kho`, đồng thời giữ sidebar gọn chỉ còn 1 lối vào `/inventory`.
 
-## Thay đổi
+## Những gì có thể reuse
+- Reuse các trang đã có: `TransactionListPage`, `ItemsPage`, `CategoriesPage`, `InboundPage`, `OutboundPage`, `TransferPage`, `AdjustmentListPage`, `DistributionOrdersPage`, `ReorderSuggestionsPage`, `DeadStockPage`, `InventoryAnalyticsPage`, `SupplementsPage`, `WarehouseListPage`, `ItemFormPage`.
+- Reuse route cũ trong `App.tsx` để các URL trực tiếp như `/inventory/distributions`, `/inventory/reorder`, `/supplements`, `/settings/warehouses` vẫn chạy.
+- Reuse permission hiện tại qua `PermissionRoute`, không đổi schema/backend.
 
-### 1. Tab "Tài sản" — thêm sub-tab
-| Sub | Component | URL |
-|---|---|---|
-| Danh sách tài sản | `ItemsPage` (cũ) | `?tab=assets&sub=items` |
-| Danh mục | `CategoriesPage` (cũ) | `?tab=assets&sub=categories` |
-| **+ Thêm tài sản** | `ItemFormPage` | `?tab=assets&sub=new` |
+## Cần refactor
+- `InventoryDashboardPage.tsx` hiện gom sai theo tab ngang: người dùng nhìn ở `Tổng quan` sẽ không thấy ngay các mục như menu cũ, gây cảm giác thiếu.
+- Thêm một danh sách điều hướng dạng sidebar/submenu ngay trong Hub, chia đúng nhóm như ảnh:
+  - Tổng quan: Bảng điều khiển, Giao dịch kho
+  - Sản phẩm: Danh sách tài sản, Danh mục, Thêm tài sản mới
+  - Xuất nhập kho: Nhập kho, Xuất kho, Chuyển kho, Kiểm kê, Phiếu giao hàng, Đề xuất nhập hàng
+  - Phân tích: Tồn kho ứ đọng, Phân tích tiêu thụ
+  - Thiết lập: Bổ sung đồ, Quản lý kho
+- Mỗi mục trong submenu sẽ map vào `?tab=&sub=` của Hub, ví dụ:
+  - `Phiếu giao hàng` → `/inventory?tab=operations&sub=distributions`
+  - `Đề xuất nhập hàng` → `/inventory?tab=operations&sub=reorder`
+  - `Bổ sung đồ` → `/inventory?tab=settings&sub=supplements`
+  - `Quản lý kho` → `/inventory?tab=settings&sub=warehouses`
 
-### 2. Tab "Xuất nhập" — thêm 3 sub-tab
-| Sub | Component | URL |
-|---|---|---|
-| Giao dịch | `TransactionListPage` (cũ) | `?tab=operations&sub=transactions` |
-| **+ Nhập kho** | `InboundPage` | `?tab=operations&sub=inbound` |
-| **+ Xuất kho** | `OutboundPage` | `?tab=operations&sub=outbound` |
-| **+ Chuyển kho** | `TransferPage` | `?tab=operations&sub=transfer` |
-| Kiểm kê | `AdjustmentListPage` (cũ) | `?tab=operations&sub=adjustments` |
-| Phiếu giao | `DistributionOrdersPage` (cũ) | `?tab=operations&sub=distributions` |
-| Đề xuất nhập | `ReorderSuggestionsPage` (cũ) | `?tab=operations&sub=reorder` |
+## Cần thêm mới
+- Thêm component cấu hình điều hướng nội bộ cho Hub Kho, ưu tiên dữ liệu/config thay vì hardcode rải rác.
+- Thêm fallback normalize URL để nếu user vào URL cũ thì điều hướng/hub vẫn mở đúng mục:
+  - `/inventory/transactions` tương ứng `Giao dịch kho`
+  - `/inventory/distributions` tương ứng `Phiếu giao hàng`
+  - `/inventory/reorder` tương ứng `Đề xuất nhập hàng`
+  - `/supplements` tương ứng `Bổ sung đồ`
+  - `/settings/warehouses` tương ứng `Quản lý kho`
+- Sửa label cho đúng menu cũ: dùng đầy đủ `Phiếu giao hàng`, `Đề xuất nhập hàng`, không rút gọn gây hiểu nhầm.
 
-→ Tab Xuất nhập có **7 sub-tab** (dài, cần horizontal scroll trên mobile — đã có sẵn).
+## Rủi ro migration
+- Không có migration DB.
+- Rủi ro chính là form nhúng như `InboundPage`, `OutboundPage`, `TransferPage`, `ItemFormPage` sau khi submit đang `navigate('/inventory/transactions')` hoặc `navigate(-1)`, có thể quay về route cũ thay vì tab Hub. Sẽ giữ tương thích trước, nếu cần sẽ chỉnh tiếp thành quay về `?tab=operations&sub=transactions` trong lượt sau.
 
-## File thay đổi
+## Kiến trúc / logic nghiệp vụ
+- Hub Kho là 1 trang điều phối, không thay đổi nghiệp vụ kho.
+- Danh mục menu được khai báo 1 nơi, render ra navigation và nội dung tương ứng.
+- Giữ quyền theo module hiện có; mục Thiết lập chỉ hiện theo quyền quản lý như hiện tại.
 
-| File | Hành động |
-|---|---|
-| `src/pages/inventory/InventoryDashboardPage.tsx` | Thêm 4 lazy import + 4 `<TabsTrigger>` + 4 `<TabsContent>` |
-| `src/lib/app-version.ts` | Bump `1.1.6` |
-| `public/changelog.json` | Thêm entry 1.1.6 |
+## Schema / migration
+- Không thêm bảng/cột/RPC.
+- Không có migration.
 
-## Cân nhắc UX
+## API / RPC / server actions
+- Không đổi API/RPC.
+- Các trang con tiếp tục gọi hook/RPC hiện có.
 
-- Sub-tab "Nhập kho / Xuất kho / Chuyển kho / Thêm tài sản" mở thẳng **form tạo mới**, không phải list → user click vào sẽ thấy form ngay. Đúng hành vi menu cũ (đường dẫn `/new`).
-- Sau khi submit thành công, các form này thường `navigate(-1)` hoặc về list. Trong context hub, sẽ về `/inventory` (overview) — vẫn ổn. Nếu muốn về list tương ứng, cần follow-up sau.
-- Dropdown "Thao tác" header **giữ nguyên** làm shortcut nhanh từ bất kỳ tab nào.
+## UI screens / components
+- Cập nhật `InventoryDashboardPage.tsx`:
+  - Desktop: layout 2 cột, trái là menu Hub đúng ảnh, phải là nội dung mục đang chọn.
+  - Mobile: menu dạng scroll/section compact, không mất mục.
+  - Giữ tab logic nội bộ nhưng không để người dùng phải đoán tab con bị ẩn.
+- Cập nhật version/changelog theo quy ước release.
 
-## Rủi ro
-- `ItemFormPage`/`InboundPage`/... có thể dùng `useParams()` cho `:id` (edit mode) — chỉ ảnh hưởng khi nhúng tab vì không có route param, mặc định sẽ là "tạo mới" → an toàn.
-- Form có header riêng → tạm thời chấp nhận tiêu đề lặp (đã note follow-up `embedded` prop ở vòng trước).
+## Permission / role rules
+- Không nới quyền.
+- Staff vẫn chỉ thao tác theo permission hiện tại.
+- Thiết lập (`Bổ sung đồ`, `Quản lý kho`) vẫn theo điều kiện role/quyền hiện tại.
 
-## QA
-- [ ] Click sub-tab "Nhập kho" → form mở, submit thử OK
-- [ ] URL `?tab=operations&sub=inbound` reload giữ đúng tab
-- [ ] Mobile portrait: 7 sub-tab Xuất nhập scroll ngang được
-- [ ] Role Staff không có quyền create → form hiện thông báo (đã có guard ở route gốc, sub-tab cần kiểm tra)
+## Test cases
+- Mở `/inventory` thấy đủ 15 mục trong Hub.
+- Click `Phiếu giao hàng` mở danh sách phiếu giao hàng.
+- Click `Đề xuất nhập hàng` mở đúng trang đề xuất nhập.
+- Click `Bổ sung đồ`, `Quản lý kho` mở đúng nội dung khi có quyền.
+- Reload URL `?tab=operations&sub=distributions` vẫn giữ đúng mục.
+- Mobile portrait: menu không tràn mất mục, có thể scroll ngang/dọc ổn.
+
+## Rollout notes
+- Đây là sửa frontend/navigation, không ảnh hưởng dữ liệu.
+- Nếu sau khi nhúng form phát sinh lỗi điều hướng submit, bước tiếp theo là thêm prop `embedded` cho các form để submit quay về tab Hub thay vì route cũ.
