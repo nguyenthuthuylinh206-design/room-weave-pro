@@ -276,19 +276,23 @@ export function OutboundPage() {
             </div>
           </div>
           
-          {/* Distribution Form - redirect to dedicated page */}
+          {/* Distribution: chuyển sang tab phiếu giao hàng (vẫn trong Kho) */}
           {category === 'room_assign' && (
             <div className="border rounded-lg p-6 text-center space-y-3">
               <Package className="h-8 w-8 mx-auto text-muted-foreground" />
               <div>
                 <p className="text-sm font-medium">Giao đồ đến phòng</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Sử dụng trang phiếu giao hàng chuyên dụng để chọn phòng, phân bổ sản phẩm và theo dõi giao hàng.
+                  Mở mục Phiếu giao hàng để chọn phòng, phân bổ sản phẩm và theo dõi giao hàng.
                 </p>
               </div>
-              <Button type="button" onClick={() => navigate('/inventory/distributions/new')} className="gap-2">
+              <Button
+                type="button"
+                onClick={() => setSearchParams({ tab: 'operations', sub: 'distributions' }, { replace: true })}
+                className="gap-2"
+              >
                 <Plus className="h-4 w-4" />
-                Tạo phiếu giao hàng
+                Mở phiếu giao hàng
               </Button>
             </div>
           )}
