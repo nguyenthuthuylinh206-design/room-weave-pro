@@ -1,6 +1,18 @@
 {
-  "current": "1.1.12",
+  "current": "1.1.13",
   "versions": [
+    {
+      "version": "1.1.13",
+      "releaseDate": "2026-05-30",
+      "title": "Xuất kho: hợp nhất logic submit + category grid giữa Quick dialog và Mobile wizard",
+      "changes": [
+        { "type": "improvement", "text": "Tách shared sub-form ở src/components/inventory/outbound/shared/: useOutboundSubmit (dispatcher tới outbound/distribution/laundry), OutboundCategoryGrid (compact + wizard variant), useStockValidation" },
+        { "type": "fix", "text": "QuickOutboundDialog trước đây gọi createOutbound cho mọi loại (kể cả Phòng / Giặt là) — nay đi đúng nhánh distribution / laundry như MobileOutboundForm" },
+        { "type": "improvement", "text": "MobileOutboundForm bỏ 3 useMutation rời, dùng chung useOutboundSubmit; chống lệch state loading và lệch UX giữa 2 entrypoint" },
+        { "type": "improvement", "text": "Default category của QuickOutboundDialog đổi sang 'other' để không vô tình tạo distribution order khi user chỉ muốn xuất nhanh" }
+      ]
+    },
+
     {
       "version": "1.1.12",
       "releaseDate": "2026-05-30",
