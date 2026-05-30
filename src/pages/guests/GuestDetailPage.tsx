@@ -56,12 +56,31 @@ export default function GuestDetailPage() {
       full_name: guest.full_name,
       phone: guest.phone || '',
       email: guest.email || '',
+      gender: guest.gender || '',
+      date_of_birth: guest.date_of_birth || '',
       nationality: guest.nationality || '',
       address: guest.address || '',
       vip_level: guest.vip_level,
       notes: guest.notes || '',
+      // BCA / khai báo lưu trú
+      id_type: guest.id_type || 'cccd',
+      id_number: guest.id_number || '',
+      id_issue_date: (guest as any).id_issue_date || '',
+      id_issue_place: (guest as any).id_issue_place || '',
+      id_expiry_date: (guest as any).id_expiry_date || '',
+      ethnicity: (guest as any).ethnicity || '',
+      religion: (guest as any).religion || '',
+      occupation: (guest as any).occupation || '',
+      permanent_address: (guest as any).permanent_address || '',
+      // Khách nước ngoài
+      visa_number: (guest as any).visa_number || '',
+      visa_expiry: (guest as any).visa_expiry || '',
+      entry_date: (guest as any).entry_date || '',
+      entry_port: (guest as any).entry_port || '',
     })
   }
+
+  const isForeign = (editData.nationality || '').toUpperCase() !== 'VN' && (editData.nationality || '') !== ''
 
   return (
     <div className="space-y-4">
@@ -80,43 +99,139 @@ export default function GuestDetailPage() {
       {/* Guest Info */}
       <div className="border rounded-lg p-4 space-y-3">
         {editing ? (
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Họ tên</Label>
-                <Input className="h-8" value={editData.full_name} onChange={(e) => setEditData(p => ({ ...p, full_name: e.target.value }))} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">SĐT</Label>
-                <Input className="h-8" value={editData.phone} onChange={(e) => setEditData(p => ({ ...p, phone: e.target.value }))} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Email</Label>
-                <Input className="h-8" value={editData.email} onChange={(e) => setEditData(p => ({ ...p, email: e.target.value }))} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Hạng khách</Label>
-                <Select value={editData.vip_level} onValueChange={(v) => setEditData(p => ({ ...p, vip_level: v }))}>
-                  <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {VIP_LEVELS.map(l => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Quốc tịch</Label>
-                <Input className="h-8" value={editData.nationality} onChange={(e) => setEditData(p => ({ ...p, nationality: e.target.value }))} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Địa chỉ</Label>
-                <Input className="h-8" value={editData.address} onChange={(e) => setEditData(p => ({ ...p, address: e.target.value }))} />
+          <div className="space-y-4">
+            {/* Thông tin cơ bản */}
+            <div>
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Thông tin cơ bản</div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Họ tên</Label>
+                  <Input className="h-8" value={editData.full_name} onChange={(e) => setEditData(p => ({ ...p, full_name: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">SĐT</Label>
+                  <Input className="h-8" value={editData.phone} onChange={(e) => setEditData(p => ({ ...p, phone: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Email</Label>
+                  <Input className="h-8" value={editData.email} onChange={(e) => setEditData(p => ({ ...p, email: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Hạng khách</Label>
+                  <Select value={editData.vip_level} onValueChange={(v) => setEditData(p => ({ ...p, vip_level: v }))}>
+                    <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {VIP_LEVELS.map(l => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Giới tính</Label>
+                  <Select value={editData.gender || ''} onValueChange={(v) => setEditData(p => ({ ...p, gender: v }))}>
+                    <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Nam</SelectItem>
+                      <SelectItem value="female">Nữ</SelectItem>
+                      <SelectItem value="other">Khác</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Ngày sinh</Label>
+                  <Input type="date" className="h-8" value={editData.date_of_birth} onChange={(e) => setEditData(p => ({ ...p, date_of_birth: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Quốc tịch</Label>
+                  <Input className="h-8" placeholder="VN" value={editData.nationality} onChange={(e) => setEditData(p => ({ ...p, nationality: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Địa chỉ tạm trú</Label>
+                  <Input className="h-8" value={editData.address} onChange={(e) => setEditData(p => ({ ...p, address: e.target.value }))} />
+                </div>
               </div>
             </div>
+
+            {/* Giấy tờ tùy thân - BCA */}
+            <div>
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Giấy tờ tùy thân (Khai báo BCA)</div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Loại giấy tờ</Label>
+                  <Select value={editData.id_type || 'cccd'} onValueChange={(v) => setEditData(p => ({ ...p, id_type: v }))}>
+                    <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cccd">CCCD</SelectItem>
+                      <SelectItem value="cmnd">CMND</SelectItem>
+                      <SelectItem value="passport">Hộ chiếu</SelectItem>
+                      <SelectItem value="other">Khác</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Số giấy tờ</Label>
+                  <Input className="h-8 font-mono" value={editData.id_number} onChange={(e) => setEditData(p => ({ ...p, id_number: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Ngày cấp</Label>
+                  <Input type="date" className="h-8" value={editData.id_issue_date} onChange={(e) => setEditData(p => ({ ...p, id_issue_date: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Nơi cấp</Label>
+                  <Input className="h-8" placeholder="Cục CSQLHC về TTXH" value={editData.id_issue_place} onChange={(e) => setEditData(p => ({ ...p, id_issue_place: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Ngày hết hạn</Label>
+                  <Input type="date" className="h-8" value={editData.id_expiry_date} onChange={(e) => setEditData(p => ({ ...p, id_expiry_date: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Dân tộc</Label>
+                  <Input className="h-8" placeholder="Kinh" value={editData.ethnicity} onChange={(e) => setEditData(p => ({ ...p, ethnicity: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Tôn giáo</Label>
+                  <Input className="h-8" placeholder="Không" value={editData.religion} onChange={(e) => setEditData(p => ({ ...p, religion: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Nghề nghiệp</Label>
+                  <Input className="h-8" value={editData.occupation} onChange={(e) => setEditData(p => ({ ...p, occupation: e.target.value }))} />
+                </div>
+                <div className="space-y-1 col-span-2">
+                  <Label className="text-xs">Địa chỉ thường trú</Label>
+                  <Input className="h-8" value={editData.permanent_address} onChange={(e) => setEditData(p => ({ ...p, permanent_address: e.target.value }))} />
+                </div>
+              </div>
+            </div>
+
+            {/* Khách nước ngoài */}
+            {isForeign && (
+              <div>
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Khách nước ngoài</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Số visa</Label>
+                    <Input className="h-8 font-mono" value={editData.visa_number} onChange={(e) => setEditData(p => ({ ...p, visa_number: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Visa hết hạn</Label>
+                    <Input type="date" className="h-8" value={editData.visa_expiry} onChange={(e) => setEditData(p => ({ ...p, visa_expiry: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Ngày nhập cảnh</Label>
+                    <Input type="date" className="h-8" value={editData.entry_date} onChange={(e) => setEditData(p => ({ ...p, entry_date: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Cửa khẩu nhập cảnh</Label>
+                    <Input className="h-8" placeholder="Nội Bài" value={editData.entry_port} onChange={(e) => setEditData(p => ({ ...p, entry_port: e.target.value }))} />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1">
               <Label className="text-xs">Ghi chú</Label>
               <Input className="h-8" value={editData.notes} onChange={(e) => setEditData(p => ({ ...p, notes: e.target.value }))} />
             </div>
-            <div className="flex gap-2 justify-end">
+            <div className="flex gap-2 justify-end sticky bottom-0 bg-background pt-2 border-t -mx-4 px-4 -mb-4 pb-4">
               <Button type="button" variant="outline" size="sm" className="h-8" onClick={() => setEditing(false)}>Hủy</Button>
               <Button type="button" size="sm" className="h-8" onClick={handleSave} disabled={updateGuest.isPending}>Lưu</Button>
             </div>

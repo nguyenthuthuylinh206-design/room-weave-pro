@@ -121,6 +121,7 @@ const AssetGroupMigrationPage = lazy(() => import("./pages/settings/AssetGroupMi
 const HotelPolicyPage = lazy(() => import("./pages/settings/HotelPolicyPage"));
 const PricingV2Page = lazy(() => import("./pages/settings/PricingV2Page"));
 const StayRegistrationsPage = lazy(() => import("./pages/legal/StayRegistrationsPage"));
+const StayRegistrationSettingsPage = lazy(() => import("./pages/settings/StayRegistrationSettingsPage"));
 
 // Reports
 // ReportsDashboardPage đã loại bỏ — desktop landing redirect sang Finance Hub, mobile dùng MobileReportsDashboard riêng.
@@ -494,6 +495,7 @@ const router = createBrowserRouter([
       { path: "settings/pricing-rules", element: <PermissionRoute module="settings"><PricingRulesPage /></PermissionRoute> },
       { path: "settings/pricing", element: <PermissionRoute module="settings"><PricingV2Page /></PermissionRoute> },
       { path: "legal/stay-registrations", element: <PermissionRoute module="bookings"><StayRegistrationsPage /></PermissionRoute> },
+      { path: "settings/legal/stay-registration", element: <PermissionRoute module="settings"><StayRegistrationSettingsPage /></PermissionRoute> },
       { path: "settings/ai", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><AISettingsPage /></RoleGuard> },
       { path: "settings/audit-log", element: <RoleGuard allowedRoles={['super_admin', 'owner', 'hotel_manager', 'department_manager']}><AuditLogPage /></RoleGuard> },
       { path: "settings/asset-group-migration", element: <RoleGuard allowedRoles={['super_admin', 'owner', 'hotel_manager']}><AssetGroupMigrationPage /></RoleGuard> },
