@@ -11693,24 +11693,6 @@ export type Database = {
         }
         Returns: Json
       }
-      complete_room_delivery:
-        | {
-            Args: {
-              p_confirmed_by: string
-              p_distribution_order_room_id: string
-              p_item_confirmations?: Json
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_additional_items?: Json
-              p_confirmed_by: string
-              p_distribution_order_room_id: string
-              p_item_confirmations?: Json
-            }
-            Returns: Json
-          }
       complete_task: {
         Args: { _note?: string; _task_id: string }
         Returns: {
@@ -11766,16 +11748,10 @@ export type Database = {
         Args: { p_confirmed_by: string; p_room_order_id: string }
         Returns: Json
       }
-      confirm_receive_order:
-        | { Args: { p_order_id: string }; Returns: Json }
-        | {
-            Args: {
-              p_actor_id?: string
-              p_adjustments?: Json
-              p_order_id: string
-            }
-            Returns: Json
-          }
+      confirm_receive_order: {
+        Args: { p_actor_id?: string; p_adjustments?: Json; p_order_id: string }
+        Returns: Json
+      }
       confirm_room_delivery: {
         Args: { p_confirmed_by: string; p_room_order_id: string }
         Returns: Json
@@ -12057,14 +12033,16 @@ export type Database = {
         Returns: Json
       }
       delete_room_block: { Args: { p_block_id: string }; Returns: Json }
-      deliver_stop: {
-        Args: {
-          p_actor_id?: string
-          p_items_confirmed?: Json
-          p_room_order_id: string
-        }
-        Returns: Json
-      }
+      deliver_stop:
+        | {
+            Args: {
+              p_actor_id?: string
+              p_items_confirmed?: Json
+              p_room_order_id: string
+            }
+            Returns: Json
+          }
+        | { Args: { p_actor_id?: string; p_stop_id: string }; Returns: Json }
       duplicate_room_type: {
         Args: {
           p_copy_default_items?: boolean
