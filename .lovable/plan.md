@@ -1,78 +1,51 @@
+## Vấn đề
 
-## Vấn đề hiện tại
+`src/components/items/ItemTabs.tsx` hiện đang để `overflow-x-auto` trên `TabsList`, làm hiện thanh cuộn ngang xám mặc định của browser — rất thô khi có nhiều danh mục (Tất cả, Ẩm thực, Điện tử, Phòng khách, Phòng tắm, Thiết bị, Tiêu hao, Vệ sinh, Đồ vải, …) ở màn ~980px hoặc nhỏ hơn.
 
-Trang `/inventory?tab=overview` bị "lộm cộm" do:
-1. KPI Grid 6 cột compact ở trên cùng — nhưng ngay sau là "Thao tác nhanh" (CompactActionBar) chèn ngang phá nhịp.
-2. Grid 7/5 (chart + forecast) rồi đến grid 4/4/4 (top consumed + low stock + alerts/transactions) — 2 hệ lưới khác nhau cạnh nhau, không thẳng cột.
-3. Cột phải của hàng 2 chứa 2 widget chồng (Alerts + Recent Transactions) làm chiều cao lệch hẳn so với 2 cột bên trái.
-4. "Cảnh báo tồn kho thấp" và "Cảnh báo kho" trùng lặp ý nghĩa, đặt cạnh nhau gây rối.
-5. Hotel Breakdown nằm rời rạc dưới cùng, không có section header.
+## Hướng nâng cấp (UI-only, không đụng data/logic)
 
----
+Refactor `ItemTabs.tsx` theo 2 chế độ responsive:
 
-## A. Layout mới (desktop ≥lg)
+### 1. Desktop / Tablet (≥ `sm`, ≥640px) — Chip strip ẩn scrollbar
 
-```text
-┌────────────────────────────────────────────────────────────┐
-│ KPI Grid — 6 cards (giữ nguyên)                            │
-├────────────────────────────────────────────────────────────┤
-│ Toolbar: [Thao tác nhanh ▾]              (1 hàng mảnh)    │
-├──────────────────────────────────┬─────────────────────────┤
-│ Biểu đồ biến động (8 cols)       │ Dự báo hết hàng (4)    │
-│ h-[320px]                        │ h-[320px] scroll        │
-├──────────────────────────────────┼─────────────────────────┤
-│ Top tiêu hao 30d (8 cols)        │ Cảnh báo & tồn thấp (4)│
-│ h-[320px]                        │ (gộp LowStock+Alerts)   │
-├──────────────────────────────────┴─────────────────────────┤
-│ Giao dịch gần đây — full width, bảng compact 2 cột         │
-├────────────────────────────────────────────────────────────┤
-│ Section: "Phân bổ theo khách sạn" (chỉ All Hotels)         │
-└────────────────────────────────────────────────────────────┘
-```
+- Ẩn hoàn toàn native scrollbar: `[&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]` (giống pattern đã dùng ở `PeriodPresetChips.tsx`).
+- Thêm `snap-x snap-mandatory` + `snap-start` cho từng chip → vuốt mượt, dừng đúng chip.
+- Fade edges 2 bên bằng 2 lớp `pointer-events-none` gradient `from-background` (trái/phải) chỉ hiện khi có overflow.
+- Chevron trái/phải (icon-only, `h-8 w-8`, `variant="ghost"`) chỉ render khi `scrollWidth > clientWidth`; click scroll ±200px. Theo dõi qua `ResizeObserver` + scroll listener để bật/tắt disable state.
+- Auto-scroll tab đang active vào tầm nhìn khi `activeTab` thay đổi (`scrollIntoView({ inline: 'center', block: 'nearest' })`).
+- Chip giữ nguyên style hiện tại (`h-8 px-3 text-xs`, `data-[state=active]:bg-muted`) + thêm counter dạng muted nhỏ.
 
-Nguyên tắc:
-- Thống nhất 1 hệ grid `lg:grid-cols-12` cho mọi hàng → các cột thẳng nhau.
-- 2 hàng widget chính dùng cùng tỷ lệ 8/4 → tạo "rãnh" thẳng đứng.
-- Mọi widget cùng hàng dùng cùng `min-h` (320px) → không lệch chiều cao.
-- "Giao dịch gần đây" tách thành hàng riêng full-width vì là list dài, không hợp khi nhồi cột hẹp.
-- Gộp `LowStockAlert` + `InventoryAlertsWidget` thành 1 widget cảnh báo duy nhất với 2 section bên trong.
+### 2. Mobile (< `sm`, ~390–639px) — Select dropdown gọn
 
----
+- Thay strip bằng `Select` trigger full-width `h-9`:
+  - Label trigger: tên danh mục đang chọn + số lượng (vd. `Phòng tắm · 25`).
+  - Options render từ cùng danh sách (`Tất cả` + categories), kèm count bên phải.
+- Tiết kiệm chiều ngang quý giá trên iPhone SE/Android nhỏ, không còn thanh trượt rác.
 
-## B. Mobile (<lg)
+Quyết định breakpoint bằng `useBreakpoint()` từ `src/lib/breakpoints.ts` (`isMobile`).
 
-- KPI Grid: 2 cột (giữ nguyên).
-- Toolbar action: full width.
-- Mọi widget: 1 cột stack dọc theo thứ tự: Forecast → Cảnh báo gộp → Chart → Top tiêu hao → Giao dịch gần đây.
-  (Ưu tiên thông tin cần hành động lên trước trên mobile.)
+## File sẽ sửa
 
----
+- `src/components/items/ItemTabs.tsx` — refactor toàn bộ render, tách 2 nhánh `MobileSelect` + `DesktopStrip`. Giữ nguyên props `activeTab`, `onTabChange`, không đổi hook `useCategories`.
 
-## C. Files sửa (UI thuần, không đụng logic/data)
+## File mới (tùy chọn nội bộ)
 
-1. `src/components/inventory/InventoryOverviewSection.tsx` — refactor JSX layout theo sơ đồ trên.
-2. `src/components/inventory/InventoryAlertsWidget.tsx` *(hoặc tạo mới `CombinedStockAlerts.tsx`)* — gộp LowStockAlert vào trong, thêm tab hoặc 2 section header rõ ràng.
-3. `src/components/inventory/InventoryValueChart.tsx`, `InventoryForecastWidget.tsx`, `InventoryTopConsumedWidget.tsx`, `RecentTransactions.tsx` — chỉ thêm `min-h-[320px]` / `h-full` để đồng đều chiều cao, không đổi nội dung.
-4. `InventoryHotelBreakdown.tsx` — bọc thêm section header `<h2 class="text-sm font-medium tracking-wide uppercase text-muted-foreground">Phân bổ theo khách sạn</h2>` + `border-t pt-4`.
+- Có thể tách `DesktopChipStrip` thành subcomponent trong cùng file để dễ đọc (≤120 dòng tổng).
 
-Không đụng: hooks, data layer, KPI Grid, MobileInventoryDashboard (mobile vẫn dùng component riêng).
+## Không đụng
 
----
+- `useCategories`, schema, RPC, permissions, các page sử dụng `ItemTabs`.
+- Không thay đổi version bump (UI nhỏ) — trừ khi sau khi build user yêu cầu publish, sẽ bump theo convention.
 
-## D. Permission / Test / Rollout
+## Test thủ công
 
-- Permission: không đổi.
-- Test thủ công:
-  1. Desktop 1746px: 2 hàng widget cùng rãnh cột 8/4, chiều cao bằng nhau.
-  2. Tablet 1024px: vẫn 8/4, không xuống dòng giữa chừng.
-  3. Mobile 390px: stack 1 cột đúng thứ tự ưu tiên.
-  4. All Hotels mode: section "Phân bổ theo khách sạn" có header và border-top.
-  5. Single hotel: section ẩn hoàn toàn.
-- Bump `APP_VERSION` → `1.1.9`, thêm changelog "Sắp xếp lại layout Tổng quan Kho cho cân đối".
-- Rollback: revert 2 file chính (`InventoryOverviewSection.tsx`, alerts widget).
+- 390px: thấy Select dropdown, không còn thanh cuộn.
+- 768px: thấy strip chip, không có scrollbar xám, có fade + chevron khi tràn.
+- 1280px: nếu đủ chỗ → không hiện chevron, không hiện fade.
+- Chuyển tab bằng click chevron / chọn dropdown → list items reload đúng.
+- Khi active tab nằm ngoài viewport, vào trang sẽ auto-scroll tới giữa.
+- Kiểm tra Safari iOS (smooth scroll + snap).
 
----
+## Rollback
 
-## Giả định
-
-- Chấp nhận gộp LowStock + Alerts thành 1 khối (đỡ trùng lặp). Nếu bạn muốn giữ tách riêng, mình sẽ đặt cùng cột phải nhưng có divider rõ ràng thay vì gộp.
+Revert duy nhất file `ItemTabs.tsx` — không ảnh hưởng module khác.
