@@ -34,6 +34,10 @@ const ItemsPage = lazy(() => import('../items/ItemsPage').then(m => ({ default: 
 const CategoriesPage = lazy(() => import('../items/CategoriesPage').then(m => ({ default: m.CategoriesPage })))
 const SupplementsPage = lazy(() => import('../supplements/SupplementsPage').then(m => ({ default: m.SupplementsPage })))
 const WarehouseListPage = lazy(() => import('../settings/WarehouseListPage'))
+const InboundPage = lazy(() => import('./InboundPage').then(m => ({ default: m.InboundPage })))
+const OutboundPage = lazy(() => import('./OutboundPage').then(m => ({ default: m.OutboundPage })))
+const TransferPage = lazy(() => import('./TransferPage'))
+const ItemFormPage = lazy(() => import('../items/ItemFormPage').then(m => ({ default: m.ItemFormPage })))
 
 const TabFallback = () => (
   <div className="space-y-3 py-6">
