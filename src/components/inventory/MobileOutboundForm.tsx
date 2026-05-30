@@ -142,23 +142,20 @@ export function MobileOutboundForm() {
   const [selectedMaintenanceRequest, setSelectedMaintenanceRequest] = useState<MaintenanceRequestRef | null>(null)
   const [laundryData, setLaundryData] = useState<LaundryFormData | null>(null)
 
-  const categories = [
+  const categories: OutboundCategoryOption[] = [
     { value: 'room_assign', label: t('inventory:outbound.categories.room_assign'), icon: DoorOpen, description: t('inventory:outbound.categories.room_assignDesc') },
     { value: 'laundry', label: t('inventory:outbound.categories.laundry'), icon: Shirt, description: t('inventory:outbound.categories.laundryDesc') },
     { value: 'maintenance', label: t('inventory:outbound.categories.maintenance'), icon: Wrench, description: t('inventory:outbound.categories.maintenanceDesc') },
     { value: 'disposal', label: t('inventory:outbound.categories.disposal'), icon: Trash2, description: t('inventory:outbound.categories.disposalDesc') },
     { value: 'other', label: t('inventory:outbound.categories.other'), icon: PackageMinus, description: t('inventory:outbound.categories.otherDesc') },
   ]
-  
-  const { mutate: createOutbound, isPending: isLoadingOutbound } = useCreateOutboundTransaction()
-  const { mutate: createLaundryBatch, isPending: isLoadingLaundry } = useCreateLaundryBatch()
-  const { mutate: createDistribution, isPending: isLoadingDistribution } = useCreateDistributionOrder()
+
+  const { submit: submitOutbound, isPending: isLoading } = useOutboundSubmit()
   const { data: itemsData, isLoading: isLoadingItems } = useItems({ search: searchQuery }, 1, 50)
   const { data: defaultWarehouse } = useDefaultWarehouse()
   const { data: rooms = [] } = useRooms({})
   const { data: vendors = [] } = useLaundryVendors({ status: 'active' })
-  
-  const isLoading = isLoadingOutbound || isLoadingLaundry || isLoadingDistribution
+
   
   const outboundSchema = createOutboundSchema(t)
 
