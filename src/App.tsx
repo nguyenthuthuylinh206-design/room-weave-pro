@@ -408,8 +408,9 @@ const router = createBrowserRouter([
       { path: "inventory/adjustments/:id/check", element: <PermissionRoute module="inventory" action="update"><CheckAdjustmentPage /></PermissionRoute> },
       { path: "inventory/distributions", element: <InventoryHubRedirect tab="operations" sub="distributions" /> },
       { path: "inventory/transfer/new", element: <PermissionRoute module="inventory" action="create"><TransferPage /></PermissionRoute> },
-      { path: "inventory/distributions/new", element: <PermissionRoute module="inventory" action="create"><CreateDistributionPage /></PermissionRoute> },
-      { path: "inventory/distributions/from-supplements", element: <PermissionRoute module="inventory" action="create"><CreateFromSupplementsPage /></PermissionRoute> },
+      { path: "inventory/distributions/new", element: <InventoryHubRedirect tab="operations" sub="outbound" view="manual" /> },
+      { path: "inventory/distributions/from-supplements", element: <InventoryHubRedirect tab="operations" sub="outbound" view="from-requests" /> },
+
       { path: "inventory/distributions/:id", element: <PermissionRoute module="inventory"><DistributionOrderDetailPage /></PermissionRoute> },
       { path: "inventory/reorder", element: <InventoryHubRedirect tab="operations" sub="reorder" /> },
       { path: "inventory/dead-stock", element: <InventoryHubRedirect tab="analytics" sub="dead-stock" /> },
