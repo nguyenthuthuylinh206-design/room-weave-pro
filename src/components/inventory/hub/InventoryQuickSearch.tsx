@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 interface ItemRow {
   id: string
   name: string
-  item_code: string
+  code: string
   quantity_in_stock: number
   reorder_point: number | null
 }
@@ -35,9 +35,9 @@ export const InventoryQuickSearch = forwardRef<HTMLInputElement>((_, ref) => {
       if (!tenantId || !debounced) return []
       let query = supabase
         .from('items')
-        .select('id, name, item_code, quantity_in_stock, reorder_point')
+        .select('id, name, code, quantity_in_stock, reorder_point')
         .eq('tenant_id', tenantId)
-        .or(`name.ilike.%${debounced}%,item_code.ilike.%${debounced}%`)
+        .or(`name.ilike.%${debounced}%,code.ilike.%${debounced}%`)
         .limit(8)
       if (hotelId) query = query.eq('hotel_id', hotelId)
       const { data, error } = await query
@@ -125,7 +125,7 @@ export const InventoryQuickSearch = forwardRef<HTMLInputElement>((_, ref) => {
                     <div className="min-w-0">
                       <div className="font-medium truncate">{it.name}</div>
                       <div className="text-[11px] text-muted-foreground font-mono">
-                        {it.item_code}
+                        {it.code}
                       </div>
                     </div>
                     <div
