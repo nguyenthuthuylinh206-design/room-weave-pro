@@ -163,6 +163,9 @@ export function getPendingTask(input: PendingTaskInput): PendingTaskInfo {
     if (isCurrentUserStorekeeper) {
       return { text: 'Chờ bạn đóng phiếu', textClass: green, priority: 4 }
     }
+    if (input.isCurrentUserCreator) {
+      return { text: 'Chờ đóng phiếu', textClass: green, priority: 3 }
+    }
     return { text: 'Đã giao xong', textClass: green, priority: 0 }
   }
 
