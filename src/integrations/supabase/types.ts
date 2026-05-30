@@ -2627,69 +2627,211 @@ export type Database = {
           },
         ]
       }
+      guest_stay_registrations: {
+        Row: {
+          acked_at: string | null
+          attempt_count: number
+          booking_id: string | null
+          check_in_at: string
+          check_out_at: string | null
+          created_at: string
+          external_ref: string | null
+          guest_id: string
+          hotel_id: string
+          id: string
+          last_error: string | null
+          payload: Json | null
+          purpose: string | null
+          response: Json | null
+          room_number: string
+          status: string
+          submitted_at: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          acked_at?: string | null
+          attempt_count?: number
+          booking_id?: string | null
+          check_in_at: string
+          check_out_at?: string | null
+          created_at?: string
+          external_ref?: string | null
+          guest_id: string
+          hotel_id: string
+          id?: string
+          last_error?: string | null
+          payload?: Json | null
+          purpose?: string | null
+          response?: Json | null
+          room_number: string
+          status?: string
+          submitted_at?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          acked_at?: string | null
+          attempt_count?: number
+          booking_id?: string | null
+          check_in_at?: string
+          check_out_at?: string | null
+          created_at?: string
+          external_ref?: string | null
+          guest_id?: string
+          hotel_id?: string
+          id?: string
+          last_error?: string | null
+          payload?: Json | null
+          purpose?: string | null
+          response?: Json | null
+          room_number?: string
+          status?: string
+          submitted_at?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_stay_registrations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "room_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_stay_registrations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "v_overdue_checkins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_stay_registrations_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_stay_registrations_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "guest_stay_registrations_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_stay_registrations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guests: {
         Row: {
           address: string | null
           created_at: string
           date_of_birth: string | null
           email: string | null
+          entry_date: string | null
+          entry_port: string | null
+          ethnicity: string | null
           full_name: string
           gender: string | null
           id: string
+          id_expiry_date: string | null
           id_image_url: string | null
+          id_issue_date: string | null
+          id_issue_place: string | null
           id_number: string | null
           id_type: string | null
           last_stay_date: string | null
           nationality: string | null
           notes: string | null
+          occupation: string | null
+          permanent_address: string | null
           phone: string | null
+          religion: string | null
           tenant_id: string
           total_spent: number
           total_stays: number
           updated_at: string
           vip_level: string
+          visa_expiry: string | null
+          visa_number: string | null
         }
         Insert: {
           address?: string | null
           created_at?: string
           date_of_birth?: string | null
           email?: string | null
+          entry_date?: string | null
+          entry_port?: string | null
+          ethnicity?: string | null
           full_name: string
           gender?: string | null
           id?: string
+          id_expiry_date?: string | null
           id_image_url?: string | null
+          id_issue_date?: string | null
+          id_issue_place?: string | null
           id_number?: string | null
           id_type?: string | null
           last_stay_date?: string | null
           nationality?: string | null
           notes?: string | null
+          occupation?: string | null
+          permanent_address?: string | null
           phone?: string | null
+          religion?: string | null
           tenant_id: string
           total_spent?: number
           total_stays?: number
           updated_at?: string
           vip_level?: string
+          visa_expiry?: string | null
+          visa_number?: string | null
         }
         Update: {
           address?: string | null
           created_at?: string
           date_of_birth?: string | null
           email?: string | null
+          entry_date?: string | null
+          entry_port?: string | null
+          ethnicity?: string | null
           full_name?: string
           gender?: string | null
           id?: string
+          id_expiry_date?: string | null
           id_image_url?: string | null
+          id_issue_date?: string | null
+          id_issue_place?: string | null
           id_number?: string | null
           id_type?: string | null
           last_stay_date?: string | null
           nationality?: string | null
           notes?: string | null
+          occupation?: string | null
+          permanent_address?: string | null
           phone?: string | null
+          religion?: string | null
           tenant_id?: string
           total_spent?: number
           total_stays?: number
           updated_at?: string
           vip_level?: string
+          visa_expiry?: string | null
+          visa_number?: string | null
         }
         Relationships: [
           {
@@ -2911,6 +3053,7 @@ export type Database = {
           settings: Json | null
           state: string | null
           status: string | null
+          tbltkbtt_config: Json
           tenant_id: string
           total_floors: number | null
           total_rooms: number | null
@@ -2941,6 +3084,7 @@ export type Database = {
           settings?: Json | null
           state?: string | null
           status?: string | null
+          tbltkbtt_config?: Json
           tenant_id: string
           total_floors?: number | null
           total_rooms?: number | null
@@ -2971,6 +3115,7 @@ export type Database = {
           settings?: Json | null
           state?: string | null
           status?: string | null
+          tbltkbtt_config?: Json
           tenant_id?: string
           total_floors?: number | null
           total_rooms?: number | null
@@ -7179,8 +7324,12 @@ export type Database = {
           ota_commission_rate: number | null
           ota_paid_amount: number | null
           ota_payment_type: string | null
+          overnight_end_time: string | null
+          overnight_rate: number | null
+          overnight_start_time: string | null
           paid_at: string | null
           payment_status: string | null
+          price_breakdown: Json | null
           room_id: string
           room_price: number | null
           service_charges: number | null
@@ -7251,8 +7400,12 @@ export type Database = {
           ota_commission_rate?: number | null
           ota_paid_amount?: number | null
           ota_payment_type?: string | null
+          overnight_end_time?: string | null
+          overnight_rate?: number | null
+          overnight_start_time?: string | null
           paid_at?: string | null
           payment_status?: string | null
+          price_breakdown?: Json | null
           room_id: string
           room_price?: number | null
           service_charges?: number | null
@@ -7323,8 +7476,12 @@ export type Database = {
           ota_commission_rate?: number | null
           ota_paid_amount?: number | null
           ota_payment_type?: string | null
+          overnight_end_time?: string | null
+          overnight_rate?: number | null
+          overnight_start_time?: string | null
           paid_at?: string | null
           payment_status?: string | null
+          price_breakdown?: Json | null
           room_id?: string
           room_price?: number | null
           service_charges?: number | null
@@ -8036,6 +8193,89 @@ export type Database = {
           },
         ]
       }
+      room_type_rates: {
+        Row: {
+          created_at: string
+          daily_rate: number
+          hotel_id: string | null
+          hourly_first_block_hours: number | null
+          hourly_first_block_price: number | null
+          hourly_rate: number | null
+          id: string
+          monthly_rate: number | null
+          overnight_end_time: string | null
+          overnight_rate: number | null
+          overnight_start_time: string | null
+          room_type_id: string
+          tenant_id: string
+          updated_at: string
+          weekday_multiplier: Json
+        }
+        Insert: {
+          created_at?: string
+          daily_rate?: number
+          hotel_id?: string | null
+          hourly_first_block_hours?: number | null
+          hourly_first_block_price?: number | null
+          hourly_rate?: number | null
+          id?: string
+          monthly_rate?: number | null
+          overnight_end_time?: string | null
+          overnight_rate?: number | null
+          overnight_start_time?: string | null
+          room_type_id: string
+          tenant_id: string
+          updated_at?: string
+          weekday_multiplier?: Json
+        }
+        Update: {
+          created_at?: string
+          daily_rate?: number
+          hotel_id?: string | null
+          hourly_first_block_hours?: number | null
+          hourly_first_block_price?: number | null
+          hourly_rate?: number | null
+          id?: string
+          monthly_rate?: number | null
+          overnight_end_time?: string | null
+          overnight_rate?: number | null
+          overnight_start_time?: string | null
+          room_type_id?: string
+          tenant_id?: string
+          updated_at?: string
+          weekday_multiplier?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_type_rates_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "room_type_rates_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_type_rates_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: true
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_type_rates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_type_standards: {
         Row: {
           created_at: string | null
@@ -8327,6 +8567,82 @@ export type Database = {
           },
           {
             foreignKeyName: "rooms_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seasonal_rate_overrides: {
+        Row: {
+          active: boolean
+          adjust_type: string
+          adjust_value: number
+          apply_to: string[]
+          created_at: string
+          from_date: string
+          hotel_id: string | null
+          id: string
+          mode: string
+          name: string
+          priority: number
+          room_type_ids: string[]
+          tenant_id: string
+          to_date: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          adjust_type: string
+          adjust_value: number
+          apply_to?: string[]
+          created_at?: string
+          from_date: string
+          hotel_id?: string | null
+          id?: string
+          mode: string
+          name: string
+          priority?: number
+          room_type_ids?: string[]
+          tenant_id: string
+          to_date: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          adjust_type?: string
+          adjust_value?: number
+          apply_to?: string[]
+          created_at?: string
+          from_date?: string
+          hotel_id?: string | null
+          id?: string
+          mode?: string
+          name?: string
+          priority?: number
+          room_type_ids?: string[]
+          tenant_id?: string
+          to_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seasonal_rate_overrides_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "seasonal_rate_overrides_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seasonal_rate_overrides_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -11276,6 +11592,17 @@ export type Database = {
         Args: { p_item_ids: string[]; p_user_id: string }
         Returns: Json
       }
+      calculate_booking_price: {
+        Args: {
+          p_apply_early_late?: boolean
+          p_booking_type: string
+          p_from_ts: string
+          p_hotel_id?: string
+          p_room_type_id: string
+          p_to_ts: string
+        }
+        Returns: Json
+      }
       calculate_staff_statistics: {
         Args: {
           p_hotel_id: string
@@ -11731,8 +12058,22 @@ export type Database = {
         }
         Returns: Json
       }
+      duplicate_room_type: {
+        Args: {
+          p_copy_default_items?: boolean
+          p_copy_rates?: boolean
+          p_new_code: string
+          p_new_name: string
+          p_source_id: string
+        }
+        Returns: string
+      }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
+        Returns: number
+      }
+      enqueue_stay_registration: {
+        Args: { p_booking_id: string }
         Returns: number
       }
       ensure_vat_claim_token: {
@@ -13005,8 +13346,12 @@ export type Database = {
           ota_commission_rate: number | null
           ota_paid_amount: number | null
           ota_payment_type: string | null
+          overnight_end_time: string | null
+          overnight_rate: number | null
+          overnight_start_time: string | null
           paid_at: string | null
           payment_status: string | null
+          price_breakdown: Json | null
           room_id: string
           room_price: number | null
           service_charges: number | null
@@ -13295,8 +13640,12 @@ export type Database = {
           ota_commission_rate: number | null
           ota_paid_amount: number | null
           ota_payment_type: string | null
+          overnight_end_time: string | null
+          overnight_rate: number | null
+          overnight_start_time: string | null
           paid_at: string | null
           payment_status: string | null
+          price_breakdown: Json | null
           room_id: string
           room_price: number | null
           service_charges: number | null
@@ -13344,6 +13693,7 @@ export type Database = {
           sla_minutes: number
         }[]
       }
+      retry_stay_registration: { Args: { p_id: string }; Returns: undefined }
       retry_stop: {
         Args: { p_actor_id?: string; p_room_order_id: string }
         Returns: Json
@@ -13536,8 +13886,12 @@ export type Database = {
           ota_commission_rate: number | null
           ota_paid_amount: number | null
           ota_payment_type: string | null
+          overnight_end_time: string | null
+          overnight_rate: number | null
+          overnight_start_time: string | null
           paid_at: string | null
           payment_status: string | null
+          price_breakdown: Json | null
           room_id: string
           room_price: number | null
           service_charges: number | null
