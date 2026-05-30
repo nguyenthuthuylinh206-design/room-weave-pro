@@ -230,7 +230,7 @@ export function InventoryDashboardPage() {
               <TabsTrigger value="assets">Tài sản</TabsTrigger>
               <TabsTrigger value="operations">Xuất nhập</TabsTrigger>
               <TabsTrigger value="analytics">Phân tích</TabsTrigger>
-              {canManageSettings && <TabsTrigger value="settings">Thiết lập</TabsTrigger>}
+              <TabsTrigger value="settings">Thiết lập</TabsTrigger>
             </TabsList>
           </div>
 
@@ -346,7 +346,6 @@ export function InventoryDashboardPage() {
           </Tabs>
         </TabsContent>
 
-        {canManageSettings && (
           <TabsContent value="settings" className="mt-4">
             <Tabs
               value={(sub as SettingsSub) || 'supplements'}
@@ -355,7 +354,7 @@ export function InventoryDashboardPage() {
               <div className="overflow-x-auto -mx-1 px-1">
                 <TabsList>
                   <TabsTrigger value="supplements">Bổ sung đồ</TabsTrigger>
-                  <TabsTrigger value="warehouses">Quản lý kho</TabsTrigger>
+                  {canManageSettings && <TabsTrigger value="warehouses">Quản lý kho</TabsTrigger>}
                 </TabsList>
               </div>
               <TabsContent value="supplements" className="mt-4">
@@ -363,14 +362,15 @@ export function InventoryDashboardPage() {
                   <SupplementsPage />
                 </Suspense>
               </TabsContent>
-              <TabsContent value="warehouses" className="mt-4">
-                <Suspense fallback={<TabFallback />}>
-                  <WarehouseListPage />
-                </Suspense>
-              </TabsContent>
+              {canManageSettings && (
+                <TabsContent value="warehouses" className="mt-4">
+                  <Suspense fallback={<TabFallback />}>
+                    <WarehouseListPage />
+                  </Suspense>
+                </TabsContent>
+              )}
             </Tabs>
           </TabsContent>
-        )}
         </Tabs>
       </div>
     </div>
