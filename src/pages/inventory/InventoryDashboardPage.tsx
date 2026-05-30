@@ -279,7 +279,7 @@ export function InventoryDashboardPage() {
               Menu
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-72 p-0 overflow-y-auto">
+          <SheetContent side="left" className="w-72 p-0 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [scrollbar-width:thin]">
             <SheetTitle className="px-4 pt-4 text-sm font-semibold">Menu Kho</SheetTitle>
             {navContent}
           </SheetContent>
@@ -294,7 +294,7 @@ export function InventoryDashboardPage() {
 
       <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
         <nav className="hidden lg:block lg:sticky lg:top-4 lg:self-start border rounded-lg bg-background overflow-hidden">
-          <div className="max-h-[calc(100vh-9rem)] overflow-y-auto">
+          <div className="max-h-[calc(100vh-9rem)] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--border))_transparent]">
             {navContent}
           </div>
         </nav>
