@@ -276,25 +276,9 @@ export function OutboundPage() {
             </div>
           </div>
           
-          {/* Distribution: chuyển sang tab phiếu giao hàng (vẫn trong Kho) */}
+          {/* Distribution form inline */}
           {category === 'room_assign' && (
-            <div className="border rounded-lg p-6 text-center space-y-3">
-              <Package className="h-8 w-8 mx-auto text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">Giao đồ đến phòng</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Mở mục Phiếu giao hàng để chọn phòng, phân bổ sản phẩm và theo dõi giao hàng.
-                </p>
-              </div>
-              <Button
-                type="button"
-                onClick={() => setSearchParams({ tab: 'operations', sub: 'distributions' }, { replace: true })}
-                className="gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Mở phiếu giao hàng
-              </Button>
-            </div>
+            <DistributionForm form={distributionForm} />
           )}
           
           {/* Laundry Batch Form */}
