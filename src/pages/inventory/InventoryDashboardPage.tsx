@@ -156,11 +156,6 @@ export function InventoryDashboardPage() {
     setSearchParams(params, { replace: true })
   }
 
-  // Mobile: keep dedicated mobile dashboard for overview tab; allow tab switching too
-  if (isMobile && tab === 'overview') {
-    return <MobileInventoryDashboard />
-  }
-
   return (
     <div className="space-y-4">
       <PageHeader
@@ -240,19 +235,21 @@ export function InventoryDashboardPage() {
           </div>
 
           <TabsContent value="overview" className="mt-4">
-          <InventoryOverviewSection />
-        </TabsContent>
+            {isMobile ? <MobileInventoryDashboard /> : <InventoryOverviewSection />}
+          </TabsContent>
 
         <TabsContent value="assets" className="mt-4">
           <Tabs
             value={(sub as AssetsSub) || 'items'}
             onValueChange={setSub}
           >
-            <TabsList>
-              <TabsTrigger value="items">Danh sách tài sản</TabsTrigger>
-              <TabsTrigger value="categories">Danh mục</TabsTrigger>
-              <TabsTrigger value="new">+ Thêm tài sản</TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto -mx-1 px-1">
+              <TabsList>
+                <TabsTrigger value="items">Danh sách tài sản</TabsTrigger>
+                <TabsTrigger value="categories">Danh mục</TabsTrigger>
+                <TabsTrigger value="new">+ Thêm tài sản</TabsTrigger>
+              </TabsList>
+            </div>
             <TabsContent value="items" className="mt-4">
               <Suspense fallback={<TabFallback />}>
                 <ItemsPage />
@@ -276,15 +273,17 @@ export function InventoryDashboardPage() {
             value={(sub as OpSub) || 'transactions'}
             onValueChange={setSub}
           >
-            <TabsList>
-              <TabsTrigger value="transactions">Giao dịch</TabsTrigger>
-              <TabsTrigger value="inbound">+ Nhập kho</TabsTrigger>
-              <TabsTrigger value="outbound">+ Xuất kho</TabsTrigger>
-              <TabsTrigger value="transfer">+ Chuyển kho</TabsTrigger>
-              <TabsTrigger value="adjustments">Kiểm kê</TabsTrigger>
-              <TabsTrigger value="distributions">Phiếu giao hàng</TabsTrigger>
-              <TabsTrigger value="reorder">Đề xuất nhập hàng</TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto -mx-1 px-1">
+              <TabsList>
+                <TabsTrigger value="transactions">Giao dịch</TabsTrigger>
+                <TabsTrigger value="inbound">+ Nhập kho</TabsTrigger>
+                <TabsTrigger value="outbound">+ Xuất kho</TabsTrigger>
+                <TabsTrigger value="transfer">+ Chuyển kho</TabsTrigger>
+                <TabsTrigger value="adjustments">Kiểm kê</TabsTrigger>
+                <TabsTrigger value="distributions">Phiếu giao hàng</TabsTrigger>
+                <TabsTrigger value="reorder">Đề xuất nhập hàng</TabsTrigger>
+              </TabsList>
+            </div>
             <TabsContent value="transactions" className="mt-4">
               <Suspense fallback={<TabFallback />}>
                 <TransactionListPage />
