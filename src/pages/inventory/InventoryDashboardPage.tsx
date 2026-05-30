@@ -46,7 +46,7 @@ const InboundPage = lazy(() => import('./InboundPage').then(m => ({ default: m.I
 const OutboundPage = lazy(() => import('./OutboundPage').then(m => ({ default: m.OutboundPage })))
 const TransferPage = lazy(() => import('./TransferPage'))
 const ItemFormPage = lazy(() => import('../items/ItemFormPage').then(m => ({ default: m.ItemFormPage })))
-const CreateFromSupplementsPage = lazy(() => import('./CreateFromSupplementsPage'))
+
 
 const TabFallback = () => (
   <div className="space-y-3 py-6">
@@ -136,11 +136,18 @@ export function InventoryDashboardPage() {
   const { data: badges } = useInventoryHubBadges()
 
   // Legacy redirect: ?sub=distributions → ?sub=outbound&view=list
+  // Legacy redirect: ?view=from-requests → ?view=list (flow giờ inline trong banner)
   useEffect(() => {
     if (tab === 'operations' && sub === 'distributions') {
       const next = new URLSearchParams(searchParams)
       next.set('sub', 'outbound')
       if (!next.get('view')) next.set('view', 'list')
+      setSearchParams(next, { replace: true })
+      return
+    }
+    if (tab === 'operations' && sub === 'outbound' && searchParams.get('view') === 'from-requests') {
+      const next = new URLSearchParams(searchParams)
+      next.set('view', 'list')
       setSearchParams(next, { replace: true })
     }
   }, [tab, sub, searchParams, setSearchParams])
@@ -430,11 +437,7 @@ export function InventoryDashboardPage() {
                 </ScrollableTabsList>
                 <TabsContent value="list" className="mt-4">
                   <Suspense fallback={<TabFallback />}>
-                    {outboundView === 'from-requests' ? (
-                      <CreateFromSupplementsPage embedded />
-                    ) : (
-                      <DistributionOrdersPage />
-                    )}
+                    <DistributionOrdersPage />
                   </Suspense>
                 </TabsContent>
                 <TabsContent value="manual" className="mt-4">

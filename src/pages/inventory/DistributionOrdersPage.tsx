@@ -1,16 +1,9 @@
 import { useState, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Plus, Package, ChevronLeft, ChevronRight, RefreshCw, Loader2, ChevronDown, FileText } from 'lucide-react'
+import { Plus, Package, ChevronLeft, ChevronRight, RefreshCw, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { DistributionOrderCard } from '@/components/distribution/components/DistributionOrderCard'
 import { DistributionOrderTable } from '@/components/distribution/components/DistributionOrderTable'
 import { RouteFiltersCard } from '@/components/distribution/components/RouteFiltersCard'
@@ -192,11 +185,6 @@ export default function DistributionOrdersPage() {
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleRefresh} disabled={isRefreshing}>
                 <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
               </Button>
-              <CreateDropdown
-                pendingCount={pendingSupplementCount}
-                onCreateManual={() => switchView('manual')}
-                onCreateFromSupplements={() => switchView('from-requests')}
-              />
             </div>
           </div>
           {TabsBar}
@@ -263,11 +251,6 @@ export default function DistributionOrdersPage() {
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleRefresh} disabled={isRefreshing}>
             <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
           </Button>
-          <CreateDropdown
-            pendingCount={pendingSupplementCount}
-            onCreateManual={() => switchView('manual')}
-            onCreateFromSupplements={() => switchView('from-requests')}
-          />
         </div>
       </div>
 
@@ -308,43 +291,3 @@ export default function DistributionOrdersPage() {
   )
 }
 
-interface CreateDropdownProps {
-  pendingCount: number
-  onCreateManual: () => void
-  onCreateFromSupplements: () => void
-}
-
-function CreateDropdown({ pendingCount, onCreateManual, onCreateFromSupplements }: CreateDropdownProps) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button size="sm" className="gap-2">
-          <Plus className="h-4 w-4" />
-          Tạo phiếu mới
-          {pendingCount > 0 && (
-            <Badge variant="secondary" className="ml-1 bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300">
-              {pendingCount}
-            </Badge>
-          )}
-          <ChevronDown className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64">
-        <DropdownMenuItem onClick={onCreateFromSupplements} className="gap-2">
-          <FileText className="h-4 w-4" />
-          <div className="flex-1">
-            <span>Từ phiếu bổ sung của lễ tân</span>
-            {pendingCount > 0 && (
-              <Badge variant="destructive" className="ml-2 text-xs">{pendingCount}</Badge>
-            )}
-          </div>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onCreateManual} className="gap-2">
-          <Package className="h-4 w-4" />
-          Tạo thủ công
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}

@@ -1,34 +1,46 @@
 import { useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
 
-import { AlertTriangle, ChevronDown, ChevronUp, Package, Clock } from 'lucide-react'
+import { AlertTriangle, ChevronDown, ChevronUp, Package, Clock, Zap, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { useQueryClient } from '@tanstack/react-query'
 import { usePendingSupplementCount, useSupplementRequests, type SupplementRequest } from '@/hooks/useSupplementRequests'
+import { useCreateDistributionFromSupplements } from '@/hooks/useCreateDistributionFromSupplements'
+import { useOnShiftStaffList } from '@/hooks/useOnShiftStaffList'
+import { useHotelContext } from '@/contexts/HotelContext'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 
-interface PendingSupplementsBannerProps {
-  onCreateFromSupplements?: (selectedIds: string[]) => void
-}
-
-export function PendingSupplementsBanner({ onCreateFromSupplements }: PendingSupplementsBannerProps) {
-  const [searchParams, setSearchParams] = useSearchParams()
+export function PendingSupplementsBanner() {
+  const queryClient = useQueryClient()
+  const { selectedHotel } = useHotelContext()
   const { data: pendingCount = 0, isLoading: isLoadingCount } = usePendingSupplementCount()
   const { data: pendingRequests = [], isLoading: isLoadingRequests } = useSupplementRequests({ status: 'pending' })
-  
-  const [isOpen, setIsOpen] = useState(false)
+  const { data: staffUsers = [], isLoading: staffLoading } = useOnShiftStaffList(selectedHotel?.id)
+  const { mutate: createFromSupplements, isPending } = useCreateDistributionFromSupplements()
+
+  const [isOpen, setIsOpen] = useState(true)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [assignedTo, setAssignedTo] = useState<string>('')
+  const [autoRelease, setAutoRelease] = useState(true)
 
   if (isLoadingCount || pendingCount === 0) {
     return null
   }
 
   const toggleSelect = (id: string) => {
-    setSelectedIds(prev => 
-      prev.includes(id) 
+    setSelectedIds(prev =>
+      prev.includes(id)
         ? prev.filter(i => i !== id)
         : [...prev, id]
     )
@@ -43,15 +55,22 @@ export function PendingSupplementsBanner({ onCreateFromSupplements }: PendingSup
   }
 
   const handleCreateDistribution = () => {
-    const params = new URLSearchParams(searchParams)
-    params.set('tab', 'operations')
-    params.set('sub', 'outbound')
-    params.set('view', 'from-requests')
-    params.delete('ids')
-    selectedIds.forEach(id => params.append('ids', id))
-    setSearchParams(params, { replace: true })
+    if (selectedIds.length === 0 || isPending) return
+    createFromSupplements(
+      {
+        supplementRequestIds: selectedIds,
+        assignedTo: assignedTo || undefined,
+        autoRelease,
+      },
+      {
+        onSuccess: () => {
+          setSelectedIds([])
+          setAssignedTo('')
+          queryClient.invalidateQueries({ queryKey: ['distribution-routes'] })
+        },
+      },
+    )
   }
-
 
   const getRequestTypeClass = (type: string) => {
     switch (type) {
@@ -84,24 +103,11 @@ export function PendingSupplementsBanner({ onCreateFromSupplements }: PendingSup
                 {pendingCount} yêu cầu bổ sung đang chờ xử lý
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <Button 
-                size="sm" 
-                variant="default"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleCreateDistribution()
-                }}
-                className="h-8"
-              >
-                Xử lý ngay
-              </Button>
-              {isOpen ? (
-                <ChevronUp className="h-4 w-4 text-amber-600" />
-              ) : (
-                <ChevronDown className="h-4 w-4 text-amber-600" />
-              )}
-            </div>
+            {isOpen ? (
+              <ChevronUp className="h-4 w-4 text-amber-600" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-amber-600" />
+            )}
           </button>
         </CollapsibleTrigger>
 
@@ -149,13 +155,77 @@ export function PendingSupplementsBanner({ onCreateFromSupplements }: PendingSup
               </p>
             )}
 
-            {/* Action buttons */}
+            {/* Inline options + action */}
             {selectedIds.length > 0 && (
-              <div className="flex justify-end pt-2 border-t border-amber-200/50">
-                <Button onClick={handleCreateDistribution} size="sm" className="gap-2">
-                  <Package className="h-4 w-4" />
-                  Tạo phiếu từ {selectedIds.length} yêu cầu
-                </Button>
+              <div className="pt-3 border-t border-amber-200/60 dark:border-amber-800/60 space-y-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">
+                      Gán cho nhân viên <span className="opacity-70">(đang trong ca)</span>
+                    </Label>
+                    <Select
+                      value={assignedTo || 'unassigned'}
+                      onValueChange={(val) => setAssignedTo(val === 'unassigned' ? '' : val)}
+                      disabled={staffLoading || isPending}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder={staffLoading ? 'Đang tải...' : 'Chọn nhân viên...'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned">Chưa phân công</SelectItem>
+                        {staffUsers.length === 0 ? (
+                          <div className="py-2 px-3 text-sm text-muted-foreground">
+                            Không có nhân viên đang trong ca
+                          </div>
+                        ) : (
+                          staffUsers.map(user => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.full_name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-start gap-2 rounded-md border bg-background p-2.5">
+                    <Checkbox
+                      id="banner-auto-release"
+                      checked={autoRelease}
+                      onCheckedChange={(checked) => setAutoRelease(!!checked)}
+                      disabled={!assignedTo || isPending}
+                      className="mt-0.5"
+                    />
+                    <div className="space-y-0.5">
+                      <Label
+                        htmlFor="banner-auto-release"
+                        className="text-sm font-medium flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Zap className="h-3.5 w-3.5 text-amber-500" />
+                        Giao ngay (bỏ qua bước kho)
+                      </Label>
+                      <p className="text-[11px] text-muted-foreground leading-snug">
+                        Cần chọn nhân viên để bật
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button
+                    onClick={handleCreateDistribution}
+                    size="sm"
+                    className="gap-2"
+                    disabled={isPending}
+                  >
+                    {isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Package className="h-4 w-4" />
+                    )}
+                    {isPending ? 'Đang tạo...' : `Tạo phiếu từ ${selectedIds.length} yêu cầu`}
+                  </Button>
+                </div>
               </div>
             )}
           </div>
@@ -182,7 +252,7 @@ function SupplementCard({ request, isSelected, onToggle, getRequestTypeLabel, ge
       onClick={onToggle}
       className={cn(
         'py-1.5 px-2 rounded border cursor-pointer transition-all',
-        isSelected 
+        isSelected
           ? 'border-l-4 border-l-primary border-t border-r border-b bg-muted/30'
           : 'border-l-4 border-l-transparent hover:border-l-primary/50'
       )}
