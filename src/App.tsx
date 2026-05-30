@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Navigate, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
 
@@ -19,6 +19,14 @@ const lazyNamed = <T extends Record<string, any>>(
   loader: () => Promise<T>,
   name: keyof T
 ) => lazy(() => loader().then((m) => ({ default: m[name] })));
+
+const InventoryHubRedirect = ({ tab, sub }: { tab: string; sub?: string }) => {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  params.set('tab', tab);
+  if (sub) params.set('sub', sub);
+  return <Navigate to={`/inventory?${params.toString()}`} replace />;
+};
 
 // Heavy layout shells — lazy-loaded so anonymous landing/auth/payment-QR
 // pages don't pull in HotelProvider, PWA prompts, banners, sidebars, etc.
