@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { addMonths } from 'date-fns'
-import { Sparkle, Loader2 } from 'lucide-react'
+import { Sparkle } from 'lucide-react'
 import { Building2, CheckCircle2, Loader2, Sparkles, Wrench, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
