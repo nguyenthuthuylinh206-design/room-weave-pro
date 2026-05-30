@@ -590,9 +590,10 @@ export function OutboundPage() {
                 <span className="text-blue-600 font-medium">{distributionForm.summary.totalItems} đơn vị</span>
               </div>
               <div className="flex gap-2">
-                <Button type="button" variant="ghost" size="sm" onClick={() => navigate('/inventory')}>{t('common:cancel')}</Button>
-                <Button type="submit" size="sm" disabled={isDistributionLoading || !distributionForm.isValid}>{isDistributionLoading ? t('distribution:createOrder.creating') : t('distribution:createOrder.create')}</Button>
+                <Button type="button" variant="ghost" size="sm" onClick={goToList}>{t('common:cancel')}</Button>
+                <Button type="submit" size="sm" disabled={isAnyPending || !distributionForm.isValid}>{isAnyPending ? t('distribution:createOrder.creating') : t('distribution:createOrder.create')}</Button>
               </div>
+
             </div>
           )}
           
