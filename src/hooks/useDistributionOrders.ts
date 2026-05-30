@@ -7,7 +7,6 @@ import { toast } from 'sonner'
 import type { DistributionOrder, DistributionOrderDetail, CreateDistributionData, DistributionFilters } from '@/types/distribution.types'
 import { 
   triggerDistributionOrderCreated, 
-  triggerDistributionDeliveryConfirmed, 
   triggerDistributionOrderCancelled 
 } from './useNotificationTriggers'
 
