@@ -383,21 +383,20 @@ export function InventoryDashboardPage() {
               <TabsList>
                 <TabsTrigger value="transactions">Giao dịch</TabsTrigger>
                 <TabsTrigger value="inbound">+ Nhập kho</TabsTrigger>
-                <TabsTrigger value="outbound">+ Xuất kho</TabsTrigger>
+                <TabsTrigger value="outbound">
+                  Xuất kho
+                  {(badges?.distributionsPending ?? 0) > 0 && (
+                    <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[10px]">
+                      {badges?.distributionsPending}
+                    </Badge>
+                  )}
+                </TabsTrigger>
                 <TabsTrigger value="transfer">+ Chuyển kho</TabsTrigger>
                 <TabsTrigger value="adjustments">
                   Kiểm kê
                   {(badges?.adjustmentsPending ?? 0) > 0 && (
                     <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[10px]">
                       {badges?.adjustmentsPending}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-                <TabsTrigger value="distributions">
-                  Phiếu giao hàng
-                  {(badges?.distributionsPending ?? 0) > 0 && (
-                    <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[10px]">
-                      {badges?.distributionsPending}
                     </Badge>
                   )}
                 </TabsTrigger>
