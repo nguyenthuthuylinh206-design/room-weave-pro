@@ -301,15 +301,18 @@ export function InventoryDashboardPage() {
         </nav>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as MainTab)} className="min-w-0">
-          <div className="sticky top-0 z-10 bg-background pb-2 -mt-2 pt-2 overflow-x-auto -mx-1 px-1">
-            <TabsList>
-              <TabsTrigger value="overview">Tổng quan</TabsTrigger>
-              <TabsTrigger value="assets">Tài sản</TabsTrigger>
-              <TabsTrigger value="operations">Xuất nhập</TabsTrigger>
-              <TabsTrigger value="analytics">Phân tích</TabsTrigger>
-              <TabsTrigger value="settings">Thiết lập</TabsTrigger>
-            </TabsList>
+          <div className="sticky top-0 z-10 bg-background pb-2 -mt-2 pt-2 -mx-1 px-1">
+            <ScrollableTabsList>
+              <TabsList>
+                <TabsTrigger value="overview">Tổng quan</TabsTrigger>
+                <TabsTrigger value="assets">Tài sản</TabsTrigger>
+                <TabsTrigger value="operations">Xuất nhập</TabsTrigger>
+                <TabsTrigger value="analytics">Phân tích</TabsTrigger>
+                <TabsTrigger value="settings">Thiết lập</TabsTrigger>
+              </TabsList>
+            </ScrollableTabsList>
           </div>
+
 
           <TabsContent value="overview" className="mt-4">
             {isMobile ? <MobileInventoryDashboard /> : <InventoryOverviewSection onNavigate={setTab as (t: string, s?: string) => void} />}
