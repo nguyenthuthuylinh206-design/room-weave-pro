@@ -204,11 +204,36 @@ export function RoomSelectionStep({
       {/* Selected Rooms with Price Inputs */}
       {state.selectedRooms.length > 0 && (
         <div className="p-3 bg-primary/5 rounded-lg space-y-3">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />
-            <span className="text-sm font-medium">
-              Đã chọn {state.selectedRooms.length} phòng - Nhập giá mỗi phòng:
-            </span>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />
+              <span className="text-sm font-medium">
+                Đã chọn {state.selectedRooms.length} phòng
+              </span>
+            </div>
+            {onApplyPricingV2 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                disabled={applying}
+                onClick={async () => {
+                  setApplying(true)
+                  try {
+                    const { ok, fail } = await onApplyPricingV2()
+                    if (ok > 0 && fail === 0) {
+                      // success toast handled implicitly by UI update
+                    }
+                  } finally {
+                    setApplying(false)
+                  }
+                }}
+              >
+                <Sparkle className="h-3 w-3 mr-1" />
+                {applying ? 'Đang tính...' : 'Áp dụng giá theo bảng'}
+              </Button>
+            )}
           </div>
           
           <div className="space-y-2">
