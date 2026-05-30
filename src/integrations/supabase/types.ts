@@ -11592,6 +11592,17 @@ export type Database = {
         Args: { p_item_ids: string[]; p_user_id: string }
         Returns: Json
       }
+      calculate_booking_price: {
+        Args: {
+          p_apply_early_late?: boolean
+          p_booking_type: string
+          p_from_ts: string
+          p_hotel_id?: string
+          p_room_type_id: string
+          p_to_ts: string
+        }
+        Returns: Json
+      }
       calculate_staff_statistics: {
         Args: {
           p_hotel_id: string
@@ -12047,8 +12058,22 @@ export type Database = {
         }
         Returns: Json
       }
+      duplicate_room_type: {
+        Args: {
+          p_copy_default_items?: boolean
+          p_copy_rates?: boolean
+          p_new_code: string
+          p_new_name: string
+          p_source_id: string
+        }
+        Returns: string
+      }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
+        Returns: number
+      }
+      enqueue_stay_registration: {
+        Args: { p_booking_id: string }
         Returns: number
       }
       ensure_vat_claim_token: {
@@ -13668,6 +13693,7 @@ export type Database = {
           sla_minutes: number
         }[]
       }
+      retry_stay_registration: { Args: { p_id: string }; Returns: undefined }
       retry_stop: {
         Args: { p_actor_id?: string; p_room_order_id: string }
         Returns: Json
