@@ -181,28 +181,68 @@ export function OutboundPage() {
 
   if (isMobile) return <MobileOutboundForm />;
   
+  const isAnyPending = isLoading || isDistributionLoading || isLaundryLoading;
+
+  const goToList = () => {
+    setSearchParams(prev => {
+      const p = new URLSearchParams(prev);
+      p.set('tab', 'operations');
+      p.set('sub', 'outbound');
+      p.set('view', 'list');
+      return p;
+    }, { replace: true });
+  };
+
   const onSubmit = (data: OutboundFormData) => {
     if (data.transaction_category === 'room_assign') {
       const validAllocations = distributionForm.allocations.filter(a => a.items.length > 0);
-      if (validAllocations.length === 0) return;
+      if (validAllocations.length === 0) {
+        toast.error('Vui lòng chọn phòng và thêm sản phẩm để giao');
+        return;
+      }
       createDistributionOrder({
         assigned_to: distributionForm.assignedTo || undefined,
         notes: distributionForm.notes || undefined,
         rooms: validAllocations,
-      }, { onSuccess: (result) => navigate(`/inventory/distributions/${result.order_id}`) });
+      }, {
+        onSuccess: () => {
+          toast.success('Đã tạo phiếu giao hàng');
+          distributionForm.reset?.();
+          goToList();
+        }
+      });
     } else if (data.transaction_category === 'laundry') {
-      if (!data.vendor_id || !data.delivery_date || !data.expected_return_date || !data.delivery_staff_id || !data.receiver_name) return;
+      if (!data.vendor_id || !data.delivery_date || !data.expected_return_date || !data.delivery_staff_id || !data.receiver_name) {
+        toast.error('Vui lòng điền đầy đủ thông tin lô giặt');
+        return;
+      }
       const validLaundryItems = (data.laundry_items || []).filter(item => item.item_id && item.quantity > 0);
-      if (validLaundryItems.length === 0) return;
+      if (validLaundryItems.length === 0) {
+        toast.error('Vui lòng thêm sản phẩm vào lô giặt');
+        return;
+      }
       createLaundryBatch({
         step1: { vendor_id: data.vendor_id, delivery_date: data.delivery_date, expected_return_date: data.expected_return_date, delivery_staff_id: data.delivery_staff_id, receiver_name: data.receiver_name, notes: data.notes },
         step2: { items: validLaundryItems.map(item => ({ item_id: item.item_id, quantity: item.quantity, weight_kg: item.weight_kg || 0, condition_note: item.condition_note })) },
         step3: { confirmed: true }
-      }, { onSuccess: (result) => navigate(`/laundry/batches/${result.id}`) });
+      }, {
+        onSuccess: () => {
+          toast.success('Đã tạo lô giặt');
+          form.reset();
+          goToList();
+        }
+      });
     } else {
-      createOutbound(data as any, { onSuccess: () => navigate('/inventory?tab=operations&sub=transactions') });
+      createOutbound(data as any, {
+        onSuccess: () => {
+          toast.success('Đã ghi nhận xuất kho');
+          form.reset();
+          goToList();
+        }
+      });
     }
   };
+
 
   return (
     <div className="space-y-4">
