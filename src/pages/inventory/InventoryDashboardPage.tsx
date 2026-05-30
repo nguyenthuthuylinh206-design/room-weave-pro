@@ -133,6 +133,7 @@ export function InventoryDashboardPage() {
   }
 
   const activeSub = sub || defaultSubByTab[tab] || ''
+  const settingsSubValue: SettingsSub = canManageSettings && sub === 'warehouses' ? 'warehouses' : 'supplements'
 
   const isMenuItemActive = (item: InventoryMenuItem) => {
     if (item.tab !== tab) return false
@@ -348,7 +349,7 @@ export function InventoryDashboardPage() {
 
           <TabsContent value="settings" className="mt-4">
             <Tabs
-              value={(sub as SettingsSub) || 'supplements'}
+              value={settingsSubValue}
               onValueChange={setSub}
             >
               <div className="overflow-x-auto -mx-1 px-1">
