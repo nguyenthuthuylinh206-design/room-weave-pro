@@ -34,6 +34,10 @@ const ItemsPage = lazy(() => import('../items/ItemsPage').then(m => ({ default: 
 const CategoriesPage = lazy(() => import('../items/CategoriesPage').then(m => ({ default: m.CategoriesPage })))
 const SupplementsPage = lazy(() => import('../supplements/SupplementsPage').then(m => ({ default: m.SupplementsPage })))
 const WarehouseListPage = lazy(() => import('../settings/WarehouseListPage'))
+const InboundPage = lazy(() => import('./InboundPage').then(m => ({ default: m.InboundPage })))
+const OutboundPage = lazy(() => import('./OutboundPage').then(m => ({ default: m.OutboundPage })))
+const TransferPage = lazy(() => import('./TransferPage'))
+const ItemFormPage = lazy(() => import('../items/ItemFormPage').then(m => ({ default: m.ItemFormPage })))
 
 const TabFallback = () => (
   <div className="space-y-3 py-6">
@@ -43,8 +47,8 @@ const TabFallback = () => (
 )
 
 type MainTab = 'overview' | 'assets' | 'operations' | 'analytics' | 'settings'
-type OpSub = 'transactions' | 'adjustments' | 'distributions' | 'reorder'
-type AssetsSub = 'items' | 'categories'
+type OpSub = 'transactions' | 'inbound' | 'outbound' | 'transfer' | 'adjustments' | 'distributions' | 'reorder'
+type AssetsSub = 'items' | 'categories' | 'new'
 type AnalyticsSub = 'consumption' | 'dead-stock'
 type SettingsSub = 'supplements' | 'warehouses'
 
@@ -136,6 +140,7 @@ export function InventoryDashboardPage() {
             <TabsList>
               <TabsTrigger value="items">Danh sách tài sản</TabsTrigger>
               <TabsTrigger value="categories">Danh mục</TabsTrigger>
+              <TabsTrigger value="new">+ Thêm tài sản</TabsTrigger>
             </TabsList>
             <TabsContent value="items" className="mt-4">
               <Suspense fallback={<TabFallback />}>
@@ -145,6 +150,11 @@ export function InventoryDashboardPage() {
             <TabsContent value="categories" className="mt-4">
               <Suspense fallback={<TabFallback />}>
                 <CategoriesPage />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="new" className="mt-4">
+              <Suspense fallback={<TabFallback />}>
+                <ItemFormPage />
               </Suspense>
             </TabsContent>
           </Tabs>
@@ -157,6 +167,9 @@ export function InventoryDashboardPage() {
           >
             <TabsList>
               <TabsTrigger value="transactions">Giao dịch</TabsTrigger>
+              <TabsTrigger value="inbound">+ Nhập kho</TabsTrigger>
+              <TabsTrigger value="outbound">+ Xuất kho</TabsTrigger>
+              <TabsTrigger value="transfer">+ Chuyển kho</TabsTrigger>
               <TabsTrigger value="adjustments">Kiểm kê</TabsTrigger>
               <TabsTrigger value="distributions">Phiếu giao</TabsTrigger>
               <TabsTrigger value="reorder">Đề xuất nhập</TabsTrigger>
@@ -164,6 +177,21 @@ export function InventoryDashboardPage() {
             <TabsContent value="transactions" className="mt-4">
               <Suspense fallback={<TabFallback />}>
                 <TransactionListPage />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="inbound" className="mt-4">
+              <Suspense fallback={<TabFallback />}>
+                <InboundPage />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="outbound" className="mt-4">
+              <Suspense fallback={<TabFallback />}>
+                <OutboundPage />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="transfer" className="mt-4">
+              <Suspense fallback={<TabFallback />}>
+                <TransferPage />
               </Suspense>
             </TabsContent>
             <TabsContent value="adjustments" className="mt-4">
