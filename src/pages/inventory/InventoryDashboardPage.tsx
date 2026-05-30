@@ -88,10 +88,9 @@ const inventoryMenuGroups: Array<{ title: string; items: InventoryMenuItem[] }> 
     title: 'Xuất nhập kho',
     items: [
       { label: 'Nhập kho', tab: 'operations', sub: 'inbound' },
-      { label: 'Xuất kho', tab: 'operations', sub: 'outbound' },
+      { label: 'Xuất kho', tab: 'operations', sub: 'outbound', badgeKey: 'distributionsPending' },
       { label: 'Chuyển kho', tab: 'operations', sub: 'transfer' },
       { label: 'Kiểm kê', tab: 'operations', sub: 'adjustments', badgeKey: 'adjustmentsPending' },
-      { label: 'Phiếu giao hàng', tab: 'operations', sub: 'distributions', badgeKey: 'distributionsPending' },
       { label: 'Đề xuất nhập hàng', tab: 'operations', sub: 'reorder', badgeKey: 'reorderPending' },
     ],
   },
