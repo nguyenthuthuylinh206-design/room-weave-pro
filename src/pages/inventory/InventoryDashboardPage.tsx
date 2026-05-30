@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { ScrollableTabsList } from '@/components/shared/ScrollableTabsList'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
