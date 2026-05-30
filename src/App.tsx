@@ -120,6 +120,7 @@ const AuditLogPage = lazy(() => import("./pages/settings/AuditLogPage"));
 const AssetGroupMigrationPage = lazy(() => import("./pages/settings/AssetGroupMigrationPage"));
 const HotelPolicyPage = lazy(() => import("./pages/settings/HotelPolicyPage"));
 const PricingV2Page = lazy(() => import("./pages/settings/PricingV2Page"));
+const SeasonalRulesPage = lazy(() => import("./pages/settings/SeasonalRulesPage"));
 const StayRegistrationsPage = lazy(() => import("./pages/legal/StayRegistrationsPage"));
 const StayRegistrationSettingsPage = lazy(() => import("./pages/settings/StayRegistrationSettingsPage"));
 
