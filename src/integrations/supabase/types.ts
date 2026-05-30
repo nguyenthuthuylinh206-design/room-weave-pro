@@ -2640,6 +2640,7 @@ export type Database = {
           hotel_id: string
           id: string
           last_error: string | null
+          next_retry_at: string | null
           payload: Json | null
           purpose: string | null
           response: Json | null
@@ -2661,6 +2662,7 @@ export type Database = {
           hotel_id: string
           id?: string
           last_error?: string | null
+          next_retry_at?: string | null
           payload?: Json | null
           purpose?: string | null
           response?: Json | null
@@ -2682,6 +2684,7 @@ export type Database = {
           hotel_id?: string
           id?: string
           last_error?: string | null
+          next_retry_at?: string | null
           payload?: Json | null
           purpose?: string | null
           response?: Json | null
@@ -11448,6 +11451,10 @@ export type Database = {
       }
     }
     Functions: {
+      _enqueue_stay_registration_internal: {
+        Args: { p_booking_id: string }
+        Returns: number
+      }
       _tc_check_block_conflict: {
         Args: {
           p_check_in: string
