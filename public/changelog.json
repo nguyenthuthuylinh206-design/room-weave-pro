@@ -1,6 +1,17 @@
 {
-  "current": "1.1.15",
+  "current": "1.1.16",
   "versions": [
+    {
+      "version": "1.1.16",
+      "date": "2026-05-30",
+      "title": "Xuất kho: hoàn thiện UX trạng thái & loại bỏ double-write",
+      "highlights": [
+        "Đổi nhãn trạng thái 'released' → 'Đã xuất kho — chờ NV nhận' (rõ hơn cho cả kho lẫn NV)",
+        "Cho phép huỷ phiếu ngay cả khi đã xuất kho (released), hoàn hàng đúng bucket",
+        "Bỏ update trùng supplement_requests ở client — RPC tự cập nhật, hết race condition",
+        "Việc cần làm: thêm gợi ý 'Chờ đóng phiếu' cho người tạo phiếu khi đã giao xong"
+      ]
+    },
     {
       "version": "1.1.15",
       "date": "2026-05-30",

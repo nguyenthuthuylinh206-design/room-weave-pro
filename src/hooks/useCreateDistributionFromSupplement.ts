@@ -60,26 +60,20 @@ export function useCreateDistributionFromSupplement() {
 
       const orderResult = result as { success: boolean; order_id: string; order_code: string }
 
-      // 3. Update supplement request with distribution order ID and status
-      const { error: updateError } = await supabase
-        .from('supplement_requests')
-        .update({
-          status: 'approved',
-          approved_by: user.id,
-          approved_at: new Date().toISOString(),
-          distribution_order_id: orderResult.order_id,
-        })
-        .eq('id', supplementRequestId)
+      // NOTE: RPC create_distribution_order (v3) đã tự cập nhật
+      //   supplement_requests.status = 'approved' + distribution_order_id
+      // khi truyền p_supplement_request_ids. KHÔNG update lại ở client để tránh
+      // race condition và double-write.
 
-      if (updateError) throw updateError
-
-      // 4. Update distribution order with supplement request ID (bidirectional link)
+      // Bidirectional link: gắn supplement_request_id vào distribution_orders
+      // (RPC chưa làm chiều này — giữ lại bước này).
       const { error: linkError } = await supabase
         .from('distribution_orders')
         .update({
           supplement_request_id: supplementRequestId,
         })
         .eq('id', orderResult.order_id)
+        .eq('tenant_id', tenant.id)
 
       if (linkError) {
         console.error('Failed to link distribution order back to supplement request:', linkError)

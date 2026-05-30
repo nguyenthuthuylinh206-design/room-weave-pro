@@ -35,10 +35,10 @@ export function getDisplayStatus(
     case 'released':
       return {
         display: 'preparing',
-        label: 'Chờ xuất kho',
+        label: 'Đã xuất kho — chờ NV nhận',
         textClass: 'text-amber-600 dark:text-amber-400',
         dotClass: 'bg-amber-500',
-        subLabel: 'Đã xuất kho, chờ NV xác nhận',
+        subLabel: opts?.assignedToName ? `Chờ ${opts.assignedToName} xác nhận` : 'Chờ nhân viên xác nhận',
       }
     case 'in_progress':
       return {
@@ -162,6 +162,9 @@ export function getPendingTask(input: PendingTaskInput): PendingTaskInfo {
   if (status === 'completed') {
     if (isCurrentUserStorekeeper) {
       return { text: 'Chờ bạn đóng phiếu', textClass: green, priority: 4 }
+    }
+    if (input.isCurrentUserCreator) {
+      return { text: 'Chờ đóng phiếu', textClass: green, priority: 3 }
     }
     return { text: 'Đã giao xong', textClass: green, priority: 0 }
   }
