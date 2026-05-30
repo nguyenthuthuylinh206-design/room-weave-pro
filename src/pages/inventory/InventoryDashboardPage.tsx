@@ -19,6 +19,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { useUser } from '@/hooks/useUser'
+import type { AppRole } from '@/types/database.types'
 import { InventoryOverviewSection } from '@/components/inventory/InventoryOverviewSection'
 import { MobileInventoryDashboard } from '@/components/inventory/MobileInventoryDashboard'
 
