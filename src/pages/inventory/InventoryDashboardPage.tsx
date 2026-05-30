@@ -452,12 +452,12 @@ export function InventoryDashboardPage() {
               value={settingsSubValue}
               onValueChange={setSub}
             >
-              <div className="overflow-x-auto -mx-1 px-1">
+              <ScrollableTabsList className="-mx-1 px-1">
                 <TabsList>
                   <TabsTrigger value="supplements">Bổ sung đồ</TabsTrigger>
                   {canManageSettings && <TabsTrigger value="warehouses">Quản lý kho</TabsTrigger>}
                 </TabsList>
-              </div>
+              </ScrollableTabsList>
               <TabsContent value="supplements" className="mt-4">
                 <Suspense fallback={<TabFallback />}>
                   <SupplementsPage />
