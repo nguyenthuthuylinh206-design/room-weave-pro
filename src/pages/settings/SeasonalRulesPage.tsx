@@ -1,6 +1,4 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,13 +9,14 @@ import {
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Trash2, Plus, Pencil } from 'lucide-react'
-import { useUser } from '@/hooks/useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
+import { useRoomTypes } from '@/hooks/useRoomTypes'
 import {
   useSeasonalRates, useUpsertSeasonalRate, useDeleteSeasonalRate,
   type SeasonalRateOverride, type SeasonalApplyTo,
 } from '@/hooks/useSeasonalRates'
 import { formatCurrency } from '@/lib/utils'
+
 
 const APPLY_TO_OPTIONS: { value: SeasonalApplyTo; label: string }[] = [
   { value: 'daily', label: 'Ngày' },
@@ -56,7 +55,6 @@ const emptyForm = (): FormState => ({
 })
 
 export default function SeasonalRulesPage() {
-  const { tenantId } = useUser()
   const { selectedHotel } = useHotelContext()
   const { data: rules = [], isLoading } = useSeasonalRates(selectedHotel?.id)
   const upsert = useUpsertSeasonalRate()
@@ -64,19 +62,8 @@ export default function SeasonalRulesPage() {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState<FormState>(emptyForm())
 
-  const { data: roomTypes = [] } = useQuery({
-    queryKey: ['room-types-all', tenantId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('room_types')
-        .select('id, name, code')
-        .eq('tenant_id', tenantId!)
-        .eq('status', 'active')
-        .order('display_order')
-      return data ?? []
-    },
-    enabled: !!tenantId,
-  })
+  const { data: roomTypes = [] } = useRoomTypes()
+
 
   const openCreate = () => { setForm({ ...emptyForm(), hotel_id: selectedHotel?.id ?? null }); setOpen(true) }
   const openEdit = (r: SeasonalRateOverride) => {
