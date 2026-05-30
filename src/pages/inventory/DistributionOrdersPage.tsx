@@ -185,11 +185,6 @@ export default function DistributionOrdersPage() {
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleRefresh} disabled={isRefreshing}>
                 <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
               </Button>
-              <CreateDropdown
-                pendingCount={pendingSupplementCount}
-                onCreateManual={() => switchView('manual')}
-                onCreateFromSupplements={() => switchView('from-requests')}
-              />
             </div>
           </div>
           {TabsBar}
