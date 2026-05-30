@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Settings } from 'lucide-react'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useStayRegistrations, useRetryStayRegistration, type StayRegistrationStatus } from '@/hooks/useStayRegistrations'
 import { Button } from '@/components/ui/button'
@@ -22,11 +24,18 @@ export default function StayRegistrationsPage() {
 
   return (
     <div className="p-4 space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">Khai báo lưu trú</h1>
-        <p className="text-sm text-muted-foreground">
-          Theo dõi & gửi lại các bản ghi khai báo cho Bộ Công An (tbltkbtt).
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold">Khai báo lưu trú</h1>
+          <p className="text-sm text-muted-foreground">
+            Theo dõi & gửi lại các bản ghi khai báo cho Bộ Công An (tbltkbtt).
+          </p>
+        </div>
+        <Button asChild variant="outline" size="sm" className="h-8">
+          <Link to="/settings/legal/stay-registration">
+            <Settings className="h-3.5 w-3.5 mr-1" /> Cấu hình BCA
+          </Link>
+        </Button>
       </div>
 
       <div className="flex items-center gap-3">
