@@ -97,9 +97,9 @@ export function StopCard({
     setShowCannotAccessDialog(true)
   }
 
-  // Navigate to room check page when clicking on room
+  // Navigate to room delivery page when clicking on room
   const handleRoomClick = () => {
-    navigate(`/rooms/${stop.room_id}/check?distribution_order_id=${stop.distribution_order_id}&room_order_id=${stop.id}`)
+    navigate(`/rooms/${stop.room_id}/check?type=delivery&distribution_order_id=${stop.distribution_order_id}&room_order_id=${stop.id}&returnTo=/inventory/distributions/${stop.distribution_order_id}`)
   }
 
   const handleDeliver = () => {
