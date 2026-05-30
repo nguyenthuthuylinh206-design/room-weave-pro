@@ -90,7 +90,7 @@ export default function TransferPage() {
       notes: data.notes,
     }, {
       onSuccess: () => {
-        navigate('/inventory/transactions')
+        navigate('/inventory?tab=operations&sub=transactions')
       },
     })
   }
