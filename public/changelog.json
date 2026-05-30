@@ -1,6 +1,19 @@
 {
-  "current": "1.1.14",
+  "current": "1.1.15",
   "versions": [
+    {
+      "version": "1.1.15",
+      "date": "2026-05-30",
+      "title": "Sửa logic chuỗi phiếu xuất kho (lifecycle v2)",
+      "highlights": [
+        "Khắc phục lỗi nghiêm trọng trừ tồn kho 3 lần khi tạo phiếu → xuất kho → NV xác nhận",
+        "Phiếu mới tự sinh lô hàng, không còn lỗi 'Không tìm thấy batch' khi xuất kho",
+        "Huỷ phiếu hoạt động ở trạng thái 'Đã xuất kho' và 'Đang giao', hoàn hàng đúng bucket",
+        "Đóng phiếu tự hoàn hàng cho phòng không vào được, không còn kẹt tồn kho",
+        "NV bắt buộc bấm 'Tôi đã nhận đủ hàng' trước khi giao phòng (bỏ auto-confirm im lặng)",
+        "Xoá overload confirm_receive_order 1 tham số để hết lỗi 'Could not choose function'"
+      ]
+    },
     {
       "version": "1.1.14",
       "releaseDate": "2026-05-30",

@@ -7,7 +7,6 @@ import { toast } from 'sonner'
 import type { DistributionOrder, DistributionOrderDetail, CreateDistributionData, DistributionFilters } from '@/types/distribution.types'
 import { 
   triggerDistributionOrderCreated, 
-  triggerDistributionDeliveryConfirmed, 
   triggerDistributionOrderCancelled 
 } from './useNotificationTriggers'
 
@@ -126,124 +125,9 @@ export function useCreateDistributionOrder() {
   })
 }
 
-export function useCompleteRoomDelivery() {
-  const queryClient = useQueryClient()
-  const { user } = useAuth()
-  const { tenant } = useTenant()
-
-  return useMutation({
-    mutationFn: async ({ 
-      roomOrderId, 
-      items,
-      additionalItems,
-      orderCode,
-      roomNumber,
-      createdByUserId,
-      orderId,
-    }: { 
-      roomOrderId: string
-      items?: { item_id: string; quantity_confirmed: number }[]
-      additionalItems?: { item_id: string; quantity: number }[]
-      orderCode?: string
-      roomNumber?: string
-      createdByUserId?: string
-      orderId?: string
-    }) => {
-      if (!user?.id) throw new Error('User not authenticated')
-
-      // Build item confirmations as JSONB format expected by RPC
-      const itemConfirmations = items 
-        ? items.reduce((acc, item) => {
-            acc[item.item_id] = { quantity_confirmed: item.quantity_confirmed }
-            return acc
-          }, {} as Record<string, { quantity_confirmed: number }>)
-        : null
-
-      // Build additional items array
-      const additionalItemsData = additionalItems && additionalItems.length > 0
-        ? additionalItems
-        : null
-
-      const { data, error } = await supabase.rpc('complete_room_delivery', {
-        p_distribution_order_room_id: roomOrderId,
-        p_confirmed_by: user.id,
-        p_item_confirmations: itemConfirmations,
-        p_additional_items: additionalItemsData,
-      })
-
-      if (error) throw error
-
-      const result = data as { success: boolean; room_id: string; all_completed: boolean }
-
-      // If all rooms are completed and we have orderId, check for linked supplement request
-      if (result.all_completed && orderId) {
-        const { data: order } = await supabase
-          .from('distribution_orders')
-          .select('supplement_request_id')
-          .eq('id', orderId)
-          .single()
-
-        if (order?.supplement_request_id) {
-          // Auto-complete the linked supplement request
-          await supabase
-            .from('supplement_requests')
-            .update({
-              status: 'completed',
-              completed_at: new Date().toISOString(),
-            })
-            .eq('id', order.supplement_request_id)
-        }
-      }
-
-      return { 
-        ...result,
-        orderCode,
-        roomNumber,
-        createdByUserId,
-        orderId,
-      }
-    },
-    onSuccess: async (result) => {
-      queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
-      queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
-      queryClient.invalidateQueries({ queryKey: ['room-items'] })
-      queryClient.invalidateQueries({ queryKey: ['items'] })
-      queryClient.invalidateQueries({ queryKey: ['room-distribution-history'] })
-      queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] })
-      queryClient.invalidateQueries({ queryKey: ['warehouses-with-stats'] })
-      
-      // Also invalidate supplement requests if order was completed
-      if (result.all_completed) {
-        queryClient.invalidateQueries({ queryKey: ['supplement-requests'] })
-        queryClient.invalidateQueries({ queryKey: ['supplement-request'] })
-        queryClient.invalidateQueries({ queryKey: ['supplement-requests-pending-count'] })
-        toast.success('Đã hoàn thành giao hàng cho tất cả các phòng!')
-      } else {
-        toast.success('Xác nhận giao hàng thành công')
-      }
-
-      // Send notification to order creator
-      if (tenant?.id && user?.id && result.createdByUserId && result.orderCode && result.roomNumber) {
-        try {
-          await triggerDistributionDeliveryConfirmed({
-            tenantId: tenant.id,
-            orderId: result.orderId || '',
-            orderCode: result.orderCode,
-            roomNumber: result.roomNumber,
-            createdByUserId: result.createdByUserId,
-            confirmedByUserId: user.id,
-            allCompleted: result.all_completed,
-          })
-        } catch (e) {
-          console.error('Failed to send notification:', e)
-        }
-      }
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Không thể xác nhận giao hàng')
-    },
-  })
-}
+// useCompleteRoomDelivery removed in distribution lifecycle v2 (1.1.15).
+// The legacy `complete_room_delivery` RPC has been dropped; use
+// `deliver_stop` + `close_route_if_complete` instead.
 
 export function useCancelDistributionOrder() {
   const queryClient = useQueryClient()
