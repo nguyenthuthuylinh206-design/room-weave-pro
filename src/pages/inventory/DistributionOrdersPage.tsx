@@ -129,7 +129,7 @@ export default function DistributionOrdersPage() {
       <p className="text-sm text-muted-foreground">
         {tab === 'todo' ? 'Không có việc nào cần xử lý ngay' : 'Không có phiếu giao hàng nào'}
       </p>
-      <Button size="sm" className="mt-3" onClick={() => navigate('/inventory/distributions/new')}>
+      <Button size="sm" className="mt-3" onClick={() => switchView('manual')}>
         <Plus className="h-4 w-4 mr-1" />
         Tạo phiếu mới
       </Button>
@@ -194,8 +194,8 @@ export default function DistributionOrdersPage() {
               </Button>
               <CreateDropdown
                 pendingCount={pendingSupplementCount}
-                onCreateManual={() => navigate('/inventory/distributions/new')}
-                onCreateFromSupplements={() => navigate('/inventory/distributions/from-supplements')}
+                onCreateManual={() => switchView('manual')}
+                onCreateFromSupplements={() => switchView('from-requests')}
               />
             </div>
           </div>
@@ -265,8 +265,8 @@ export default function DistributionOrdersPage() {
           </Button>
           <CreateDropdown
             pendingCount={pendingSupplementCount}
-            onCreateManual={() => navigate('/inventory/distributions/new')}
-            onCreateFromSupplements={() => navigate('/inventory/distributions/from-supplements')}
+            onCreateManual={() => switchView('manual')}
+            onCreateFromSupplements={() => switchView('from-requests')}
           />
         </div>
       </div>
