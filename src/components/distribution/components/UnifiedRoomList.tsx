@@ -228,7 +228,7 @@ export function UnifiedRoomList({
   }
 
   const handleRoomClick = (stop: RouteStop) => {
-    navigate(`/rooms/${stop.room_id}/check?distribution_order_id=${stop.distribution_order_id}&room_order_id=${stop.id}`)
+    navigate(`/rooms/${stop.room_id}/check?type=delivery&distribution_order_id=${stop.distribution_order_id}&room_order_id=${stop.id}&returnTo=/inventory/distributions/${stop.distribution_order_id}`)
   }
 
   if (stops.length === 0) {

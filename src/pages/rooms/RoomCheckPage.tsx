@@ -221,17 +221,25 @@ export function RoomCheckPage() {
   }, [isLoadingRoomInspection, roomInspection, navigate])
   
   // Normalize URL: nếu có pendingInspection mà URL chưa có type=checkout thì thêm vào
+  // GUARD: không redirect khi URL có context giao hàng (distribution_order_id / room_order_id
+  // / returnTo) — tránh đẩy NV giao hàng vào nhầm flow kiểm tra checkout.
   useEffect(() => {
+    const hasDistributionContext =
+      !!searchParams.get('distribution_order_id') ||
+      !!searchParams.get('room_order_id') ||
+      !!searchParams.get('returnTo')
+
     if (
       !isInspectionLoading &&
       pendingInspection &&
       !prefilledType &&
-      !inspectionIdFromUrl
+      !inspectionIdFromUrl &&
+      !hasDistributionContext
     ) {
       // Navigate với replace để không tạo history mới
       navigate(`/rooms/${id}/check?type=checkout&inspection=${pendingInspection.id}`, { replace: true })
     }
-  }, [isInspectionLoading, pendingInspection, prefilledType, inspectionIdFromUrl, id, navigate])
+  }, [isInspectionLoading, pendingInspection, prefilledType, inspectionIdFromUrl, id, navigate, searchParams])
   
   // Cập nhật stableInspectionId khi pendingInspection load xong
   useEffect(() => {
