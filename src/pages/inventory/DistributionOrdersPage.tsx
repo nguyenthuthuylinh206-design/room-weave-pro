@@ -15,6 +15,7 @@ import { DistributionOrderCard } from '@/components/distribution/components/Dist
 import { DistributionOrderTable } from '@/components/distribution/components/DistributionOrderTable'
 import { RouteFiltersCard } from '@/components/distribution/components/RouteFiltersCard'
 import { PendingSupplementsBanner } from '@/components/distribution/components/PendingSupplementsBanner'
+import { DistributionOrderQuickDialog } from '@/components/distribution/dialogs/DistributionOrderQuickDialog'
 import { useRoutesWithFilters, useAvailableFloors } from '@/hooks/useRouteFilters'
 import { usePendingSupplementCount } from '@/hooks/useSupplementRequests'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -40,6 +41,7 @@ export default function DistributionOrdersPage() {
   const [page, setPage] = useState(1)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [tab, setTab] = useState<TabValue>('todo')
+  const [quickOrderId, setQuickOrderId] = useState<string | null>(null)
 
   const { data, isLoading } = useRoutesWithFilters(filters, page, PAGE_SIZE)
   const { data: availableFloors = [] } = useAvailableFloors()
@@ -108,7 +110,7 @@ export default function DistributionOrdersPage() {
   }
 
   const handleOrderClick = (orderId: string) => {
-    navigate(`/inventory/distributions/${orderId}`)
+    setQuickOrderId(orderId)
   }
 
   const EmptyState = () => (
@@ -160,9 +162,18 @@ export default function DistributionOrdersPage() {
     </Tabs>
   )
 
+  const QuickDialog = (
+    <DistributionOrderQuickDialog
+      orderId={quickOrderId}
+      open={!!quickOrderId}
+      onOpenChange={(o) => !o && setQuickOrderId(null)}
+    />
+  )
+
   // Mobile view
   if (isMobile) {
     return (
+      <>
       <div className="flex flex-col h-full">
         <div className="sticky top-0 z-10 bg-background border-b px-3 py-2 space-y-2">
           <div className="flex items-center justify-between">
@@ -224,11 +235,14 @@ export default function DistributionOrdersPage() {
           )}
         </div>
       </div>
+      {QuickDialog}
+      </>
     )
   }
 
   // Desktop
   return (
+    <>
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -279,6 +293,8 @@ export default function DistributionOrdersPage() {
         )}
       </div>
     </div>
+    {QuickDialog}
+    </>
   )
 }
 

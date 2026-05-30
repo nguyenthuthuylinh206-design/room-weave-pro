@@ -1,6 +1,16 @@
 {
-  "current": "1.1.9",
+  "current": "1.1.10",
   "versions": [
+    {
+      "version": "1.1.10",
+      "releaseDate": "2026-05-30",
+      "title": "Phiếu giao hàng: mở popup khi click thay vì chuyển trang",
+      "changes": [
+        { "type": "improvement", "text": "Click vào dòng phiếu giao hàng mở popup chi tiết ngay tại chỗ, không cần chuyển trang qua lại" },
+        { "type": "improvement", "text": "Popup giữ đủ thao tác: phân công, chỉnh sửa, in, huỷ phiếu; còn nút Mở trang đầy đủ khi cần" },
+        { "type": "improvement", "text": "Mobile dùng bottom sheet 92vh, desktop dùng dialog 88vh để xử lý nhanh nhiều phiếu liên tiếp" }
+      ]
+    },
     {
       "version": "1.1.9",
       "releaseDate": "2026-05-30",
