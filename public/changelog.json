@@ -1,6 +1,16 @@
 {
-  "current": "1.1.6",
+  "current": "1.1.7",
   "versions": [
+    {
+      "version": "1.1.7",
+      "releaseDate": "2026-05-30",
+      "title": "Hub Kho: menu nội bộ đủ mục như sidebar cũ",
+      "changes": [
+        { "type": "fix", "text": "Thêm menu nội bộ trong /inventory theo đúng nhóm cũ: Tổng quan, Sản phẩm, Xuất nhập kho, Phân tích, Thiết lập" },
+        { "type": "fix", "text": "Hiện rõ Phiếu giao hàng, Đề xuất nhập hàng, Bổ sung đồ và Quản lý kho trong Hub" },
+        { "type": "improvement", "text": "Các URL cũ như /inventory/distributions, /inventory/reorder, /supplements, /settings/warehouses tự mở đúng tab trong Hub" }
+      ]
+    },
     {
       "version": "1.1.6",
       "releaseDate": "2026-05-30",
