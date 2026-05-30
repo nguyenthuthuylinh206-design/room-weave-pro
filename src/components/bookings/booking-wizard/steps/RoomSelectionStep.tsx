@@ -83,9 +83,11 @@ export function RoomSelectionStep({
   state, 
   computed, 
   onToggleRoom, 
-  onUpdateRoomPrice 
+  onUpdateRoomPrice,
+  onApplyPricingV2,
 }: RoomSelectionStepProps) {
   const { isAllHotelsMode } = useHotelContext()
+  const [applying, setApplying] = useState(false)
   
   // Calculate availability dates based on booking type
   const availabilityDates = useMemo(() => {
