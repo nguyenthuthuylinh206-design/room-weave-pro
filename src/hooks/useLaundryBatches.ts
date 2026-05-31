@@ -6,6 +6,7 @@ import { useTenant } from './useTenant'
 import { toast } from './use-toast'
 import { isAdminUser } from '@/lib/userAccess'
 import { triggerWorkflow, WorkflowTriggerTypes } from '@/lib/triggerWorkflow'
+import { useShiftGuardedMutation } from './useGuardedMutation'
 import type { 
   LaundryBatchWithVendor, 
   LaundryBatchFilters,
@@ -168,7 +169,7 @@ export function useReceiveLaundryBatch() {
   const { user } = useUser()
   const { tenant } = useTenant()
   
-  return useMutation({
+  return useShiftGuardedMutation(useMutation({
     mutationFn: async ({
       batchId,
       data,
@@ -281,7 +282,7 @@ export function useReceiveLaundryBatch() {
         variant: 'destructive',
       })
     },
-  })
+  }))
 }
 
 export function useUpdateBatchStatus() {
@@ -304,7 +305,7 @@ export function useUpdateBatchStatus() {
     stocked: 'Đã nhập kho'
   }
   
-  return useMutation({
+  return useShiftGuardedMutation(useMutation({
     mutationFn: async ({
       batchId,
       status,
@@ -368,7 +369,7 @@ export function useUpdateBatchStatus() {
         variant: 'destructive',
       })
     },
-  })
+  }))
 }
 
 export function useUpdateBatchCost() {
@@ -425,7 +426,7 @@ export function useStockInFromLaundry() {
   const { user } = useUser()
   const { selectedHotel } = useHotelContext()
   
-  return useMutation({
+  return useShiftGuardedMutation(useMutation({
     mutationFn: async ({
       batchId,
       batchCode,
@@ -594,5 +595,5 @@ export function useStockInFromLaundry() {
         variant: 'destructive',
       })
     }
-  })
+  }))
 }

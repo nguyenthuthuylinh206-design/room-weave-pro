@@ -9,6 +9,7 @@ import {
   triggerDistributionOrderCreated, 
   triggerDistributionOrderCancelled 
 } from './useNotificationTriggers'
+import { useShiftGuardedMutation } from './useGuardedMutation'
 
 export function useDistributionOrders(filters: DistributionFilters = {}, page = 1, pageSize = 25) {
   const { tenant } = useTenant()
@@ -187,7 +188,7 @@ export function useConfirmWarehouseDelivery() {
   const queryClient = useQueryClient()
   const { user } = useAuth()
 
-  return useMutation({
+  return useShiftGuardedMutation(useMutation({
     mutationFn: async ({ roomOrderId }: { roomOrderId: string }) => {
       if (!user?.id) throw new Error('User not authenticated')
 
@@ -207,7 +208,7 @@ export function useConfirmWarehouseDelivery() {
     onError: (error: Error) => {
       toast.error(error.message || 'Không thể xác nhận xuất kho')
     },
-  })
+  }))
 }
 
 interface UpdateDistributionData {

@@ -5,6 +5,7 @@ import { useUser } from './useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { isAdminUser } from '@/lib/userAccess'
 import { triggerWorkflow, WorkflowTriggerTypes } from '@/lib/triggerWorkflow'
+import { useShiftGuardedMutation } from './useGuardedMutation'
 
 export interface MaintenanceRequest {
   id: string
@@ -332,7 +333,7 @@ export function useAcceptRequest() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  return useMutation({
+  return useShiftGuardedMutation(useMutation({
     mutationFn: async (id: string) => {
       // Validate: only from 'waiting' -> 'pending'
       await validateStatusTransition(id, 'pending')
@@ -365,14 +366,14 @@ export function useAcceptRequest() {
         variant: 'destructive',
       })
     },
-  })
+  }))
 }
 
 export function useStartRequest() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  return useMutation({
+  return useShiftGuardedMutation(useMutation({
     mutationFn: async (id: string) => {
       // Validate: only from 'pending' -> 'in_progress'
       await validateStatusTransition(id, 'in_progress')
@@ -405,7 +406,7 @@ export function useStartRequest() {
         variant: 'destructive',
       })
     },
-  })
+  }))
 }
 
 export function useCompleteRequest() {
@@ -413,7 +414,7 @@ export function useCompleteRequest() {
   const queryClient = useQueryClient()
   const { user, tenantId } = useUser()
 
-  return useMutation({
+  return useShiftGuardedMutation(useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
       // Validate: only from 'in_progress' -> 'completed'
       await validateStatusTransition(id, 'completed')
@@ -464,14 +465,14 @@ export function useCompleteRequest() {
         variant: 'destructive',
       })
     },
-  })
+  }))
 }
 
 export function useCancelRequest() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  return useMutation({
+  return useShiftGuardedMutation(useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
       // Validate: from 'waiting', 'pending', or 'in_progress' -> 'cancelled'
       await validateStatusTransition(id, 'cancelled')
@@ -503,5 +504,5 @@ export function useCancelRequest() {
         variant: 'destructive',
       })
     },
-  })
+  }))
 }

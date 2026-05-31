@@ -22,8 +22,12 @@ Chặn thao tác vận hành khi nhân viên chưa vào ca. Gate áp dụng cho 
 | Mutation | `src/hooks/useTaskTransition.ts` | wrap `mutate`/`mutateAsync` qua `guard()` |
 | Mutation | `src/hooks/useBookingActions.ts` | wrap `handleCheckIn`/`handleCheckOut` thành `guardedCheckIn/Out` |
 | Mutation | `src/components/inventory/outbound/shared/useOutboundSubmit.ts` | bọc body `submit()` trong `guard(() => { ... })` |
+| Helper | `src/hooks/useGuardedMutation.ts` — `useShiftGuardedMutation(mutation)` wrap bất kỳ `UseMutationResult` nào |
+| Laundry | `useReceiveLaundryBatch`, `useUpdateBatchStatus`, `useStockInFromLaundry` | qua `useShiftGuardedMutation` |
+| Maintenance | `useAcceptRequest`, `useStartRequest`, `useCompleteRequest`, `useCancelRequest` | qua `useShiftGuardedMutation` |
+| Distribution | `useConfirmWarehouseDelivery` | qua `useShiftGuardedMutation` |
 
-Các điểm khác (laundry batch transitions, room status transitions, maintenance) chưa wrap trực tiếp — nếu cần thêm về sau, gọi `useRequireShift().guard(fn)` trước khi `mutate`.
+Các mutation thuần cấu hình / quản lý (tạo lô giặt từ chủ buồng, update cost, cancel order...) **không** wrap để admin/owner thao tác không bị chặn.
 
 ## Rules
 
