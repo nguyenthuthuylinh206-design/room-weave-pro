@@ -186,6 +186,8 @@ export function RoomFloorMapView({
   const [search, setSearch] = useState('')
   const transitionRoom = useRoomTransition()
   const cellSize = useFloorMapCellSize(selectedHotel?.id)
+  const { data: todayPrices } = useTodayPricesByHotel(selectedHotel?.id)
+
 
   const handleLiftStatus = (e: React.MouseEvent, room: FloorPlanRoom) => {
     e.stopPropagation()
