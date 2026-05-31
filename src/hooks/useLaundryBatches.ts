@@ -6,6 +6,7 @@ import { useTenant } from './useTenant'
 import { toast } from './use-toast'
 import { isAdminUser } from '@/lib/userAccess'
 import { triggerWorkflow, WorkflowTriggerTypes } from '@/lib/triggerWorkflow'
+import { useShiftGuardedMutation } from './useGuardedMutation'
 import type { 
   LaundryBatchWithVendor, 
   LaundryBatchFilters,
