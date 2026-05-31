@@ -465,7 +465,7 @@ export function useCompleteRequest() {
         variant: 'destructive',
       })
     },
-  })
+  }))
 }
 
 export function useCancelRequest() {
