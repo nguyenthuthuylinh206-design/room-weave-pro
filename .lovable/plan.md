@@ -1,127 +1,294 @@
-## Mục tiêu
+## Kết quả rà soát logic giá hiện tại
 
-Hợp nhất 4 mảnh đang rời rạc thành **một đường ống giá thống nhất**:
+### 1) Luồng giá đang tồn tại
 
-```
-Danh sách phòng (rooms.room_type)
-        │ sync
-        ▼
-   room_types (UUID, single source of truth)
-        │
-        ▼
-Giá mặc định (room_type_rates.daily_rate)  ◄── basePrice
-        │
-        ▼
-Quy tắc mùa (seasonal_rate_overrides) ──► overlay theo ngày
-        │
-        ▼
-Override ngày cụ thể (rate_plan_daily_prices)
-        │
-        ▼
-  resolve_daily_price(date, room_type_id) → giá cuối
-        │
-        ▼
-   Booking engine + Lịch giá grid (cùng 1 nguồn)
+```text
+Giá mặc định
+room_type_rates.daily_rate
+        ↓
+Gói giá tiêu chuẩn
+rate_plans.price
+        ↓
+Lịch giá theo ngày
+rate_plan_daily_prices.price / sale_price / is_closed
+        ↓
+Quy tắc mùa
+seasonal_rate_overrides
+        ↓
+RPC tính giá cuối
+resolve_daily_prices_bulk / resolve_today_prices_for_hotel
+        ↓
+UI hiển thị
+Lịch giá theo ngày / Danh sách phòng / Sơ đồ phòng / Dialog lễ tân
 ```
 
-Hiện tại 4 mảnh đứng độc lập: Lịch giá grid chỉ hiện `basePrice` + override, **không thấy** ảnh hưởng của quy tắc mùa; booking engine cũng chưa wire seasonal rules.
+### 2) Những phần đang khớp
 
-## Khoảng trống đang có
+- Tab **Giá mặc định** đang lưu vào `room_type_rates` theo từng hạng phòng.
+- Tab **Lịch giá theo ngày** đã gọi `resolve_daily_prices_bulk` và hiện đúng giá cuối trong grid.
+- Health banner đang báo đúng: khách sạn đang xem có **2/2 hạng phòng đã có giá mặc định**.
+- Dữ liệu network cho `/settings/pricing?tab=daily` cho thấy RPC `resolve_daily_prices_bulk` trả giá hợp lệ:
+  - Base: `2.066.666,64đ`
+  - Ngày 01/06 có override: `2.500.000đ`
 
+### 3) Lỗi chính đang làm “hiển thị giá không khớp / không thấy giá”
 
-| #   | Vấn đề                                                                              | Hậu quả                                                    |
-| --- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| 1   | `rooms.room_type` (text) vs `room_types` (UUID) — chỉ sync 1 chiều, không có FK     | Đổi tên/xóa hạng phòng ở Rooms không cascade sang pricing  |
-| 2   | Lịch giá theo ngày **không preview** seasonal rule đang áp dụng                     | User không biết tại sao 1 ngày Tết lại có giá khác kỳ vọng |
-| 3   | Không có resolver chung — mỗi nơi (grid, booking, report) tự tính giá               | Nguy cơ lệch số liệu giữa các module                       |
-| 4   | Giá mặc định = 0 vẫn tạo được rate_plan, ngày trên grid hiện "0₫" mà không cảnh báo | Dễ bán nhầm giá 0                                          |
-| 5   | 3 tab giá hoàn toàn độc lập, không có link/CTA chéo                                 | User phải đoán quy trình                                   |
-| 6   | Không có dialog "Hạng phòng X chưa có giá mặc định" khi mở grid                     | UX khó hiểu                                                |
+#### Lỗi A — RPC `resolve_today_prices_for_hotel` đang hỏng thật
 
+Khi gọi trực tiếp RPC hiện tại, database trả lỗi:
 
-## Phạm vi triển khai
+```text
+column notation .base_price applied to type jsonb, which is not a composite type
+```
 
-### A. Kiến trúc nghiệp vụ
+Nguyên nhân:
+- Migration gần nhất đổi `resolve_today_prices_for_hotel` dùng `to_jsonb(x) AS row`.
+- Sau đó lại đọc `(r.row).base_price`, `(r.row).final_price` như kiểu composite.
+- `r.row` thực tế là `jsonb`, nên cú pháp đó sai.
 
-**Đường ống giá cuối cùng cho 1 (ngày, room_type, apply_to)**:
+Ảnh hưởng:
+- `useTodayPricesByHotel()` gọi RPC này sẽ fail.
+- Vì hook fail nên `todayPrices` không có dữ liệu.
+- **Danh sách phòng** và **Sơ đồ phòng** không thể hiện “Giá hôm nay”.
+- Đây là lý do người dùng “chưa thấy gì cả” ở các màn phòng.
 
-1. `override` = `rate_plan_daily_prices` của default plan cho ngày đó. Nếu có → dùng.
-2. Ngược lại: `base` = `room_type_rates.<apply_to>_rate` của hạng phòng.
-3. Áp tất cả `seasonal_rate_overrides` active match ngày + apply_to + room_type:
-  - Sắp theo `priority` ASC.
-  - Mode `overwrite` → dùng quy tắc priority thấp nhất, dừng.
-  - Mode `add_on` → stack `percent` rồi `fixed_amount`.
-4. Nếu `is_closed = true` ở override hoặc seasonal có flag close → trả `{closed: true}`.
+#### Lỗi B — Mapping hạng phòng vẫn chưa đủ chắc
 
-### B. Schema / Migration
+Dữ liệu thực tế:
 
-- Thêm RPC `resolve_daily_price(p_room_type_id, p_date, p_apply_to)` returns `{price, source, applied_rules[]}`.
-- Thêm RPC `resolve_daily_prices_bulk(p_room_type_id, p_from, p_to, p_apply_to)` cho grid (1 lần load nguyên tháng).
-- Trigger trên `room_types` DELETE → soft-delete (set `status='archived'`), không hard delete để giữ FK pricing.
-- Trigger trên `rooms` AFTER INSERT/UPDATE OF room_type → gọi `sync_room_types_from_rooms` cho hotel đó.
-- Thêm cột `room_types.linked_rooms_count` (computed via trigger) để UI hiển thị "Đang dùng cho N phòng".
+```text
+rooms.room_type = deluxe / standard
+room_types.name = Phòng Deluxe / Phòng Standard
+room_types.code = DLX / STD
+```
 
-### C. Hooks / API mới
+Hook đã map theo:
+- tên gốc: `phòng deluxe`
+- bỏ tiền tố: `deluxe`
+- code: `dlx`
 
-- `useResolvedDailyPrices(roomTypeId, from, to, applyTo)` — gọi `resolve_daily_prices_bulk`, return `{date → {finalPrice, basePrice, override, seasonals[]}}`.
-- `usePricingHealth(hotelId)` — đếm room_types thiếu default rate, rate_plans mồ côi, seasonal rules conflict (overlap ngày + cùng priority).
-- Refactor `usePricingDaily` để dùng resolver, không tự tính.
+Nhưng phần lọc và một số hiển thị vẫn dùng `room.room_type` trực tiếp. Cần gom thành 1 helper chuẩn dùng chung để tránh chỗ này sửa rồi chỗ khác vẫn lệch.
+
+#### Lỗi C — Giá mặc định và giá trên từng phòng đang là 2 hệ khác nhau
+
+Dữ liệu thực tế đang lệch:
+
+```text
+room_type_rates:
+- Phòng Deluxe: 2.066.666,64đ
+- Phòng Standard: 4.070.731,71đ
+
+rooms.base_price:
+- deluxe: 333.333đ → 2.000.000đ tùy phòng
+- standard: 1.100.000đ → 2.300.000đ tùy phòng
+```
+
+Nghĩa là:
+- Tab **Giá mặc định** lấy `room_type_rates`.
+- Cột giá cũ trong **Danh sách phòng** vẫn lấy `rooms.base_price` từng phòng.
+- Hai nguồn này chắc chắn không khớp.
+
+Ảnh hưởng:
+- Người dùng nhìn “Giá” và “Giá hôm nay” sẽ thấy khác nhau, dễ hiểu nhầm.
+- Nếu muốn hệ giá mới là chuẩn, cần ghi rõ hoặc thay cột giá cũ bằng “Giá phòng cũ / tham chiếu”, còn giá bán phải lấy từ resolver.
+
+#### Lỗi D — Tab Lịch giá chỉ hiện giá mùa khi không có override, nhưng chưa thống nhất nhãn nguồn
+
+Trong `PricingDailyPage.tsx`:
+- Cell dùng `getEffectivePriceForDate(plan, dailyPrices, d)` để lấy giá gói.
+- Nếu có seasonal thì mới lấy `resolvedDay.final_price`.
+- Logic ưu tiên hiện tại là: override theo ngày thắng seasonal.
+
+Điều này đúng với ý tưởng “Ngày > Mùa > Mặc định”, nhưng UI cần hiện rõ nguồn:
+- Giá mặc định
+- Điều chỉnh mùa
+- Tùy chỉnh theo ngày
+- Đóng bán
+
+Hiện tại có chấm màu nhưng chưa đủ rõ, đặc biệt khi giá hiển thị bằng dạng rút gọn `2.1tr`.
+
+#### Lỗi E — Dialog lễ tân vẫn hiển thị giá cũ
+
+`ReceptionQuickDialog.tsx` phần phòng trống đang hiển thị:
+
+```text
+r?.base_price
+r?.hourly_price
+r?.monthly_price
+```
+
+Các trường này lấy từ chi tiết phòng / legacy, không đi qua pipeline giá mới.
+
+Ảnh hưởng:
+- Sơ đồ phòng có thể sửa để hiện giá hôm nay, nhưng khi click vào phòng, dialog lại hiện giá khác hoặc trống.
+
+#### Lỗi F — Gói giá tiêu chuẩn chỉ có cho Deluxe, Standard chưa có `rate_plans`
+
+Dữ liệu hiện tại:
+
+```text
+rate_plans chỉ có 1 row:
+- Phòng Deluxe / Giá tiêu chuẩn / 2.066.666,64đ
+```
+
+Standard chưa có `rate_plans`, dù `room_type_rates` đã có giá.
+
+Hiện tại `useRatePlans()` tạo gói ảo trên client khi chưa có gói thật, nên tab Lịch giá vẫn có thể hoạt động. Nhưng các phần đọc `rate_plans` trực tiếp hoặc daily override theo plan sẽ thiếu ổn định.
+
+### 4) Kết luận dễ hiểu
+
+Hiện app có **2 vấn đề lớn**:
+
+1. **Hàm lấy “Giá hôm nay” cho các màn phòng đang lỗi SQL**, nên UI không có dữ liệu để hiển thị.
+2. **Nguồn giá chưa thống nhất**: một số màn lấy giá mới từ `room_type_rates/rate_plans`, một số màn vẫn lấy `rooms.base_price` cũ.
+
+Do đó điều chỉnh ở tab giá có thể đúng, nhưng khi sang danh sách phòng / sơ đồ phòng / popup lễ tân thì không khớp hoặc không hiện.
+
+---
+
+## Kế hoạch sửa đề xuất
+
+### A. Kiến trúc / logic nghiệp vụ
+
+Chuẩn hóa pipeline giá thành 1 nguồn chính:
+
+```text
+Giá bán cuối = Giá mặc định theo hạng phòng
+             → áp Quy tắc mùa nếu có
+             → bị ghi đè bởi Giá theo ngày nếu có
+             → bị Đóng bán nếu availability hoặc daily override đóng
+```
+
+Quy ước hiển thị:
+- **Giá hôm nay** = giá bán cuối từ resolver.
+- **Giá mặc định** = giá nền từ `room_type_rates`.
+- **Giá phòng cũ / base_price trên rooms** chỉ là dữ liệu legacy, không dùng làm giá bán chính.
+
+### B. Schema / migration
+
+Thêm migration sửa `resolve_today_prices_for_hotel`:
+- Không dùng `to_jsonb` sai kiểu nữa.
+- Join trực tiếp `resolve_daily_prices_bulk(...) AS x` và đọc `x.base_price`, `x.final_price`, `x.seasonals`.
+- Trả đủ:
+  - `room_type_id`
+  - `room_type_name`
+  - `room_type_code`
+  - `base_price`
+  - `final_price`
+  - `has_seasonal`
+  - `has_override`
+  - `is_closed`
+- Thêm kiểm tra tenant/hotel an toàn.
+
+Không tạo bảng mới.
+
+### C. API / RPC / server actions
+
+Sửa / củng cố:
+- `resolve_today_prices_for_hotel`: dùng được cho Danh sách phòng, Sơ đồ phòng, dialog lễ tân.
+- `resolve_daily_prices_bulk`: giữ làm nguồn chuẩn cho lịch ngày.
+- Cân nhắc bổ sung sau: RPC `resolve_room_price_for_date(room_id, date, booking_type)` để đặt phòng dùng đúng giá theo từng ngày.
 
 ### D. UI screens / components
 
-**1. Lịch giá theo ngày — overlay seasonal**
+Sửa các màn sau:
 
-- Mỗi ô ngày: hiện `finalPrice`. Khi có seasonal áp → badge nhỏ góc trên-phải (chấm màu + tooltip "Tết 2026 +20%").
-- Header grid thêm strip "Đang áp 2 quy tắc mùa trong khoảng này" + nút "Xem chi tiết" mở Sheet liệt kê.
-- Popover sửa giá: thêm dòng "Giá nền: X · Mùa: +20% · Cuối cùng: Y" để user hiểu họ đang ghi đè cái gì.
+1. **Danh sách phòng**
+   - Cột `Giá` hiện tại lấy `rooms.base_price`: đổi nhãn thành `Giá cũ` hoặc ẩn bớt.
+   - Cột `Giá hôm nay` lấy resolver; nếu lỗi hoặc chưa có giá thì hiện trạng thái rõ: `Chưa cấu hình` thay vì `-`.
+   - Hiện nguồn giá: `Mặc định`, `Mùa`, `Ngày`, `Đóng bán`.
 
-**2. Giá mặc định — link sang Lịch + Mùa**
+2. **Sơ đồ phòng**
+   - Sau khi sửa RPC, giá sẽ hiện lại.
+   - Dùng helper match hạng phòng chung để không lệch `deluxe` / `DLX` / `Phòng Deluxe`.
+   - Với phòng bán được: hiện giá hôm nay nổi bật hơn dòng `Sẵn sàng bán`.
 
-- Mỗi hàng room type thêm 2 link nhỏ: "Xem lịch 30 ngày →" và "Quy tắc mùa đang áp →" (filter trước trong tab tương ứng).
-- Empty state khi chưa có rate: CTA "Áp giá mẫu" (clone từ hạng phòng khác).
+3. **ReceptionQuickDialog**
+   - Thay giá legacy bằng giá từ pipeline:
+     - Theo ngày: resolver hôm nay.
+     - Theo giờ / tháng: lấy từ `room_type_rates` nếu có.
+   - Nếu đóng bán: hiện `Đóng bán hôm nay`.
 
-**3. Quy tắc mùa — preview ảnh hưởng**
+4. **Tab Lịch giá theo ngày**
+   - Giữ logic hiện tại nhưng làm nhãn nguồn rõ hơn:
+     - `Mặc định`
+     - `Mùa`
+     - `Tùy chỉnh ngày`
+   - Đảm bảo giá hiển thị full trong tooltip và rút gọn trong ô.
 
-- Form thêm khối "Xem trước": chọn 1 room_type + 1 ngày trong khoảng → hiện "Base 500.000 → Sau quy tắc 600.000".
-- Cảnh báo conflict: list quy tắc khác overlap ngày + cùng priority.
-- Filter theo room type ở list view.
+5. **Tab Giá mặc định**
+   - Sau lưu, invalidate thêm:
+     - `today-prices-by-hotel`
+     - `resolved-daily-prices`
+     - `rate-plans`
+     - `pricing-health`
+   - Như vậy các màn đang mở cập nhật lại ngay.
 
-**4. Quản lý phòng (Rooms) — hiển thị giá**
+### E. Permission / role rules
 
-- Bảng phòng thêm cột "Giá ngày hôm nay" (resolve từ pipeline), click → mở Lịch giá tab tương ứng.
-- Khi tạo/sửa phòng chọn `room_type` text → nếu room_type này chưa có row trong `room_types` → tự tạo + nhắc "Hãy cài giá mặc định".
+Không đổi quyền trong lượt này.
 
-**5. PricingHub — thanh điều hướng chéo**
+Giữ nguyên:
+- Người có quyền vào phần thiết lập giá mới chỉnh giá.
+- Danh sách phòng / sơ đồ phòng chỉ đọc giá theo quyền hiện có.
 
-- Mỗi tab header thêm breadcrumb-style: `Phòng (12) · Giá mặc định (3/4 hạng đã set) · Mùa (2 active)`.
-- Banner cảnh báo health: "2 hạng phòng chưa có giá mặc định" → click sang tab "Giá mặc định" pre-filter.
+### F. Test cases cần kiểm tra
 
-### E. Permission / role
+1. **RPC giá hôm nay**
+   - Gọi `resolve_today_prices_for_hotel(hotel_id, 'daily')` không lỗi.
+   - Trả đủ Deluxe và Standard.
+   - `final_price` khớp với `resolve_daily_prices_bulk` cho ngày hiện tại.
 
-- Giữ nguyên: chỉ Owner + Manager có `manage_pricing` mới sửa được. Staff read-only.
+2. **Giá mặc định**
+   - Sửa giá ở tab Giá mặc định.
+   - Lịch giá theo ngày đổi base price.
+   - Danh sách phòng / Sơ đồ phòng cập nhật `Giá hôm nay`.
 
-### F. Test cases
+3. **Giá theo ngày**
+   - Set giá ngày 01/06 = 2.500.000đ.
+   - Cell ngày đó hiện `2.5tr` và nguồn `Ngày`.
+   - Resolver trả `override_price = 2.500.000`.
 
-1. Tạo hạng phòng mới ở Rooms → xuất hiện ngay trong tab Giá mặc định và dropdown Lịch giá.
-2. Xóa room_type còn liên kết → bị chặn, gợi ý "Archive thay vì xóa".
-3. Tạo seasonal +20% cho Tết → mở Lịch giá ngày Tết → ô hiện giá đã +20% + badge.
-4. Override ngày cụ thể → seasonal bị bỏ qua cho ngày đó, badge hiện "Đã ghi đè thủ công".
-5. 2 seasonal rules cùng priority overlap → cảnh báo conflict trong form.
-6. Giá mặc định = 0 → Lịch giá hiện cảnh báo đỏ ô đó.
-7. Resolver bulk: load grid 60 ngày × 5 hạng < 500ms p95.
-8. Đổi tên `room_type` "Standard" → "Tiêu chuẩn" trong Rooms → trigger sync cập nhật `room_types.name`, mọi nơi đổi theo.
+4. **Quy tắc mùa**
+   - Tạo rule +10% cho Deluxe.
+   - Ngày trong rule hiện giá tăng và nguồn `Mùa`.
+   - Tắt rule thì giá quay về mặc định.
 
-### G. Rollout
+5. **Đóng bán**
+   - Đóng bán 1 ngày.
+   - Lịch giá, danh sách phòng, sơ đồ phòng cùng hiện `Đóng bán`.
 
-- **Phase 1** (migration): RPC resolver + bulk + triggers. Không đụng UI.
-- **Phase 2** (hooks): `useResolvedDailyPrices`, `usePricingHealth`. Wire vào grid (overlay seasonal).
-- **Phase 3** (UI cross-links): badges, breadcrumb, link CTAs, health banner.
-- **Phase 4** (Rooms integration): cột "Giá hôm nay" + auto-create room_type khi tạo phòng.
-- Feature flag `pricing.unified_pipeline` (default ON cho tenant mới, opt-in cho tenant cũ).
-- Rollback: tắt flag → grid quay về dùng `basePrice + override` cũ; RPC vẫn còn nhưng không gọi.
+### G. Rollout notes
 
-### Câu hỏi cần xác nhận trước khi build
+- Không xóa `rooms.base_price` ngay vì đang là dữ liệu legacy và có thể còn dùng trong import / báo cáo cũ.
+- Chỉ chuyển UI vận hành sang đọc giá mới để tránh sai lệch.
+- Nếu sau này muốn dọn sạch, cần migration riêng để đồng bộ hoặc bỏ dần `rooms.base_price`.
 
-1. **Khi xóa hạng phòng còn phòng đang dùng** → bạn muốn (a) chặn hoàn toàn
-2. **Phòng tạo trong Rooms với room_type text mới** → có muốn tự động tạo row `room_types` 
-3. **Seasonal rules** áp dụng cho **booking engine ngay phase này**
+---
+
+## File dự kiến sửa
+
+- `supabase/migrations/...fix_resolve_today_prices_for_hotel.sql`
+- `src/hooks/usePricingDaily.ts`
+- `src/hooks/useRoomTypeRates.ts` hoặc hook/helper mới cho lookup giá theo room type
+- `src/components/rooms/RoomTable.tsx`
+- `src/components/rooms/RoomFloorMapView.tsx`
+- `src/components/rooms/ReceptionQuickDialog.tsx`
+- `src/pages/settings/PricingV2Page.tsx`
+- `public/changelog.json`
+- `src/lib/app-version.ts`
+
+## Migration đã xác định cần thêm
+
+- Sửa RPC `resolve_today_prices_for_hotel` do hiện đang lỗi SQL khi đọc jsonb.
+
+## Test sẽ viết / chạy
+
+- Ưu tiên kiểm tra bằng database read query cho RPC.
+- Kiểm tra UI qua network/preview sau khi sửa.
+- Nếu codebase có test sẵn cho pricing, bổ sung test helper mapping hạng phòng.
+
+## Phần còn thiếu sau lượt sửa này
+
+- Booking engine quote theo từng đêm vẫn cần một lượt riêng để dùng `resolve_daily_prices_bulk` khi tạo booking mới.
+- Cần quyết định lâu dài với `rooms.base_price`: giữ làm tham chiếu hay migration sang hệ giá mới.
