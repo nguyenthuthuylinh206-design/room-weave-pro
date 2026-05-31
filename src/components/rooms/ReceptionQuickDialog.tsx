@@ -554,12 +554,15 @@ export function ReceptionQuickDialog({ open, onOpenChange, room, onBookRoom, onO
                     <Button
                       variant="outline"
                       className="flex-1"
-                      onClick={() => { onOpenChange(false); navigate(`/bookings/new?roomId=${room.id}&mode=checkin`) }}
+                      onClick={() => { onOpenChange(false); navigate(`/bookings?action=new`) }}
                     >
                       Check-in nhanh
                     </Button>
                   )}
-                  <Button className="flex-1" onClick={() => { onOpenChange(false); onBookRoom(room.id, room.room_number) }}>
+                  <Button
+                    className="flex-1"
+                    onClick={() => { onOpenChange(false); navigate(`/bookings?action=new`) }}
+                  >
                     Đặt phòng
                   </Button>
                 </>
