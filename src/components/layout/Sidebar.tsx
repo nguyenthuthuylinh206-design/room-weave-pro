@@ -199,27 +199,38 @@ const navigation: NavItem[] = [
     roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
     minMode: 'homestay',
     children: [
-      { titleKey: 'generalSettings', href: '/settings/general', icon: Settings, group: 'Hệ thống' },
-      { titleKey: 'hotels', href: '/settings/hotels', icon: Building2, group: 'Hệ thống' },
+      // Tài khoản
       { titleKey: 'usersPermissions', href: '/settings/users', icon: Users, minMode: 'standard', group: 'Tài khoản' },
       { titleKey: 'changePassword', href: '/settings/change-password', icon: KeyRound, group: 'Tài khoản' },
-      { titleKey: 'subscription', href: '/settings/subscription', icon: CreditCard, group: 'Thanh toán' },
-      { titleKey: 'usage', href: '/settings/usage', icon: BarChart3, minMode: 'standard', group: 'Thanh toán' },
-      { titleKey: 'notifications', href: '/settings/notifications', icon: Bell, group: 'Thông báo' },
-      { titleKey: 'telegram', href: '/settings/telegram', icon: MessageCircle, group: 'Thông báo' },
-      { titleKey: 'businessConfig', href: '/settings/business', icon: Briefcase, minMode: 'standard', group: 'Nghiệp vụ' },
-      { titleKey: 'roomCheckSettings', href: '/settings/room-check', icon: ClipboardCheck, group: 'Nghiệp vụ' },
-      { titleKey: 'pricingRules', href: '/settings/pricing-rules', icon: DollarSign, minMode: 'standard', group: 'Nghiệp vụ' },
-      { titleKey: 'pricingV2', href: '/settings/pricing', icon: DollarSign, minMode: 'standard', group: 'Nghiệp vụ' },
-      { titleKey: 'seasonalRules', href: '/settings/pricing/seasonal', icon: CalendarRange, minMode: 'standard', group: 'Nghiệp vụ' },
-      { titleKey: 'bcaConfig', href: '/settings/legal/stay-registration', icon: ShieldCheck, group: 'Pháp lý' },
-      { titleKey: 'automation', href: '/settings/workflows', icon: Zap, minMode: 'full', group: 'Nghiệp vụ' },
+
+      // Khách sạn
+      { titleKey: 'hotelsSettings', href: '/settings/hotels', icon: Building2, group: 'Khách sạn' },
+      { titleKey: 'hotelPolicy', href: '/settings/hotel-policy', icon: ScrollText, minMode: 'standard', group: 'Khách sạn' },
+      { titleKey: 'businessConfig', href: '/settings/business', icon: Briefcase, minMode: 'standard', group: 'Khách sạn' },
+
+      // Bảng giá & Phụ thu
+      { titleKey: 'pricingV2', href: '/settings/pricing', icon: DollarSign, minMode: 'standard', group: 'Bảng giá & Phụ thu' },
+      { titleKey: 'seasonalRules', href: '/settings/pricing/seasonal', icon: CalendarRange, minMode: 'standard', group: 'Bảng giá & Phụ thu' },
+      { titleKey: 'pricingRules', href: '/settings/pricing-rules', icon: DollarSign, minMode: 'standard', group: 'Bảng giá & Phụ thu' },
+
+      // Vận hành
+      { titleKey: 'roomCheckSettings', href: '/settings/room-check', icon: ClipboardCheck, group: 'Vận hành' },
+      { titleKey: 'automation', href: '/settings/workflows', icon: Zap, minMode: 'full', group: 'Vận hành' },
+      { titleKey: 'bcaConfig', href: '/settings/legal/stay-registration', icon: ShieldCheck, group: 'Vận hành' },
+
+      // Thanh toán & Gói
+      { titleKey: 'subscription', href: '/settings/subscription', icon: CreditCard, group: 'Thanh toán & Gói' },
+      { titleKey: 'usage', href: '/settings/usage', icon: BarChart3, minMode: 'standard', group: 'Thanh toán & Gói' },
+
+      // Hệ thống
+      { titleKey: 'generalSettings', href: '/settings/general', icon: Settings, group: 'Hệ thống' },
+      { titleKey: 'notifications', href: '/settings/notifications', icon: Bell, group: 'Hệ thống' },
+      { titleKey: 'telegram', href: '/settings/telegram', icon: MessageCircle, group: 'Hệ thống' },
       { titleKey: 'aiSettings', href: '/settings/ai', icon: Brain, group: 'Hệ thống' },
       { titleKey: 'auditLog', href: '/settings/audit-log', icon: History, group: 'Hệ thống' },
-      { titleKey: 'assetGroupMigration', href: '/settings/asset-group-migration', icon: Package, minMode: 'standard', group: 'Nghiệp vụ' },
-      { titleKey: 'hotelPolicy', href: '/settings/hotel-policy', icon: ScrollText, minMode: 'standard', group: 'Nghiệp vụ' },
     ],
   },
+
 ]
 
 // Map navigation titles to permission modules
