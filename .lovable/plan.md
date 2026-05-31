@@ -1,93 +1,84 @@
+# Thống nhất luồng Check-in / Checkout
+
+## Vấn đề hiện tại
+
+Trong `ReceptionQuickDialog` (mở khi click ô phòng ở `/rooms?view=map`):
+- Nút **Checkout** → `navigate('/bookings/:id?action=checkout')` — chỉ điều hướng, KHÔNG có dialog xác nhận, KHÔNG tính phụ thu trễ giờ, KHÔNG xử lý group booking, KHÔNG kiểm tra quá hạn. URL `?action=checkout` thậm chí không được handle ở trang chi tiết.
+- Nút **Checkin nhanh** → `navigate('/bookings/new?roomId=...&mode=checkin')` — mở wizard tạo booking mới chứ không phải check-in booking đã đặt trước.
+
+Trong khi đó `BookingsPage` có luồng đầy đủ:
+- `handleCheckInClick`: validate ngày, trạng thái phòng → dialog xác nhận có điều chỉnh phụ thu sớm → `perform_checkin` RPC.
+- `handleCheckOutClick`: detect group booking → `GroupCheckoutDialog`; detect quá hạn → `ExtendBookingDialog`; tính chi phí (late/overtime/damage/service) → `CheckoutSummaryDialog` → `perform_checkout`.
+
 ## Mục tiêu
-Cập nhật toàn bộ flow **Đặt phòng** để không còn lấy `rooms.base_price/hourly_price/monthly_price` làm giá cũ. Logic mới chỉ còn 3 loại:
 
-| Loại đặt | Giá dùng trong booking | Quy tắc |
-|---|---|---|
-| Giá đêm | `room_type_rates.daily_rate` + seasonal/daily override theo ngày đặt | Linh hoạt |
-| Giá giờ | `room_type_rates.hourly_rate` + block giờ đầu nếu có | Cố định |
-| Giá tháng | `room_type_rates.monthly_rate` | Cố định |
+Mọi điểm trigger Check-in/Checkout trong app dùng **cùng một logic** và **cùng dialog**.
 
-Nếu loại phòng chưa có `room_type_rates`: hiển thị `—` và nút **Cấu hình giá**, không fallback sang giá cũ.
+## Cách làm
 
-## Những gì reuse
-- Reuse `useAvailableRooms` làm nguồn danh sách phòng trống.
-- Reuse `calculate_booking_price` RPC để tính giá chính xác theo khoảng ngày/giờ khi chọn phòng.
-- Reuse `resolve_daily_prices_bulk` cho giá đêm theo từng ngày, để daily booking nhiều đêm không chỉ lấy “giá hôm nay”.
-- Reuse `priceBreakdown` đang lưu vào `room_bookings.price_breakdown`.
-- Reuse UI wizard hiện tại: `RoomSelectionStep`, `PaymentStep`, `ReviewStep`.
+### A. Kiến trúc
 
-## Cần refactor
-1. `useAvailableRooms.ts`
-   - Bỏ đọc `base_price`, `hourly_price`, `monthly_price` từ `rooms` cho booking.
-   - Join/resolve sang `room_types` và `room_type_rates` theo `tenant_id + hotel_id + room_type`.
-   - Thêm field giá mới vào `AvailableRoom`: `room_type_id`, `nightly_price`, `hourly_rate`, `hourly_first_block_*`, `monthly_rate`, `pricing_configured`.
+Trích logic từ `BookingsPage` thành **`BookingCheckoutProvider`** (Context + hook `useBookingCheckoutFlow`) đặt ở `src/contexts/BookingCheckoutContext.tsx`. Provider:
+- Sở hữu toàn bộ state: `actionBooking`, `showCheckinConfirm`, `showCheckoutSummary`, `showExtendDialog`, `showGroupCheckoutDialog`, `showGroupPaymentDialog`, `checkoutCostBreakdown`, `checkoutDamageItems`, `checkoutServiceDetails`, `suggestedEarlyCharge`, `minimizedCheckouts`, `selectedGroupId`.
+- Render toàn bộ dialog: `CheckinConfirmDialog`, `CheckoutSummaryDialog`, `ExtendBookingDialog`, `GroupCheckoutDialog`, `GroupPaymentDialog`, `MinimizedCheckoutWidget`.
+- Expose 2 hàm chính: `triggerCheckIn(booking)`, `triggerCheckOut(booking)` — gói nguyên logic `handleCheckInClick` / `handleCheckOutClick` hiện có (gồm validate, group detect, overdue detect, fetch chi phí, mở dialog tương ứng).
+- Lắng nghe `groupCounts` qua hook nội bộ để biết booking nào là group.
 
-2. `useBookingForm.ts`
-   - `toggleRoomSelection` không tự tính từ giá cũ nữa.
-   - Khi chọn phòng, tự gọi pricing resolver/RPC để set `customPrice` đúng theo booking type.
-   - Daily booking: tính theo `calculate_booking_price` hoặc resolved daily range; lưu `customPrice` là đơn giá trung bình/đêm và `priceBreakdown` là tổng đúng.
-   - Hourly booking: dùng fixed hourly/block từ `room_type_rates`, không chia `base_price / 4`.
-   - Monthly booking: dùng fixed monthly, không nhân `base_price * 25`.
-   - Validation step 2 chỉ hợp lệ khi phòng đã cấu hình giá và `customPrice > 0`.
+Mount provider ở `src/App.tsx` (bên trong `HotelProvider` và `RequireShiftProvider`) để dùng được ở mọi route.
 
-3. `RoomSelectionStep.tsx`
-   - Grid phòng hiển thị giá mới theo loại đặt:
-     - Giá đêm: giá đêm đã resolve cho ngày check-in/period.
-     - Giá giờ: giá cố định theo giờ hoặc block đầu.
-     - Giá tháng: giá cố định theo tháng.
-   - Nếu chưa cấu hình: hiển thị `—` + nút/link **Cấu hình giá**.
-   - Khi chọn phòng đang thiếu giá: không cho chọn hoặc toast yêu cầu cấu hình giá.
-   - Nút “Áp dụng giá theo bảng” có thể giữ lại như refresh/recalculate, nhưng không còn là bước bắt buộc để sửa giá cũ.
+### B. Refactor BookingsPage
 
-4. `PaymentStep.tsx` và `ReviewStep.tsx`
-   - Hiển thị breakdown đúng nguồn giá mới.
-   - Đổi nhãn “Theo ngày” thành “Theo đêm” cho thống nhất nghiệp vụ.
-   - Không để người dùng hiểu giá phòng đang lấy từ trường legacy.
+- Xoá toàn bộ state/handler/dialog liên quan checkout/checkin trong `BookingsPage.tsx` (~600 dòng).
+- Bookings table gọi `triggerCheckIn` / `triggerCheckOut` từ hook thay vì local handler.
+- Giữ nguyên các side-effect khác (filter, danh sách, group payment manual).
 
-## Schema / migration
-Thêm migration patch RPC `calculate_booking_price`:
-- Seasonal/daily override chỉ áp cho `p_booking_type = 'daily'`.
-- `hourly` và `monthly` chỉ đọc fixed rate, không áp seasonal.
-- Daily tính theo từng ngày trong khoảng đặt để nhận override/seasonal từng ngày, thay vì nhân giá ngày check-in cho toàn bộ booking.
-- Giữ `overnight_rate` trong DB để tương thích schema cũ nhưng không expose ở UI.
-- Không tạo bảng mới.
-- Không đụng `rooms.status` hoặc các cột FSM.
+### C. Cập nhật ReceptionQuickDialog
 
-## API / RPC
-- Patch `calculate_booking_price` để trả về JSON breakdown rõ hơn:
-  - `base`
-  - `units`
-  - `booking_type`
-  - `daily_lines` cho đặt theo đêm nếu nhiều ngày
-  - `subtotal`
-  - `total`
-  - `early_checkin_charge`
-  - `late_checkout_charge`
-- Frontend gọi RPC này ngay khi chọn phòng và khi bấm “Áp dụng giá theo bảng”.
+Trong block `isOccupied && bk`:
+- Nút **Checkout** → lấy full booking object qua `useQuery(['booking-detail', bk.id])` (đã có pattern), rồi gọi `triggerCheckOut(booking)`.
+- Trong block trống:
+  - Nếu phòng có booking sắp đến hôm nay (`detail.upcomingBooking`) → nút **Check-in** gọi `triggerCheckIn(upcomingBooking)`.
+  - Nếu không có booking pending → giữ nút **Đặt phòng** (walk-in) như cũ.
+- Đóng dialog `ReceptionQuickDialog` trước khi trigger để tránh dialog chồng dialog.
 
-## UI screens / components
-- `RoomSelectionStep`: giá mới, fallback `—`, nút **Cấu hình giá**.
-- `PaymentStep`: tổng tiền và danh sách giá phòng theo giá mới.
-- `ReviewStep`: xác nhận giá theo “đêm/giờ/tháng”.
+### D. Các điểm trigger khác cần kiểm tra & migrate
 
-## Permission / role rules
-- Không thêm quyền mới.
-- Nút **Cấu hình giá** trỏ về `/settings/pricing?tab=default`; người không có quyền settings vẫn bị route/permission hiện tại chặn.
+- `RoomTable` actions dropdown — hiện chưa có checkout/checkin, không cần đổi.
+- `MobileRoomDetailPage` — đang `navigate('/rooms/:id/check?type=checkout')`, đó là luồng Room Check chứ không phải booking checkout → giữ nguyên.
+- `useBookingActions.handleCheckIn` (đang dùng trong 1 chỗ duy nhất ở chính hook) — đánh dấu deprecated, route qua provider mới.
 
-## Test cases
-Sẽ thêm/cập nhật test logic ở `src/lib/pricing.test.ts` hoặc test helper mới nếu phù hợp:
-1. Daily 1 đêm lấy giá theo `room_type_rates.daily_rate`.
-2. Daily nhiều đêm cộng theo từng ngày, ngày có override/seasonal dùng giá linh hoạt.
-3. Hourly dùng `hourly_rate`/first block, không fallback từ `base_price`.
-4. Monthly dùng `monthly_rate`, không fallback từ `base_price`.
-5. Missing `room_type_rates` làm booking không hợp lệ và UI hiển thị `—`.
+### E. Permission / role
 
-## Rollout notes
-- Đây là compatibility rollout: schema cũ vẫn tồn tại, nhưng booking mới không dùng giá cũ nữa.
-- Các phòng/loại phòng chưa có `room_type_rates` sẽ cần vào **Cấu hình giá** trước khi đặt.
-- Sau khi implement sẽ bump version/changelog theo quy ước release.
+Provider tôn trọng `useRequireShift().guard()` (đang được `useBookingActions` dùng) để chặn staff không vào ca trước khi gọi RPC.
 
-## Rollback checklist
-- Revert migration patch `calculate_booking_price` về version trước.
-- Revert các file booking wizard và `useAvailableRooms`.
-- Giữ nguyên dữ liệu `room_type_rates`, không cần rollback data.
+### F. Test cases
+
+1. Click ô phòng đang có khách (single booking) trên sơ đồ → Checkout → mở `CheckoutSummaryDialog` với cost breakdown giống hệt khi vào từ BookingsPage.
+2. Click ô phòng đang có khách thuộc group booking (>1 phòng) → Checkout → mở `GroupCheckoutDialog`.
+3. Click ô phòng quá hạn → Checkout → mở `ExtendBookingDialog` (đề nghị gia hạn hoặc checkout luôn).
+4. Click ô phòng trống có booking đến hôm nay → Check-in → mở `CheckinConfirmDialog` với phụ thu sớm tính đúng.
+5. Click ô phòng trống không có booking → chỉ thấy nút "Đặt phòng" (walk-in).
+6. Booking hourly/monthly: kiểm tra không bị tính phụ thu daily sai.
+7. Minimize checkout từ ReceptionQuickDialog → widget hiện ở góc → restore vẫn ra đúng dialog.
+
+### G. Rollout
+
+- Compatibility: provider mới + xoá code cũ trong cùng 1 PR, vì 2 entry point đều đi qua provider.
+- Bump `APP_VERSION` lên `1.1.35` + thêm entry `public/changelog.json`.
+- Không có thay đổi schema/DB.
+
+## File sẽ tạo / sửa
+
+**Tạo:**
+- `src/contexts/BookingCheckoutContext.tsx` — Provider + hook + tất cả dialog.
+
+**Sửa:**
+- `src/App.tsx` — wrap provider.
+- `src/pages/bookings/BookingsPage.tsx` — xoá state/handler/dialog, gọi hook.
+- `src/components/rooms/ReceptionQuickDialog.tsx` — thay 2 nút Checkout/Checkin bằng trigger từ hook.
+- `src/lib/app-version.ts`, `public/changelog.json` — bump version.
+
+## Còn thiếu / giả định
+
+- Giả định `ReceptionQuickDialog.detail` đã chứa đủ field booking cần cho checkout (room_price, deposit_amount, hourly_*, monthly_*, hotel_id, tenant_id…). Nếu thiếu sẽ fetch bổ sung qua `useQuery(['booking-detail', bk.id])` trước khi gọi trigger.
+- Chưa xử lý check-in cho danh sách nhiều booking pending cùng phòng cùng ngày (hiếm) — sẽ chọn booking gần nhất theo `check_in_date`.

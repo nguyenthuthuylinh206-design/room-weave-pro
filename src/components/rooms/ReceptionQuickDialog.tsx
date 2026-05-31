@@ -518,21 +518,55 @@ export function ReceptionQuickDialog({ open, onOpenChange, room, onBookRoom, onO
                 <Button variant="outline" className="flex-1" onClick={() => { onOpenChange(false); onOpenBookingDetail(bk.id) }}>
                   Chi tiết
                 </Button>
-                <Button className="flex-1" onClick={() => { onOpenChange(false); navigate(`/bookings/${bk.id}?action=checkout`) }}>
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    // Unified flow: dispatch to BookingsPage which owns the checkout dialogs
+                    // (group detection, overdue → ExtendDialog, summary + surcharges, …)
+                    onOpenChange(false)
+                    navigate(`/bookings?action=checkout&bookingId=${bk.id}`)
+                  }}
+                >
                   Checkout
                 </Button>
               </>
-            ) : (
-              <>
-                <Button variant="outline" className="flex-1" onClick={() => { onOpenChange(false); navigate(`/bookings/new?roomId=${room.id}&mode=checkin`) }}>
-                  Checkin nhanh
-                </Button>
-                <Button className="flex-1" onClick={() => { onOpenChange(false); onBookRoom(room.id, room.room_number) }}>
-                  Đặt phòng
-                </Button>
-              </>
-            )}
+            ) : (() => {
+              // Find a booking eligible for check-in today (status confirmed + check_in_date <= today)
+              const todayStr = format(new Date(), 'yyyy-MM-dd')
+              const pending = detail?.upcomingBookings?.find(
+                (b) => b.status === 'confirmed' && b.check_in_date <= todayStr
+              )
+              return (
+                <>
+                  {pending ? (
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        // Unified flow: validate + early-checkin dialog handled by BookingsPage
+                        onOpenChange(false)
+                        navigate(`/bookings?action=checkin&bookingId=${pending.id}`)
+                      }}
+                    >
+                      Check-in ({pending.guest_name})
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => { onOpenChange(false); navigate(`/bookings/new?roomId=${room.id}&mode=checkin`) }}
+                    >
+                      Check-in nhanh
+                    </Button>
+                  )}
+                  <Button className="flex-1" onClick={() => { onOpenChange(false); onBookRoom(room.id, room.room_number) }}>
+                    Đặt phòng
+                  </Button>
+                </>
+              )
+            })()}
           </div>
+
         </DialogContent>
       </Dialog>
 
