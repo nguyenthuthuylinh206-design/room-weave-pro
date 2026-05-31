@@ -369,7 +369,7 @@ export function useUpdateBatchStatus() {
         variant: 'destructive',
       })
     },
-  })
+  }))
 }
 
 export function useUpdateBatchCost() {
