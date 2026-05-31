@@ -1,6 +1,17 @@
 {
-  "current": "1.1.23",
+  "current": "1.1.24",
   "versions": [
+    {
+      "version": "1.1.24",
+      "date": "2026-05-31",
+      "title": "Lịch giá theo ngày — tự động kế thừa từ Quản lý phòng",
+      "highlights": [
+        "Khi chưa có gói giá riêng, Lịch giá tự động hiển thị 'Giá tiêu chuẩn' lấy từ Giá mặc định của hạng phòng",
+        "Số phòng để bán mặc định = số phòng vật lý đang có (đếm từ Quản lý phòng)",
+        "Lần đầu chỉnh sửa giá ngày sẽ tự tạo gói chuẩn trong DB (RPC ensure_default_rate_plan) — không cần thao tác thủ công",
+        "Cột rate_plans.is_default + unique index để mỗi hạng phòng chỉ có 1 gói mặc định"
+      ]
+    },
     {
       "version": "1.1.23",
       "date": "2026-05-31",
