@@ -745,32 +745,55 @@ export default function PricingDailyPage() {
                                   hasOverride={hasOverride}
                                   onSaved={refresh}
                                 >
-                                  <button
-                                    type="button"
-                                    title={`${format(d, 'EEEE, d/M/yyyy', { locale: vi })} — ${isClosed ? 'Đóng bán' : formatVNDFull(price)}${hasOverride ? ' (tùy chỉnh)' : ''}`}
-                                    className={cn(
-                                      'w-full px-1 py-1.5 cursor-pointer hover:bg-primary/10 transition-colors relative',
-                                      hasOverride && !isClosed && 'border-b-2 border-b-emerald-500/70',
-                                    )}
-                                  >
-                                    {isClosed ? (
-                                      <div className="flex flex-col items-center gap-0.5 text-destructive">
-                                        <Lock className="h-3 w-3" />
-                                        <span className="text-[10px] font-medium">Đóng</span>
-                                      </div>
-                                    ) : (
-                                      <>
-                                        <div className={cn('text-[11px] font-semibold leading-tight', isSale && 'text-emerald-700')}>
-                                          {formatVND(price)}
-                                        </div>
-                                        {isSale && basePrice && price != null && price < basePrice && (
-                                          <div className="text-[9px] text-muted-foreground line-through leading-tight">
-                                            {formatVND(basePrice)}
-                                          </div>
+                                  {(() => {
+                                    const resolvedDay = resolved.get(toDateKey(d))
+                                    const hasSeasonal = !hasOverride && !isClosed && (resolvedDay?.seasonals.length ?? 0) > 0
+                                    const seasonalLabel = hasSeasonal
+                                      ? resolvedDay!.seasonals.map(s =>
+                                          `${s.name}: ${s.mode === 'overwrite' ? '=' : (s.adjust_value >= 0 ? '+' : '')}${s.adjust_value}${s.adjust_type === 'percent' ? '%' : 'đ'}`
+                                        ).join(' · ')
+                                      : ''
+                                    return (
+                                      <button
+                                        type="button"
+                                        title={`${format(d, 'EEEE, d/M/yyyy', { locale: vi })} — ${isClosed ? 'Đóng bán' : formatVNDFull(price)}${hasOverride ? ' (tùy chỉnh)' : ''}${hasSeasonal ? ' · Mùa: ' + seasonalLabel : ''}`}
+                                        className={cn(
+                                          'w-full px-1 py-1.5 cursor-pointer hover:bg-primary/10 transition-colors relative',
+                                          hasOverride && !isClosed && 'border-b-2 border-b-emerald-500/70',
                                         )}
-                                      </>
-                                    )}
-                                  </button>
+                                      >
+                                        {hasSeasonal && (
+                                          <span className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-amber-500" aria-label="Có quy tắc mùa" />
+                                        )}
+                                        {isClosed ? (
+                                          <div className="flex flex-col items-center gap-0.5 text-destructive">
+                                            <Lock className="h-3 w-3" />
+                                            <span className="text-[10px] font-medium">Đóng</span>
+                                          </div>
+                                        ) : (
+                                          <>
+                                            <div className={cn(
+                                              'text-[11px] font-semibold leading-tight',
+                                              isSale && 'text-emerald-700',
+                                              hasSeasonal && !isSale && 'text-amber-700',
+                                            )}>
+                                              {formatVND(hasSeasonal ? Math.round(resolvedDay!.final_price) : price)}
+                                            </div>
+                                            {isSale && basePrice && price != null && price < basePrice && (
+                                              <div className="text-[9px] text-muted-foreground line-through leading-tight">
+                                                {formatVND(basePrice)}
+                                              </div>
+                                            )}
+                                            {hasSeasonal && !isSale && (
+                                              <div className="text-[9px] text-muted-foreground line-through leading-tight">
+                                                {formatVND(basePrice)}
+                                              </div>
+                                            )}
+                                          </>
+                                        )}
+                                      </button>
+                                    )
+                                  })()}
                                 </InlinePriceEditor>
                                 {isSingleSelected && (
                                   <span
