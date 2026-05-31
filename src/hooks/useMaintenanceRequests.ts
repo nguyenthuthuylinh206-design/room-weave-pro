@@ -5,6 +5,7 @@ import { useUser } from './useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { isAdminUser } from '@/lib/userAccess'
 import { triggerWorkflow, WorkflowTriggerTypes } from '@/lib/triggerWorkflow'
+import { useShiftGuardedMutation } from './useGuardedMutation'
 
 export interface MaintenanceRequest {
   id: string
