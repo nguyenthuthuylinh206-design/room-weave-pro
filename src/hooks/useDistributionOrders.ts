@@ -208,7 +208,7 @@ export function useConfirmWarehouseDelivery() {
     onError: (error: Error) => {
       toast.error(error.message || 'Không thể xác nhận xuất kho')
     },
-  })
+  }))
 }
 
 interface UpdateDistributionData {
