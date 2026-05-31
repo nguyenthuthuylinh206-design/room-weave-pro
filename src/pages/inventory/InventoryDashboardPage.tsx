@@ -224,18 +224,21 @@ export function InventoryDashboardPage() {
         type="button"
         onClick={() => setTab(item.tab, item.sub)}
         className={cn(
-          'w-full flex items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left text-sm transition-colors',
-          'hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          'group relative w-full flex items-center justify-between gap-2 pl-3 pr-2 py-1.5 text-left text-[13px] font-body transition-colors',
+          'hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           isActive
-            ? 'bg-primary text-primary-foreground font-medium hover:bg-primary'
-            : 'text-foreground'
+            ? 'bg-accent/50 text-foreground font-semibold'
+            : 'text-muted-foreground hover:text-foreground'
         )}
       >
+        {isActive && (
+          <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-r bg-steel" />
+        )}
         <span className="truncate">{item.label}</span>
         {badgeCount > 0 && (
           <Badge
             variant={isActive ? 'secondary' : 'outline'}
-            className="h-5 min-w-[20px] px-1.5 text-[10px] font-semibold tabular-nums"
+            className="h-4 min-w-4 px-1 text-[10px] font-display font-semibold tabular-nums"
           >
             {badgeCount > 99 ? '99+' : badgeCount}
           </Badge>
@@ -245,25 +248,26 @@ export function InventoryDashboardPage() {
   }
 
   const navContent = (
-    <div className="py-1">
+    <div className="py-2">
       {visibleMenuGroups.map((group, idx) => (
         <div
           key={group.title}
           className={cn(
-            'px-2 py-3',
-            idx > 0 && 'border-t border-border/60',
+            'px-2 py-2.5',
+            idx > 0 && 'border-t border-border/50',
           )}
         >
-          <div className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/80">
+          <div className="px-3 pb-1.5 font-body text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
             {group.title}
           </div>
-          <div className="space-y-0.5">
+          <div className="space-y-px">
             {group.items.map(renderMenuButton)}
           </div>
         </div>
       ))}
     </div>
   )
+
 
 
   return (
