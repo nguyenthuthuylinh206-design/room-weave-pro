@@ -1,6 +1,16 @@
 {
-  "current": "1.1.18",
+  "current": "1.1.19",
   "versions": [
+    {
+      "version": "1.1.19",
+      "date": "2026-05-31",
+      "title": "Tối ưu ghi nhận tồn kho khi giao thẳng",
+      "highlights": [
+        "Gộp 2 lần cập nhật tồn kho thành 1 khi tạo phiếu giao trực tiếp (Giao ngay)",
+        "Không còn bước chuyển dịch ảo qua trạng thái 'chờ' → log kiểm toán và biểu đồ tiêu thụ chính xác hơn",
+        "Luồng tạo phiếu thủ công (chờ duyệt) giữ nguyên: tồn kho → chờ"
+      ]
+    },
     {
       "version": "1.1.18",
       "date": "2026-05-30",
