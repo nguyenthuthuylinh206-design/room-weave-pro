@@ -18,6 +18,7 @@ import { FreeTrialPopup } from '@/components/promotions/FreeTrialPopup'
 import { AnnouncementHost } from '@/components/announcements/AnnouncementHost'
 import { ChatLauncher } from '@/components/chat/ChatLauncher'
 import { ChatPopupProvider } from '@/components/chat/ChatPopupContext'
+import { RequireShiftProvider } from '@/contexts/RequireShiftContext'
 import { ChatNotificationListener } from '@/components/chat/ChatNotificationListener'
 import { useUser } from '@/hooks/useUser'
 import { useGracePeriod } from '@/hooks/useGracePeriod'
@@ -123,15 +124,17 @@ export const MainLayout = () => {
 
   return (
     <HotelProvider>
-      <ChatPopupProvider>
-        <MainLayoutContent />
-        <PushNotificationPrompt />
-        <PWAUpdatePrompt />
-        <ChatLauncher />
-        <ChatNotificationListener />
-        <AnnouncementHost slot="popup" />
-        <FreeTrialPopup />
-      </ChatPopupProvider>
+      <RequireShiftProvider>
+        <ChatPopupProvider>
+          <MainLayoutContent />
+          <PushNotificationPrompt />
+          <PWAUpdatePrompt />
+          <ChatLauncher />
+          <ChatNotificationListener />
+          <AnnouncementHost slot="popup" />
+          <FreeTrialPopup />
+        </ChatPopupProvider>
+      </RequireShiftProvider>
     </HotelProvider>
   )
 }

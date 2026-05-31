@@ -1,96 +1,84 @@
+
 ## Mục tiêu
-Mỗi ô phòng trong Sơ đồ phòng (`/rooms?view=map`) hiện chỉ có số phòng + chấm màu + nhãn loại/tên rút gọn — không đủ để lễ tân ra quyết định nhanh. Cần:
 
-1. Hiển thị ngay ở **giữa ô**: tên khách, số người ở, số đêm còn lại, giá phòng/đêm.
-2. **Góc trên-trái**: badge ngắn nhãn trạng thái phòng (Sạch / Bẩn / DND / OOO / Còn trống…).
-3. Đổi bảng màu từ pastel nhạt sang **tông đậm có độ tương phản cao** (chữ trắng trên nền màu) để lễ tân nhìn từ xa.
+Staff và Department Manager (trưởng bộ phận) **bắt buộc** phải vào ca (`shift_start_at` còn mở, chưa từng kết thúc) mới được nhấn các nút thao tác vận hành: kiểm phòng (lean/quick/replenish/delivery), nhận/hoàn thành task housekeeping & maintenance, chuyển trạng thái phòng, giao đồ (distribution), thao tác laundry batch, check-in/out booking.
 
-Giữ nguyên: KPI bar, filter, group ring nhóm khách, badge đỏ "việc cần làm" góc phải-trên, hover quick actions, tooltip, click → ReceptionQuickDialog.
+Owner / Hotel Manager / Super Admin **không bị chặn** (chỉ cần xem giám sát).
 
-## Phạm vi file
-Sửa duy nhất `src/components/rooms/RoomFloorMapView.tsx` (frontend/UI only). Không đụng RPC, hook `useFloorPlanLive`, schema.
+Khi user chưa vào ca nhấn nút → mở **dialog "Bạn cần vào ca để tiếp tục"** với 2 nút: **Vào ca ngay** (gọi `useShiftCheckIn`) và **Hủy**. Vào ca thành công → tự động chạy lại hành động đang dở.
 
-## A. Logic nghiệp vụ hiển thị
-Với mỗi `room` (FloorPlanRoom):
+## A. Logic nghiệp vụ
 
-- **Nhãn trạng thái ngắn** (góc trên-trái): suy từ `getBucket(room)` + một số case đặc biệt
-  - `sellable` → "Trống"
-  - `due_out` → "Sắp trả"
-  - `dirty` → "Bẩn" (hoặc "Cần dọn" nếu `occupied_dirty`)
-  - `occupied` → "Đang ở"
-  - `blocked` → cụ thể hơn: `out_of_order` → "OOO", `out_of_service` → "OOS", `dnd` → "DND", `skipper` → "Bỏ trốn"
+- "Đã vào ca" = `myStatus.shift_start_at` không null **và** (`shift_end_at` null hoặc < `shift_start_at`). Không tính ca treo >16h (coi như chưa vào → phải vào lại).
+- "Cần gác cổng" (require shift) áp dụng khi `primaryRole ∈ { staff, department_manager }`.
+- Busy/offline-heartbeat **vẫn được** thao tác (không khắt khe presence).
 
-- **Trung tâm ô**:
-  - Nếu có `current_booking`:
-    - Dòng 1: Tên khách (lấy 2 từ cuối, truncate)
-    - Dòng 2: `{guest_count} khách · còn {nights} đêm` — `nights` = ceil((check_out_date - today) / 1 ngày), nếu ≤ 0 → "Trả hôm nay"
-    - Dòng 3 (nếu countdown < 24h): countdown `{hrs}h` hoặc "Trễ"
-  - Nếu không có booking nhưng có `next_booking`:
-    - Dòng 1: "Sắp đến: {tên rút gọn}"
-    - Dòng 2: thời gian đến (`formatArriveIn`)
-  - Nếu trống không booking:
-    - Dòng 1: loại phòng (uppercase)
-    - Dòng 2: giá phòng/đêm (lấy từ `current_booking?.total_amount` không có → cần thêm field giá vào ô. Phiên bản đầu chỉ hiện loại phòng nếu không có giá; **giả định: hook hiện chưa trả giá phòng theo loại** — ghi rõ TODO mở rộng RPC `get_floor_plan_live` ở vòng sau)
+## B. Schema / migration
 
-## B. Thiết kế thị giác (tông đậm, không pastel)
+Không cần migration. Tận dụng bảng `staff_status` + hook `useMyStaffStatus`, `useShiftCheckIn` sẵn có.
 
-Đổi `BUCKET_META` sang biến thể "solid":
+## C. API / hook mới
 
-```text
-sellable  → bg-emerald-600  text-white
-due_out   → bg-amber-600    text-white  (ô chớp viền cam khi hrs < 2)
-dirty     → bg-rose-600     text-white
-occupied  → bg-sky-700      text-white
-blocked   → bg-slate-700    text-white
+1. **`src/hooks/useRequireShift.ts`** (mới)
+   - `useRequireShift()` trả về `{ isOnShift, requiresShift, guard(action: () => void): void }`.
+   - `requiresShift` = role là staff/department_manager.
+   - `guard(fn)`: nếu không cần gác (manager+) hoặc đã on-shift → chạy `fn()`. Ngược lại → set `pendingAction` state và mở dialog (qua Zustand store nhẹ hoặc Context).
+2. **`src/contexts/RequireShiftProvider.tsx`** (mới)
+   - Provider bọc trong `MainLayout` cùng nhánh `isStaffUser`.
+   - State: `pendingAction | null`. Expose `request(fn)` và `clear()`.
+   - Render `<RequireShiftDialog />` ở cuối tree.
+3. **`src/components/staff/RequireShiftDialog.tsx`** (mới)
+   - Dialog tiếng Việt: tiêu đề "Bạn cần vào ca để tiếp tục", body giải thích, 2 nút: **Hủy** | **Vào ca ngay**.
+   - Nhấn Vào ca → `useShiftCheckIn().mutate(undefined, { onSuccess: () => { pendingAction?.(); clear(); } })`.
+   - Loading state trong khi mutate.
+
+## D. UI – chèn `guard()` ở các điểm thao tác
+
+Chỉ wrap **onClick handler**, không tháo dỡ logic. Áp dụng tại:
+
+| Module | File | Hành động |
+|---|---|---|
+| Room Check | `src/components/rooms/check-lean/QuickPathConfirmSheet.tsx`, `LeanOverview` "Bắt đầu kiểm", `submit_room_check_lean` trigger nút Hoàn tất | mở phiên / submit |
+| Room Check Router | `RoomCheckRouter.tsx` – chặn khi mount nếu chưa on-shift (redirect dashboard + dialog tự mở) | |
+| Housekeeping Tasks | `MyTasksList` action "Bắt đầu / Hoàn thành / Báo lỗi" | `transition_task_status` calls |
+| Maintenance | nút "Nhận việc / Hoàn thành" trong MaintenanceTaskCard | |
+| Distribution | `MobileOutboundForm` & `QuickOutboundDialog` nút "Tạo phiếu / Giao", `DistributionOrderCard` "Bắt đầu giao / Hoàn tất" | |
+| Laundry | `LaundryBatchCard` chuyển trạng thái (deliver/receive/stock) | |
+| Booking | `CheckInDialog` & `CheckoutDialog` nút xác nhận | |
+| Rooms FSM | `transition_room_status` UI (DND/OOS/Clean) trong RoomQuickActionsMenu | |
+
+Pattern dùng:
+```tsx
+const { guard } = useRequireShift()
+<Button onClick={() => guard(() => doStuff())}>...</Button>
 ```
 
-- Chữ chính dùng `text-white`, chữ phụ `text-white/80`.
-- Badge trạng thái góc trên-trái: `bg-white/15 text-white text-[9px] font-semibold uppercase tracking-wide rounded px-1.5 py-0.5 backdrop-blur`.
-- Badge "việc cần làm" giữ nguyên `bg-red-500` ring trắng (đã nổi sẵn).
-- Hover quick actions giữ nguyên (Unlock, History) — nền tối nhẹ để vẫn nhìn được.
-- Group ring nhóm khách: giữ `ring-2 ring-offset-1`, đổi sang các tông `ring-{fuchsia|cyan|lime|rose|violet|teal|yellow}-300` (sáng hơn để nổi trên nền đậm).
-- Khi `dim` (filter loại phòng không khớp): `opacity-40`.
+Mỗi file chỉ thêm 1 import + bọc handler — không đụng business logic.
 
-## C. Layout ô (giữ height đang có từ `useFloorMapCellSize`)
+## E. Permission / role rules
 
-```text
-┌────────────────────────────┐
-│ [STATUS]            [n]    │  ← góc trên-trái: badge status, góc trên-phải: badge tasks
-│                            │
-│      102                   │  ← số phòng to (text-white)
-│   Nguyễn Văn A             │  ← tên khách (truncate)
-│   2 khách · còn 2 đêm      │  ← guest_count + nights
-│                            │
-│         8h ← (nếu due_out) │  ← countdown
-└────────────────────────────┘
-```
+- `requiresShift = primaryRole === 'staff' || primaryRole === 'department_manager'`.
+- Super Admin / Owner / Hotel Manager: `guard` luôn pass-through, không bao giờ mở dialog.
 
-- Số phòng: dùng `cellSize.classes.numberCls` nhưng đổi `text-foreground` → `text-white`.
-- Bỏ chấm tròn lớn ở giữa (đã thay bằng nền đậm + badge text).
-- Nội dung dòng đáy auto co theo height ô (ẩn bớt khi ô nhỏ — `h < 90` chỉ hiển thị số phòng + status badge + tên khách).
+## F. Test cases (vitest)
 
-## D. Helper mới (cùng file)
+`src/hooks/useRequireShift.test.tsx`:
+1. staff chưa vào ca + guard → action không chạy, dialog mở.
+2. staff đã vào ca + guard → action chạy ngay.
+3. department_manager chưa vào ca → dialog mở.
+4. hotel_manager / owner → action chạy bất kể trạng thái.
+5. ca treo >16h coi như chưa vào ca → dialog mở.
+6. Sau khi mutate `useShiftCheckIn` success → `pendingAction` được gọi đúng 1 lần và `clear()` chạy.
 
-```ts
-function getStatusBadgeLabel(room: FloorPlanRoom): string
-function getNightsLeft(bk: FloorPlanBooking): number   // số đêm còn lại
-function getShortName(name: string): string             // 2 từ cuối
-```
+## G. Rollout
 
-## E. Test thủ công (QA checklist)
-1. Phòng trống sạch không booking → nền emerald đậm, badge "Trống", giữa hiển thị loại phòng.
-2. Phòng có khách đang ở → nền sky đậm, badge "Đang ở", giữa hiển thị tên + "2 khách · còn 3 đêm".
-3. Phòng checkout hôm nay với countdown < 24h → nền amber đậm, badge "Sắp trả", có countdown.
-4. Phòng OOO/OOS/DND → nền slate đậm, badge chính xác, không có thông tin khách.
-5. Phòng nhóm (group_id chung > 1 phòng) → vẫn có ring nhóm rõ trên nền đậm.
-6. Hover hiện quick actions không bị che bởi nền tối.
-7. Tooltip vẫn hiển thị đầy đủ (không sửa `RoomTooltip`).
-8. Cell size `sm/md/lg`: thông tin tự ẩn/hiện gọn gàng, không tràn.
+- Không cần feature flag (yêu cầu mặc định bật).
+- Bump `APP_VERSION` + `CURRENT_VERSION` + thêm entry changelog: "Bắt buộc vào ca trước khi thao tác nghiệp vụ (Staff & Trưởng bộ phận)".
+- Memory mới: `mem://features/staff-management/require-shift-gate-v1` mô tả gate + danh sách điểm chèn.
+- QA checklist: mỗi module ở bảng trên — đăng nhập Staff chưa vào ca → bấm nút → dialog hiện → Vào ca → action chạy tiếp.
+- Rollback: gỡ `RequireShiftProvider` khỏi `MainLayout`; các `guard()` trả pass-through (hook fallback) → không gãy UI.
 
-## F. Rollout
-- Chỉ thay đổi UI, không cần migration / không cần bump APP_VERSION (theo memory: chỉ bump khi publish — chờ khi user publish).
-- Có thể rollback bằng cách revert duy nhất file `RoomFloorMapView.tsx`.
+## Phần còn thiếu / giả định
 
-## G. Phần còn thiếu / lần sau
-- Giá phòng/đêm hiện chưa có trong `get_floor_plan_live` → cần mở rộng RPC trả về `room_price_daily` để ô trống hiển thị giá. Sẽ làm ở vòng sau khi user xác nhận.
-- Có thể thêm icon nhỏ cho nguồn OTA (Booking/Agoda) ở badge góc-phải-dưới — chờ user yêu cầu.
+- Giả định Department Manager hiện được map sang `primaryRole = 'department_manager'` (đã có trong `useUser.roleOrder`).
+- Chưa chặn ở server-side RPC (yêu cầu chọn "Mở dialog tại chỗ" — chặn client-side đủ cho UX). Nếu cần khoá tuyệt đối, vòng sau có thể thêm check `shift_start_at` trong các RPC chính, nhưng phạm vi lượt này chỉ ở UI.
