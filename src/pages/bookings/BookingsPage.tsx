@@ -542,50 +542,45 @@ export function BookingsPage() {
       now,
     })
 
-    if (!decision.allowed) {
-      switch (decision.reason) {
-        case 'before_checkin_date': {
-          const checkInDate = startOfDay(new Date(booking.check_in_date))
-          toast({
-            variant: 'destructive',
-            title: 'Chưa đến ngày nhận phòng',
-            description: `Lịch nhận phòng: ${format(checkInDate, 'dd/MM/yyyy', { locale: vi })}. Vui lòng thay đổi lịch đặt nếu muốn nhận sớm.`,
-          })
-          return
-        }
-        case 'room_occupied': {
-          const { data: currentBooking } = await supabase
-            .from('room_bookings')
-            .select('id, guest_name, check_out_date')
-            .eq('room_id', booking.room_id)
-            .eq('status', 'checked_in')
-            .neq('id', booking.id)
-            .limit(1)
-            .maybeSingle()
-          toast({
-            variant: 'destructive',
-            title: 'Phòng đang có khách',
-            description: currentBooking
-              ? `Khách "${currentBooking.guest_name}" chưa checkout (dự kiến: ${format(new Date(currentBooking.check_out_date), 'dd/MM/yyyy')}). Vui lòng checkout khách hiện tại trước.`
-              : 'Phòng đang có khách. Vui lòng checkout trước.',
-          })
-          return
-        }
-        case 'room_blocked_for_maintenance':
-          toast({
-            variant: 'destructive',
-            title: 'Phòng không khả dụng',
-            description: 'Phòng đang bảo trì/ngừng hoạt động. Không thể check-in.',
-          })
-          return
-        case 'room_not_ready':
-          toast({
-            variant: 'destructive',
-            title: 'Phòng chưa sẵn sàng',
-            description: 'Phòng đang ở trạng thái "Trống – chưa dọn". Vui lòng dọn phòng trước khi check-in.',
-          })
-          return
+    if (decision.allowed === false) {
+      const reason = decision.reason
+      if (reason === 'before_checkin_date') {
+        const checkInDate = startOfDay(new Date(booking.check_in_date))
+        toast({
+          variant: 'destructive',
+          title: 'Chưa đến ngày nhận phòng',
+          description: `Lịch nhận phòng: ${format(checkInDate, 'dd/MM/yyyy', { locale: vi })}. Vui lòng thay đổi lịch đặt nếu muốn nhận sớm.`,
+        })
+      } else if (reason === 'room_occupied') {
+        const { data: currentBooking } = await supabase
+          .from('room_bookings')
+          .select('id, guest_name, check_out_date')
+          .eq('room_id', booking.room_id)
+          .eq('status', 'checked_in')
+          .neq('id', booking.id)
+          .limit(1)
+          .maybeSingle()
+        toast({
+          variant: 'destructive',
+          title: 'Phòng đang có khách',
+          description: currentBooking
+            ? `Khách "${currentBooking.guest_name}" chưa checkout (dự kiến: ${format(new Date(currentBooking.check_out_date), 'dd/MM/yyyy')}). Vui lòng checkout khách hiện tại trước.`
+            : 'Phòng đang có khách. Vui lòng checkout trước.',
+        })
+      } else if (reason === 'room_blocked_for_maintenance') {
+        toast({
+          variant: 'destructive',
+          title: 'Phòng không khả dụng',
+          description: 'Phòng đang bảo trì/ngừng hoạt động. Không thể check-in.',
+        })
+      } else if (reason === 'room_not_ready') {
+        toast({
+          variant: 'destructive',
+          title: 'Phòng chưa sẵn sàng',
+          description: 'Phòng đang ở trạng thái "Trống – chưa dọn". Vui lòng dọn phòng trước khi check-in.',
+        })
       }
+      return
     }
 
     setActionBooking(booking)
