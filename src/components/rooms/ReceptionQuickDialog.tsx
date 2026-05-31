@@ -16,6 +16,7 @@ import { getRoomStatusMeta } from '@/lib/roomStatus'
 import { useToast } from '@/hooks/use-toast'
 import { useReceptionRoomDetail } from '@/hooks/useReceptionRoomDetail'
 import { useRoomTypePricing } from '@/hooks/useRoomTypePricing'
+import { useHotelContext } from '@/contexts/HotelContext'
 import { RoomAuditLogDialog } from './RoomAuditLogDialog'
 import { ExtendBookingDialog } from '@/components/bookings/ExtendBookingDialog'
 import {
@@ -53,8 +54,9 @@ export function ReceptionQuickDialog({ open, onOpenChange, room, onBookRoom, onO
   const [extendOpen, setExtendOpen] = useState(false)
   const [tab, setTab] = useState('overview')
 
+  const { selectedHotel } = useHotelContext()
   const { data: detail, isLoading } = useReceptionRoomDetail(room?.id, bk?.id ?? null, open)
-  const pricing = useRoomTypePricing(room?.room_type ?? null, room?.hotel_id ?? null)
+  const pricing = useRoomTypePricing(room?.room_type ?? null, selectedHotel?.id ?? null)
 
   const transitionMut = useMutation({
     mutationFn: async (params: { to: string; reason?: string; until?: string }) => {
