@@ -32,27 +32,59 @@ import { useFloorMapCellSize } from '@/hooks/useFloorMapCellSize'
 // "Bucket" hiển thị cho lễ tân — gom 11 trạng thái nội bộ vào 5 nhóm dễ hiểu
 type ReceptionBucket = 'sellable' | 'due_out' | 'dirty' | 'occupied' | 'blocked'
 
-const BUCKET_META: Record<ReceptionBucket, { label: string; short: string; dot: string; ring: string; bg: string; text: string }> = {
-  sellable: { label: 'Bán được',        short: 'Bán được',   dot: 'bg-emerald-500', ring: 'ring-emerald-300', bg: 'bg-emerald-50',  text: 'text-emerald-700' },
-  due_out:  { label: 'Checkout hôm nay', short: 'Sắp trả',    dot: 'bg-amber-500',   ring: 'ring-amber-300',   bg: 'bg-amber-50',    text: 'text-amber-700' },
-  dirty:    { label: 'Đang dọn',         short: 'Đang dọn',   dot: 'bg-rose-500',    ring: 'ring-rose-300',    bg: 'bg-rose-50',     text: 'text-rose-700' },
-  occupied: { label: 'Có khách',         short: 'Có khách',   dot: 'bg-sky-500',     ring: 'ring-sky-300',     bg: 'bg-sky-50',      text: 'text-sky-700' },
-  blocked:  { label: 'Khoá / Bảo trì',   short: 'Khoá',       dot: 'bg-slate-500',   ring: 'ring-slate-300',   bg: 'bg-slate-50',    text: 'text-slate-700' },
+const BUCKET_META: Record<ReceptionBucket, { label: string; short: string; dot: string; ring: string; bg: string; text: string; solid: string; badge: string }> = {
+  sellable: { label: 'Bán được',        short: 'Trống',    dot: 'bg-emerald-500', ring: 'ring-emerald-300', bg: 'bg-emerald-50',  text: 'text-emerald-700', solid: 'bg-emerald-600',  badge: 'Trống' },
+  due_out:  { label: 'Checkout hôm nay', short: 'Sắp trả',  dot: 'bg-amber-500',   ring: 'ring-amber-300',   bg: 'bg-amber-50',    text: 'text-amber-700',   solid: 'bg-amber-600',    badge: 'Sắp trả' },
+  dirty:    { label: 'Đang dọn',         short: 'Bẩn',      dot: 'bg-rose-500',    ring: 'ring-rose-300',    bg: 'bg-rose-50',     text: 'text-rose-700',    solid: 'bg-rose-600',     badge: 'Bẩn' },
+  occupied: { label: 'Có khách',         short: 'Đang ở',   dot: 'bg-sky-500',     ring: 'ring-sky-300',     bg: 'bg-sky-50',      text: 'text-sky-700',     solid: 'bg-sky-700',      badge: 'Đang ở' },
+  blocked:  { label: 'Khoá / Bảo trì',   short: 'Khoá',     dot: 'bg-slate-500',   ring: 'ring-slate-300',   bg: 'bg-slate-50',    text: 'text-slate-700',   solid: 'bg-slate-700',    badge: 'Khoá' },
 }
 
 function getBucket(room: FloorPlanRoom): ReceptionBucket {
   const s = room.status
   if (s === 'out_of_order' || s === 'out_of_service' || s === 'dnd' || s === 'skipper') return 'blocked'
   if (s === 'vacant_dirty' || s === 'occupied_dirty' || s === 'cleaning') return 'dirty'
-  // Occupied bucket: có booking hiện tại
   if (room.current_booking) {
     const today = format(new Date(), 'yyyy-MM-dd')
     if (room.current_booking.check_out_date === today) return 'due_out'
     return 'occupied'
   }
   if (s === 'occupied' || s === 'occupied_clean') return 'occupied'
-  // Còn lại: trống sạch / đã QC / vacant / reserved → bán được
   return 'sellable'
+}
+
+// Nhãn ngắn cụ thể cho góc trên-trái — chi tiết hơn bucket khi có thể
+function getStatusBadgeLabel(room: FloorPlanRoom, bucket: ReceptionBucket): string {
+  const s = room.status
+  if (s === 'out_of_order') return 'OOO'
+  if (s === 'out_of_service') return 'OOS'
+  if (s === 'dnd') return 'DND'
+  if (s === 'skipper') return 'Bỏ trốn'
+  if (s === 'occupied_dirty') return 'Cần dọn'
+  if (s === 'vacant_inspected') return 'QC ✓'
+  return BUCKET_META[bucket].badge
+}
+
+// Số đêm còn lại tính từ hôm nay đến ngày trả phòng
+function getNightsLeft(checkOutDate?: string | null): number {
+  if (!checkOutDate) return 0
+  try {
+    const out = parseISO(checkOutDate)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const diffMs = out.getTime() - today.getTime()
+    return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)))
+  } catch {
+    return 0
+  }
+}
+
+// Lấy 2 từ cuối của tên (họ + tên)
+function getShortName(name: string | null | undefined): string {
+  if (!name) return ''
+  const parts = name.trim().split(/\s+/)
+  if (parts.length <= 2) return name
+  return parts.slice(-2).join(' ')
 }
 
 
