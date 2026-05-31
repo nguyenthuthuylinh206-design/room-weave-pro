@@ -52,7 +52,10 @@ export default function PricingDailyPage() {
   const qc = useQueryClient()
   const { data: roomTypes, isLoading: loadingTypes } = useRoomTypes()
   const visibleTypes = useMemo(
-    () => (roomTypes ?? []).filter(rt => !selectedHotel?.id || !rt.hotel_id || rt.hotel_id === selectedHotel.id),
+    () => (roomTypes ?? []).filter(rt => {
+      if (rt.status !== 'active') return false
+      return !selectedHotel?.id || !rt.hotel_id || rt.hotel_id === selectedHotel.id
+    }),
     [roomTypes, selectedHotel?.id],
   )
 
@@ -72,6 +75,12 @@ export default function PricingDailyPage() {
 
   useEffect(() => {
     if (!selectedRoomTypeId && visibleTypes[0]) setSelectedRoomTypeId(visibleTypes[0].id)
+  }, [visibleTypes, selectedRoomTypeId])
+
+  useEffect(() => {
+    if (selectedRoomTypeId && !visibleTypes.some(rt => rt.id === selectedRoomTypeId)) {
+      setSelectedRoomTypeId(visibleTypes[0]?.id ?? '')
+    }
   }, [visibleTypes, selectedRoomTypeId])
 
   const { data: plans = [] } = useRatePlans(selectedRoomTypeId || null)
