@@ -512,20 +512,8 @@ export function BookingsPage() {
   // Handle Check-in click - validate date and room status first, then show dialog if early check-in
   const handleCheckInClick = async (booking: BookingWithRoom) => {
     const now = new Date()
-    const today = startOfDay(now)
-    const checkInDate = startOfDay(new Date(booking.check_in_date))
 
-    // Block check-in if today is before check_in_date (not same day)
-    if (isBefore(today, checkInDate)) {
-      toast({
-        variant: 'destructive',
-        title: 'Chưa đến ngày nhận phòng',
-        description: `Lịch nhận phòng: ${format(checkInDate, 'dd/MM/yyyy', { locale: vi })}. Vui lòng thay đổi lịch đặt nếu muốn nhận sớm.`,
-      })
-      return
-    }
-
-    // Validate room status before check-in
+    // Fetch current room status
     const { data: roomData, error: roomError } = await supabase
       .from('rooms')
       .select('status')
@@ -541,61 +529,66 @@ export function BookingsPage() {
       return
     }
 
-    // Block if room is occupied bởi booking khác
-    if (isRoomOccupied(roomData.status)) {
-      const { data: currentBooking } = await supabase
-        .from('room_bookings')
-        .select('id, guest_name, check_out_date')
-        .eq('room_id', booking.room_id)
-        .eq('status', 'checked_in')
-        .neq('id', booking.id)
-        .limit(1)
-        .single()
+    // Use pure decision helper (single source of truth)
+    const decision = decideCheckIn({
+      booking: {
+        id: booking.id,
+        check_in_date: booking.check_in_date,
+        booking_type: booking.booking_type as any,
+        room_price: (booking as any).room_price || 0,
+      },
+      roomStatus: roomData.status,
+      now,
+    })
 
-      if (currentBooking) {
-        toast({
-          variant: 'destructive',
-          title: 'Phòng đang có khách',
-          description: `Khách "${currentBooking.guest_name}" chưa checkout (dự kiến: ${format(new Date(currentBooking.check_out_date), 'dd/MM/yyyy')}). Vui lòng checkout khách hiện tại trước.`,
-        })
-        return
+    if (!decision.allowed) {
+      switch (decision.reason) {
+        case 'before_checkin_date': {
+          const checkInDate = startOfDay(new Date(booking.check_in_date))
+          toast({
+            variant: 'destructive',
+            title: 'Chưa đến ngày nhận phòng',
+            description: `Lịch nhận phòng: ${format(checkInDate, 'dd/MM/yyyy', { locale: vi })}. Vui lòng thay đổi lịch đặt nếu muốn nhận sớm.`,
+          })
+          return
+        }
+        case 'room_occupied': {
+          const { data: currentBooking } = await supabase
+            .from('room_bookings')
+            .select('id, guest_name, check_out_date')
+            .eq('room_id', booking.room_id)
+            .eq('status', 'checked_in')
+            .neq('id', booking.id)
+            .limit(1)
+            .maybeSingle()
+          toast({
+            variant: 'destructive',
+            title: 'Phòng đang có khách',
+            description: currentBooking
+              ? `Khách "${currentBooking.guest_name}" chưa checkout (dự kiến: ${format(new Date(currentBooking.check_out_date), 'dd/MM/yyyy')}). Vui lòng checkout khách hiện tại trước.`
+              : 'Phòng đang có khách. Vui lòng checkout trước.',
+          })
+          return
+        }
+        case 'room_blocked_for_maintenance':
+          toast({
+            variant: 'destructive',
+            title: 'Phòng không khả dụng',
+            description: 'Phòng đang bảo trì/ngừng hoạt động. Không thể check-in.',
+          })
+          return
+        case 'room_not_ready':
+          toast({
+            variant: 'destructive',
+            title: 'Phòng chưa sẵn sàng',
+            description: 'Phòng đang ở trạng thái "Trống – chưa dọn". Vui lòng dọn phòng trước khi check-in.',
+          })
+          return
       }
     }
 
-    // Block bảo trì
-    if (isRoomBlockedForMaintenance(roomData.status)) {
-      toast({
-        variant: 'destructive',
-        title: 'Phòng không khả dụng',
-        description: 'Phòng đang bảo trì/ngừng hoạt động. Không thể check-in.',
-      })
-      return
-    }
-
-    // Cảnh báo trước nếu phòng chưa dọn — RPC vẫn là nguồn quyết định cuối
-    if (!canRoomCheckIn(roomData.status) && !isRoomOccupied(roomData.status)) {
-      toast({
-        variant: 'destructive',
-        title: 'Phòng chưa sẵn sàng',
-        description: 'Phòng đang ở trạng thái "Trống – chưa dọn". Vui lòng dọn phòng trước khi check-in.',
-      })
-      return
-    }
-
-
-    const actualTime = format(now, 'HH:mm')
-    const hours = parseInt(actualTime.split(':')[0])
-    const roomPrice = (booking as any).room_price || 0
-
     setActionBooking(booking)
-
-    // Calculate surcharge for daily bookings with early check-in
-    let suggestedCharge = 0
-    if (booking.booking_type === 'daily' && hours < 14) {
-      suggestedCharge = calculateEarlyCheckinCharge(actualTime, roomPrice)
-    }
-    
-    setSuggestedEarlyCharge(suggestedCharge)
+    setSuggestedEarlyCharge(decision.suggestedEarlyCharge)
     // ALWAYS show confirmation dialog for ALL booking types
     setShowCheckinConfirm(true)
   }
