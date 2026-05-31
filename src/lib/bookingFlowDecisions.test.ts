@@ -94,7 +94,7 @@ describe('decideCheckIn', () => {
   it('Case 4 — pending booking, room clean, today is check-in date → allowed + surcharge for early hour', () => {
     const decision = decideCheckIn({
       booking: { ...baseBooking },
-      roomStatus: 'available_clean',
+      roomStatus: 'vacant_clean',
       now: NOW, // 10:30 → < 14:00 → daily surcharge applies
     })
     expect(decision.allowed).toBe(true)
@@ -108,7 +108,7 @@ describe('decideCheckIn', () => {
   it('check-in at or after 14:00 → no early surcharge', () => {
     const decision = decideCheckIn({
       booking: { ...baseBooking },
-      roomStatus: 'available_clean',
+      roomStatus: 'vacant_clean',
       now: new Date('2026-05-31T15:00:00'),
     })
     expect(decision).toEqual({ allowed: true, suggestedEarlyCharge: 0 })
@@ -117,7 +117,7 @@ describe('decideCheckIn', () => {
   it('hourly booking → never charges an early-checkin surcharge', () => {
     const decision = decideCheckIn({
       booking: { ...baseBooking, booking_type: 'hourly' },
-      roomStatus: 'available_clean',
+      roomStatus: 'vacant_clean',
       now: NOW,
     })
     expect(decision).toEqual({ allowed: true, suggestedEarlyCharge: 0 })
@@ -126,7 +126,7 @@ describe('decideCheckIn', () => {
   it('monthly booking → never charges an early-checkin surcharge', () => {
     const decision = decideCheckIn({
       booking: { ...baseBooking, booking_type: 'monthly' },
-      roomStatus: 'available_clean',
+      roomStatus: 'vacant_clean',
       now: NOW,
     })
     expect(decision).toEqual({ allowed: true, suggestedEarlyCharge: 0 })
@@ -135,7 +135,7 @@ describe('decideCheckIn', () => {
   it('today is BEFORE scheduled check-in date → blocked', () => {
     const decision = decideCheckIn({
       booking: { ...baseBooking, check_in_date: '2026-06-02' },
-      roomStatus: 'available_clean',
+      roomStatus: 'vacant_clean',
       now: NOW,
     })
     expect(decision).toEqual({ allowed: false, reason: 'before_checkin_date' })
@@ -165,7 +165,7 @@ describe('decideCheckIn', () => {
   it('room dirty (needs cleaning) → blocked as not ready', () => {
     const decision = decideCheckIn({
       booking: { ...baseBooking },
-      roomStatus: 'available_dirty',
+      roomStatus: 'vacant_dirty',
       now: NOW,
     })
     expect(decision).toEqual({ allowed: false, reason: 'room_not_ready' })
