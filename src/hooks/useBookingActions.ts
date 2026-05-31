@@ -15,6 +15,7 @@ import { fetchServiceChargeSummary } from '@/hooks/useBookingServiceCharges'
 import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers'
 import { useUser } from '@/hooks/useUser'
 import { useTenant } from '@/hooks/useTenant'
+import { useRequireShift } from '@/contexts/RequireShiftContext'
 
 interface UseBookingActionsOptions {
   onSuccess?: () => void
@@ -26,6 +27,7 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
   const [isLoading, setIsLoading] = useState(false)
   const { user } = useUser()
   const { tenant } = useTenant()
+  const { guard } = useRequireShift()
 
   const invalidateQueries = (roomId?: string) => {
     queryClient.invalidateQueries({ queryKey: ['rooms'] })
