@@ -595,5 +595,5 @@ export function useStockInFromLaundry() {
         variant: 'destructive',
       })
     }
-  })
+  }))
 }
