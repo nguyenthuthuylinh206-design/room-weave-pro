@@ -1,6 +1,15 @@
 {
-  "current": "1.1.36",
+  "current": "1.1.37",
   "versions": [
+    {
+      "version": "1.1.37",
+      "date": "2026-05-31",
+      "title": "Đặt phòng từ sơ đồ phòng bắt đầu từ bước chọn loại (ngày / giờ / tháng)",
+      "highlights": [
+        "ReceptionQuickDialog: nút 'Đặt phòng' và 'Check-in nhanh' mở AddBookingDialog (wizard) — Bước 1 chọn Theo ngày / Theo giờ / Theo tháng trước khi chọn phòng",
+        "BookingsPage: deep-link /bookings?action=new tự mở dialog wizard"
+      ]
+    },
     {
       "version": "1.1.36",
       "date": "2026-05-31",
