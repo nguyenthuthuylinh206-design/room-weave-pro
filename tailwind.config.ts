@@ -216,6 +216,16 @@ export default {
         },
       },
 
+        // Navy Trust accent (Inventory Hub)
+        ink: { DEFAULT: 'hsl(var(--ink))', 2: 'hsl(var(--ink-2))' },
+        steel: 'hsl(var(--steel))',
+        paper: 'hsl(var(--paper))',
+      },
+
+      boxShadow: {
+        tile: 'var(--shadow-tile)',
+      },
+
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
