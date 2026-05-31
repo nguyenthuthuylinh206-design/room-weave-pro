@@ -132,21 +132,10 @@ export function useBookingForm() {
       displayDuration = `${months} tháng`
     }
     
-    // Calculate total room price based on booking type
+    // Tổng giá phòng theo loại đặt — chỉ dùng customPrice (đã set từ room_type_rates)
     let totalRoomPrice = 0
-    
     state.selectedRooms.forEach(room => {
-      if (state.bookingType === 'daily') {
-        totalRoomPrice += (room.customPrice || 0)
-      } else if (state.bookingType === 'hourly') {
-        // Use hourly_price from room or calculate from base_price
-        const hourlyPrice = room.hourly_price || Math.round((room.base_price || 0) / 4)
-        totalRoomPrice += hourlyPrice
-      } else if (state.bookingType === 'monthly') {
-        // Use monthly_price from room or calculate from base_price
-        const monthlyPrice = room.monthly_price || (room.base_price || 0) * 25
-        totalRoomPrice += monthlyPrice
-      }
+      totalRoomPrice += (room.customPrice || 0)
     })
     
     // Calculate subtotal based on duration
@@ -227,29 +216,32 @@ export function useBookingForm() {
     setState(prev => {
       const exists = prev.selectedRooms.find(r => r.id === room.id)
       if (exists) {
-        return {
-          ...prev,
-          selectedRooms: prev.selectedRooms.filter(r => r.id !== room.id)
-        }
-      } else {
-        // Set price based on booking type
-        let customPrice = room.base_price || 0
-        if (prev.bookingType === 'hourly') {
-          customPrice = room.hourly_price || Math.round((room.base_price || 0) / 4)
-        } else if (prev.bookingType === 'monthly') {
-          customPrice = room.monthly_price || (room.base_price || 0) * 25
-        }
-        
-        return {
-          ...prev,
-          selectedRooms: [...prev.selectedRooms, { 
-            ...room, 
-            customPrice,
-          }]
-        }
+        return { ...prev, selectedRooms: prev.selectedRooms.filter(r => r.id !== room.id) }
+      }
+      // Lấy giá từ room_type_rates theo đúng loại đặt — KHÔNG fallback giá legacy
+      let customPrice = 0
+      if (prev.bookingType === 'daily') {
+        customPrice = room.rate_daily ?? 0
+      } else if (prev.bookingType === 'hourly') {
+        // Nếu có block giờ đầu thì lấy giá block (cho 1 giờ tham chiếu); người dùng có thể bấm "Áp dụng giá theo bảng" để tính chính xác theo số giờ
+        customPrice = room.rate_hourly ?? 0
+      } else if (prev.bookingType === 'monthly') {
+        customPrice = room.rate_monthly ?? 0
+      }
+      if (!room.pricing_configured || customPrice <= 0) {
+        toast({
+          variant: 'destructive',
+          title: `Phòng ${room.room_number} chưa cấu hình giá`,
+          description: 'Vào Cài đặt → Bảng giá để cấu hình giá đêm/giờ/tháng cho loại phòng này.',
+        })
+        return prev
+      }
+      return {
+        ...prev,
+        selectedRooms: [...prev.selectedRooms, { ...room, customPrice }],
       }
     })
-  }, [])
+  }, [toast])
 
   const updateRoomPrice = useCallback((roomId: string, newPrice: number) => {
     setState(prev => ({
