@@ -514,6 +514,11 @@ export function RoomFloorMapView({
                     } catch {}
                   }
 
+                  const statusLabel = getStatusBadgeLabel(room, bucket)
+                  const nightsLeft = bk ? getNightsLeft(bk.check_out_date) : 0
+                  const h = cellSize.size.height
+                  const compact = h < 90
+
                   return (
                     <Tooltip key={room.id}>
                       <TooltipTrigger asChild>
@@ -521,14 +526,19 @@ export function RoomFloorMapView({
                           type="button"
                           onClick={() => handleRoomClick(room)}
                           className={cn(
-                            'group relative flex flex-col items-center justify-between rounded-lg border-2 bg-card p-2 text-center transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-95',
-                            m.bg,
+                            'group relative flex flex-col items-stretch justify-between rounded-lg border border-black/10 p-2 text-center text-white shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-95',
+                            m.solid,
                             showGroupRing && cn('ring-2 ring-offset-1', ringForGroup(gid!)),
-                            dim && 'opacity-30',
+                            dim && 'opacity-40',
                           )}
-                          style={{ borderColor: 'transparent', height: cellSize.size.height }}
+                          style={{ height: cellSize.size.height }}
                         >
-                          {/* Service request badge */}
+                          {/* Badge trạng thái góc trên-trái */}
+                          <span className="absolute left-1 top-1 z-10 rounded bg-black/25 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
+                            {statusLabel}
+                          </span>
+
+                          {/* Badge "việc cần làm" — góc trên-phải */}
                           {openTasks > 0 && (
                             <span
                               className="absolute -right-1.5 -top-1.5 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow ring-2 ring-card"
@@ -539,13 +549,13 @@ export function RoomFloorMapView({
                           )}
 
                           {/* Quick actions (hover) */}
-                          <span className="pointer-events-none absolute right-1 top-1 z-10 flex gap-0.5 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
+                          <span className="pointer-events-none absolute right-1 top-6 z-10 flex gap-0.5 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
                             {canLift && (
                               <button
                                 type="button"
                                 onClick={(e) => handleLiftStatus(e, room)}
                                 disabled={transitionRoom.isPending}
-                                className="rounded bg-emerald-600 p-0.5 text-white shadow hover:bg-emerald-700 disabled:opacity-50"
+                                className="rounded bg-white/90 p-0.5 text-emerald-700 shadow hover:bg-white disabled:opacity-50"
                                 title="Gỡ DND/OOS · về Trống sạch"
                               >
                                 <Unlock className="h-3 w-3" />
@@ -554,36 +564,58 @@ export function RoomFloorMapView({
                             <button
                               type="button"
                               onClick={(e) => handleShowHistory(e, room)}
-                              className="rounded bg-slate-600 p-0.5 text-white shadow hover:bg-slate-700"
+                              className="rounded bg-white/90 p-0.5 text-slate-700 shadow hover:bg-white"
                               title="Lịch sử trạng thái"
                             >
                               <History className="h-3 w-3" />
                             </button>
                           </span>
 
-                          {/* Số phòng to ở trên */}
-                          <div className={cn('font-bold leading-none text-foreground', cellSize.classes.numberCls)}>
+                          {/* Số phòng to ở giữa-trên */}
+                          <div className={cn('mt-3 font-bold leading-none text-white drop-shadow-sm', cellSize.classes.numberCls)}>
                             {room.room_number}
                           </div>
 
-                          {/* Chấm màu lớn ở giữa — lễ tân chỉ nhìn màu */}
-                          <div className={cn('rounded-full shadow-sm', cellSize.classes.dotPx, m.dot)} />
-
-                          {/* Dòng đáy: loại phòng HOẶC tên khách + countdown */}
+                          {/* Khối thông tin trung tâm */}
                           {bk?.guest_name ? (
-                            <div className="w-full leading-tight">
-                              <div className={cn('truncate text-[10px] font-semibold', m.text)}>
-                                {bk.guest_name.split(' ').slice(-1)[0]}
+                            <div className="flex flex-col items-center leading-tight">
+                              <div className="w-full truncate text-[11px] font-semibold text-white">
+                                {getShortName(bk.guest_name)}
                               </div>
+                              {!compact && (
+                                <div className="text-[10px] text-white/85">
+                                  {bk.guest_count ? `${bk.guest_count} khách` : ''}
+                                  {bk.guest_count && nightsLeft > 0 ? ' · ' : ''}
+                                  {nightsLeft > 0
+                                    ? `còn ${nightsLeft} đêm`
+                                    : bucket === 'due_out' ? 'Trả hôm nay' : ''}
+                                </div>
+                              )}
                               {countdown && (
-                                <div className={cn('text-[9px] font-bold', bucket === 'due_out' ? 'text-amber-700' : 'text-muted-foreground')}>
+                                <div className="text-[10px] font-bold text-white">
                                   {bucket === 'due_out' ? `← ${countdown}` : countdown}
                                 </div>
                               )}
                             </div>
+                          ) : room.next_booking?.guest_name ? (
+                            <div className="flex flex-col items-center leading-tight">
+                              <div className="w-full truncate text-[11px] font-semibold text-white">
+                                {getShortName(room.next_booking.guest_name)}
+                              </div>
+                              {!compact && (
+                                <div className="text-[10px] text-white/85">
+                                  Sắp đến · {formatArriveIn(room.next_booking.check_in_date, room.next_booking.expected_check_in_time)}
+                                </div>
+                              )}
+                            </div>
                           ) : (
-                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground truncate w-full">
-                              {room.room_type}
+                            <div className="flex flex-col items-center leading-tight">
+                              <div className="text-[10px] uppercase tracking-wide text-white/85 truncate w-full">
+                                {room.room_type}
+                              </div>
+                              {!compact && bucket === 'sellable' && (
+                                <div className="text-[10px] font-semibold text-white">Sẵn sàng bán</div>
+                              )}
                             </div>
                           )}
                         </button>
