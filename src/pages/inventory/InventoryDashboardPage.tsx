@@ -224,18 +224,21 @@ export function InventoryDashboardPage() {
         type="button"
         onClick={() => setTab(item.tab, item.sub)}
         className={cn(
-          'w-full flex items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left text-sm transition-colors',
-          'hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          'group relative w-full flex items-center justify-between gap-2 pl-3 pr-2 py-1.5 text-left text-[13px] font-body transition-colors',
+          'hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           isActive
-            ? 'bg-primary text-primary-foreground font-medium hover:bg-primary'
-            : 'text-foreground'
+            ? 'bg-accent/50 text-foreground font-semibold'
+            : 'text-muted-foreground hover:text-foreground'
         )}
       >
+        {isActive && (
+          <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-r bg-steel" />
+        )}
         <span className="truncate">{item.label}</span>
         {badgeCount > 0 && (
           <Badge
             variant={isActive ? 'secondary' : 'outline'}
-            className="h-5 min-w-[20px] px-1.5 text-[10px] font-semibold tabular-nums"
+            className="h-4 min-w-4 px-1 text-[10px] font-display font-semibold tabular-nums"
           >
             {badgeCount > 99 ? '99+' : badgeCount}
           </Badge>
@@ -245,19 +248,19 @@ export function InventoryDashboardPage() {
   }
 
   const navContent = (
-    <div className="py-1">
+    <div className="py-2">
       {visibleMenuGroups.map((group, idx) => (
         <div
           key={group.title}
           className={cn(
-            'px-2 py-3',
-            idx > 0 && 'border-t border-border/60',
+            'px-2 py-2.5',
+            idx > 0 && 'border-t border-border/50',
           )}
         >
-          <div className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/80">
+          <div className="px-3 pb-1.5 font-body text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
             {group.title}
           </div>
-          <div className="space-y-0.5">
+          <div className="space-y-px">
             {group.items.map(renderMenuButton)}
           </div>
         </div>
@@ -266,19 +269,25 @@ export function InventoryDashboardPage() {
   )
 
 
+
   return (
-    <div className="space-y-4">
-      <PageHeader
-        title="Kho & Tài sản"
-        description="Trung tâm điều hành kho — tồn kho, xuất nhập, phân tích và thiết lập"
-      >
+    <div className="font-body space-y-3 lg:space-y-4">
+      {/* Compact topbar on laptop, classic PageHeader on smaller */}
+      <div className="hidden lg:flex items-center justify-between gap-3 pb-3 border-b border-border/60">
+        <div className="flex items-baseline gap-3 min-w-0">
+          <h1 className="font-display text-xl font-semibold tracking-tight text-foreground">Kho</h1>
+          <span className="text-muted-foreground/40">/</span>
+          <span className="font-body text-[13px] text-muted-foreground truncate">
+            <span className="text-muted-foreground/70">{breadcrumb.group}</span>
+            <span className="mx-1.5 text-muted-foreground/40">›</span>
+            <span className="text-foreground font-medium">{breadcrumb.item}</span>
+          </span>
+        </div>
         <div className="flex items-center gap-2">
-          <div className="hidden md:block">
-            <InventoryQuickSearch ref={searchRef} />
-          </div>
+          <InventoryQuickSearch ref={searchRef} />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm">
+              <Button size="sm" className="font-body">
                 <Plus className="h-4 w-4 mr-1" />
                 Thao tác
               </Button>
@@ -302,10 +311,45 @@ export function InventoryDashboardPage() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </PageHeader>
+      </div>
 
-      {/* Mobile: search + menu trigger */}
-      <div className="flex items-center gap-2 md:hidden">
+      <div className="lg:hidden">
+        <PageHeader
+          title="Kho & Tài sản"
+          description="Trung tâm điều hành kho — tồn kho, xuất nhập, phân tích và thiết lập"
+        >
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Thao tác
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => navigate('/inventory/inbound/new')}>
+                  <ArrowDownToLine className="h-4 w-4 mr-2" /> Nhập kho
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/inventory/outbound/new')}>
+                  <ArrowUpFromLine className="h-4 w-4 mr-2" /> Xuất kho
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/inventory/transfer/new')}>
+                  <GitCompare className="h-4 w-4 mr-2" /> Chuyển kho
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/inventory/adjustments/new')}>
+                  <ClipboardCheck className="h-4 w-4 mr-2" /> Kiểm kê
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/items/new')}>
+                  <Plus className="h-4 w-4 mr-2" /> Thêm tài sản
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </PageHeader>
+      </div>
+
+      {/* Mobile/tablet: search + menu trigger */}
+      <div className="flex items-center gap-2 lg:hidden">
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
             <Button variant="outline" size="sm" className="shrink-0">
@@ -323,18 +367,21 @@ export function InventoryDashboardPage() {
         </div>
       </div>
 
-      {/* Breadcrumb */}
-      <InventoryHubBreadcrumb groupTitle={breadcrumb.group} itemLabel={breadcrumb.item} />
+      {/* Breadcrumb (mobile/tablet only — laptop has it inline in topbar) */}
+      <div className="lg:hidden">
+        <InventoryHubBreadcrumb groupTitle={breadcrumb.group} itemLabel={breadcrumb.item} />
+      </div>
 
-      <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <nav className="hidden lg:block lg:sticky lg:top-4 lg:self-start border rounded-lg bg-background overflow-hidden">
-          <div className="max-h-[calc(100vh-9rem)] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--border))_transparent]">
+      <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+        <nav className="hidden lg:block lg:sticky lg:top-4 lg:self-start rounded-xl border border-border/70 bg-card overflow-hidden shadow-tile">
+          <div className="max-h-[calc(100vh-7rem)] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--border))_transparent]">
             {navContent}
           </div>
         </nav>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as MainTab)} className="min-w-0">
-          <div className="sticky top-0 z-10 bg-background pb-2 -mt-2 pt-2 -mx-1 px-1">
+          {/* Horizontal tab strip only below laptop (sidebar covers it on lg) */}
+          <div className="lg:hidden sticky top-0 z-10 bg-background pb-2 -mt-2 pt-2 -mx-1 px-1">
             <ScrollableTabsList>
               <TabsList>
                 <TabsTrigger value="overview">Tổng quan</TabsTrigger>
@@ -344,6 +391,7 @@ export function InventoryDashboardPage() {
                 <TabsTrigger value="settings">Thiết lập</TabsTrigger>
               </TabsList>
             </ScrollableTabsList>
+
           </div>
 
 

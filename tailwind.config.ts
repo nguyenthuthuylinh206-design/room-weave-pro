@@ -21,6 +21,10 @@ export default {
       '2xl': '1536px',
     },
     extend: {
+      fontFamily: {
+        display: ['Sora', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        body: ['Manrope', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+      },
       gridTemplateColumns: {
         '14': 'repeat(14, minmax(0, 1fr))',
         '16': 'repeat(16, minmax(0, 1fr))',
@@ -210,6 +214,15 @@ export default {
           400: "#A78BFA", 500: "#8B5CF6", 600: "#7C3AED", 700: "#6D28D9",
           800: "#5B21B6", 900: "#4C1D95", 950: "#2E1065",
         },
+
+        // Navy Trust accent (Inventory Hub)
+        ink: { DEFAULT: 'hsl(var(--ink))', 2: 'hsl(var(--ink-2))' },
+        steel: 'hsl(var(--steel))',
+        paper: 'hsl(var(--paper))',
+      },
+
+      boxShadow: {
+        tile: 'var(--shadow-tile)',
       },
 
       borderRadius: {
