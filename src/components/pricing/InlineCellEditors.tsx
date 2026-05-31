@@ -247,6 +247,7 @@ export function InlineAvailabilityEditor({
                 min={0} max={defaultQty}
                 value={qty}
                 onChange={(e) => setQty(e.target.value)}
+                onFocus={(e) => e.currentTarget.select()}
                 className="h-8 text-sm"
                 autoFocus
               />
