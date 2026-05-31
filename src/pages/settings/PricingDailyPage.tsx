@@ -90,6 +90,16 @@ export default function PricingDailyPage() {
   const { data: dailyPrices = new Map() } = useDailyPrices(selectedRoomTypeId || null, planIds, startDate, endDate)
   const { data: availability = new Map() } = useRoomTypeAvailability(selectedRoomTypeId || null, startDate, endDate)
   const { data: defaultQty = 0 } = useRoomTypeDefaultQty(selectedRoomTypeId || null)
+  const { data: resolved = new Map() } = useResolvedDailyPrices(
+    selectedRoomTypeId || null, startDate, endDate, 'daily', selectedHotel?.id ?? null,
+  )
+  const seasonalsInRange = useMemo(() => {
+    const m = new Map<string, { name: string; priority: number }>()
+    resolved.forEach(r => {
+      r.seasonals.forEach(s => { if (!m.has(s.id)) m.set(s.id, { name: s.name, priority: s.priority }) })
+    })
+    return Array.from(m.entries()).map(([id, v]) => ({ id, ...v }))
+  }, [resolved])
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['daily-prices'] })
