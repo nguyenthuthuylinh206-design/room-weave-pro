@@ -12968,6 +12968,7 @@ export type Database = {
           tenant_name: string
         }[]
       }
+      get_pricing_health: { Args: { p_hotel_id?: string }; Returns: Json }
       get_qc_daily_trend: {
         Args: { _days?: number; _hotel_id?: string; _tenant_id: string }
         Returns: {
@@ -13894,6 +13895,24 @@ export type Database = {
           p_new_check_out: string
         }
         Returns: Json
+      }
+      resolve_daily_prices_bulk: {
+        Args: {
+          p_apply_to?: string
+          p_from: string
+          p_hotel_id?: string
+          p_room_type_id: string
+          p_to: string
+        }
+        Returns: {
+          base_price: number
+          date: string
+          final_price: number
+          is_closed: boolean
+          override_price: number
+          seasonals: Json
+          source: string
+        }[]
       }
       resolve_qc_settings: {
         Args: { _hotel_id: string; _task_type: string; _tenant_id: string }
