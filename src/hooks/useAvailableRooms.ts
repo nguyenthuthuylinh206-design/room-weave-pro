@@ -88,8 +88,8 @@ export function useAvailableRooms(checkInDate?: Date, checkOutDate?: Date) {
           .select('room_type_id, daily_rate, hourly_rate, hourly_first_block_hours, hourly_first_block_price, monthly_rate')
           .eq('tenant_id', tenantId),
       ])
-      const roomTypes = (rtRes.data ?? []) as Array<{ id: string; code: string | null; name: string | null; hotel_id: string | null }>
-      const rates = (rateRes.data ?? []) as Array<{
+      const roomTypes = ((rtRes.data ?? []) as unknown) as Array<{ id: string; code: string | null; name: string | null; hotel_id: string | null }>
+      const rates = ((rateRes.data ?? []) as unknown) as Array<{
         room_type_id: string; daily_rate: number | null; hourly_rate: number | null;
         hourly_first_block_hours: number | null; hourly_first_block_price: number | null; monthly_rate: number | null;
       }>
