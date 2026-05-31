@@ -1,6 +1,18 @@
 {
-  "current": "1.1.32",
+  "current": "1.1.33",
   "versions": [
+    {
+      "version": "1.1.33",
+      "date": "2026-05-31",
+      "title": "Gọn 3 loại giá: Đêm (linh hoạt) · Giờ · Tháng (cố định)",
+      "highlights": [
+        "Bảng giá mặc định gộp còn 3 cột: Giá đêm, Giá giờ, Giá tháng (bỏ cột Qua đêm trùng lặp)",
+        "Quy tắc mùa & Lịch giá theo ngày CHỈ áp lên Giá đêm — Giá giờ / Giá tháng cố định",
+        "Lễ tân (Sơ đồ phòng + Quick Dialog) hiển thị giá đêm hôm nay đã áp Mùa/Override, có badge nguồn giá",
+        "Danh sách phòng bỏ cột Giá trùng — chỉ còn Giá đêm hôm nay với gạch giá gốc khi giảm/tăng",
+        "Loại phòng chưa cấu hình giá → hiện nút 'Cấu hình giá' để vào Settings nhanh"
+      ]
+    },
     {
       "version": "1.1.32",
       "date": "2026-05-31",
