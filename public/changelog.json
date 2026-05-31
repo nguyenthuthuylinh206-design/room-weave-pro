@@ -1,6 +1,16 @@
 {
-  "current": "1.1.19",
+  "current": "1.1.20",
   "versions": [
+    {
+      "version": "1.1.20",
+      "date": "2026-05-31",
+      "title": "Bắt buộc vào ca trước khi thao tác",
+      "highlights": [
+        "Nhân viên & Trưởng bộ phận phải bấm 'Vào ca' trước khi kiểm phòng, nhận/hoàn thành công việc, giao đồ, check-in/out",
+        "Khi chưa vào ca, bấm thao tác sẽ mở dialog 'Vào ca ngay' tại chỗ; vào ca xong tự chạy tiếp hành động đang dở",
+        "Owner / Quản lý khách sạn / Super Admin không bị chặn (chỉ giám sát)"
+      ]
+    },
     {
       "version": "1.1.19",
       "date": "2026-05-31",
