@@ -628,8 +628,16 @@ export default function PricingDailyPage() {
                       plans.map((plan) => (
                         <tr key={plan.id}>
                           <td className="sticky left-0 z-20 bg-card border-b border-r px-3 py-2 w-[180px] min-w-[180px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">
-                            <p className="font-medium text-primary truncate text-xs">{plan.name}</p>
-                            <p className="text-[10px] text-muted-foreground">Mặc định: <strong>{formatVND(plan.price)}</strong></p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-medium text-primary truncate text-xs">{plan.name}</p>
+                              {(plan as any).is_default && (
+                                <span className="text-[9px] uppercase tracking-wide px-1 py-0.5 rounded bg-primary/10 text-primary font-semibold">Mặc định</span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground">
+                              Giá chuẩn: <strong>{formatVND(plan.price)}</strong>
+                              {(plan as any).isVirtual && <span className="ml-1 text-muted-foreground/70">· lấy từ Giá mặc định</span>}
+                            </p>
                           </td>
                           {days.map((d, idx) => {
                             const dow = d.getDay()
@@ -669,6 +677,7 @@ export default function PricingDailyPage() {
                                   open={popoverOpen}
                                   onOpenChange={(v) => { if (v && grid.wasDragMoved()) { grid.resetDragMoved(); return } setOpenCellKey(v ? cellKey : null) }}
                                   ratePlanId={plan.id}
+                                  roomTypeId={selectedRoomType.id}
                                   planName={plan.name}
                                   basePrice={Number(plan.price || 0)}
                                   date={d}
