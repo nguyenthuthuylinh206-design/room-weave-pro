@@ -105,6 +105,8 @@ export default function PricingDailyPage() {
     qc.invalidateQueries({ queryKey: ['daily-prices'] })
     qc.invalidateQueries({ queryKey: ['rt-availability'] })
     qc.invalidateQueries({ queryKey: ['rate-plans'] })
+    qc.invalidateQueries({ queryKey: ['resolved-daily-prices'] })
+    qc.invalidateQueries({ queryKey: ['pricing-health'] })
   }
 
   // Nếu planId là gói chuẩn ảo → materialize trong DB và refetch
