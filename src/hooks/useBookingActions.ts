@@ -387,10 +387,35 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
     }
   }
 
+  // Bọc check-in/out qua require-shift gate. Khi chưa vào ca, dialog mở và
+  // hành động được re-run sau khi user vào ca thành công. Trả Promise<boolean>
+  // resolve theo kết quả gốc; nếu user hủy dialog → resolve(false).
+  const guardedCheckIn = (bookingId: string, roomId: string): Promise<boolean> =>
+    new Promise((resolve) => {
+      let resolved = false
+      const settle = (v: boolean) => { if (!resolved) { resolved = true; resolve(v) } }
+      guard(() => {
+        handleCheckIn(bookingId, roomId).then(settle).catch(() => settle(false))
+      })
+      // Nếu guard không chạy (user hủy dialog), không resolve — caller sẽ
+      // không nhận kết quả; dùng timeout dài để giải phóng promise nếu cần.
+      setTimeout(() => settle(false), 5 * 60_000)
+    })
+
+  const guardedCheckOut = (bookingId: string, roomId: string): Promise<boolean> =>
+    new Promise((resolve) => {
+      let resolved = false
+      const settle = (v: boolean) => { if (!resolved) { resolved = true; resolve(v) } }
+      guard(() => {
+        handleCheckOut(bookingId, roomId).then(settle).catch(() => settle(false))
+      })
+      setTimeout(() => settle(false), 5 * 60_000)
+    })
+
   return {
     isLoading,
-    handleCheckIn,
-    handleCheckOut,
+    handleCheckIn: guardedCheckIn,
+    handleCheckOut: guardedCheckOut,
     handleMarkAsPaid,
     handleCancel,
   }
