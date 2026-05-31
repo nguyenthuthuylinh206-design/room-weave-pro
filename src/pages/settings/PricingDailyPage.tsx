@@ -86,6 +86,20 @@ export default function PricingDailyPage() {
     qc.invalidateQueries({ queryKey: ['rate-plans'] })
   }
 
+  // Nếu planId là gói chuẩn ảo → materialize trong DB và refetch
+  const resolvePlanId = async (planId: string): Promise<string | null> => {
+    if (planId !== VIRTUAL_DEFAULT_PLAN_ID) return planId
+    if (!selectedRoomType) return null
+    try {
+      const realId = await ensureDefaultRatePlan(selectedRoomType.id)
+      qc.invalidateQueries({ queryKey: ['rate-plans'] })
+      return realId
+    } catch (e: any) {
+      toast.error('Không tạo được gói chuẩn: ' + (e?.message || ''))
+      return null
+    }
+  }
+
   // ===== Grid selection =====
   const buildClipFromSelection = (sel: Selection) => {
     const { from, to } = selectionRange(sel)
