@@ -253,3 +253,87 @@ export const useRoomTypeDefaultQty = (roomTypeId: string | null) => {
     enabled: !!tenantId && !!roomTypeId,
   })
 }
+
+// ===== Resolved daily prices (Unified Pipeline) =====
+export interface ResolvedDailyPrice {
+  date: string
+  base_price: number
+  override_price: number | null
+  final_price: number
+  is_closed: boolean
+  source: 'override' | 'seasonal' | 'base'
+  seasonals: Array<{
+    id: string
+    name: string
+    mode: 'add_on' | 'overwrite'
+    adjust_type: 'percent' | 'fixed_amount' | 'set_rate'
+    adjust_value: number
+    delta?: number
+    priority: number
+  }>
+}
+
+export const useResolvedDailyPrices = (
+  roomTypeId: string | null,
+  fromDate: Date,
+  toDate: Date,
+  applyTo: 'daily' | 'overnight' | 'hourly' | 'monthly' = 'daily',
+  hotelId?: string | null,
+) => {
+  const { tenantId } = useUser()
+  return useQuery({
+    queryKey: ['resolved-daily-prices', tenantId, roomTypeId, toDateKey(fromDate), toDateKey(toDate), applyTo, hotelId ?? null],
+    queryFn: async () => {
+      if (!tenantId || !roomTypeId) return new Map<string, ResolvedDailyPrice>()
+      const { data, error } = await supabase.rpc('resolve_daily_prices_bulk' as any, {
+        p_room_type_id: roomTypeId,
+        p_from: toDateKey(fromDate),
+        p_to: toDateKey(toDate),
+        p_apply_to: applyTo,
+        p_hotel_id: hotelId ?? null,
+      })
+      if (error) throw error
+      const map = new Map<string, ResolvedDailyPrice>()
+      ;((data ?? []) as any[]).forEach((r) => {
+        map.set(r.date, {
+          date: r.date,
+          base_price: Number(r.base_price ?? 0),
+          override_price: r.override_price != null ? Number(r.override_price) : null,
+          final_price: Number(r.final_price ?? 0),
+          is_closed: !!r.is_closed,
+          source: r.source,
+          seasonals: Array.isArray(r.seasonals) ? r.seasonals : [],
+        })
+      })
+      return map
+    },
+    enabled: !!tenantId && !!roomTypeId,
+    staleTime: 30_000,
+  })
+}
+
+// ===== Pricing health summary =====
+export interface PricingHealth {
+  room_types_total: number
+  room_types_with_rate: number
+  room_types_missing_rate: number
+  seasonal_active: number
+  seasonal_conflicts: number
+}
+
+export const usePricingHealth = (hotelId?: string | null) => {
+  const { tenantId } = useUser()
+  return useQuery({
+    queryKey: ['pricing-health', tenantId, hotelId ?? null],
+    queryFn: async (): Promise<PricingHealth> => {
+      const { data, error } = await supabase.rpc('get_pricing_health' as any, {
+        p_hotel_id: hotelId ?? null,
+      })
+      if (error) throw error
+      return (data ?? {}) as PricingHealth
+    },
+    enabled: !!tenantId,
+    staleTime: 60_000,
+  })
+}
+
