@@ -6925,6 +6925,140 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_plan_daily_prices: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          is_closed: boolean
+          price: number | null
+          rate_plan_id: string
+          sale_price: number | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          is_closed?: boolean
+          price?: number | null
+          rate_plan_id: string
+          sale_price?: number | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          is_closed?: boolean
+          price?: number | null
+          rate_plan_id?: string
+          sale_price?: number | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_plan_daily_prices_rate_plan_id_fkey"
+            columns: ["rate_plan_id"]
+            isOneToOne: false
+            referencedRelation: "rate_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_plan_daily_prices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rate_plans: {
+        Row: {
+          created_at: string
+          hotel_id: string | null
+          id: string
+          inclusions: string[]
+          is_active: boolean
+          name: string
+          policies: string[]
+          price: number | null
+          room_type_id: string
+          sale_end_date: string | null
+          sale_price: number | null
+          sale_start_date: string | null
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hotel_id?: string | null
+          id?: string
+          inclusions?: string[]
+          is_active?: boolean
+          name: string
+          policies?: string[]
+          price?: number | null
+          room_type_id: string
+          sale_end_date?: string | null
+          sale_price?: number | null
+          sale_start_date?: string | null
+          sort_order?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hotel_id?: string | null
+          id?: string
+          inclusions?: string[]
+          is_active?: boolean
+          name?: string
+          policies?: string[]
+          price?: number | null
+          room_type_id?: string
+          sale_end_date?: string | null
+          sale_price?: number | null
+          sale_start_date?: string | null
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_plans_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "rate_plans_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_plans_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_plans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reminder_automation_rules: {
         Row: {
           action_template: string | null
@@ -8189,6 +8323,71 @@ export type Database = {
           },
           {
             foreignKeyName: "room_pricing_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_type_availability: {
+        Row: {
+          available_qty: number
+          created_at: string
+          date: string
+          hotel_id: string | null
+          id: string
+          is_closed: boolean
+          room_type_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          available_qty?: number
+          created_at?: string
+          date: string
+          hotel_id?: string | null
+          id?: string
+          is_closed?: boolean
+          room_type_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          available_qty?: number
+          created_at?: string
+          date?: string
+          hotel_id?: string | null
+          id?: string
+          is_closed?: boolean
+          room_type_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_type_availability_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "room_type_availability_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_type_availability_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_type_availability_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -11598,6 +11797,26 @@ export type Database = {
       bulk_delete_items: {
         Args: { p_item_ids: string[]; p_user_id: string }
         Returns: Json
+      }
+      bulk_upsert_daily_prices: {
+        Args: {
+          _dates: string[]
+          _is_closed?: boolean
+          _price?: number
+          _rate_plan_id: string
+          _reset?: boolean
+          _sale_price?: number
+        }
+        Returns: number
+      }
+      bulk_upsert_rt_availability: {
+        Args: {
+          _dates: string[]
+          _is_closed?: boolean
+          _qty?: number
+          _room_type_id: string
+        }
+        Returns: number
       }
       calculate_booking_price: {
         Args: {
