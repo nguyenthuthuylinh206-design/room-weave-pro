@@ -1,6 +1,15 @@
 {
-  "current": "1.1.26",
+  "current": "1.1.27",
   "versions": [
+    {
+      "version": "1.1.27",
+      "date": "2026-05-31",
+      "title": "Lịch giá theo ngày — sửa lỗi nhập số tiền bị nối chuỗi",
+      "highlights": [
+        "Auto-select toàn bộ giá trị khi focus ô giá / giá KM / số phòng — gõ là thay thế, không bị nối vào số cũ thành con số khổng lồ",
+        "Bulk panel: ô Giá & Giá KM tự format thiên phân vị (1.700.000) khi gõ, dễ đọc, khó nhầm 7 vs 8 số 0"
+      ]
+    },
     {
       "version": "1.1.26",
       "date": "2026-05-31",

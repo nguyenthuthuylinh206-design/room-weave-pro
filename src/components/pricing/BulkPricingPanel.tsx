@@ -248,12 +248,28 @@ export default function BulkPricingPanel({
                         </SelectContent>
                       </Select>
                       <div className="relative">
-                        <Input type="text" inputMode="numeric" placeholder="Giá" className="pr-12 h-9" value={priceValue} onChange={(e) => setPriceValue(e.target.value)} />
+                        <Input
+                          type="text" inputMode="numeric" placeholder="Giá" className="pr-12 h-9 tabular-nums"
+                          value={priceValue}
+                          onChange={(e) => {
+                            const digits = e.target.value.replace(/\D/g, '')
+                            setPriceValue(digits ? Number(digits).toLocaleString('vi-VN') : '')
+                          }}
+                          onFocus={(e) => e.currentTarget.select()}
+                        />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">VND</span>
                       </div>
                     </div>
                     <div className="relative">
-                      <Input type="text" inputMode="numeric" placeholder="Giá KM (tuỳ chọn)" className="pr-12 h-9" value={salePriceValue} onChange={(e) => setSalePriceValue(e.target.value)} />
+                      <Input
+                        type="text" inputMode="numeric" placeholder="Giá KM (tuỳ chọn)" className="pr-12 h-9 tabular-nums"
+                        value={salePriceValue}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, '')
+                          setSalePriceValue(digits ? Number(digits).toLocaleString('vi-VN') : '')
+                        }}
+                        onFocus={(e) => e.currentTarget.select()}
+                      />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">VND</span>
                     </div>
                     <p className="text-[11px] text-muted-foreground">Khoảng: {dateRangeLabel}</p>

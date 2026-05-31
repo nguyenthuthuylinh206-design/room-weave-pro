@@ -135,6 +135,7 @@ export function InlinePriceEditor({
                   type="text" inputMode="numeric"
                   value={price}
                   onChange={(e) => setPrice(formatNum(e.target.value))}
+                  onFocus={(e) => e.currentTarget.select()}
                   className="h-8 text-sm tabular-nums"
                   placeholder={Number(basePrice).toLocaleString('vi-VN')}
                   autoFocus
@@ -146,6 +147,7 @@ export function InlinePriceEditor({
                   type="text" inputMode="numeric"
                   value={salePrice}
                   onChange={(e) => setSalePrice(formatNum(e.target.value))}
+                  onFocus={(e) => e.currentTarget.select()}
                   className="h-8 text-sm tabular-nums"
                   placeholder="Để trống nếu không KM"
                 />
@@ -245,6 +247,7 @@ export function InlineAvailabilityEditor({
                 min={0} max={defaultQty}
                 value={qty}
                 onChange={(e) => setQty(e.target.value)}
+                onFocus={(e) => e.currentTarget.select()}
                 className="h-8 text-sm"
                 autoFocus
               />
