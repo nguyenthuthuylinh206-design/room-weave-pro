@@ -82,10 +82,13 @@
   "notifications": "Notifications",
   "assetGroupMigration": "Asset Classification",
   "hotelPolicy": "Hotel Policy",
+  "hotelsSettings": "Hotel Information",
   "staffList": "Staff List",
   "shiftHandoverReport": "Shift Handover Report",
-  "pricingV2": "Room Type Rates",
-  "seasonalRules": "Seasonal Rules",
-  "bcaConfig": "BCA Submission Config",
+  "pricingV2": "Room Rates",
+  "seasonalRules": "Seasons",
+  "bcaConfig": "Stay Registration (BCA)",
+
+
   "stayRegistrations": "Stay Registrations"
 }
