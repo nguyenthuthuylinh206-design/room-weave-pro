@@ -169,7 +169,7 @@ export function useReceiveLaundryBatch() {
   const { user } = useUser()
   const { tenant } = useTenant()
   
-  return useMutation({
+  return useShiftGuardedMutation(useMutation({
     mutationFn: async ({
       batchId,
       data,
