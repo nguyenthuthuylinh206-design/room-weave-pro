@@ -221,10 +221,66 @@ export function BookingsPage() {
         // For unpaid, we don't have a specific status, show all checked_out
         setStatusFilter('checked_out')
       }
-      // Clear the URL parameter
-      setSearchParams({}, { replace: true })
+      // Clear filter param but keep other params (e.g. action/bookingId)
+      const next = new URLSearchParams(searchParams)
+      next.delete('filter')
+      setSearchParams(next, { replace: true })
     }
   }, [searchParams, setSearchParams])
+
+  // Handle ?action=checkin|checkout&bookingId=xxx deep-link (from sơ đồ phòng / ReceptionQuickDialog)
+  // Routes through the SAME check-in/check-out handlers as the bookings table so the flow is unified
+  // (group booking detection, overdue → ExtendDialog, surcharge dialogs, …).
+  useEffect(() => {
+    const action = searchParams.get('action')
+    const bookingId = searchParams.get('bookingId')
+    if (!action || !bookingId || !tenantId) return
+    if (action !== 'checkin' && action !== 'checkout') return
+
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data, error } = await supabase
+          .from('room_bookings')
+          .select(`
+            *,
+            room:rooms(room_number, room_type, floor, status),
+            booking_type, hourly_rate, hourly_start_time, hourly_end_time,
+            booking_hours, monthly_rate, booking_months, booking_group_id
+          `)
+          .eq('id', bookingId)
+          .eq('tenant_id', tenantId)
+          .maybeSingle()
+
+        if (cancelled) return
+        if (error || !data) {
+          toast({ variant: 'destructive', title: 'Không tìm thấy đặt phòng', description: error?.message })
+          return
+        }
+
+        const booking = data as BookingWithRoom
+
+        // Clear action params first so a refresh doesn't re-trigger the flow
+        const next = new URLSearchParams(searchParams)
+        next.delete('action')
+        next.delete('bookingId')
+        setSearchParams(next, { replace: true })
+
+        if (action === 'checkin') {
+          await handleCheckInClick(booking)
+        } else {
+          await handleCheckOutClick(booking)
+        }
+      } catch (e: any) {
+        if (!cancelled) {
+          toast({ variant: 'destructive', title: 'Lỗi', description: e?.message || 'Không thực hiện được' })
+        }
+      }
+    })()
+
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, tenantId])
 
   // Realtime subscription for bookings and rooms (filter tenant + visibility pause)
   useEffect(() => {
