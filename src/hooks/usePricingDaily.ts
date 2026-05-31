@@ -220,15 +220,33 @@ export const useRoomTypeAvailability = (
 // ===== Default qty cho hạng phòng (đếm số phòng vật lý đang active) =====
 export const useRoomTypeDefaultQty = (roomTypeId: string | null) => {
   const { tenantId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   return useQuery({
-    queryKey: ['rt-default-qty', tenantId, roomTypeId],
+    queryKey: ['rt-default-qty', tenantId, isAllHotelsMode ? null : selectedHotel?.id ?? null, roomTypeId],
     queryFn: async () => {
       if (!tenantId || !roomTypeId) return 0
-      const { count, error } = await supabase
+      const { data: roomType, error: roomTypeError } = await supabase
+        .from('room_types')
+        .select('code, name')
+        .eq('tenant_id', tenantId)
+        .eq('id', roomTypeId)
+        .maybeSingle()
+      if (roomTypeError) throw roomTypeError
+
+      const roomKeys = roomKeysFromRoomType(roomType as { code?: string | null; name?: string | null } | null)
+      if (roomKeys.length === 0) return 0
+
+      let query = supabase
         .from('rooms' as any)
         .select('id', { count: 'exact', head: true })
         .eq('tenant_id', tenantId)
-        .eq('room_type_id', roomTypeId)
+        .in('room_type', roomKeys)
+
+      if (!isAllHotelsMode && selectedHotel?.id) {
+        query = query.eq('hotel_id', selectedHotel.id)
+      }
+
+      const { count, error } = await query
       if (error) throw error
       return count ?? 0
     },
