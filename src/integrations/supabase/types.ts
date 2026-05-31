@@ -6983,6 +6983,7 @@ export type Database = {
           id: string
           inclusions: string[]
           is_active: boolean
+          is_default: boolean
           name: string
           policies: string[]
           price: number | null
@@ -7000,6 +7001,7 @@ export type Database = {
           id?: string
           inclusions?: string[]
           is_active?: boolean
+          is_default?: boolean
           name: string
           policies?: string[]
           price?: number | null
@@ -7017,6 +7019,7 @@ export type Database = {
           id?: string
           inclusions?: string[]
           is_active?: boolean
+          is_default?: boolean
           name?: string
           policies?: string[]
           price?: number | null
@@ -12279,6 +12282,10 @@ export type Database = {
       enqueue_stay_registration: {
         Args: { p_booking_id: string }
         Returns: number
+      }
+      ensure_default_rate_plan: {
+        Args: { p_room_type_id: string }
+        Returns: string
       }
       ensure_vat_claim_token: {
         Args: { p_invoice_id: string }

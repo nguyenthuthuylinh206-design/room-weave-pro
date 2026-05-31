@@ -18,6 +18,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import { toDateKey } from '@/lib/pricing/rate-plan-constants'
 import { useUser } from '@/hooks/useUser'
+import { VIRTUAL_DEFAULT_PLAN_ID, ensureDefaultRatePlan } from '@/hooks/usePricingDaily'
 
 interface RatePlan { id: string; name: string; price: number }
 
@@ -135,9 +136,13 @@ export default function BulkPricingPanel({
     if (!price && !salePrice) { toast.error('Nhập giá hoặc giá KM'); return }
     setSavingPrice(true)
     try {
+      let realPlanId = selectedPlanId
+      if (selectedPlanId === VIRTUAL_DEFAULT_PLAN_ID) {
+        realPlanId = await ensureDefaultRatePlan(roomTypeId)
+      }
       const days = eachDayInRange(from, to, selectedDays)
       const rows = days.map(d => ({
-        tenant_id: tenantId, rate_plan_id: selectedPlanId, date: toDateKey(d),
+        tenant_id: tenantId, rate_plan_id: realPlanId, date: toDateKey(d),
         price, sale_price: salePrice,
       }))
       const { error } = await supabase.from('rate_plan_daily_prices' as any).upsert(rows as any, { onConflict: 'rate_plan_id,date' })

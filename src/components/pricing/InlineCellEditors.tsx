@@ -12,10 +12,11 @@ import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import { toDateKey } from '@/lib/pricing/rate-plan-constants'
 import { useUser } from '@/hooks/useUser'
+import { VIRTUAL_DEFAULT_PLAN_ID, ensureDefaultRatePlan } from '@/hooks/usePricingDaily'
 
 export function InlinePriceEditor({
   open, onOpenChange, children,
-  ratePlanId, planName, basePrice, date,
+  ratePlanId, planName, basePrice, date, roomTypeId,
   initialPrice, initialSalePrice, initialIsClosed, hasOverride,
   onSaved,
 }: {
@@ -23,6 +24,8 @@ export function InlinePriceEditor({
   onOpenChange: (v: boolean) => void
   children: React.ReactNode
   ratePlanId: string
+  /** Bắt buộc khi ratePlanId là gói chuẩn ảo, để materialize */
+  roomTypeId?: string
   planName: string
   basePrice: number
   date: Date
@@ -66,10 +69,21 @@ export function InlinePriceEditor({
     if (priceNum != null && (isNaN(priceNum) || priceNum < 0)) { toast.error('Giá không hợp lệ'); setSaving(false); return }
     if (saleNum != null && (isNaN(saleNum) || saleNum < 0)) { toast.error('Giá KM không hợp lệ'); setSaving(false); return }
 
+    let realPlanId = ratePlanId
+    if (ratePlanId === VIRTUAL_DEFAULT_PLAN_ID) {
+      if (!roomTypeId) { toast.error('Thiếu hạng phòng'); setSaving(false); return }
+      try {
+        realPlanId = await ensureDefaultRatePlan(roomTypeId)
+      } catch (e: any) {
+        toast.error('Không tạo được gói chuẩn: ' + (e?.message || ''))
+        setSaving(false); return
+      }
+    }
+
     const { error } = await supabase
       .from('rate_plan_daily_prices' as any)
       .upsert(
-        { tenant_id: tenantId, rate_plan_id: ratePlanId, date: dateKey, price: priceNum, sale_price: saleNum, is_closed: isClosed } as any,
+        { tenant_id: tenantId, rate_plan_id: realPlanId, date: dateKey, price: priceNum, sale_price: saleNum, is_closed: isClosed } as any,
         { onConflict: 'rate_plan_id,date' },
       )
 

@@ -8,6 +8,8 @@ import {
   useDailyPrices,
   useRoomTypeAvailability,
   useRoomTypeDefaultQty,
+  VIRTUAL_DEFAULT_PLAN_ID,
+  ensureDefaultRatePlan,
 } from '@/hooks/usePricingDaily'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -84,6 +86,20 @@ export default function PricingDailyPage() {
     qc.invalidateQueries({ queryKey: ['rate-plans'] })
   }
 
+  // Nếu planId là gói chuẩn ảo → materialize trong DB và refetch
+  const resolvePlanId = async (planId: string): Promise<string | null> => {
+    if (planId !== VIRTUAL_DEFAULT_PLAN_ID) return planId
+    if (!selectedRoomType) return null
+    try {
+      const realId = await ensureDefaultRatePlan(selectedRoomType.id)
+      qc.invalidateQueries({ queryKey: ['rate-plans'] })
+      return realId
+    } catch (e: any) {
+      toast.error('Không tạo được gói chuẩn: ' + (e?.message || ''))
+      return null
+    }
+  }
+
   // ===== Grid selection =====
   const buildClipFromSelection = (sel: Selection) => {
     const { from, to } = selectionRange(sel)
@@ -117,7 +133,9 @@ export default function PricingDailyPage() {
     if (!targetDates.length) return
 
     if (sel.rowKind === 'price') {
-      const planId = sel.rowMeta!
+      const rawPlanId = sel.rowMeta!
+      const planId = await resolvePlanId(rawPlanId)
+      if (!planId) return
       if (clip.values.length === 1) {
         const v = clip.values[0]
         const { error } = await applyPriceRange(planId, tenantId, targetDates, { price: v.price, salePrice: v.salePrice ?? null, isClosed: !!v.isClosed })
@@ -171,9 +189,11 @@ export default function PricingDailyPage() {
       for (let i = from; i <= to; i++) if (i !== sourceIdx && days[i]) targetDates.push(days[i])
       if (!targetDates.length) return
       if (sel.rowKind === 'price') {
-        const planId = sel.rowMeta!
-        const dp = dailyPrices.get(`${planId}|${sourceKey}`)
-        const plan = plans.find(p => p.id === planId)
+        const rawPlanId = sel.rowMeta!
+        const planId = await resolvePlanId(rawPlanId)
+        if (!planId) return
+        const dp = dailyPrices.get(`${rawPlanId}|${sourceKey}`)
+        const plan = plans.find(p => p.id === rawPlanId)
         const payload = {
           price: dp?.price != null ? Number(dp.price) : Number(plan?.price || 0),
           salePrice: dp?.sale_price != null ? Number(dp.sale_price) : null,
@@ -208,8 +228,10 @@ export default function PricingDailyPage() {
   const toolbarApplyPrice = async (payload: { price?: number | null; salePrice?: number | null }) => {
     if (!tenantId) return
     const sel = grid.selection; if (!sel || sel.rowKind !== 'price') return
+    const planId = await resolvePlanId(sel.rowMeta!)
+    if (!planId) return
     const dates = selectionDates()
-    const { error } = await applyPriceRange(sel.rowMeta!, tenantId, dates, {
+    const { error } = await applyPriceRange(planId, tenantId, dates, {
       ...(payload.price !== undefined ? { price: payload.price, isClosed: false } : {}),
       ...(payload.salePrice !== undefined ? { salePrice: payload.salePrice } : {}),
     })
@@ -233,7 +255,9 @@ export default function PricingDailyPage() {
     const sel = grid.selection; if (!sel || !selectedRoomType) return
     const dates = selectionDates()
     if (sel.rowKind === 'price') {
-      const { error } = await applyPriceRange(sel.rowMeta!, tenantId, dates, { isClosed: closed })
+      const planId = await resolvePlanId(sel.rowMeta!)
+      if (!planId) return
+      const { error } = await applyPriceRange(planId, tenantId, dates, { isClosed: closed })
       if (error) return toast.error('Lưu thất bại: ' + error.message)
     } else {
       const { error } = await applyAvailabilityRangeSmart(
@@ -247,6 +271,10 @@ export default function PricingDailyPage() {
 
   const toolbarReset = async () => {
     const sel = grid.selection; if (!sel || sel.rowKind !== 'price') return
+    if (sel.rowMeta === VIRTUAL_DEFAULT_PLAN_ID) {
+      toast.info('Gói chuẩn ảo không có dữ liệu để reset')
+      return
+    }
     const dates = selectionDates()
     const { error } = await resetPriceRange(sel.rowMeta!, dates)
     if (error) return toast.error('Reset thất bại: ' + error.message)
@@ -600,8 +628,16 @@ export default function PricingDailyPage() {
                       plans.map((plan) => (
                         <tr key={plan.id}>
                           <td className="sticky left-0 z-20 bg-card border-b border-r px-3 py-2 w-[180px] min-w-[180px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">
-                            <p className="font-medium text-primary truncate text-xs">{plan.name}</p>
-                            <p className="text-[10px] text-muted-foreground">Mặc định: <strong>{formatVND(plan.price)}</strong></p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-medium text-primary truncate text-xs">{plan.name}</p>
+                              {(plan as any).is_default && (
+                                <span className="text-[9px] uppercase tracking-wide px-1 py-0.5 rounded bg-primary/10 text-primary font-semibold">Mặc định</span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground">
+                              Giá chuẩn: <strong>{formatVND(plan.price)}</strong>
+                              {(plan as any).isVirtual && <span className="ml-1 text-muted-foreground/70">· lấy từ Giá mặc định</span>}
+                            </p>
                           </td>
                           {days.map((d, idx) => {
                             const dow = d.getDay()
@@ -641,6 +677,7 @@ export default function PricingDailyPage() {
                                   open={popoverOpen}
                                   onOpenChange={(v) => { if (v && grid.wasDragMoved()) { grid.resetDragMoved(); return } setOpenCellKey(v ? cellKey : null) }}
                                   ratePlanId={plan.id}
+                                  roomTypeId={selectedRoomType.id}
                                   planName={plan.name}
                                   basePrice={Number(plan.price || 0)}
                                   date={d}

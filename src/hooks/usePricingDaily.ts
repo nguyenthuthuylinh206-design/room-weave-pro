@@ -5,19 +5,45 @@ import { useUser } from './useUser'
 import { toast } from 'sonner'
 import { toDateKey, type DailyPrice, type RatePlanLite } from '@/lib/pricing/rate-plan-constants'
 
+// ID quy ước cho gói chuẩn ảo (chưa materialize vào DB)
+export const VIRTUAL_DEFAULT_PLAN_ID = '__default__'
+
 // ===== Rate plans =====
 export interface RatePlanRow extends RatePlanLite {
   tenant_id: string
   hotel_id: string | null
   room_type_id: string
+  is_default?: boolean
+  isVirtual?: boolean
+}
+
+// ===== Default rate (từ room_type_rates) =====
+export const useRoomTypeRate = (roomTypeId: string | null) => {
+  const { tenantId } = useUser()
+  return useQuery({
+    queryKey: ['room-type-rate', tenantId, roomTypeId],
+    queryFn: async () => {
+      if (!tenantId || !roomTypeId) return null
+      const { data, error } = await supabase
+        .from('room_type_rates')
+        .select('daily_rate, hotel_id')
+        .eq('tenant_id', tenantId)
+        .eq('room_type_id', roomTypeId)
+        .maybeSingle()
+      if (error) throw error
+      return data
+    },
+    enabled: !!tenantId && !!roomTypeId,
+  })
 }
 
 export const useRatePlans = (roomTypeId: string | null) => {
   const { tenantId } = useUser()
+  const { data: defaultRate } = useRoomTypeRate(roomTypeId)
   return useQuery({
-    queryKey: ['rate-plans', tenantId, roomTypeId],
+    queryKey: ['rate-plans', tenantId, roomTypeId, defaultRate?.daily_rate ?? null],
     queryFn: async () => {
-      if (!tenantId || !roomTypeId) return []
+      if (!tenantId || !roomTypeId) return [] as RatePlanRow[]
       const { data, error } = await supabase
         .from('rate_plans' as any)
         .select('*')
@@ -26,10 +52,39 @@ export const useRatePlans = (roomTypeId: string | null) => {
         .eq('is_active', true)
         .order('sort_order')
       if (error) throw error
-      return (data ?? []) as unknown as RatePlanRow[]
+      const real = ((data ?? []) as unknown) as RatePlanRow[]
+      if (real.length > 0) return real
+      const price = Number(defaultRate?.daily_rate ?? 0)
+      const virtual: RatePlanRow = {
+        id: VIRTUAL_DEFAULT_PLAN_ID,
+        tenant_id: tenantId,
+        hotel_id: defaultRate?.hotel_id ?? null,
+        room_type_id: roomTypeId,
+        name: 'Giá tiêu chuẩn',
+        price,
+        sale_price: null,
+        sale_start_date: null,
+        sale_end_date: null,
+        inclusions: [],
+        policies: [],
+        is_active: true,
+        sort_order: 0,
+        is_default: true,
+        isVirtual: true,
+      } as unknown as RatePlanRow
+      return [virtual]
     },
     enabled: !!tenantId && !!roomTypeId,
   })
+}
+
+// Materialize gói chuẩn ảo thành row thực
+export const ensureDefaultRatePlan = async (roomTypeId: string): Promise<string> => {
+  const { data, error } = await supabase.rpc('ensure_default_rate_plan' as any, {
+    p_room_type_id: roomTypeId,
+  })
+  if (error) throw error
+  return data as unknown as string
 }
 
 export const useSaveRatePlans = () => {
