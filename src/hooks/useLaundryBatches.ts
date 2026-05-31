@@ -305,7 +305,7 @@ export function useUpdateBatchStatus() {
     stocked: 'Đã nhập kho'
   }
   
-  return useMutation({
+  return useShiftGuardedMutation(useMutation({
     mutationFn: async ({
       batchId,
       status,
