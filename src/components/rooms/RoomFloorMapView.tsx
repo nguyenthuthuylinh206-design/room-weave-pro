@@ -617,11 +617,27 @@ export function RoomFloorMapView({
                               <div className="text-[10px] uppercase tracking-wide text-white/85 truncate w-full">
                                 {room.room_type}
                               </div>
-                              {!compact && bucket === 'sellable' && (
-                                <div className="text-[10px] font-semibold text-white">Sẵn sàng bán</div>
-                              )}
+                              {!compact && (() => {
+                                const tp = todayPrices?.get((room.room_type ?? '').toLowerCase())
+                                if (tp && !tp.is_closed && tp.final_price > 0) {
+                                  return (
+                                    <div className="text-[11px] font-bold text-white drop-shadow-sm flex items-center gap-0.5">
+                                      {formatCurrency(tp.final_price)}
+                                      {tp.has_seasonal && <span className="text-amber-200" title="Có quy tắc mùa">●</span>}
+                                    </div>
+                                  )
+                                }
+                                if (tp?.is_closed) {
+                                  return <div className="text-[10px] text-white/90">Đóng bán</div>
+                                }
+                                if (bucket === 'sellable') {
+                                  return <div className="text-[10px] font-semibold text-white">Sẵn sàng bán</div>
+                                }
+                                return null
+                              })()}
                             </div>
                           )}
+
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-xs">
