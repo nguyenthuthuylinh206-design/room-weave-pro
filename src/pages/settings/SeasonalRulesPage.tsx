@@ -18,11 +18,9 @@ import {
 import { formatCurrency } from '@/lib/utils'
 
 
+// Quy tắc mùa CHỈ áp lên Giá đêm. Giá giờ & Giá tháng cố định ở bảng giá mặc định.
 const APPLY_TO_OPTIONS: { value: SeasonalApplyTo; label: string }[] = [
-  { value: 'daily', label: 'Ngày' },
-  { value: 'overnight', label: 'Qua đêm' },
-  { value: 'hourly', label: 'Giờ' },
-  { value: 'monthly', label: 'Tháng' },
+  { value: 'daily', label: 'Giá đêm' },
 ]
 
 interface FormState {
