@@ -426,7 +426,7 @@ export function useStockInFromLaundry() {
   const { user } = useUser()
   const { selectedHotel } = useHotelContext()
   
-  return useMutation({
+  return useShiftGuardedMutation(useMutation({
     mutationFn: async ({
       batchId,
       batchCode,
