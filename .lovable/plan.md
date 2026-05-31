@@ -1,86 +1,96 @@
-## Vấn đề
+## Mục tiêu
+Mỗi ô phòng trong Sơ đồ phòng (`/rooms?view=map`) hiện chỉ có số phòng + chấm màu + nhãn loại/tên rút gọn — không đủ để lễ tân ra quyết định nhanh. Cần:
 
-Khi nhân viên giao hàng vào một phòng đang có khách (booking đang chờ checkout), thay vì vào màn giao đồ thì lại bị nhảy sang màn **kiểm tra phòng checkout** (`?type=checkout&inspection=...`) — đúng như URL bạn đang đứng:
-`/rooms/<room>/check?type=checkout&inspection=<id>`.
+1. Hiển thị ngay ở **giữa ô**: tên khách, số người ở, số đêm còn lại, giá phòng/đêm.
+2. **Góc trên-trái**: badge ngắn nhãn trạng thái phòng (Sạch / Bẩn / DND / OOO / Còn trống…).
+3. Đổi bảng màu từ pastel nhạt sang **tông đậm có độ tương phản cao** (chữ trắng trên nền màu) để lễ tân nhìn từ xa.
 
-## Nguyên nhân (đã trace)
+Giữ nguyên: KPI bar, filter, group ring nhóm khách, badge đỏ "việc cần làm" góc phải-trên, hover quick actions, tooltip, click → ReceptionQuickDialog.
 
-Có **2 lỗi cộng hưởng**:
+## Phạm vi file
+Sửa duy nhất `src/components/rooms/RoomFloorMapView.tsx` (frontend/UI only). Không đụng RPC, hook `useFloorPlanLive`, schema.
 
-### 1. Nav button thiếu `type=delivery`
-- `src/components/distribution/components/UnifiedRoomList.tsx:231` — `handleRoomClick` navigate tới:
-  `?distribution_order_id=...&room_order_id=...` (KHÔNG có `type=delivery`).
-- `src/components/distribution/components/StopCard.tsx:102` — y hệt.
+## A. Logic nghiệp vụ hiển thị
+Với mỗi `room` (FloorPlanRoom):
 
-So sánh với nút "Giao phòng này" (`performDeliver`, dòng 152) thì có `type=delivery` đầy đủ → flow đó đúng.
+- **Nhãn trạng thái ngắn** (góc trên-trái): suy từ `getBucket(room)` + một số case đặc biệt
+  - `sellable` → "Trống"
+  - `due_out` → "Sắp trả"
+  - `dirty` → "Bẩn" (hoặc "Cần dọn" nếu `occupied_dirty`)
+  - `occupied` → "Đang ở"
+  - `blocked` → cụ thể hơn: `out_of_order` → "OOO", `out_of_service` → "OOS", `dnd` → "DND", `skipper` → "Bỏ trốn"
 
-### 2. RoomCheckPage tự "normalize" URL về checkout-inspection
-`src/pages/rooms/RoomCheckPage.tsx:224-234`:
+- **Trung tâm ô**:
+  - Nếu có `current_booking`:
+    - Dòng 1: Tên khách (lấy 2 từ cuối, truncate)
+    - Dòng 2: `{guest_count} khách · còn {nights} đêm` — `nights` = ceil((check_out_date - today) / 1 ngày), nếu ≤ 0 → "Trả hôm nay"
+    - Dòng 3 (nếu countdown < 24h): countdown `{hrs}h` hoặc "Trễ"
+  - Nếu không có booking nhưng có `next_booking`:
+    - Dòng 1: "Sắp đến: {tên rút gọn}"
+    - Dòng 2: thời gian đến (`formatArriveIn`)
+  - Nếu trống không booking:
+    - Dòng 1: loại phòng (uppercase)
+    - Dòng 2: giá phòng/đêm (lấy từ `current_booking?.total_amount` không có → cần thêm field giá vào ô. Phiên bản đầu chỉ hiện loại phòng nếu không có giá; **giả định: hook hiện chưa trả giá phòng theo loại** — ghi rõ TODO mở rộng RPC `get_floor_plan_live` ở vòng sau)
 
-```ts
-if (!isInspectionLoading && pendingInspection && !prefilledType && !inspectionIdFromUrl) {
-  navigate(`/rooms/${id}/check?type=checkout&inspection=${pendingInspection.id}`, { replace: true })
-}
+## B. Thiết kế thị giác (tông đậm, không pastel)
+
+Đổi `BUCKET_META` sang biến thể "solid":
+
+```text
+sellable  → bg-emerald-600  text-white
+due_out   → bg-amber-600    text-white  (ô chớp viền cam khi hrs < 2)
+dirty     → bg-rose-600     text-white
+occupied  → bg-sky-700      text-white
+blocked   → bg-slate-700    text-white
 ```
 
-Khi phòng đang có booking chờ checkout, `pendingInspection` tồn tại. Nếu URL không có `type=...`, useEffect này **xoá sạch query string distribution** và đẩy người dùng vào checkout inspection. Đây chính là lúc UI biến từ "Giao phòng" thành "Kiểm tra phòng".
+- Chữ chính dùng `text-white`, chữ phụ `text-white/80`.
+- Badge trạng thái góc trên-trái: `bg-white/15 text-white text-[9px] font-semibold uppercase tracking-wide rounded px-1.5 py-0.5 backdrop-blur`.
+- Badge "việc cần làm" giữ nguyên `bg-red-500` ring trắng (đã nổi sẵn).
+- Hover quick actions giữ nguyên (Unlock, History) — nền tối nhẹ để vẫn nhìn được.
+- Group ring nhóm khách: giữ `ring-2 ring-offset-1`, đổi sang các tông `ring-{fuchsia|cyan|lime|rose|violet|teal|yellow}-300` (sáng hơn để nổi trên nền đậm).
+- Khi `dim` (filter loại phòng không khớp): `opacity-40`.
 
-## Cách sửa
+## C. Layout ô (giữ height đang có từ `useFloorMapCellSize`)
 
-Sửa cả 2 lớp để bền:
-
-### A. Frontend — bổ sung `type=delivery` ở 2 chỗ navigate
-1. `UnifiedRoomList.tsx:231` — đổi thành:
-   ```
-   /rooms/${room_id}/check?type=delivery&distribution_order_id=...&room_order_id=...&returnTo=/inventory/distributions/${distribution_order_id}
-   ```
-2. `StopCard.tsx:102` — y hệt.
-
-→ Cùng format với `performDeliver` (line 152), giữ `returnTo` để nút "Quay lại" về đúng phiếu.
-
-### B. Frontend — defensive guard ở RoomCheckPage
-`RoomCheckPage.tsx:224-234`: bổ sung điều kiện **không redirect** khi URL có `distribution_order_id`, `room_order_id` hoặc `returnTo`. Tránh trường hợp tương lai có nơi khác navigate thiếu `type=delivery` cũng không phá flow giao hàng.
-
-```ts
-const hasDistributionContext =
-  !!searchParams.get('distribution_order_id') ||
-  !!searchParams.get('room_order_id') ||
-  !!searchParams.get('returnTo')
-
-if (
-  !isInspectionLoading &&
-  pendingInspection &&
-  !prefilledType &&
-  !inspectionIdFromUrl &&
-  !hasDistributionContext           // ← thêm
-) { ... }
+```text
+┌────────────────────────────┐
+│ [STATUS]            [n]    │  ← góc trên-trái: badge status, góc trên-phải: badge tasks
+│                            │
+│      102                   │  ← số phòng to (text-white)
+│   Nguyễn Văn A             │  ← tên khách (truncate)
+│   2 khách · còn 2 đêm      │  ← guest_count + nights
+│                            │
+│         8h ← (nếu due_out) │  ← countdown
+└────────────────────────────┘
 ```
 
-### C. Version bump
-- `APP_VERSION` 1.1.16 → 1.1.17
-- Thêm entry changelog: *"Sửa lỗi bấm phòng trong phiếu giao bị nhảy sang kiểm tra checkout"*.
+- Số phòng: dùng `cellSize.classes.numberCls` nhưng đổi `text-foreground` → `text-white`.
+- Bỏ chấm tròn lớn ở giữa (đã thay bằng nền đậm + badge text).
+- Nội dung dòng đáy auto co theo height ô (ẩn bớt khi ô nhỏ — `h < 90` chỉ hiển thị số phòng + status badge + tên khách).
 
-## Phạm vi không đụng
+## D. Helper mới (cùng file)
 
-- Không sửa RPC, không migration.
-- Không đổi RoomCheckRouter (router đã đúng — đã có guard `delivery` + distribution params).
-- Không đổi `performDeliver` (đang đúng).
-- Không đổi `auto-create checkout inspection` (useEffect line 269) vì chỉ chạy khi `watchedCheckType === 'checkout'`, không bị ảnh hưởng.
+```ts
+function getStatusBadgeLabel(room: FloorPlanRoom): string
+function getNightsLeft(bk: FloorPlanBooking): number   // số đêm còn lại
+function getShortName(name: string): string             // 2 từ cuối
+```
 
-## QA checklist sau khi build
+## E. Test thủ công (QA checklist)
+1. Phòng trống sạch không booking → nền emerald đậm, badge "Trống", giữa hiển thị loại phòng.
+2. Phòng có khách đang ở → nền sky đậm, badge "Đang ở", giữa hiển thị tên + "2 khách · còn 3 đêm".
+3. Phòng checkout hôm nay với countdown < 24h → nền amber đậm, badge "Sắp trả", có countdown.
+4. Phòng OOO/OOS/DND → nền slate đậm, badge chính xác, không có thông tin khách.
+5. Phòng nhóm (group_id chung > 1 phòng) → vẫn có ring nhóm rõ trên nền đậm.
+6. Hover hiện quick actions không bị che bởi nền tối.
+7. Tooltip vẫn hiển thị đầy đủ (không sửa `RoomTooltip`).
+8. Cell size `sm/md/lg`: thông tin tự ẩn/hiện gọn gàng, không tràn.
 
-1. Vào phiếu giao đang `in_progress`, **bấm tên phòng** trong danh sách (không phải nút "Giao phòng") → URL phải có `?type=delivery&distribution_order_id=...&room_order_id=...`, KHÔNG nhảy sang checkout.
-2. Test cả phòng đang có booking checkout pending — vẫn không bị nhảy.
-3. Bấm "Giao phòng này" (nút primary) → vẫn vào màn delivery như trước.
-4. Vào `/rooms/:id/check` (không tham số) ở phòng có booking checkout pending → vẫn auto redirect sang `?type=checkout&inspection=...` như cũ (giữ behaviour cho lễ tân).
-5. Test trên mobile portrait (390px) và desktop 981px.
+## F. Rollout
+- Chỉ thay đổi UI, không cần migration / không cần bump APP_VERSION (theo memory: chỉ bump khi publish — chờ khi user publish).
+- Có thể rollback bằng cách revert duy nhất file `RoomFloorMapView.tsx`.
 
-## Files sẽ sửa
-
-- `src/components/distribution/components/UnifiedRoomList.tsx` (1 dòng)
-- `src/components/distribution/components/StopCard.tsx` (1 dòng)
-- `src/pages/rooms/RoomCheckPage.tsx` (~5 dòng useEffect guard)
-- `src/lib/app-version.ts`
-- `public/changelog.json`
-
-Không cần migration, không cần test mới (logic UI thuần).
+## G. Phần còn thiếu / lần sau
+- Giá phòng/đêm hiện chưa có trong `get_floor_plan_live` → cần mở rộng RPC trả về `room_price_daily` để ô trống hiển thị giá. Sẽ làm ở vòng sau khi user xác nhận.
+- Có thể thêm icon nhỏ cho nguồn OTA (Booking/Agoda) ở badge góc-phải-dưới — chờ user yêu cầu.
