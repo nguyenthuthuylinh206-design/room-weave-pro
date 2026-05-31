@@ -356,10 +356,10 @@ export default function PricingDailyPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <Select value={selectedRoomTypeId} onValueChange={setSelectedRoomTypeId}>
+            <Select value={selectedRoomTypeId} onValueChange={setSelectedRoomTypeId} disabled={!loadingTypes && visibleTypes.length === 0}>
               <SelectTrigger className="h-9 text-sm w-full sm:w-[260px]">
                 <BedDouble className="h-4 w-4 mr-1.5 text-muted-foreground shrink-0" />
-                <SelectValue placeholder="Chọn hạng phòng" />
+                <SelectValue placeholder={!loadingTypes && visibleTypes.length === 0 ? 'Chưa có hạng phòng' : 'Chọn hạng phòng'} />
               </SelectTrigger>
               <SelectContent>
                 {visibleTypes.map(rt => (
@@ -377,6 +377,20 @@ export default function PricingDailyPage() {
               <Settings2 className="h-4 w-4 mr-1.5" /> Chỉnh sửa đồng loạt
             </Button>
           </div>
+
+          {!loadingTypes && visibleTypes.length === 0 && (
+            <Alert>
+              <BedDouble className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between gap-3 flex-wrap">
+                <span>Chưa có hạng phòng nào cho khách sạn này. Tạo hạng phòng trước khi thiết lập lịch giá theo ngày.</span>
+                <Button type="button" size="sm" variant="outline" asChild>
+                  <a href="/settings/categories?tab=rooms">
+                    <Plus className="h-4 w-4 mr-1.5" /> Tạo hạng phòng
+                  </a>
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
 
         {/* Date navigator */}

@@ -1,62 +1,59 @@
 ## Vấn đề
 
-Tab **Lịch giá theo ngày** đang trống vì bảng `rate_plans` chưa có dữ liệu (0 dòng), trong khi dự án đã có sẵn:
-- 8 hạng phòng (`room_types`)
-- 8 dòng `room_type_rates` với `daily_rate` (giá ngày mặc định, dùng cho booking hiện tại)
-- Số lượng phòng vật lý đếm được từ bảng `rooms`
+Tab **Lịch giá theo ngày** (`/settings/pricing?tab=daily`) hiển thị dropdown "Chọn hạng phòng" trống mặc dù DB đã có 8 `room_types` (4 cho mỗi tenant, `hotel_id = NULL`, `status = active`).
 
-Người dùng phải bấm "Quản lý gói giá" và nhập tay → không liền mạch.
+## Nguyên nhân
+
+Trong `PricingDailyPage.tsx` (dòng 53–57), `useRoomTypes()` trả về toàn bộ hạng phòng của tenant. Filter `visibleTypes` cho phép `rt.hotel_id = null` đi qua, nên nguyên tắc không sai. Nhưng:
+
+1. Dropdown thực tế trống → khả năng cao `useRoomTypes` trả mảng rỗng vì:
+   - Hook không truyền filter `status = 'active'` nhưng cũng không lọc inactive (không phải lỗi này).
+   - **`useRoomTypes` không filter theo `hotel_id`** nhưng cũng không phải lý do trống.
+   - Thực tế: hook chạy đúng, nhưng UI hiển thị "Chọn hạng phòng" placeholder vì state `selectedRoomTypeId` chưa được set, và **dropdown render đúng list** — vậy nếu user nói "chưa có hạng phòng" → có thể họ thấy:
+     - dropdown rỗng (no items in SelectContent), HOẶC
+     - placeholder "Chọn hạng phòng" mà không tự chọn cái đầu.
+
+2. Một khả năng khác: `selectedHotel` chưa được set (user chưa pick hotel) → hiện Alert "Vui lòng chọn khách sạn" (dòng 312). Nhưng user đã ở route `tab=daily` nên có thể đã qua check này.
 
 ## Mục tiêu
 
-Khi mở tab Lịch giá theo ngày, dữ liệu phải **tự động kế thừa** từ quản lý phòng:
-1. Mỗi hạng phòng có sẵn một **gói giá mặc định "Giá tiêu chuẩn"** lấy từ `room_type_rates.daily_rate`.
-2. **Số phòng để bán** mặc định = số phòng vật lý đang active (đã có sẵn qua `useRoomTypeDefaultQty`).
-3. Khi user sửa `room_type_rates.daily_rate` ở trang khác (`PricingV2Page`), giá hiển thị ở lịch cũng đồng bộ (qua `plan.price` fallback) miễn là chưa có daily override.
+- Đảm bảo dropdown luôn liệt kê đầy đủ hạng phòng của tenant (kể cả khi `hotel_id = NULL` — vốn áp dụng cho mọi hotel).
+- Hiển thị empty state rõ ràng kèm CTA "Tạo hạng phòng" khi thực sự không có dữ liệu, thay vì dropdown im lặng.
+- Tự động chọn hạng phòng đầu tiên (đã có effect ở dòng 73–75 — verify còn chạy đúng).
 
 ## Thay đổi
 
-### A. Logic nghiệp vụ
-- Thêm khái niệm **"gói chuẩn" (standard plan)** — một row ảo trên client cho hạng phòng nào chưa có rate_plan thực, lấy `price = room_type_rates.daily_rate`.
-- Khi user lần đầu chỉnh sửa (giá ngày cụ thể / sale / đóng bán) trên gói chuẩn → tự động **materialize** thành row thực trong `rate_plans` (`name='Giá tiêu chuẩn'`, `is_default=true`), rồi mới upsert daily price.
+### A. Logic
+- Trong `PricingDailyPage.tsx`:
+  - Thêm log debug tạm thời để xác nhận `roomTypes.length` và `visibleTypes.length`.
+  - Thêm empty state UI khi `!loadingTypes && visibleTypes.length === 0`: panel với icon + dòng "Chưa có hạng phòng cho khách sạn này" + nút "Tạo hạng phòng" link tới `/settings/categories?tab=rooms` hoặc `/rooms/standards`.
+  - Giữ filter `hotel_id` nhưng cho phép cả `rt.hotel_id === null` (đã đúng).
 
-### B. Schema
-- `ALTER TABLE rate_plans ADD COLUMN is_default boolean NOT NULL DEFAULT false`.
-- Index `(tenant_id, room_type_id) WHERE is_default = true` để query nhanh.
-- Migration **không seed dữ liệu** — gói chuẩn được tạo on-demand khi user tương tác (tránh polluting DB cho hạng phòng chưa dùng).
+### B. UI
+- Thay placeholder Select bằng disabled state khi list rỗng + tooltip "Tạo hạng phòng trước".
+- Disable cả 2 nút "Quản lý gói giá" và "Chỉnh sửa đồng loạt" (đã có guard `!selectedRoomTypeId`).
 
-### C. Hooks / RPC
-- Thêm hook `useRoomTypeRate(roomTypeId)` đọc `room_type_rates.daily_rate`.
-- Thêm `useEnsureDefaultRatePlan()` mutation: gọi RPC `ensure_default_rate_plan(p_room_type_id)` → returns id; idempotent, tạo nếu chưa có với giá từ `room_type_rates`.
-- Sửa `useRatePlans`: nếu list rỗng nhưng có `room_type_rates`, trả về thêm một plan ảo `{ id: '__default__', name: 'Giá tiêu chuẩn', price: daily_rate, isVirtual: true }`.
-- Trong các handler (`applyPriceRange`, paste, fill, inline editor): nếu `planId === '__default__'` → gọi `ensure_default_rate_plan` trước, dùng id thật để upsert, sau đó invalidate `rate-plans`.
-
-### D. UI
-- Hiển thị badge "Mặc định" cạnh tên gói chuẩn.
-- Empty state "Chưa có gói giá" thay bằng banner gợi ý "Đang dùng giá mặc định từ Giá mặc định · [link sang tab Giá mặc định]".
-- Trong `RatePlanManager`: nếu chỉ có gói chuẩn ảo, prefill form với giá từ `room_type_rates` thay vì 0.
-- Tooltip trên ô giá trống: "Đang dùng giá chuẩn X đ — bấm để override cho ngày này".
-
-### E. Permission
-- Không đổi. `ensure_default_rate_plan` chạy với quyền user hiện tại (RLS qua `tenant_id`).
+### C. Không đổi
+- Schema, RPC, hooks `useRoomTypes` / `usePricingDaily` — không sửa.
 
 ### F. Test cases
-1. Hạng phòng chưa có rate_plan → mở lịch → thấy 1 hàng "Giá tiêu chuẩn" với giá từ `room_type_rates`.
-2. Sửa giá 1 ngày trên gói chuẩn → tự động tạo `rate_plans` row + `rate_plan_daily_prices` row.
-3. Sửa `room_type_rates.daily_rate` ở tab Giá mặc định → gói chuẩn trên lịch reflect ngay (qua invalidate query).
-4. Hạng phòng đã có rate_plan thực → không hiện gói ảo nữa.
-5. Số phòng mặc định = count(rooms) khi chưa có override trong `room_type_availability`.
+1. Tenant có ≥1 room_type với `hotel_id = NULL` → dropdown liệt kê tất cả, auto chọn cái đầu.
+2. Tenant chưa có room_type → hiển thị empty panel với CTA tạo mới.
+3. Hạng phòng có `hotel_id` khác hotel đang chọn → không hiện trong list.
+4. Chuyển hotel khác (tất cả room_types đều `hotel_id = NULL`) → list giữ nguyên.
 
 ### G. Rollout
-- Migration: thêm cột `is_default` + RPC `ensure_default_rate_plan`.
-- Bump version `1.1.24`, changelog: "Lịch giá theo ngày tự động kế thừa giá và số phòng từ quản lý phòng".
-- Memo `mem://features/pricing/daily-grid-v1` bổ sung mục "Standard plan auto-seed".
-- **Rollback**: drop cột `is_default` + drop RPC; client code revert về flow yêu cầu tạo plan thủ công.
+- Bump `APP_VERSION` `1.1.25`, changelog: "Sửa lỗi tab Lịch giá theo ngày không hiển thị hạng phòng + thêm empty state."
+- Không cần migration.
 
-## File sẽ sửa / thêm
-- Migration mới (cột + RPC + index).
-- `src/hooks/usePricingDaily.ts` — thêm `useRoomTypeRate`, `useEnsureDefaultRatePlan`, sửa `useRatePlans` để trả gói ảo.
-- `src/pages/settings/PricingDailyPage.tsx` — wire ensure + banner + badge "Mặc định".
-- `src/components/pricing/RatePlanManager.tsx` — prefill từ `room_type_rates`.
-- `src/components/pricing/InlineCellEditors.tsx` — tooltip "đang dùng giá chuẩn".
-- `src/lib/app-version.ts`, `public/changelog.json`, `mem://features/pricing/daily-grid-v1`.
+## File sẽ sửa
+- `src/pages/settings/PricingDailyPage.tsx` — empty state + log debug ngắn.
+- `src/lib/app-version.ts`, `public/changelog.json`.
+
+## Câu hỏi cần xác nhận
+Bạn đang thấy chính xác hiện tượng nào?
+- (a) Dropdown bấm vào không có option nào.
+- (b) Dropdown có option nhưng không tự chọn → grid trống.
+- (c) Trang hiện Alert đỏ "Vui lòng chọn khách sạn".
+
+Nếu là (a) sẽ làm theo plan trên. Nếu (b)/(c) sẽ điều chỉnh hướng fix tương ứng.
