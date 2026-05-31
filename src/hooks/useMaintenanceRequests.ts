@@ -504,5 +504,5 @@ export function useCancelRequest() {
         variant: 'destructive',
       })
     },
-  })
+  }))
 }
