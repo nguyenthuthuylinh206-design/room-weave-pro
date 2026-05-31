@@ -459,13 +459,34 @@ export default function PricingDailyPage() {
           <>
             <div className="rounded-lg border bg-card flex flex-col w-full min-w-0 max-w-full overflow-hidden max-h-[calc(100vh-260px)]">
               <div className="px-4 py-3 border-b bg-muted/20 flex items-center justify-between gap-2 flex-wrap shrink-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <BedDouble className="h-4 w-4 text-primary" />
                   <p className="text-sm font-semibold">{selectedRoomType.name}</p>
                   <span className="text-xs text-muted-foreground">·</span>
                   <span className="text-xs text-muted-foreground">SL mặc định: <strong className="text-foreground">{defaultQty}</strong></span>
                   <span className="text-xs text-muted-foreground">·</span>
                   <span className="text-xs text-muted-foreground"><strong className="text-foreground">{plans.length}</strong> gói giá</span>
+                  {seasonalsInRange.length > 0 && (
+                    <>
+                      <span className="text-xs text-muted-foreground">·</span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <a href="/settings/pricing?tab=seasonal" className="inline-flex items-center gap-1 text-xs text-amber-700 hover:underline">
+                            <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500" />
+                            {seasonalsInRange.length} quy tắc mùa đang áp
+                          </a>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs font-semibold mb-1">Quy tắc đang ảnh hưởng khoảng này:</p>
+                          <ul className="text-xs space-y-0.5">
+                            {seasonalsInRange.map(s => (
+                              <li key={s.id}>• {s.name} <span className="text-muted-foreground">(ưu tiên {s.priority})</span></li>
+                            ))}
+                          </ul>
+                        </TooltipContent>
+                      </Tooltip>
+                    </>
+                  )}
                 </div>
               </div>
 
