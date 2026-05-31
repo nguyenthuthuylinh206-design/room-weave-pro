@@ -1,6 +1,19 @@
 {
-  "current": "1.1.27",
+  "current": "1.1.28",
   "versions": [
+    {
+      "version": "1.1.28",
+      "date": "2026-05-31",
+      "title": "Đường ống giá thống nhất — Phòng ↔ Giá mặc định ↔ Lịch ↔ Mùa",
+      "highlights": [
+        "RPC resolver mới: mọi nơi tính giá theo cùng một chuỗi (override → seasonal → giá nền)",
+        "Lịch giá theo ngày hiện chấm cam + giá đã áp quy tắc mùa, hover xem chi tiết từng quy tắc",
+        "Banner cảnh báo ở Hub giá: hạng phòng thiếu giá mặc định / cặp quy tắc mùa trùng ưu tiên",
+        "Trigger DB: xóa hạng phòng còn phòng đang dùng tự chuyển sang lưu trữ thay vì xóa cứng",
+        "Trigger DB: tạo/sửa phòng tự đồng bộ vào bảng hạng phòng pricing",
+        "Link điều hướng chéo giữa 3 tab Giá mặc định / Lịch / Mùa"
+      ]
+    },
     {
       "version": "1.1.27",
       "date": "2026-05-31",

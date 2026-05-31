@@ -8,9 +8,11 @@ import {
   useDailyPrices,
   useRoomTypeAvailability,
   useRoomTypeDefaultQty,
+  useResolvedDailyPrices,
   VIRTUAL_DEFAULT_PLAN_ID,
   ensureDefaultRatePlan,
 } from '@/hooks/usePricingDaily'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -88,11 +90,23 @@ export default function PricingDailyPage() {
   const { data: dailyPrices = new Map() } = useDailyPrices(selectedRoomTypeId || null, planIds, startDate, endDate)
   const { data: availability = new Map() } = useRoomTypeAvailability(selectedRoomTypeId || null, startDate, endDate)
   const { data: defaultQty = 0 } = useRoomTypeDefaultQty(selectedRoomTypeId || null)
+  const { data: resolved = new Map() } = useResolvedDailyPrices(
+    selectedRoomTypeId || null, startDate, endDate, 'daily', selectedHotel?.id ?? null,
+  )
+  const seasonalsInRange = useMemo(() => {
+    const m = new Map<string, { name: string; priority: number }>()
+    resolved.forEach(r => {
+      r.seasonals.forEach(s => { if (!m.has(s.id)) m.set(s.id, { name: s.name, priority: s.priority }) })
+    })
+    return Array.from(m.entries()).map(([id, v]) => ({ id, ...v }))
+  }, [resolved])
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['daily-prices'] })
     qc.invalidateQueries({ queryKey: ['rt-availability'] })
     qc.invalidateQueries({ queryKey: ['rate-plans'] })
+    qc.invalidateQueries({ queryKey: ['resolved-daily-prices'] })
+    qc.invalidateQueries({ queryKey: ['pricing-health'] })
   }
 
   // Nếu planId là gói chuẩn ảo → materialize trong DB và refetch
@@ -445,13 +459,34 @@ export default function PricingDailyPage() {
           <>
             <div className="rounded-lg border bg-card flex flex-col w-full min-w-0 max-w-full overflow-hidden max-h-[calc(100vh-260px)]">
               <div className="px-4 py-3 border-b bg-muted/20 flex items-center justify-between gap-2 flex-wrap shrink-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <BedDouble className="h-4 w-4 text-primary" />
                   <p className="text-sm font-semibold">{selectedRoomType.name}</p>
                   <span className="text-xs text-muted-foreground">·</span>
                   <span className="text-xs text-muted-foreground">SL mặc định: <strong className="text-foreground">{defaultQty}</strong></span>
                   <span className="text-xs text-muted-foreground">·</span>
                   <span className="text-xs text-muted-foreground"><strong className="text-foreground">{plans.length}</strong> gói giá</span>
+                  {seasonalsInRange.length > 0 && (
+                    <>
+                      <span className="text-xs text-muted-foreground">·</span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <a href="/settings/pricing?tab=seasonal" className="inline-flex items-center gap-1 text-xs text-amber-700 hover:underline">
+                            <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500" />
+                            {seasonalsInRange.length} quy tắc mùa đang áp
+                          </a>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs font-semibold mb-1">Quy tắc đang ảnh hưởng khoảng này:</p>
+                          <ul className="text-xs space-y-0.5">
+                            {seasonalsInRange.map(s => (
+                              <li key={s.id}>• {s.name} <span className="text-muted-foreground">(ưu tiên {s.priority})</span></li>
+                            ))}
+                          </ul>
+                        </TooltipContent>
+                      </Tooltip>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -710,32 +745,55 @@ export default function PricingDailyPage() {
                                   hasOverride={hasOverride}
                                   onSaved={refresh}
                                 >
-                                  <button
-                                    type="button"
-                                    title={`${format(d, 'EEEE, d/M/yyyy', { locale: vi })} — ${isClosed ? 'Đóng bán' : formatVNDFull(price)}${hasOverride ? ' (tùy chỉnh)' : ''}`}
-                                    className={cn(
-                                      'w-full px-1 py-1.5 cursor-pointer hover:bg-primary/10 transition-colors relative',
-                                      hasOverride && !isClosed && 'border-b-2 border-b-emerald-500/70',
-                                    )}
-                                  >
-                                    {isClosed ? (
-                                      <div className="flex flex-col items-center gap-0.5 text-destructive">
-                                        <Lock className="h-3 w-3" />
-                                        <span className="text-[10px] font-medium">Đóng</span>
-                                      </div>
-                                    ) : (
-                                      <>
-                                        <div className={cn('text-[11px] font-semibold leading-tight', isSale && 'text-emerald-700')}>
-                                          {formatVND(price)}
-                                        </div>
-                                        {isSale && basePrice && price != null && price < basePrice && (
-                                          <div className="text-[9px] text-muted-foreground line-through leading-tight">
-                                            {formatVND(basePrice)}
-                                          </div>
+                                  {(() => {
+                                    const resolvedDay = resolved.get(toDateKey(d))
+                                    const hasSeasonal = !hasOverride && !isClosed && (resolvedDay?.seasonals.length ?? 0) > 0
+                                    const seasonalLabel = hasSeasonal
+                                      ? resolvedDay!.seasonals.map(s =>
+                                          `${s.name}: ${s.mode === 'overwrite' ? '=' : (s.adjust_value >= 0 ? '+' : '')}${s.adjust_value}${s.adjust_type === 'percent' ? '%' : 'đ'}`
+                                        ).join(' · ')
+                                      : ''
+                                    return (
+                                      <button
+                                        type="button"
+                                        title={`${format(d, 'EEEE, d/M/yyyy', { locale: vi })} — ${isClosed ? 'Đóng bán' : formatVNDFull(price)}${hasOverride ? ' (tùy chỉnh)' : ''}${hasSeasonal ? ' · Mùa: ' + seasonalLabel : ''}`}
+                                        className={cn(
+                                          'w-full px-1 py-1.5 cursor-pointer hover:bg-primary/10 transition-colors relative',
+                                          hasOverride && !isClosed && 'border-b-2 border-b-emerald-500/70',
                                         )}
-                                      </>
-                                    )}
-                                  </button>
+                                      >
+                                        {hasSeasonal && (
+                                          <span className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-amber-500" aria-label="Có quy tắc mùa" />
+                                        )}
+                                        {isClosed ? (
+                                          <div className="flex flex-col items-center gap-0.5 text-destructive">
+                                            <Lock className="h-3 w-3" />
+                                            <span className="text-[10px] font-medium">Đóng</span>
+                                          </div>
+                                        ) : (
+                                          <>
+                                            <div className={cn(
+                                              'text-[11px] font-semibold leading-tight',
+                                              isSale && 'text-emerald-700',
+                                              hasSeasonal && !isSale && 'text-amber-700',
+                                            )}>
+                                              {formatVND(hasSeasonal ? Math.round(resolvedDay!.final_price) : price)}
+                                            </div>
+                                            {isSale && basePrice && price != null && price < basePrice && (
+                                              <div className="text-[9px] text-muted-foreground line-through leading-tight">
+                                                {formatVND(basePrice)}
+                                              </div>
+                                            )}
+                                            {hasSeasonal && !isSale && (
+                                              <div className="text-[9px] text-muted-foreground line-through leading-tight">
+                                                {formatVND(basePrice)}
+                                              </div>
+                                            )}
+                                          </>
+                                        )}
+                                      </button>
+                                    )
+                                  })()}
                                 </InlinePriceEditor>
                                 {isSingleSelected && (
                                   <span

@@ -82,11 +82,17 @@ export default function PricingV2Page() {
           <h1 className="text-xl font-semibold">Bảng giá loại phòng</h1>
           <p className="text-sm text-muted-foreground">
             Cài đặt 4 trục giá (Ngày / Qua đêm / Giờ / Tháng) cho từng loại phòng tại {selectedHotel.name}.
+            Giá ngày sẽ là <strong>giá nền</strong> cho Lịch giá theo ngày và Quy tắc mùa.
           </p>
         </div>
-        <Button variant="outline" size="sm" asChild>
-          <a href="/settings/pricing/seasonal">Quy tắc mùa giá →</a>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <a href="/settings/pricing?tab=daily">Lịch giá theo ngày →</a>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <a href="/settings/pricing?tab=seasonal">Quy tắc mùa →</a>
+          </Button>
+        </div>
       </div>
 
       {loading ? (
