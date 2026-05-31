@@ -15,6 +15,7 @@ import { vi } from 'date-fns/locale'
 import { getRoomStatusMeta } from '@/lib/roomStatus'
 import { useToast } from '@/hooks/use-toast'
 import { useReceptionRoomDetail } from '@/hooks/useReceptionRoomDetail'
+import { useRoomTypePricing } from '@/hooks/useRoomTypePricing'
 import { RoomAuditLogDialog } from './RoomAuditLogDialog'
 import { ExtendBookingDialog } from '@/components/bookings/ExtendBookingDialog'
 import {
@@ -53,6 +54,7 @@ export function ReceptionQuickDialog({ open, onOpenChange, room, onBookRoom, onO
   const [tab, setTab] = useState('overview')
 
   const { data: detail, isLoading } = useReceptionRoomDetail(room?.id, bk?.id ?? null, open)
+  const pricing = useRoomTypePricing(room?.room_type ?? null, room?.hotel_id ?? null)
 
   const transitionMut = useMutation({
     mutationFn: async (params: { to: string; reason?: string; until?: string }) => {
@@ -275,19 +277,67 @@ export function ReceptionQuickDialog({ open, onOpenChange, room, onBookRoom, onO
                   </>
                 ) : (
                   <>
-                    {/* Pricing card */}
+                    {/* Pricing card — Đêm linh hoạt (seasonal/override), Giờ & Tháng cố định */}
                     <div className="grid grid-cols-3 gap-2">
+                      {/* GIÁ ĐÊM */}
                       <div className="rounded-lg border p-3 text-center">
-                        <div className="text-[10px] text-muted-foreground uppercase">Theo đêm</div>
-                        <div className="text-lg font-bold mt-1">{r?.base_price ? formatCurrency(Number(r.base_price)) : '—'}</div>
+                        <div className="text-[10px] text-muted-foreground uppercase flex items-center justify-center gap-1">
+                          Theo đêm
+                          {pricing.nightlySource === 'seasonal' && (
+                            <span className="text-amber-600" title="Áp dụng quy tắc mùa">●</span>
+                          )}
+                          {pricing.nightlySource === 'override' && (
+                            <span className="text-blue-600" title="Có giá ghi đè theo ngày">●</span>
+                          )}
+                        </div>
+                        {pricing.isClosed ? (
+                          <div className="text-sm font-semibold mt-1 text-red-600">Đóng bán</div>
+                        ) : pricing.nightly != null ? (
+                          <>
+                            <div className="text-lg font-bold mt-1">{formatCurrency(pricing.nightly)}</div>
+                            {pricing.nightlyBase != null && pricing.nightly !== pricing.nightlyBase && (
+                              <div className="text-[10px] text-muted-foreground line-through">{formatCurrency(pricing.nightlyBase)}</div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="mt-1">
+                            <div className="text-lg font-bold text-muted-foreground">—</div>
+                            <button type="button" onClick={() => navigate(pricing.configureUrl)} className="text-[10px] text-blue-600 hover:underline">Cấu hình giá</button>
+                          </div>
+                        )}
                       </div>
+
+                      {/* GIÁ GIỜ */}
                       <div className="rounded-lg border p-3 text-center">
                         <div className="text-[10px] text-muted-foreground uppercase">Theo giờ</div>
-                        <div className="text-lg font-bold mt-1">{r?.hourly_price ? formatCurrency(Number(r.hourly_price)) : '—'}</div>
+                        {pricing.hourly != null ? (
+                          <>
+                            <div className="text-lg font-bold mt-1">{formatCurrency(pricing.hourly)}</div>
+                            {pricing.hourlyFirstBlock && (
+                              <div className="text-[10px] text-muted-foreground">
+                                {pricing.hourlyFirstBlock.hours}h đầu: {formatCurrency(pricing.hourlyFirstBlock.price)}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="mt-1">
+                            <div className="text-lg font-bold text-muted-foreground">—</div>
+                            <button type="button" onClick={() => navigate(pricing.configureUrl)} className="text-[10px] text-blue-600 hover:underline">Cấu hình giá</button>
+                          </div>
+                        )}
                       </div>
+
+                      {/* GIÁ THÁNG */}
                       <div className="rounded-lg border p-3 text-center">
                         <div className="text-[10px] text-muted-foreground uppercase">Theo tháng</div>
-                        <div className="text-lg font-bold mt-1">{r?.monthly_price ? formatCurrency(Number(r.monthly_price)) : '—'}</div>
+                        {pricing.monthly != null ? (
+                          <div className="text-lg font-bold mt-1">{formatCurrency(pricing.monthly)}</div>
+                        ) : (
+                          <div className="mt-1">
+                            <div className="text-lg font-bold text-muted-foreground">—</div>
+                            <button type="button" onClick={() => navigate(pricing.configureUrl)} className="text-[10px] text-blue-600 hover:underline">Cấu hình giá</button>
+                          </div>
+                        )}
                       </div>
                     </div>
 
