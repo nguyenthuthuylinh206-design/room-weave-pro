@@ -1,6 +1,17 @@
 {
-  "current": "1.1.29",
+  "current": "1.1.30",
   "versions": [
+    {
+      "version": "1.1.30",
+      "date": "2026-05-31",
+      "title": "Sơ đồ phòng: hiển thị Giá hôm nay trên từng ô phòng",
+      "highlights": [
+        "Sơ đồ tầng (Floor Map): ô phòng trống hiện giá hôm nay đã áp quy tắc mùa",
+        "Chấm vàng (●) báo phòng đang chịu điều chỉnh giá theo mùa",
+        "Phòng \"Đóng bán\" hiển thị trực tiếp trên ô, không phải mở chi tiết mới biết"
+      ]
+    },
+
     {
       "version": "1.1.29",
       "date": "2026-05-31",

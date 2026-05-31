@@ -28,6 +28,8 @@ import { Search, Plus, FileSpreadsheet, History, Unlock, Maximize2 } from 'lucid
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Slider } from '@/components/ui/slider'
 import { useFloorMapCellSize } from '@/hooks/useFloorMapCellSize'
+import { useTodayPricesByHotel } from '@/hooks/usePricingDaily'
+
 
 // "Bucket" hiển thị cho lễ tân — gom 11 trạng thái nội bộ vào 5 nhóm dễ hiểu
 type ReceptionBucket = 'sellable' | 'due_out' | 'dirty' | 'occupied' | 'blocked'
@@ -184,6 +186,8 @@ export function RoomFloorMapView({
   const [search, setSearch] = useState('')
   const transitionRoom = useRoomTransition()
   const cellSize = useFloorMapCellSize(selectedHotel?.id)
+  const { data: todayPrices } = useTodayPricesByHotel(selectedHotel?.id)
+
 
   const handleLiftStatus = (e: React.MouseEvent, room: FloorPlanRoom) => {
     e.stopPropagation()
@@ -613,11 +617,27 @@ export function RoomFloorMapView({
                               <div className="text-[10px] uppercase tracking-wide text-white/85 truncate w-full">
                                 {room.room_type}
                               </div>
-                              {!compact && bucket === 'sellable' && (
-                                <div className="text-[10px] font-semibold text-white">Sẵn sàng bán</div>
-                              )}
+                              {!compact && (() => {
+                                const tp = todayPrices?.get((room.room_type ?? '').toLowerCase())
+                                if (tp && !tp.is_closed && tp.final_price > 0) {
+                                  return (
+                                    <div className="text-[11px] font-bold text-white drop-shadow-sm flex items-center gap-0.5">
+                                      {formatCurrency(tp.final_price)}
+                                      {tp.has_seasonal && <span className="text-amber-200" title="Có quy tắc mùa">●</span>}
+                                    </div>
+                                  )
+                                }
+                                if (tp?.is_closed) {
+                                  return <div className="text-[10px] text-white/90">Đóng bán</div>
+                                }
+                                if (bucket === 'sellable') {
+                                  return <div className="text-[10px] font-semibold text-white">Sẵn sàng bán</div>
+                                }
+                                return null
+                              })()}
                             </div>
                           )}
+
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-xs">
