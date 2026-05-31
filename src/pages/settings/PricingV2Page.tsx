@@ -8,13 +8,12 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
 
-type Bucket = 'daily_rate' | 'overnight_rate' | 'hourly_rate' | 'monthly_rate'
+type Bucket = 'daily_rate' | 'hourly_rate' | 'monthly_rate'
 
-const BUCKETS: { key: Bucket; label: string }[] = [
-  { key: 'daily_rate', label: 'Giá ngày' },
-  { key: 'overnight_rate', label: 'Qua đêm' },
-  { key: 'hourly_rate', label: 'Theo giờ' },
-  { key: 'monthly_rate', label: 'Theo tháng' },
+const BUCKETS: { key: Bucket; label: string; hint: string }[] = [
+  { key: 'daily_rate', label: 'Giá đêm', hint: 'Giá nền — Mùa & Lịch ngày sẽ ghi đè' },
+  { key: 'hourly_rate', label: 'Giá giờ', hint: 'Cố định — không áp dụng Mùa' },
+  { key: 'monthly_rate', label: 'Giá tháng', hint: 'Cố định — không áp dụng Mùa' },
 ]
 
 export default function PricingV2Page() {
@@ -67,7 +66,6 @@ export default function PricingV2Page() {
       room_type_id: rtId,
       hotel_id: selectedHotel.id,
       daily_rate: getVal(rtId, 'daily_rate') ?? existing?.daily_rate ?? 0,
-      overnight_rate: getVal(rtId, 'overnight_rate') ?? existing?.overnight_rate ?? null,
       hourly_rate: getVal(rtId, 'hourly_rate') ?? existing?.hourly_rate ?? null,
       monthly_rate: getVal(rtId, 'monthly_rate') ?? existing?.monthly_rate ?? null,
     }
@@ -81,8 +79,8 @@ export default function PricingV2Page() {
         <div>
           <h1 className="text-xl font-semibold">Bảng giá loại phòng</h1>
           <p className="text-sm text-muted-foreground">
-            Cài đặt 4 trục giá (Ngày / Qua đêm / Giờ / Tháng) cho từng loại phòng tại {selectedHotel.name}.
-            Giá ngày sẽ là <strong>giá nền</strong> cho Lịch giá theo ngày và Quy tắc mùa.
+            3 trục giá: <strong>Giá đêm</strong> (linh hoạt, áp Mùa & Lịch ngày), <strong>Giá giờ</strong> & <strong>Giá tháng</strong> (cố định)
+            cho từng loại phòng tại {selectedHotel.name}.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -110,7 +108,10 @@ export default function PricingV2Page() {
               <tr className="text-left">
                 <th className="p-3 font-medium">Loại phòng</th>
                 {BUCKETS.map((b) => (
-                  <th key={b.key} className="p-3 font-medium text-right">{b.label} (đ)</th>
+                  <th key={b.key} className="p-3 font-medium text-right">
+                    <div>{b.label} (đ)</div>
+                    <div className="text-[10px] font-normal text-muted-foreground mt-0.5">{b.hint}</div>
+                  </th>
                 ))}
                 <th className="p-3 w-24"></th>
               </tr>

@@ -114,8 +114,7 @@ export function RoomTable({ rooms, isLoading, selectedIds, onSelectionChange }: 
             <TableHead>{t('table.roomType')}</TableHead>
             <TableHead>{t('table.status')}</TableHead>
             <TableHead>{t('table.area')}</TableHead>
-            <TableHead className="text-right">{t('table.price')}</TableHead>
-            <TableHead className="text-right">Giá hôm nay</TableHead>
+            <TableHead className="text-right">Giá đêm hôm nay</TableHead>
             <TableHead>{t('table.items')}</TableHead>
             <TableHead>{t('table.lastCheck')}</TableHead>
             <TableHead className="w-12"></TableHead>
@@ -145,19 +144,29 @@ export function RoomTable({ rooms, isLoading, selectedIds, onSelectionChange }: 
               </TableCell>
               <TableCell>{room.area_sqm ? `${room.area_sqm} m²` : '-'}</TableCell>
               <TableCell className="text-right">
-                {room.base_price ? formatCurrency(room.base_price) : '-'}
-              </TableCell>
-              <TableCell className="text-right">
                 {(() => {
                   const tp = todayPrices?.get((room.room_type ?? '').toLowerCase())
-                  if (!tp) return <span className="text-muted-foreground text-xs">-</span>
+                  if (!tp) {
+                    return (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); navigate('/settings/pricing?tab=default') }}
+                        className="text-xs text-blue-600 hover:underline"
+                      >
+                        Cấu hình giá
+                      </button>
+                    )
+                  }
                   if (tp.is_closed) return <span className="text-red-600 text-xs">Đóng bán</span>
                   return (
                     <div className="flex flex-col items-end gap-0.5">
                       <span className="font-medium">{formatCurrency(tp.final_price)}</span>
+                      {(tp.has_seasonal || tp.has_override) && tp.base_price !== tp.final_price && (
+                        <span className="text-[10px] text-muted-foreground line-through">{formatCurrency(tp.base_price)}</span>
+                      )}
                       <div className="flex gap-1">
-                        {tp.has_seasonal && <span className="text-amber-600 text-[10px]" title="Có quy tắc mùa">●Mùa</span>}
-                        {tp.has_override && <span className="text-blue-600 text-[10px]" title="Có override theo ngày">●Ngày</span>}
+                        {tp.has_seasonal && <span className="text-amber-600 text-[10px]" title="Áp quy tắc mùa">● Mùa</span>}
+                        {tp.has_override && <span className="text-blue-600 text-[10px]" title="Giá ghi đè theo ngày">● Ngày</span>}
                       </div>
                     </div>
                   )
