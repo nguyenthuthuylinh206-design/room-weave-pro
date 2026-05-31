@@ -14,65 +14,54 @@ interface Props {
   onNavigate: (tab: string, sub?: string) => void
 }
 
-const ROW_HEIGHT = 'min-h-[320px]'
-
 export function InventoryOverviewSection({ onNavigate }: Props) {
   const [showInboundDialog, setShowInboundDialog] = useState(false)
   const [showOutboundDialog, setShowOutboundDialog] = useState(false)
 
   return (
-    <div className="space-y-4">
-      {/* KPI Grid */}
+    <div className="font-body space-y-4">
+      {/* Bento KPI */}
       <InventoryKpiGrid onNavigate={onNavigate} />
 
-      {/* Quick actions toolbar */}
+      {/* Quick actions */}
       <CompactActionBar
         onInbound={() => setShowInboundDialog(true)}
         onOutbound={() => setShowOutboundDialog(true)}
       />
 
-      {/* Row 1: Chart 8 / Forecast 4 */}
-      <div className="grid gap-4 lg:grid-cols-12">
-        <div className={`lg:col-span-8 ${ROW_HEIGHT}`}>
+      {/* Bento grid main */}
+      <div className="grid gap-3 lg:grid-cols-12 lg:auto-rows-[152px]">
+        {/* Chart — wide */}
+        <div className="rounded-xl border border-border/70 bg-card overflow-hidden lg:col-span-8 lg:row-span-2 shadow-tile">
           <InventoryValueChart />
         </div>
-        <div className={`lg:col-span-4 ${ROW_HEIGHT} flex`}>
-          <div className="w-full h-full overflow-hidden">
-            <InventoryForecastWidget />
-          </div>
+
+        {/* Forecast — tall */}
+        <div className="rounded-xl border border-border/70 bg-card overflow-hidden lg:col-span-4 lg:row-span-2 shadow-tile">
+          <InventoryForecastWidget />
+        </div>
+
+        {/* Top consumed — wide */}
+        <div className="rounded-xl border border-border/70 bg-card overflow-hidden lg:col-span-7 lg:row-span-2 shadow-tile">
+          <InventoryTopConsumedWidget />
+        </div>
+
+        {/* Combined alerts */}
+        <div id="low-stock-section" className="rounded-xl border border-border/70 bg-card overflow-hidden lg:col-span-5 lg:row-span-2 shadow-tile">
+          <CombinedStockAlerts />
         </div>
       </div>
 
-      {/* Row 2: Top consumed 8 / Combined alerts 4 — same 8/4 rhythm */}
-      <div className="grid gap-4 lg:grid-cols-12">
-        <div className={`lg:col-span-8 ${ROW_HEIGHT} flex`}>
-          <div className="w-full h-full overflow-hidden">
-            <InventoryTopConsumedWidget />
-          </div>
-        </div>
-        <div className={`lg:col-span-4 ${ROW_HEIGHT} flex`}>
-          <div className="w-full h-full overflow-hidden" id="low-stock-section">
-            <CombinedStockAlerts />
-          </div>
-        </div>
+      {/* Recent transactions full width */}
+      <div className="rounded-xl border border-border/70 bg-card overflow-hidden shadow-tile">
+        <RecentTransactions />
       </div>
 
-      {/* Row 3: Recent transactions full width */}
-      <RecentTransactions />
+      {/* Hotel breakdown (chain mode only) */}
+      <InventoryHotelBreakdown />
 
-      {/* Section: hotel breakdown (only All Hotels mode) */}
-      <div className="pt-2">
-        <InventoryHotelBreakdown />
-      </div>
-
-      <QuickInboundDialog
-        open={showInboundDialog}
-        onOpenChange={setShowInboundDialog}
-      />
-      <QuickOutboundDialog
-        open={showOutboundDialog}
-        onOpenChange={setShowOutboundDialog}
-      />
+      <QuickInboundDialog open={showInboundDialog} onOpenChange={setShowInboundDialog} />
+      <QuickOutboundDialog open={showOutboundDialog} onOpenChange={setShowOutboundDialog} />
     </div>
   )
 }
