@@ -147,6 +147,7 @@ export function InlinePriceEditor({
                   type="text" inputMode="numeric"
                   value={salePrice}
                   onChange={(e) => setSalePrice(formatNum(e.target.value))}
+                  onFocus={(e) => e.currentTarget.select()}
                   className="h-8 text-sm tabular-nums"
                   placeholder="Để trống nếu không KM"
                 />
