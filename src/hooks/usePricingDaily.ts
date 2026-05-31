@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
+import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from 'sonner'
 import { toDateKey, type DailyPrice, type RatePlanLite } from '@/lib/pricing/rate-plan-constants'
 
@@ -15,6 +16,27 @@ export interface RatePlanRow extends RatePlanLite {
   room_type_id: string
   is_default?: boolean
   isVirtual?: boolean
+}
+
+const ROOM_TYPE_CODE_TO_ROOM_KEYS: Record<string, string[]> = {
+  STD: ['standard'],
+  SUP: ['superior'],
+  DLX: ['deluxe'],
+  SUI: ['suite'],
+  VIP: ['vip'],
+}
+
+const normalizeRoomTypeKey = (value: string | null | undefined) =>
+  (value ?? '')
+    .toLowerCase()
+    .replace(/^phòng\s+/i, '')
+    .trim()
+    .replace(/\s+/g, '_')
+
+const roomKeysFromRoomType = (roomType: { code?: string | null; name?: string | null } | null) => {
+  const keys = ROOM_TYPE_CODE_TO_ROOM_KEYS[(roomType?.code ?? '').toUpperCase()] ?? []
+  const fromName = normalizeRoomTypeKey(roomType?.name)
+  return Array.from(new Set([...keys, ...(fromName ? [fromName] : [])]))
 }
 
 // ===== Default rate (từ room_type_rates) =====
@@ -139,15 +161,16 @@ export const useDailyPrices = (
   toDate: Date,
 ) => {
   const { tenantId } = useUser()
+  const realPlanIds = planIds.filter(id => id !== VIRTUAL_DEFAULT_PLAN_ID)
   return useQuery({
-    queryKey: ['daily-prices', tenantId, roomTypeId, planIds.join(','), toDateKey(fromDate), toDateKey(toDate)],
+    queryKey: ['daily-prices', tenantId, roomTypeId, realPlanIds.join(','), toDateKey(fromDate), toDateKey(toDate)],
     queryFn: async () => {
-      if (!tenantId || planIds.length === 0) return new Map<string, DailyPrice>()
+      if (!tenantId || realPlanIds.length === 0) return new Map<string, DailyPrice>()
       const { data, error } = await supabase
         .from('rate_plan_daily_prices' as any)
         .select('*')
         .eq('tenant_id', tenantId)
-        .in('rate_plan_id', planIds)
+        .in('rate_plan_id', realPlanIds)
         .gte('date', toDateKey(fromDate))
         .lte('date', toDateKey(toDate))
       if (error) throw error
