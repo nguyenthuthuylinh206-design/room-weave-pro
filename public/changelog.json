@@ -1,6 +1,16 @@
 {
-  "current": "1.1.21",
+  "current": "1.1.22",
   "versions": [
+    {
+      "version": "1.1.22",
+      "date": "2026-05-31",
+      "title": "Trang Kho — bố cục Bento cho laptop",
+      "highlights": [
+        "Tổng quan Kho dựng lại theo lưới Bento: hero tile tổng giá trị tồn với gradient navy + 4 KPI nhịp khác nhau",
+        "Sidebar Kho và topbar gọn lại trên laptop: bỏ tab ngang trùng lặp, breadcrumb inline cạnh tên trang",
+        "Áp font Sora cho số liệu KPI và Manrope cho body trong khu /inventory, thêm bộ token Navy Trust + shadow tile"
+      ]
+    },
     {
       "version": "1.1.21",
       "date": "2026-05-31",
