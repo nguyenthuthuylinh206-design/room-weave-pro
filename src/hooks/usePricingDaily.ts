@@ -337,3 +337,45 @@ export const usePricingHealth = (hotelId?: string | null) => {
   })
 }
 
+// ===== Today's prices for all room types in a hotel =====
+export interface TodayPriceRow {
+  room_type_id: string
+  room_type_name: string
+  base_price: number
+  final_price: number
+  has_seasonal: boolean
+  has_override: boolean
+  is_closed: boolean
+}
+
+export const useTodayPricesByHotel = (hotelId?: string | null, applyTo: 'daily' | 'overnight' = 'daily') => {
+  const { tenantId } = useUser()
+  return useQuery({
+    queryKey: ['today-prices-by-hotel', tenantId, hotelId ?? null, applyTo],
+    queryFn: async (): Promise<Map<string, TodayPriceRow>> => {
+      if (!tenantId || !hotelId) return new Map()
+      const { data, error } = await supabase.rpc('resolve_today_prices_for_hotel' as any, {
+        p_hotel_id: hotelId,
+        p_apply_to: applyTo,
+      })
+      if (error) throw error
+      const map = new Map<string, TodayPriceRow>()
+      ;((data ?? []) as any[]).forEach((r) => {
+        map.set((r.room_type_name ?? '').toLowerCase(), {
+          room_type_id: r.room_type_id,
+          room_type_name: r.room_type_name,
+          base_price: Number(r.base_price ?? 0),
+          final_price: Number(r.final_price ?? 0),
+          has_seasonal: !!r.has_seasonal,
+          has_override: !!r.has_override,
+          is_closed: !!r.is_closed,
+        })
+      })
+      return map
+    },
+    enabled: !!tenantId && !!hotelId,
+    staleTime: 60_000,
+  })
+}
+
+

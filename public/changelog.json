@@ -1,6 +1,19 @@
 {
-  "current": "1.1.28",
+  "current": "1.1.29",
   "versions": [
+    {
+      "version": "1.1.29",
+      "date": "2026-05-31",
+      "title": "Liên kết Phòng ↔ Giá: Giá hôm nay & Cảnh báo trùng ưu tiên",
+      "highlights": [
+        "Danh sách phòng: thêm cột \"Giá hôm nay\" hiển thị giá đã áp quy tắc mùa/override",
+        "Chấm cam (●Mùa) và chấm xanh (●Ngày) báo phòng đang chịu điều chỉnh giá",
+        "Trạng thái \"Đóng bán\" hiển thị trực tiếp trên hàng phòng",
+        "Dialog quy tắc mùa: cảnh báo trùng ưu tiên với quy tắc khác cùng phạm vi/thời gian",
+        "RPC mới resolve_today_prices_for_hotel — 1 call lấy giá hôm nay cho toàn bộ hạng phòng"
+      ]
+    },
+
     {
       "version": "1.1.28",
       "date": "2026-05-31",

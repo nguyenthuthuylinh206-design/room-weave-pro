@@ -40,10 +40,13 @@ import { formatDistanceToNow } from 'date-fns'
 import { vi, enUS } from 'date-fns/locale'
 import { useDeleteRoom } from '@/hooks/useRooms'
 import { useUser } from '@/hooks/useUser'
+import { useHotelContext } from '@/contexts/HotelContext'
+import { useTodayPricesByHotel } from '@/hooks/usePricingDaily'
 import { canCreateHousekeepingTask } from '@/lib/userAccess'
 import { TASK_TYPE_LABELS } from '@/types/housekeeping.types'
 import type { RoomWithStats } from '@/types/rooms.types'
 import type { TaskType } from '@/types/housekeeping.types'
+
 
 type ManualTaskType = 'checkout_inspection' | 'cleaning' | 'checkin_prep' | 'amenity_request' | 'other'
 const MANUAL_TASK_TYPES: ManualTaskType[] = ['checkout_inspection', 'cleaning', 'checkin_prep', 'amenity_request']
@@ -59,9 +62,12 @@ export function RoomTable({ rooms, isLoading, selectedIds, onSelectionChange }: 
   const { t, i18n } = useTranslation(['rooms', 'common'])
   const navigate = useNavigate()
   const dateLocale = i18n.language === 'vi' ? vi : enUS
+  const { selectedHotel } = useHotelContext()
+  const { data: todayPrices } = useTodayPricesByHotel(selectedHotel?.id)
 
   const isAllSelected = rooms.length > 0 && selectedIds.length === rooms.length
   const isSomeSelected = selectedIds.length > 0 && selectedIds.length < rooms.length
+
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -109,10 +115,12 @@ export function RoomTable({ rooms, isLoading, selectedIds, onSelectionChange }: 
             <TableHead>{t('table.status')}</TableHead>
             <TableHead>{t('table.area')}</TableHead>
             <TableHead className="text-right">{t('table.price')}</TableHead>
+            <TableHead className="text-right">Giá hôm nay</TableHead>
             <TableHead>{t('table.items')}</TableHead>
             <TableHead>{t('table.lastCheck')}</TableHead>
             <TableHead className="w-12"></TableHead>
           </TableRow>
+
         </TableHeader>
         <TableBody>
           {rooms.map((room) => (
@@ -139,6 +147,23 @@ export function RoomTable({ rooms, isLoading, selectedIds, onSelectionChange }: 
               <TableCell className="text-right">
                 {room.base_price ? formatCurrency(room.base_price) : '-'}
               </TableCell>
+              <TableCell className="text-right">
+                {(() => {
+                  const tp = todayPrices?.get((room.room_type ?? '').toLowerCase())
+                  if (!tp) return <span className="text-muted-foreground text-xs">-</span>
+                  if (tp.is_closed) return <span className="text-red-600 text-xs">Đóng bán</span>
+                  return (
+                    <div className="flex flex-col items-end gap-0.5">
+                      <span className="font-medium">{formatCurrency(tp.final_price)}</span>
+                      <div className="flex gap-1">
+                        {tp.has_seasonal && <span className="text-amber-600 text-[10px]" title="Có quy tắc mùa">●Mùa</span>}
+                        {tp.has_override && <span className="text-blue-600 text-[10px]" title="Có override theo ngày">●Ngày</span>}
+                      </div>
+                    </div>
+                  )
+                })()}
+              </TableCell>
+
               <TableCell>
                 <div className="space-y-1 text-xs">
                   <div>{t('table.total')}: {room.total_items}</div>

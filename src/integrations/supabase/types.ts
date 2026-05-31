@@ -13923,6 +13923,18 @@ export type Database = {
           sla_minutes: number
         }[]
       }
+      resolve_today_prices_for_hotel: {
+        Args: { p_apply_to?: string; p_hotel_id: string }
+        Returns: {
+          base_price: number
+          final_price: number
+          has_override: boolean
+          has_seasonal: boolean
+          is_closed: boolean
+          room_type_id: string
+          room_type_name: string
+        }[]
+      }
       retry_stay_registration: { Args: { p_id: string }; Returns: undefined }
       retry_stop: {
         Args: { p_actor_id?: string; p_room_order_id: string }
