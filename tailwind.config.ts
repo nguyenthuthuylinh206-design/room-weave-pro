@@ -214,7 +214,6 @@ export default {
           400: "#A78BFA", 500: "#8B5CF6", 600: "#7C3AED", 700: "#6D28D9",
           800: "#5B21B6", 900: "#4C1D95", 950: "#2E1065",
         },
-      },
 
         // Navy Trust accent (Inventory Hub)
         ink: { DEFAULT: 'hsl(var(--ink))', 2: 'hsl(var(--ink-2))' },
