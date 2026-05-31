@@ -1,6 +1,7 @@
 import { useCreateOutboundTransaction } from '@/hooks/useInventoryTransactions'
 import { useCreateLaundryBatch } from '@/hooks/useLaundryBatches'
 import { useCreateDistributionOrder } from '@/hooks/useDistributionOrders'
+import { useRequireShift } from '@/contexts/RequireShiftContext'
 import type {
   OutboundSubmitPayload,
   OutboundSubmitExtras,
@@ -17,11 +18,14 @@ interface SubmitCallbacks {
  * server hook based on `transaction_category` + extras. Fixes the bug
  * where QuickOutboundDialog called `createOutbound` for every category
  * (including room_assign + laundry) instead of the specialized flows.
+ *
+ * Gắn require-shift gate: staff/department_manager phải vào ca mới gửi.
  */
 export function useOutboundSubmit() {
   const { mutate: createOutbound, isPending: pOut } = useCreateOutboundTransaction()
   const { mutate: createLaundryBatch, isPending: pLau } = useCreateLaundryBatch()
   const { mutate: createDistribution, isPending: pDist } = useCreateDistributionOrder()
+  const { guard } = useRequireShift()
 
   const isPending = pOut || pLau || pDist
 
@@ -29,7 +33,7 @@ export function useOutboundSubmit() {
     payload: OutboundSubmitPayload,
     extras: OutboundSubmitExtras = {},
     cb: SubmitCallbacks = {},
-  ) => {
+  ) => guard(() => {
     const { transaction_category: category, items, notes } = payload
     const { selectedRoomIds, laundryData, selectedMaintenanceRequest } = extras
 
