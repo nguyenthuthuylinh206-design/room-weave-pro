@@ -40,10 +40,13 @@ import { formatDistanceToNow } from 'date-fns'
 import { vi, enUS } from 'date-fns/locale'
 import { useDeleteRoom } from '@/hooks/useRooms'
 import { useUser } from '@/hooks/useUser'
+import { useHotelContext } from '@/contexts/HotelContext'
+import { useTodayPricesByHotel } from '@/hooks/usePricingDaily'
 import { canCreateHousekeepingTask } from '@/lib/userAccess'
 import { TASK_TYPE_LABELS } from '@/types/housekeeping.types'
 import type { RoomWithStats } from '@/types/rooms.types'
 import type { TaskType } from '@/types/housekeeping.types'
+
 
 type ManualTaskType = 'checkout_inspection' | 'cleaning' | 'checkin_prep' | 'amenity_request' | 'other'
 const MANUAL_TASK_TYPES: ManualTaskType[] = ['checkout_inspection', 'cleaning', 'checkin_prep', 'amenity_request']
