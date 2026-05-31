@@ -133,7 +133,9 @@ export default function PricingDailyPage() {
     if (!targetDates.length) return
 
     if (sel.rowKind === 'price') {
-      const planId = sel.rowMeta!
+      const rawPlanId = sel.rowMeta!
+      const planId = await resolvePlanId(rawPlanId)
+      if (!planId) return
       if (clip.values.length === 1) {
         const v = clip.values[0]
         const { error } = await applyPriceRange(planId, tenantId, targetDates, { price: v.price, salePrice: v.salePrice ?? null, isClosed: !!v.isClosed })
@@ -187,9 +189,11 @@ export default function PricingDailyPage() {
       for (let i = from; i <= to; i++) if (i !== sourceIdx && days[i]) targetDates.push(days[i])
       if (!targetDates.length) return
       if (sel.rowKind === 'price') {
-        const planId = sel.rowMeta!
-        const dp = dailyPrices.get(`${planId}|${sourceKey}`)
-        const plan = plans.find(p => p.id === planId)
+        const rawPlanId = sel.rowMeta!
+        const planId = await resolvePlanId(rawPlanId)
+        if (!planId) return
+        const dp = dailyPrices.get(`${rawPlanId}|${sourceKey}`)
+        const plan = plans.find(p => p.id === rawPlanId)
         const payload = {
           price: dp?.price != null ? Number(dp.price) : Number(plan?.price || 0),
           salePrice: dp?.sale_price != null ? Number(dp.sale_price) : null,
@@ -224,8 +228,10 @@ export default function PricingDailyPage() {
   const toolbarApplyPrice = async (payload: { price?: number | null; salePrice?: number | null }) => {
     if (!tenantId) return
     const sel = grid.selection; if (!sel || sel.rowKind !== 'price') return
+    const planId = await resolvePlanId(sel.rowMeta!)
+    if (!planId) return
     const dates = selectionDates()
-    const { error } = await applyPriceRange(sel.rowMeta!, tenantId, dates, {
+    const { error } = await applyPriceRange(planId, tenantId, dates, {
       ...(payload.price !== undefined ? { price: payload.price, isClosed: false } : {}),
       ...(payload.salePrice !== undefined ? { salePrice: payload.salePrice } : {}),
     })
@@ -249,7 +255,9 @@ export default function PricingDailyPage() {
     const sel = grid.selection; if (!sel || !selectedRoomType) return
     const dates = selectionDates()
     if (sel.rowKind === 'price') {
-      const { error } = await applyPriceRange(sel.rowMeta!, tenantId, dates, { isClosed: closed })
+      const planId = await resolvePlanId(sel.rowMeta!)
+      if (!planId) return
+      const { error } = await applyPriceRange(planId, tenantId, dates, { isClosed: closed })
       if (error) return toast.error('Lưu thất bại: ' + error.message)
     } else {
       const { error } = await applyAvailabilityRangeSmart(
@@ -263,6 +271,10 @@ export default function PricingDailyPage() {
 
   const toolbarReset = async () => {
     const sel = grid.selection; if (!sel || sel.rowKind !== 'price') return
+    if (sel.rowMeta === VIRTUAL_DEFAULT_PLAN_ID) {
+      toast.info('Gói chuẩn ảo không có dữ liệu để reset')
+      return
+    }
     const dates = selectionDates()
     const { error } = await resetPriceRange(sel.rowMeta!, dates)
     if (error) return toast.error('Reset thất bại: ' + error.message)
