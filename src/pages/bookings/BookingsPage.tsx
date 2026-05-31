@@ -655,28 +655,30 @@ export function BookingsPage() {
 
   // Handle Check-out click - validate date first, then show summary dialog
   const handleCheckOutClick = async (booking: BookingWithRoom) => {
-    // Check if this is a group booking - open GroupCheckoutDialog instead
-    const isGroupBooking = booking.booking_group_id && 
-      groupCounts && 
-      groupCounts[booking.booking_group_id] > 1
+    const now = new Date()
+    const action = decideCheckoutAction({
+      booking: {
+        id: booking.id,
+        check_out_date: booking.check_out_date,
+        booking_group_id: booking.booking_group_id,
+      },
+      groupCounts,
+      now,
+    })
 
-    if (isGroupBooking) {
+    if (action === 'group') {
       setSelectedGroupId(booking.booking_group_id!)
       setShowGroupCheckoutDialog(true)
       return
     }
 
-    const now = new Date()
-    const today = startOfDay(now)
-    const checkOutDate = startOfDay(new Date(booking.check_out_date))
-
-    // Block checkout if today is after check_out_date (overdue)
-    if (isAfter(today, checkOutDate)) {
-      // Show extend booking dialog
+    if (action === 'extend') {
       setActionBooking(booking)
       setShowExtendDialog(true)
       return
     }
+
+
 
     setActionBooking(booking)
     setIsActionLoading(true)
