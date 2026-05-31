@@ -66,6 +66,7 @@ import { GroupPaymentDialog } from '@/components/bookings/GroupPaymentDialog'
 import { GroupCheckoutDialog } from '@/components/bookings/GroupCheckoutDialog'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
 import { canRoomCheckIn, isRoomOccupied, isRoomBlockedForMaintenance } from '@/lib/roomStatus'
+import { decideCheckIn, decideCheckoutAction } from '@/lib/bookingFlowDecisions'
 
 import { formatCurrency } from '@/lib/utils'
 import { useGroupBookingCounts } from '@/hooks/useGroupBooking'
@@ -512,20 +513,8 @@ export function BookingsPage() {
   // Handle Check-in click - validate date and room status first, then show dialog if early check-in
   const handleCheckInClick = async (booking: BookingWithRoom) => {
     const now = new Date()
-    const today = startOfDay(now)
-    const checkInDate = startOfDay(new Date(booking.check_in_date))
 
-    // Block check-in if today is before check_in_date (not same day)
-    if (isBefore(today, checkInDate)) {
-      toast({
-        variant: 'destructive',
-        title: 'Chưa đến ngày nhận phòng',
-        description: `Lịch nhận phòng: ${format(checkInDate, 'dd/MM/yyyy', { locale: vi })}. Vui lòng thay đổi lịch đặt nếu muốn nhận sớm.`,
-      })
-      return
-    }
-
-    // Validate room status before check-in
+    // Fetch current room status
     const { data: roomData, error: roomError } = await supabase
       .from('rooms')
       .select('status')
@@ -541,61 +530,61 @@ export function BookingsPage() {
       return
     }
 
-    // Block if room is occupied bởi booking khác
-    if (isRoomOccupied(roomData.status)) {
-      const { data: currentBooking } = await supabase
-        .from('room_bookings')
-        .select('id, guest_name, check_out_date')
-        .eq('room_id', booking.room_id)
-        .eq('status', 'checked_in')
-        .neq('id', booking.id)
-        .limit(1)
-        .single()
+    // Use pure decision helper (single source of truth)
+    const decision = decideCheckIn({
+      booking: {
+        id: booking.id,
+        check_in_date: booking.check_in_date,
+        booking_type: booking.booking_type as any,
+        room_price: (booking as any).room_price || 0,
+      },
+      roomStatus: roomData.status,
+      now,
+    })
 
-      if (currentBooking) {
+    if (decision.allowed === false) {
+      const reason = decision.reason
+      if (reason === 'before_checkin_date') {
+        const checkInDate = startOfDay(new Date(booking.check_in_date))
+        toast({
+          variant: 'destructive',
+          title: 'Chưa đến ngày nhận phòng',
+          description: `Lịch nhận phòng: ${format(checkInDate, 'dd/MM/yyyy', { locale: vi })}. Vui lòng thay đổi lịch đặt nếu muốn nhận sớm.`,
+        })
+      } else if (reason === 'room_occupied') {
+        const { data: currentBooking } = await supabase
+          .from('room_bookings')
+          .select('id, guest_name, check_out_date')
+          .eq('room_id', booking.room_id)
+          .eq('status', 'checked_in')
+          .neq('id', booking.id)
+          .limit(1)
+          .maybeSingle()
         toast({
           variant: 'destructive',
           title: 'Phòng đang có khách',
-          description: `Khách "${currentBooking.guest_name}" chưa checkout (dự kiến: ${format(new Date(currentBooking.check_out_date), 'dd/MM/yyyy')}). Vui lòng checkout khách hiện tại trước.`,
+          description: currentBooking
+            ? `Khách "${currentBooking.guest_name}" chưa checkout (dự kiến: ${format(new Date(currentBooking.check_out_date), 'dd/MM/yyyy')}). Vui lòng checkout khách hiện tại trước.`
+            : 'Phòng đang có khách. Vui lòng checkout trước.',
         })
-        return
+      } else if (reason === 'room_blocked_for_maintenance') {
+        toast({
+          variant: 'destructive',
+          title: 'Phòng không khả dụng',
+          description: 'Phòng đang bảo trì/ngừng hoạt động. Không thể check-in.',
+        })
+      } else if (reason === 'room_not_ready') {
+        toast({
+          variant: 'destructive',
+          title: 'Phòng chưa sẵn sàng',
+          description: 'Phòng đang ở trạng thái "Trống – chưa dọn". Vui lòng dọn phòng trước khi check-in.',
+        })
       }
-    }
-
-    // Block bảo trì
-    if (isRoomBlockedForMaintenance(roomData.status)) {
-      toast({
-        variant: 'destructive',
-        title: 'Phòng không khả dụng',
-        description: 'Phòng đang bảo trì/ngừng hoạt động. Không thể check-in.',
-      })
       return
     }
-
-    // Cảnh báo trước nếu phòng chưa dọn — RPC vẫn là nguồn quyết định cuối
-    if (!canRoomCheckIn(roomData.status) && !isRoomOccupied(roomData.status)) {
-      toast({
-        variant: 'destructive',
-        title: 'Phòng chưa sẵn sàng',
-        description: 'Phòng đang ở trạng thái "Trống – chưa dọn". Vui lòng dọn phòng trước khi check-in.',
-      })
-      return
-    }
-
-
-    const actualTime = format(now, 'HH:mm')
-    const hours = parseInt(actualTime.split(':')[0])
-    const roomPrice = (booking as any).room_price || 0
 
     setActionBooking(booking)
-
-    // Calculate surcharge for daily bookings with early check-in
-    let suggestedCharge = 0
-    if (booking.booking_type === 'daily' && hours < 14) {
-      suggestedCharge = calculateEarlyCheckinCharge(actualTime, roomPrice)
-    }
-    
-    setSuggestedEarlyCharge(suggestedCharge)
+    setSuggestedEarlyCharge(decision.suggestedEarlyCharge)
     // ALWAYS show confirmation dialog for ALL booking types
     setShowCheckinConfirm(true)
   }
@@ -662,28 +651,30 @@ export function BookingsPage() {
 
   // Handle Check-out click - validate date first, then show summary dialog
   const handleCheckOutClick = async (booking: BookingWithRoom) => {
-    // Check if this is a group booking - open GroupCheckoutDialog instead
-    const isGroupBooking = booking.booking_group_id && 
-      groupCounts && 
-      groupCounts[booking.booking_group_id] > 1
+    const now = new Date()
+    const action = decideCheckoutAction({
+      booking: {
+        id: booking.id,
+        check_out_date: booking.check_out_date,
+        booking_group_id: booking.booking_group_id,
+      },
+      groupCounts,
+      now,
+    })
 
-    if (isGroupBooking) {
+    if (action === 'group') {
       setSelectedGroupId(booking.booking_group_id!)
       setShowGroupCheckoutDialog(true)
       return
     }
 
-    const now = new Date()
-    const today = startOfDay(now)
-    const checkOutDate = startOfDay(new Date(booking.check_out_date))
-
-    // Block checkout if today is after check_out_date (overdue)
-    if (isAfter(today, checkOutDate)) {
-      // Show extend booking dialog
+    if (action === 'extend') {
       setActionBooking(booking)
       setShowExtendDialog(true)
       return
     }
+
+
 
     setActionBooking(booking)
     setIsActionLoading(true)
