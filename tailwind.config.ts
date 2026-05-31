@@ -21,6 +21,10 @@ export default {
       '2xl': '1536px',
     },
     extend: {
+      fontFamily: {
+        display: ['Sora', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        body: ['Manrope', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+      },
       gridTemplateColumns: {
         '14': 'repeat(14, minmax(0, 1fr))',
         '16': 'repeat(16, minmax(0, 1fr))',
