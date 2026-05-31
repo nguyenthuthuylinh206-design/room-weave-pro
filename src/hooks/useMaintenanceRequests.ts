@@ -373,7 +373,7 @@ export function useStartRequest() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  return useMutation({
+  return useShiftGuardedMutation(useMutation({
     mutationFn: async (id: string) => {
       // Validate: only from 'pending' -> 'in_progress'
       await validateStatusTransition(id, 'in_progress')
