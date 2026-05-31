@@ -282,7 +282,7 @@ export function useReceiveLaundryBatch() {
         variant: 'destructive',
       })
     },
-  })
+  }))
 }
 
 export function useUpdateBatchStatus() {
