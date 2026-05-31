@@ -1,6 +1,16 @@
 {
-  "current": "1.1.25",
+  "current": "1.1.26",
   "versions": [
+    {
+      "version": "1.1.26",
+      "date": "2026-05-31",
+      "title": "Lịch giá theo ngày — đồng bộ hạng phòng từ Quản lý phòng",
+      "highlights": [
+        "Đồng bộ Standard/Deluxe/Suite/VIP đang dùng trong Quản lý phòng vào bảng hạng phòng của module giá",
+        "Số phòng để bán mặc định nay đếm theo rooms.room_type và khách sạn đang chọn, đúng với dữ liệu phòng hiện hữu",
+        "Sửa hàm tạo gói giá chuẩn để lấy tenant từ bảng người dùng hiện tại và tạo gói không lỗi kiểu dữ liệu"
+      ]
+    },
     {
       "version": "1.1.25",
       "date": "2026-05-31",

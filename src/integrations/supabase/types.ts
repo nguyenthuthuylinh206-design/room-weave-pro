@@ -13923,6 +13923,7 @@ export type Database = {
         Args: { p_decision: string; p_issue_id: string; p_reason?: string }
         Returns: Json
       }
+      room_type_pricing_code: { Args: { p_room_type: string }; Returns: string }
       run_auto_reorder_daily: { Args: never; Returns: Json }
       schedule_renewal_reminders: { Args: never; Returns: undefined }
       send_chat_message: {
@@ -14038,6 +14039,10 @@ export type Database = {
       sync_categories_for_hotel: {
         Args: { p_hotel_id: string; p_tenant_id: string }
         Returns: Json
+      }
+      sync_room_types_from_rooms: {
+        Args: { p_hotel_id?: string }
+        Returns: number
       }
       toggle_message_reaction: {
         Args: { _emoji: string; _message_id: string }
