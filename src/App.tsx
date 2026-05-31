@@ -11,6 +11,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { PermissionRoute } from "@/components/auth/PermissionRoute";
+import { RequireShiftRouteGate } from "@/components/staff/RequireShiftRouteGate";
 import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 
@@ -428,11 +429,11 @@ const router = createBrowserRouter([
       { path: "rooms/new", element: <PermissionRoute module="rooms" action="create"><RoomFormPage /></PermissionRoute> },
       { path: "rooms/:id", element: <PermissionRoute module="rooms" action="update"><RoomDetailPage /></PermissionRoute> },
       { path: "rooms/:id/edit", element: <PermissionRoute module="rooms" action="update"><RoomFormPage /></PermissionRoute> },
-      { path: "rooms/:id/check", element: <PermissionRoute module="rooms" action="update"><RoomCheckRouter /></PermissionRoute> },
-      { path: "rooms/:id/check-lean", element: <PermissionRoute module="rooms" action="update"><RoomCheckOverviewPage /></PermissionRoute> },
-      { path: "rooms/:id/check-lean/inspection", element: <PermissionRoute module="rooms" action="update"><LeanInspectionPage /></PermissionRoute> },
-      { path: "rooms/:id/check-lean/review", element: <PermissionRoute module="rooms" action="update"><LeanReviewPage /></PermissionRoute> },
-      { path: "rooms/:id/check-lean/success", element: <PermissionRoute module="rooms" action="update"><LeanSuccessPage /></PermissionRoute> },
+      { path: "rooms/:id/check", element: <PermissionRoute module="rooms" action="update"><RequireShiftRouteGate><RoomCheckRouter /></RequireShiftRouteGate></PermissionRoute> },
+      { path: "rooms/:id/check-lean", element: <PermissionRoute module="rooms" action="update"><RequireShiftRouteGate><RoomCheckOverviewPage /></RequireShiftRouteGate></PermissionRoute> },
+      { path: "rooms/:id/check-lean/inspection", element: <PermissionRoute module="rooms" action="update"><RequireShiftRouteGate><LeanInspectionPage /></RequireShiftRouteGate></PermissionRoute> },
+      { path: "rooms/:id/check-lean/review", element: <PermissionRoute module="rooms" action="update"><RequireShiftRouteGate><LeanReviewPage /></RequireShiftRouteGate></PermissionRoute> },
+      { path: "rooms/:id/check-lean/success", element: <PermissionRoute module="rooms" action="update"><RequireShiftRouteGate><LeanSuccessPage /></RequireShiftRouteGate></PermissionRoute> },
       { path: "rooms/standards", element: <PermissionRoute module="rooms"><RoomStandardsPage /></PermissionRoute> },
 
       // Supplements
