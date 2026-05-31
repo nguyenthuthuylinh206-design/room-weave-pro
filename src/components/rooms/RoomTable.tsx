@@ -115,10 +115,12 @@ export function RoomTable({ rooms, isLoading, selectedIds, onSelectionChange }: 
             <TableHead>{t('table.status')}</TableHead>
             <TableHead>{t('table.area')}</TableHead>
             <TableHead className="text-right">{t('table.price')}</TableHead>
+            <TableHead className="text-right">Giá hôm nay</TableHead>
             <TableHead>{t('table.items')}</TableHead>
             <TableHead>{t('table.lastCheck')}</TableHead>
             <TableHead className="w-12"></TableHead>
           </TableRow>
+
         </TableHeader>
         <TableBody>
           {rooms.map((room) => (
