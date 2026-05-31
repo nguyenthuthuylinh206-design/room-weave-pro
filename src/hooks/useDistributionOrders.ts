@@ -188,7 +188,7 @@ export function useConfirmWarehouseDelivery() {
   const queryClient = useQueryClient()
   const { user } = useAuth()
 
-  return useMutation({
+  return useShiftGuardedMutation(useMutation({
     mutationFn: async ({ roomOrderId }: { roomOrderId: string }) => {
       if (!user?.id) throw new Error('User not authenticated')
 
