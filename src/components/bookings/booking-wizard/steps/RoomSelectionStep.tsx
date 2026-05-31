@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { addMonths } from 'date-fns'
 import { Sparkle } from 'lucide-react'
-import { Building2, CheckCircle2, Loader2, Sparkles, Wrench, X } from 'lucide-react'
+import { Building2, CheckCircle2, Loader2, Sparkles, Wrench, X, Settings2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -77,6 +78,12 @@ const getTotalLabel = (bookingType: string) => {
     case 'monthly': return 'Tổng giá phòng/tháng:'
     default: return 'Tổng giá phòng/đêm:'
   }
+}
+
+const getRoomDisplayPrice = (room: AvailableRoom, bookingType: string): number | null => {
+  if (bookingType === 'hourly') return room.rate_hourly
+  if (bookingType === 'monthly') return room.rate_monthly
+  return room.rate_daily
 }
 
 export function RoomSelectionStep({ 
@@ -170,17 +177,25 @@ export function RoomSelectionStep({
                     T{room.floor} • {getRoomTypeLabel(room.room_type)}
                   </span>
                   {(() => {
-                    let displayPrice = room.base_price
-                    if (state.bookingType === 'hourly' && room.hourly_price) {
-                      displayPrice = room.hourly_price
-                    } else if (state.bookingType === 'monthly' && room.monthly_price) {
-                      displayPrice = room.monthly_price
+                    const displayPrice = getRoomDisplayPrice(room, state.bookingType)
+                    if (displayPrice && displayPrice > 0) {
+                      return (
+                        <span className="text-xs font-medium text-primary">
+                          {formatCurrency(displayPrice)}
+                        </span>
+                      )
                     }
-                    return displayPrice && displayPrice > 0 ? (
-                      <span className="text-xs font-medium text-primary">
-                        {formatCurrency(displayPrice)}
-                      </span>
-                    ) : null
+                    return (
+                      <Link
+                        to="/settings/pricing?tab=default"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-[10px] text-amber-600 hover:underline inline-flex items-center gap-0.5"
+                        title="Loại phòng chưa cấu hình giá"
+                      >
+                        <Settings2 className="h-2.5 w-2.5" />
+                        Cấu hình giá
+                      </Link>
+                    )
                   })()}
                   {isAllHotelsMode && room.hotel_name && (
                     <span className="text-xs text-muted-foreground truncate max-w-full">

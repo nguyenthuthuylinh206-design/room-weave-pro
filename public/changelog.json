@@ -1,6 +1,17 @@
 {
-  "current": "1.1.33",
+  "current": "1.1.34",
   "versions": [
+    {
+      "version": "1.1.34",
+      "date": "2026-05-31",
+      "title": "Đặt phòng dùng giá thống nhất theo Bảng giá (Đêm/Giờ/Tháng)",
+      "highlights": [
+        "Wizard Đặt phòng lấy giá Đêm/Giờ/Tháng từ Bảng giá mặc định (room_type_rates) — không còn dùng giá cũ trên Phòng",
+        "Phòng chưa cấu hình giá hiện link 'Cấu hình giá', không cho chọn cho đến khi cấu hình xong",
+        "RPC tính giá: Mùa cao điểm và Lịch giá theo ngày chỉ áp lên đặt theo đêm — đặt theo giờ/tháng dùng giá cố định",
+        "Nút 'Áp dụng giá theo bảng' vẫn dùng để tính chính xác theo khoảng ngày/giờ và mùa cao điểm"
+      ]
+    },
     {
       "version": "1.1.33",
       "date": "2026-05-31",
