@@ -333,7 +333,7 @@ export function useAcceptRequest() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  return useMutation({
+  return useShiftGuardedMutation(useMutation({
     mutationFn: async (id: string) => {
       // Validate: only from 'waiting' -> 'pending'
       await validateStatusTransition(id, 'pending')
