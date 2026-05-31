@@ -65,6 +65,13 @@ All colors MUST be HSL.
     --chart-3: 26 90% 37%;
     --chart-4: 0 72% 51%;
     --chart-5: 262 60% 50%;
+
+    /* Navy Trust palette — Inventory Hub */
+    --ink: 222 60% 15%;
+    --ink-2: 213 53% 24%;
+    --steel: 209 47% 43%;
+    --paper: 218 32% 94%;
+    --shadow-tile: 0 1px 2px hsl(var(--ink) / .06), 0 8px 28px -16px hsl(var(--ink) / .18);
   }
 
   .dark {
