@@ -106,7 +106,7 @@ export function useOutboundSubmit() {
         onError: cb.onError,
       },
     )
-  }
+  })
 
   return { submit, isPending }
 }
