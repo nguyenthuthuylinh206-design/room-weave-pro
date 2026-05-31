@@ -235,6 +235,16 @@ export function BookingsPage() {
   useEffect(() => {
     const action = searchParams.get('action')
     const bookingId = searchParams.get('bookingId')
+
+    // ?action=new → open AddBookingDialog (wizard bắt đầu từ bước chọn loại đặt: ngày/giờ/tháng)
+    if (action === 'new') {
+      setShowAddDialog(true)
+      const next = new URLSearchParams(searchParams)
+      next.delete('action')
+      setSearchParams(next, { replace: true })
+      return
+    }
+
     if (!action || !bookingId || !tenantId) return
     if (action !== 'checkin' && action !== 'checkout') return
 
