@@ -341,12 +341,20 @@ export const usePricingHealth = (hotelId?: string | null) => {
 export interface TodayPriceRow {
   room_type_id: string
   room_type_name: string
+  room_type_code: string | null
   base_price: number
   final_price: number
   has_seasonal: boolean
   has_override: boolean
   is_closed: boolean
 }
+
+const normalizeRoomTypeMatchKey = (s: string | null | undefined) =>
+  (s ?? '')
+    .toString()
+    .toLowerCase()
+    .replace(/^phòng\s+/i, '')
+    .trim()
 
 export const useTodayPricesByHotel = (hotelId?: string | null, applyTo: 'daily' | 'overnight' = 'daily') => {
   const { tenantId } = useUser()
@@ -361,15 +369,22 @@ export const useTodayPricesByHotel = (hotelId?: string | null, applyTo: 'daily' 
       if (error) throw error
       const map = new Map<string, TodayPriceRow>()
       ;((data ?? []) as any[]).forEach((r) => {
-        map.set((r.room_type_name ?? '').toLowerCase(), {
+        const row: TodayPriceRow = {
           room_type_id: r.room_type_id,
           room_type_name: r.room_type_name,
+          room_type_code: r.room_type_code ?? null,
           base_price: Number(r.base_price ?? 0),
           final_price: Number(r.final_price ?? 0),
           has_seasonal: !!r.has_seasonal,
           has_override: !!r.has_override,
           is_closed: !!r.is_closed,
-        })
+        }
+        // Index by multiple keys so room.room_type ("deluxe") can match room_types.name ("Phòng Deluxe")
+        const keys = new Set<string>()
+        keys.add((r.room_type_name ?? '').toLowerCase())
+        keys.add(normalizeRoomTypeMatchKey(r.room_type_name))
+        if (r.room_type_code) keys.add(String(r.room_type_code).toLowerCase())
+        keys.forEach((k) => { if (k && !map.has(k)) map.set(k, row) })
       })
       return map
     },
@@ -377,5 +392,6 @@ export const useTodayPricesByHotel = (hotelId?: string | null, applyTo: 'daily' 
     staleTime: 60_000,
   })
 }
+
 
 
