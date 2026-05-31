@@ -1,6 +1,16 @@
 {
-  "current": "1.1.31",
+  "current": "1.1.32",
   "versions": [
+    {
+      "version": "1.1.32",
+      "date": "2026-05-31",
+      "title": "Sửa lỗi giá phòng không hiển thị ở Danh sách phòng & Sơ đồ phòng",
+      "highlights": [
+        "Sửa lỗi SQL ở hàm tính giá hôm nay (resolve_today_prices_for_hotel) — trước đây trả lỗi nên các màn phòng không có giá",
+        "Sau khi sửa Giá mặc định, các màn Lịch giá / Danh sách phòng / Sơ đồ phòng cập nhật ngay lập tức",
+        "Đồng bộ pipeline giá: Giá mặc định → Quy tắc mùa → Giá theo ngày → Đóng bán"
+      ]
+    },
     {
       "version": "1.1.31",
       "date": "2026-05-31",

@@ -53,6 +53,11 @@ export const useUpsertRoomTypeRate = () => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['room-type-rates'] })
+      qc.invalidateQueries({ queryKey: ['room-type-rate'] })
+      qc.invalidateQueries({ queryKey: ['rate-plans'] })
+      qc.invalidateQueries({ queryKey: ['resolved-daily-prices'] })
+      qc.invalidateQueries({ queryKey: ['today-prices-by-hotel'] })
+      qc.invalidateQueries({ queryKey: ['pricing-health'] })
       toast.success('Đã lưu bảng giá')
     },
     onError: (e: any) => toast.error(e.message || 'Lưu thất bại'),
