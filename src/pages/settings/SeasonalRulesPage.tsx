@@ -146,6 +146,35 @@ export default function SeasonalRulesPage() {
           <DialogHeader>
             <DialogTitle>{form.id ? 'Sửa quy tắc' : 'Thêm quy tắc mùa giá'}</DialogTitle>
           </DialogHeader>
+          {(() => {
+            const conflicts = rules.filter(r => {
+              if (form.id && r.id === form.id) return false
+              if (!r.active) return false
+              if (r.from_date > form.to_date || r.to_date < form.from_date) return false
+              const sharedApply = (r.apply_to ?? []).some(a => form.apply_to.includes(a))
+              if (!sharedApply) return false
+              const aRT = r.room_type_ids ?? []
+              const bRT = form.room_type_ids
+              const sharedRT = aRT.length === 0 || bRT.length === 0 || aRT.some(x => bRT.includes(x))
+              if (!sharedRT) return false
+              return r.priority === form.priority
+            })
+            if (conflicts.length === 0) return null
+            return (
+              <div className="border border-amber-300 bg-amber-50 dark:bg-amber-950/30 rounded p-2 text-xs">
+                <div className="font-medium text-amber-700 dark:text-amber-400 mb-1">
+                  ⚠ Trùng ưu tiên với {conflicts.length} quy tắc:
+                </div>
+                <ul className="list-disc list-inside text-amber-800 dark:text-amber-300">
+                  {conflicts.slice(0, 3).map(c => (
+                    <li key={c.id}>{c.name} (ưu tiên {c.priority}, {c.from_date}→{c.to_date})</li>
+                  ))}
+                </ul>
+                <div className="mt-1 text-amber-700">Đổi số ưu tiên khác để xác định thứ tự áp dụng.</div>
+              </div>
+            )
+          })()}
+
           <div className="space-y-3">
             <div>
               <Label className="text-xs">Tên quy tắc *</Label>
