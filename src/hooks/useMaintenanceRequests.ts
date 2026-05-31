@@ -366,7 +366,7 @@ export function useAcceptRequest() {
         variant: 'destructive',
       })
     },
-  })
+  }))
 }
 
 export function useStartRequest() {
