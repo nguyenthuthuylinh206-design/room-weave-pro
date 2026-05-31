@@ -8,9 +8,11 @@ import {
   useDailyPrices,
   useRoomTypeAvailability,
   useRoomTypeDefaultQty,
+  useResolvedDailyPrices,
   VIRTUAL_DEFAULT_PLAN_ID,
   ensureDefaultRatePlan,
 } from '@/hooks/usePricingDaily'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
