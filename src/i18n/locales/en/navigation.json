@@ -84,9 +84,11 @@
   "hotelPolicy": "Hotel Policy",
   "hotelsSettings": "Hotel Information",
   "staffList": "Staff List",
+  "shiftHandoverReport": "Shift Handover Report",
   "pricingV2": "Room Rates",
   "seasonalRules": "Seasons",
   "bcaConfig": "Stay Registration (BCA)",
+
 
   "stayRegistrations": "Stay Registrations"
 }
