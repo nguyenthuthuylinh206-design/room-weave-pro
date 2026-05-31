@@ -1,6 +1,15 @@
 {
-  "current": "1.1.35",
+  "current": "1.1.36",
   "versions": [
+    {
+      "version": "1.1.36",
+      "date": "2026-05-31",
+      "title": "Refactor BookingsPage dùng bookingFlowDecisions làm nguồn quyết định duy nhất",
+      "highlights": [
+        "handleCheckInClick & handleCheckOutClick giờ gọi decideCheckIn / decideCheckoutAction — loại bỏ logic phân nhánh trùng lặp",
+        "Single source of truth cho group booking, overdue, occupied/maintenance/not-ready — đã được phủ unit test"
+      ]
+    },
     {
       "version": "1.1.35",
       "date": "2026-05-31",
