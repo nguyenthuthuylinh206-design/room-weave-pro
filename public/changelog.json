@@ -1,6 +1,17 @@
 {
-  "current": "1.1.30",
+  "current": "1.1.31",
   "versions": [
+    {
+      "version": "1.1.31",
+      "date": "2026-05-31",
+      "title": "Sửa lỗi không hiện giá trên sơ đồ phòng",
+      "highlights": [
+        "Nguyên nhân: rooms.room_type lưu \"deluxe\" nhưng room_types.name là \"Phòng Deluxe\" — không khớp khoá",
+        "Sửa: RPC trả thêm code, hook đánh chỉ mục đa khoá (tên đầy đủ / tên rút gọn / mã)",
+        "Giá hôm nay giờ hiển thị đúng trên cả sơ đồ tầng và danh sách phòng"
+      ]
+    },
+
     {
       "version": "1.1.30",
       "date": "2026-05-31",
