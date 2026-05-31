@@ -147,6 +147,23 @@ export function RoomTable({ rooms, isLoading, selectedIds, onSelectionChange }: 
               <TableCell className="text-right">
                 {room.base_price ? formatCurrency(room.base_price) : '-'}
               </TableCell>
+              <TableCell className="text-right">
+                {(() => {
+                  const tp = todayPrices?.get((room.room_type ?? '').toLowerCase())
+                  if (!tp) return <span className="text-muted-foreground text-xs">-</span>
+                  if (tp.is_closed) return <span className="text-red-600 text-xs">Đóng bán</span>
+                  return (
+                    <div className="flex flex-col items-end gap-0.5">
+                      <span className="font-medium">{formatCurrency(tp.final_price)}</span>
+                      <div className="flex gap-1">
+                        {tp.has_seasonal && <span className="text-amber-600 text-[10px]" title="Có quy tắc mùa">●Mùa</span>}
+                        {tp.has_override && <span className="text-blue-600 text-[10px]" title="Có override theo ngày">●Ngày</span>}
+                      </div>
+                    </div>
+                  )
+                })()}
+              </TableCell>
+
               <TableCell>
                 <div className="space-y-1 text-xs">
                   <div>{t('table.total')}: {room.total_items}</div>
