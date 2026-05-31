@@ -472,7 +472,7 @@ export function useCancelRequest() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  return useMutation({
+  return useShiftGuardedMutation(useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
       // Validate: from 'waiting', 'pending', or 'in_progress' -> 'cancelled'
       await validateStatusTransition(id, 'cancelled')
