@@ -1,6 +1,17 @@
 {
-  "current": "1.1.22",
+  "current": "1.1.23",
   "versions": [
+    {
+      "version": "1.1.23",
+      "date": "2026-05-31",
+      "title": "Quản lý giá phòng — Lịch giá theo ngày",
+      "highlights": [
+        "Trang /settings/pricing gộp 3 tab: Lịch giá theo ngày (mới), Giá mặc định, Quy tắc mùa",
+        "Lịch giá theo ngày: lưới calendar 14/30 ngày, kéo-chọn, fill handle, copy/paste, bulk edit theo dải ngày + thứ trong tuần",
+        "Quản lý rate plan theo từng hạng phòng với inclusions, policies, sale price; tồn kho mở/đóng theo ngày",
+        "3 bảng mới rate_plans, rate_plan_daily_prices, room_type_availability với RLS + tenant isolation, RPC bulk upsert atomic"
+      ]
+    },
     {
       "version": "1.1.22",
       "date": "2026-05-31",
