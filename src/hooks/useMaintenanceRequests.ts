@@ -414,7 +414,7 @@ export function useCompleteRequest() {
   const queryClient = useQueryClient()
   const { user, tenantId } = useUser()
 
-  return useMutation({
+  return useShiftGuardedMutation(useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
       // Validate: only from 'in_progress' -> 'completed'
       await validateStatusTransition(id, 'completed')
