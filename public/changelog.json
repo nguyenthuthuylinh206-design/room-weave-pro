@@ -1,6 +1,18 @@
 {
-  "current": "1.1.37",
+  "current": "1.1.38",
   "versions": [
+    {
+      "version": "1.1.38",
+      "date": "2026-05-31",
+      "title": "Refactor menu Cài đặt: gom 5 nhóm rõ ràng, bỏ header lặp, đổi tên dễ hiểu",
+      "highlights": [
+        "Sidebar Cài đặt: sắp xếp lại 17 mục thành 6 nhóm liền mạch (Tài khoản / Khách sạn / Bảng giá & Phụ thu / Vận hành / Thanh toán & Gói / Hệ thống) — mỗi label nhóm chỉ xuất hiện 1 lần",
+        "Đổi tên: 'Bảng giá 4 trục' → 'Bảng giá phòng', 'Quy tắc mùa giá' → 'Mùa giá', 'Cấu hình khai báo BCA' → 'Khai báo lưu trú (BCA)', 'Cấu hình khách sạn' → 'Chính sách khách sạn', thêm 'Thông tin khách sạn'",
+        "Bỏ 'Phân loại tài sản' khỏi Cài đặt (route /settings/asset-group-migration vẫn truy cập được trực tiếp)",
+        "Gộp nhóm 'Thông báo' và 'Pháp lý' vào 'Hệ thống' / 'Vận hành' để giảm phân mảnh"
+      ]
+    },
+
     {
       "version": "1.1.37",
       "date": "2026-05-31",
