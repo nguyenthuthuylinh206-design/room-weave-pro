@@ -621,10 +621,18 @@ export function RoomFloorMapView({
                   return (
                     <Tooltip key={room.id}>
                       <TooltipTrigger asChild>
-                        <button
-                          type="button"
+                        <div
+                          role="button"
+                          tabIndex={0}
                           onClick={() => handleRoomClick(room)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault()
+                              handleRoomClick(room)
+                            }
+                          }}
                           className={cn(
+                            'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                             'group relative flex flex-col items-stretch justify-between rounded-lg border border-black/10 p-2 text-center text-white shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-95',
                             m.solid,
                             showGroupRing && cn('ring-2 ring-offset-1', ringForGroup(gid!)),
@@ -733,7 +741,7 @@ export function RoomFloorMapView({
                             </div>
                           )}
 
-                        </button>
+                        </div>
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-xs">
                         <RoomTooltip
