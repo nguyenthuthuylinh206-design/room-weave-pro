@@ -1,6 +1,21 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
 import { MessageCircle, X, Minus } from 'lucide-react'
+
+const LAUNCHER_POS_KEY = 'chat-launcher-pos-v1'
+const BTN_SIZE = 48
+
+type Pos = { right: number; bottom: number }
+
+function loadPos(): Pos | null {
+  try {
+    const raw = localStorage.getItem(LAUNCHER_POS_KEY)
+    if (!raw) return null
+    const p = JSON.parse(raw)
+    if (typeof p?.right === 'number' && typeof p?.bottom === 'number') return p
+  } catch {}
+  return null
+}
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -75,28 +90,18 @@ function ChatLauncherInner() {
     })
   }, [conversations, search])
 
-  // Closed state: floating round button on both desktop & mobile
+  // Closed state: draggable floating round button
   if (!launcherOpen) {
     return (
-      <button
-        type="button"
-        onClick={() => setLauncherOpen(true)}
-        className={cn(
-          'fixed right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full border bg-background text-foreground shadow-lg transition-colors hover:bg-muted',
-          // Đặt cao hơn bottom nav trên mobile (bottom nav ~64px + safe area)
-          isMobile ? 'bottom-[calc(env(safe-area-inset-bottom)+72px)]' : 'bottom-5',
-        )}
-        aria-label="Mở danh sách tin nhắn"
-      >
-        <MessageCircle className="h-5 w-5" />
-        {unread > 0 && (
-          <Badge variant="destructive" className="absolute -right-1 -top-1 h-5 min-w-5 px-1 text-[10px]">
-            {unread > 9 ? '9+' : unread}
-          </Badge>
-        )}
-      </button>
+      <DraggableLauncherButton
+        unread={unread}
+        isMobile={isMobile}
+        onOpen={() => setLauncherOpen(true)}
+      />
     )
   }
+
+  // Open state
 
   // Open state
   if (isMobile) {
@@ -306,6 +311,131 @@ function ConversationItem({
         <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">
           {conv.unread_count > 9 ? '9+' : conv.unread_count}
         </span>
+      )}
+    </button>
+  )
+}
+
+function DraggableLauncherButton({
+  unread,
+  isMobile,
+  onOpen,
+}: {
+  unread: number
+  isMobile: boolean
+  onOpen: () => void
+}) {
+  const defaultBottom = isMobile ? 72 : 20
+  const [pos, setPos] = useState<Pos>(() => loadPos() ?? { right: 16, bottom: defaultBottom })
+  const dragRef = useRef<{
+    startX: number
+    startY: number
+    origRight: number
+    origBottom: number
+    moved: boolean
+    pointerId: number
+  } | null>(null)
+  const [dragging, setDragging] = useState(false)
+
+  // Re-clamp on resize
+  useEffect(() => {
+    const onResize = () => {
+      setPos((p) => clampPos(p))
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  function clampPos(p: Pos): Pos {
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    const maxRight = Math.max(4, vw - BTN_SIZE - 4)
+    const maxBottom = Math.max(4, vh - BTN_SIZE - 4)
+    return {
+      right: Math.min(Math.max(4, p.right), maxRight),
+      bottom: Math.min(Math.max(4, p.bottom), maxBottom),
+    }
+  }
+
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLButtonElement>) => {
+      ;(e.currentTarget as HTMLButtonElement).setPointerCapture(e.pointerId)
+      dragRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        origRight: pos.right,
+        origBottom: pos.bottom,
+        moved: false,
+        pointerId: e.pointerId,
+      }
+    },
+    [pos]
+  )
+
+  const onPointerMove = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    const d = dragRef.current
+    if (!d || d.pointerId !== e.pointerId) return
+    const dx = e.clientX - d.startX
+    const dy = e.clientY - d.startY
+    if (!d.moved && Math.hypot(dx, dy) > 5) {
+      d.moved = true
+      setDragging(true)
+    }
+    if (d.moved) {
+      const next = clampPos({
+        right: d.origRight - dx,
+        bottom: d.origBottom - dy,
+      })
+      setPos(next)
+    }
+  }, [])
+
+  const finishDrag = useCallback(
+    (e: React.PointerEvent<HTMLButtonElement>) => {
+      const d = dragRef.current
+      if (!d) return
+      const wasMoved = d.moved
+      dragRef.current = null
+      setDragging(false)
+      try {
+        ;(e.currentTarget as HTMLButtonElement).releasePointerCapture(e.pointerId)
+      } catch {}
+      if (wasMoved) {
+        try {
+          localStorage.setItem(LAUNCHER_POS_KEY, JSON.stringify(pos))
+        } catch {}
+      } else {
+        onOpen()
+      }
+    },
+    [pos, onOpen]
+  )
+
+  return (
+    <button
+      type="button"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={finishDrag}
+      onPointerCancel={finishDrag}
+      style={{
+        right: pos.right,
+        bottom: pos.bottom,
+        touchAction: 'none',
+        cursor: dragging ? 'grabbing' : 'grab',
+      }}
+      className={cn(
+        'fixed z-50 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl ring-2 ring-primary/30 transition-transform hover:scale-105 active:scale-95',
+        dragging && 'scale-110 shadow-2xl'
+      )}
+      aria-label="Mở danh sách tin nhắn (kéo để di chuyển)"
+      title="Kéo để di chuyển"
+    >
+      <MessageCircle className="h-6 w-6" />
+      {unread > 0 && (
+        <Badge variant="destructive" className="absolute -right-1 -top-1 h-5 min-w-5 px-1 text-[10px]">
+          {unread > 9 ? '9+' : unread}
+        </Badge>
       )}
     </button>
   )
