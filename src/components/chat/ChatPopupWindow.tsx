@@ -1,7 +1,13 @@
 import { useNavigate } from 'react-router-dom'
-import { Minus, X, Maximize2, ArrowLeft, Phone } from 'lucide-react'
+import { Minus, X, Maximize2, ArrowLeft, Phone, Send } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { useConversations } from '@/hooks/useChat'
