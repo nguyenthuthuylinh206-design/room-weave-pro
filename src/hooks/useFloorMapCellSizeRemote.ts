@@ -66,8 +66,7 @@ export function useFloorMapCellSizeRemote(hotelId?: string | null) {
       if (!hotelId) throw new Error('Chưa chọn khách sạn')
       if (!tenantId) throw new Error('Chưa xác định tenant')
       const normalized = normalizeCellSize(value)
-      const callRpc = supabase.rpc as unknown as FloorMapCellSizeRpc
-      const { data, error } = await callRpc('update_hotel_floor_map_cell_size', {
+      const { data, error } = await (supabase as unknown as { rpc: FloorMapCellSizeRpc }).rpc('update_hotel_floor_map_cell_size', {
         p_hotel_id: hotelId,
         p_size: toCellSizeJson(normalized),
       })
