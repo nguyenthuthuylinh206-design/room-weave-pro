@@ -120,62 +120,37 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
   }, [applySaved, hotelId, remoteInitial?.height, remoteInitial?.cols, remoteInitial?.fontScale, remoteInitial?.preset])
 
   const setPreset = useCallback((preset: CellSizePreset) => {
-    dirtyRef.current = true
-    if (preset === 'custom') {
-      setSize((s) => {
-        const next = { ...s, preset: 'custom' as const }
-        sizeRef.current = next
-        return next
-      })
-    } else {
-      setSize((s) => {
-        const next = { preset, ...PRESETS[preset], fontScale: s.fontScale }
-        sizeRef.current = next
-        return next
-      })
-    }
-  }, [])
+    const current = sizeRef.current
+    applyDraft(preset === 'custom'
+      ? { ...current, preset: 'custom' }
+      : { preset, ...PRESETS[preset], fontScale: current.fontScale })
+  }, [applyDraft])
 
   const setCustom = useCallback((patch: Partial<Pick<CellSizeState, 'height' | 'cols' | 'fontScale'>>) => {
-    dirtyRef.current = true
-    setSize((s) => {
-      const next = {
-        preset: 'custom' as const,
-        height: clamp(patch.height ?? s.height, 64, 200),
-        cols: snapCols(patch.cols ?? s.cols),
-        fontScale: clamp(patch.fontScale ?? s.fontScale, 0.8, 1.6),
-      }
-      sizeRef.current = next
-      return next
+    const current = sizeRef.current
+    applyDraft({
+      preset: 'custom',
+      height: clamp(patch.height ?? current.height, 64, 200),
+      cols: snapCols(patch.cols ?? current.cols),
+      fontScale: clamp(patch.fontScale ?? current.fontScale, 0.8, 1.6),
     })
-  }, [])
+  }, [applyDraft])
 
   const setFontScale = useCallback((v: number) => {
-    dirtyRef.current = true
-    setSize((s) => {
-      const next = { ...s, fontScale: clamp(v, 0.8, 1.6) }
-      sizeRef.current = next
-      return next
-    })
-  }, [])
+    applyDraft({ ...sizeRef.current, fontScale: clamp(v, 0.8, 1.6) })
+  }, [applyDraft])
 
   const reset = useCallback(() => {
-    dirtyRef.current = true
-    const next = { preset: 'md' as const, ...PRESETS.md, fontScale: DEFAULT_FONT_SCALE }
-    sizeRef.current = next
-    setSize(next)
-  }, [])
+    applyDraft({ preset: 'md', ...PRESETS.md, fontScale: DEFAULT_FONT_SCALE })
+  }, [applyDraft])
 
   const markSynced = useCallback((value?: CellSizeState) => {
-    dirtyRef.current = false
-    const next = normalize(value ?? sizeRef.current)
-    lastSavedSignatureRef.current = signature(next)
-    sizeRef.current = next
-    setSize(next)
-    try { localStorage.setItem(storageKey(hotelId), JSON.stringify(next)) } catch {
-      // Local persistence is best-effort.
-    }
-  }, [hotelId])
+    applySaved(value ?? sizeRef.current)
+  }, [applySaved])
+
+  const discardDraft = useCallback(() => {
+    applySaved(savedSizeRef.current)
+  }, [applySaved])
 
   const getCurrentSize = useCallback(() => sizeRef.current, [])
 
