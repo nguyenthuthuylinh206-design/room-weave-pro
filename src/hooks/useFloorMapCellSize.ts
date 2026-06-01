@@ -155,7 +155,7 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
     const normalized = normalizeCellSize(savedRef.current)
     draftRef.current = normalized
     setDraft(normalized)
-  }, [applySaved])
+  }, [])
 
   const getCurrentSize = useCallback(() => draftRef.current, [])
 
@@ -168,18 +168,18 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
       if (e.key === '0') {
         e.preventDefault()
-        const current = sizeRef.current
+        const current = draftRef.current
         applyDraft(getPresetCellSize('md', current.fontScale))
       } else if (e.key === '=' || e.key === '+') {
         e.preventDefault()
-        const current = sizeRef.current
+        const current = draftRef.current
         const idx = order.indexOf(current.preset)
         const nextIdx = idx === -1 ? order.indexOf('md') : Math.min(order.length - 1, idx + 1)
         const p = order[nextIdx]
         applyDraft(getPresetCellSize(p as 'sm'|'md'|'lg', current.fontScale))
       } else if (e.key === '-' || e.key === '_') {
         e.preventDefault()
-        const current = sizeRef.current
+        const current = draftRef.current
         const idx = order.indexOf(current.preset)
         const nextIdx = idx === -1 ? order.indexOf('md') : Math.max(0, idx - 1)
         const p = order[nextIdx]
@@ -191,30 +191,35 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
   }, [applyDraft])
 
   const classes = useMemo(() => {
-    const minCellPx = Math.max(72, Math.round(size.height * 0.85))
-    const targetMin = Math.round(minCellPx * (12 / Math.max(4, size.cols)))
+    const targetMin = Math.round(1100 / Math.max(4, draft.cols))
     const gridStyle: CSSProperties = {
-      gridTemplateColumns: `repeat(auto-fill, minmax(${targetMin}px, 1fr))`,
+      gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${targetMin}px), 1fr))`,
     }
 
-    // Effective height tính cả fontScale → cỡ chữ co giãn độc lập
-    const h = size.height * size.fontScale
-    const numberCls = h >= 140 ? 'text-3xl' : h >= 115 ? 'text-2xl' : h >= 95 ? 'text-xl' : h >= 78 ? 'text-base' : 'text-sm'
-    const bodyCls = h >= 140 ? 'text-base' : h >= 115 ? 'text-sm' : h >= 95 ? 'text-[13px]' : h >= 78 ? 'text-[12px]' : 'text-[11px]'
-    const captionCls = h >= 140 ? 'text-[13px]' : h >= 115 ? 'text-[12px]' : h >= 95 ? 'text-[11px]' : h >= 78 ? 'text-[10px]' : 'text-[9px]'
-    const badgeCls = h >= 115 ? 'text-[11px]' : h >= 95 ? 'text-[10px]' : 'text-[9px]'
+    const numberPx = Math.round(clamp(draft.height * 0.23 * draft.fontScale, 16, 42))
+    const bodyPx = Math.round(clamp(draft.height * 0.14 * draft.fontScale, 11, 22))
+    const captionPx = Math.round(clamp(draft.height * 0.105 * draft.fontScale, 9, 16))
+    const badgePx = Math.round(clamp(draft.height * 0.09 * draft.fontScale, 9, 13))
+    const numberCls = ''
+    const bodyCls = ''
+    const captionCls = ''
+    const badgeCls = ''
     const labelCls = captionCls
-    const dotPx = h >= 130 ? 'h-6 w-6' : h >= 95 ? 'h-5 w-5' : 'h-4 w-4'
+    const dotPx = draft.height >= 140 ? 'h-6 w-6' : draft.height >= 100 ? 'h-5 w-5' : 'h-4 w-4'
+    const numberStyle: CSSProperties = { fontSize: numberPx, lineHeight: 1 }
+    const bodyStyle: CSSProperties = { fontSize: bodyPx, lineHeight: 1.12 }
+    const captionStyle: CSSProperties = { fontSize: captionPx, lineHeight: 1.12 }
+    const badgeStyle: CSSProperties = { fontSize: badgePx, lineHeight: 1 }
 
-    return { gridStyle, numberCls, bodyCls, captionCls, badgeCls, labelCls, dotPx }
-  }, [size])
+    return { gridStyle, numberCls, bodyCls, captionCls, badgeCls, labelCls, dotPx, numberStyle, bodyStyle, captionStyle, badgeStyle }
+  }, [draft])
 
   const summaryLabel = useMemo(() => {
-    const name = size.preset === 'sm' ? 'Nhỏ' : size.preset === 'lg' ? 'Lớn' : size.preset === 'md' ? 'Vừa' : 'Tuỳ chỉnh'
-    return `${name} · ${size.cols} cột · ${Math.round(size.fontScale * 100)}%`
-  }, [size])
+    const name = draft.preset === 'sm' ? 'Nhỏ' : draft.preset === 'lg' ? 'Lớn' : draft.preset === 'md' ? 'Vừa' : 'Tuỳ chỉnh'
+    return `${name} · ${draft.height}px · ${draft.cols} cột · ${Math.round(draft.fontScale * 100)}%`
+  }, [draft])
 
-  const isDirty = dirtySignature !== cellSizeSignature(savedSize)
+  const isDirty = isCellSizeDirty(draft, saved)
 
-  return { size, savedSize, isDirty, setPreset, setCustom, setFontScale, reset, markSynced, discardDraft, getCurrentSize, classes, summaryLabel, allowedCols: ALLOWED_COLS as readonly number[] }
+  return { size: draft, savedSize: saved, isDirty, setPreset, setCustom, setFontScale, reset, markSynced, discardDraft, getCurrentSize, classes, summaryLabel, allowedCols: ALLOWED_COLS as readonly number[] }
 }
