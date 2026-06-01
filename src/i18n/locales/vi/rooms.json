@@ -313,7 +313,11 @@
     "missingItems": "Thiếu {{count}} items",
     "itemsInLaundry": "{{count}} items đang giặt",
     "basePrice": "Giá cơ bản",
-    "perNight": "/đêm"
+    "perNight": "/đêm",
+    "lastCheckedRelative": "Đã kiểm {{time}}",
+    "notCheckedToday": "Chưa kiểm hôm nay",
+    "summaryLine": "{{type}} • {{guests}} khách • {{bed}} • {{area}}m²",
+    "summaryLineNoArea": "{{type}} • {{guests}} khách • {{bed}}"
   },
   "deleteDialog": {
     "title": "Xác nhận xóa phòng",
