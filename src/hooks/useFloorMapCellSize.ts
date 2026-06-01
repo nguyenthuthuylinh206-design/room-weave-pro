@@ -54,10 +54,6 @@ function readStored(hotelId?: string | null): CellSizeState {
   return normalize(null)
 }
 
-function signature(value: CellSizeState): string {
-  return JSON.stringify(normalize(value))
-}
-
 export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: CellSizeState | null) {
   const [size, setSize] = useState<CellSizeState>(() => remoteInitial ? normalize(remoteInitial) : readStored(hotelId))
   const dirtyRef = useRef(false)
