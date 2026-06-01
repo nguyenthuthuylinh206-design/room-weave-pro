@@ -24,10 +24,11 @@ import { useRoomTransition } from '@/hooks/useRoomTransition'
 import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNowStrict, parseISO, differenceInHours, format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { Search, Plus, FileSpreadsheet, History, Unlock, Maximize2 } from 'lucide-react'
+import { Search, Plus, FileSpreadsheet, History, Unlock, Maximize2, Check, RotateCcw } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Slider } from '@/components/ui/slider'
 import { useFloorMapCellSize } from '@/hooks/useFloorMapCellSize'
+import { toast } from 'sonner'
 import { useTodayPricesByHotel } from '@/hooks/usePricingDaily'
 
 
@@ -473,7 +474,41 @@ export function RoomFloorMapView({
                   onValueChange={([v]) => cellSize.setCustom({ cols: v })}
                 />
               </div>
-              <div className="border-t pt-2 text-[10px] text-muted-foreground">
+              <div className="flex items-center justify-between gap-2 border-t pt-3">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 gap-1 px-2 text-xs"
+                  onClick={() => {
+                    cellSize.setPreset('md')
+                    toast.success('Đã đặt lại kích thước mặc định')
+                  }}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Đặt lại
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-7 gap-1 px-3 text-xs"
+                  onClick={() => {
+                    try {
+                      localStorage.setItem(
+                        `rooms.floorMap.cellSize:${selectedHotel?.id || 'default'}`,
+                        JSON.stringify(cellSize.size),
+                      )
+                      toast.success('Đã lưu kích thước ô phòng')
+                    } catch {
+                      toast.error('Không thể lưu, vui lòng thử lại')
+                    }
+                  }}
+                >
+                  <Check className="h-3.5 w-3.5" />
+                  Lưu
+                </Button>
+              </div>
+              <div className="text-[10px] text-muted-foreground">
                 Phím tắt: <kbd className="rounded border px-1">Ctrl</kbd> + <kbd className="rounded border px-1">+</kbd> / <kbd className="rounded border px-1">-</kbd> / <kbd className="rounded border px-1">0</kbd>
               </div>
             </PopoverContent>
