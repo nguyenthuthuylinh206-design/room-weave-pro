@@ -448,7 +448,12 @@ export function RoomFloorMapView({
           </div>
           <Popover
             open={sizePopoverOpen}
-            onOpenChange={setSizePopoverOpen}
+            onOpenChange={(open) => {
+              setSizePopoverOpen(open)
+              if (!open && cellSize.isDirty && !saveCellSize.isPending) {
+                cellSize.discardDraft()
+              }
+            }}
           >
             <PopoverTrigger asChild>
               <Button
@@ -554,8 +559,7 @@ export function RoomFloorMapView({
                   disabled={saveCellSize.isPending || !cellSize.isDirty}
                   onClick={() => {
                     const currentSize = cellSize.getCurrentSize()
-                    saveSizeValue(currentSize)
-                    setSizePopoverOpen(false)
+                    saveSizeValue(currentSize, undefined, () => setSizePopoverOpen(false))
                   }}
                 >
                   <Check className="h-3.5 w-3.5" />
