@@ -90,28 +90,31 @@ function ChatLauncherInner() {
     })
   }, [conversations, search])
 
-  // Closed state: floating round button on both desktop & mobile
+  // Closed state: draggable floating round button
   if (!launcherOpen) {
     return (
-      <button
-        type="button"
-        onClick={() => setLauncherOpen(true)}
-        className={cn(
-          'fixed right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full border bg-background text-foreground shadow-lg transition-colors hover:bg-muted',
-          // Đặt cao hơn bottom nav trên mobile (bottom nav ~64px + safe area)
-          isMobile ? 'bottom-[calc(env(safe-area-inset-bottom)+72px)]' : 'bottom-5',
-        )}
-        aria-label="Mở danh sách tin nhắn"
-      >
-        <MessageCircle className="h-5 w-5" />
-        {unread > 0 && (
-          <Badge variant="destructive" className="absolute -right-1 -top-1 h-5 min-w-5 px-1 text-[10px]">
-            {unread > 9 ? '9+' : unread}
-          </Badge>
-        )}
-      </button>
+      <DraggableLauncherButton
+        unread={unread}
+        isMobile={isMobile}
+        onOpen={() => setLauncherOpen(true)}
+      />
     )
   }
+
+  // Open state
+  if (isMobile) {
+    return (
+      <>
+        <div
+          className="fixed inset-0 z-40 bg-foreground/20"
+          onClick={() => setLauncherOpen(false)}
+          aria-label="Đóng danh sách tin nhắn"
+        />
+        <aside
+          className="fixed inset-x-0 bottom-0 z-50 flex h-[75dvh] flex-col overflow-hidden rounded-t-xl border border-b-0 bg-background shadow-2xl"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+          aria-label="Danh sách tin nhắn"
+        >
 
   // Open state
   if (isMobile) {
