@@ -102,19 +102,6 @@ function ChatLauncherInner() {
   }
 
   // Open state
-  if (isMobile) {
-    return (
-      <>
-        <div
-          className="fixed inset-0 z-40 bg-foreground/20"
-          onClick={() => setLauncherOpen(false)}
-          aria-label="Đóng danh sách tin nhắn"
-        />
-        <aside
-          className="fixed inset-x-0 bottom-0 z-50 flex h-[75dvh] flex-col overflow-hidden rounded-t-xl border border-b-0 bg-background shadow-2xl"
-          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-          aria-label="Danh sách tin nhắn"
-        >
 
   // Open state
   if (isMobile) {
