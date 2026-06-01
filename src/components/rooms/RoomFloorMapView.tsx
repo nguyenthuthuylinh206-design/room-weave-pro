@@ -474,7 +474,41 @@ export function RoomFloorMapView({
                   onValueChange={([v]) => cellSize.setCustom({ cols: v })}
                 />
               </div>
-              <div className="border-t pt-2 text-[10px] text-muted-foreground">
+              <div className="flex items-center justify-between gap-2 border-t pt-3">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 gap-1 px-2 text-xs"
+                  onClick={() => {
+                    cellSize.setPreset('md')
+                    toast.success('Đã đặt lại kích thước mặc định')
+                  }}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Đặt lại
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-7 gap-1 px-3 text-xs"
+                  onClick={() => {
+                    try {
+                      localStorage.setItem(
+                        `rooms.floorMap.cellSize:${selectedHotel?.id || 'default'}`,
+                        JSON.stringify(cellSize.size),
+                      )
+                      toast.success('Đã lưu kích thước ô phòng')
+                    } catch {
+                      toast.error('Không thể lưu, vui lòng thử lại')
+                    }
+                  }}
+                >
+                  <Check className="h-3.5 w-3.5" />
+                  Lưu
+                </Button>
+              </div>
+              <div className="text-[10px] text-muted-foreground">
                 Phím tắt: <kbd className="rounded border px-1">Ctrl</kbd> + <kbd className="rounded border px-1">+</kbd> / <kbd className="rounded border px-1">-</kbd> / <kbd className="rounded border px-1">0</kbd>
               </div>
             </PopoverContent>
