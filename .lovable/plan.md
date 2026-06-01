@@ -1,147 +1,80 @@
 ## Mục tiêu
 
-Tab `/reports/financial?tab=insights` hiện tại chỉ tính lãi gộp = doanh thu − (purchase + laundry + maintenance) — chưa đúng nghiệp vụ khách sạn. Nâng cấp lên **Operations Insights v2** theo chuẩn USALI rút gọn, có chi phí nhân sự, KPI chuẩn ngành, so sánh PoP + YoY + budget, và AI advisor nâng cao.
+Lưới phòng `/rooms?view=grid` hiện đang hiển thị cho mọi vai trò giống nhau, có cả **giá phòng** và bố cục nặng — không tối ưu cho nhân viên buồng phòng (HK) vốn là người dùng chính ở màn này.
 
-## A. Kiến trúc & nghiệp vụ
+Cần biến card phòng thành "thẻ tác nghiệp HK": **số phòng + trạng thái to rõ → việc cần làm → nút Kiểm tra**. Giá phòng chỉ giữ lại cho Owner/Manager/Lễ tân.
 
-### KPI bổ sung (chuẩn ngành KS)
-- **Doanh thu**: TRevPAR (tổng DT/phòng/ngày), RevPAR, ADR
-- **Hiệu quả**: GOP, GOPPAR (GOP/phòng/ngày), NOI, Profit Margin
-- **Chi phí**: CostPOR (chi phí/đêm phòng bán), Labor Cost Ratio (lương/DT), Cost Ratio theo bộ phận
-- **So sánh 3 chiều**: kỳ này vs kỳ trước liền kề (PoP), vs cùng kỳ năm trước (YoY), vs budget/target
+## A. Logic nghiệp vụ — phân nhánh theo vai trò
 
-### P&L USALI rút gọn (4 khối)
-```
-Revenue       │ Room | F&B | Service & Extra | Other
-Departmental  │ Cost của từng bộ phận (laundry, F&B cost, amenities)
-              │ Labor cost phân bổ theo bộ phận (HK / FO / F&B / Maint)
-Undistributed │ Maintenance, Utilities (nếu có), Admin
-GOP / NOI     │ Tổng hợp + biên
-```
+Tạo helper `isOperationalRole(role)` = `role === 'staff' || role === 'department_manager'`
+(HK staff + Trưởng bộ phận HK đều là người tác nghiệp).
 
-### Chi phí nhân sự
-Tính từ `shift_history` × lương theo giờ của user trong kỳ. Không có table salary → thêm 2 cột vào `users`: `hourly_wage_vnd`, `monthly_salary_vnd` (ưu tiên hourly, fallback monthly chia 26×8). Phân bổ vào bộ phận qua `users.position.department`.
+Card phòng có 2 chế độ render:
 
-### Budget/Target
-Bảng mới `financial_targets` theo (tenant, hotel, month, metric) cho phép owner đặt mục tiêu: occupancy, revpar, gop, labor_ratio. Hiển thị actual vs target với % hoàn thành.
+| Khu vực | Operational (HK) | Owner / Manager / Lễ tân |
+|---|---|---|
+| Số phòng | **cực to** (text-3xl) + chấm màu trạng thái | text-2xl như hiện tại |
+| Trạng thái | Badge text-sm in đậm, đặt ngay dưới số phòng | Selector ở góc phải (như cũ) |
+| Loại phòng / sức chứa / giường / m² | Gộp 1 dòng `Deluxe • 2 khách • King • 35m²` (text-xs, mute) | Grid 3 cột như cũ |
+| Đồ thiếu / giặt là / phiếu chờ | **Nổi bật**, gom thành "Việc cần làm" có icon trạng thái màu | Như cũ |
+| **Giá phòng** | ❌ **ẨN** | ✅ Hiển thị |
+| Lần kiểm cuối | "Đã kiểm 2 giờ trước" / "Chưa kiểm hôm nay" (text-xs amber nếu >12h) | Không hiển thị (giữ gọn) |
+| Footer | 1 nút duy nhất **Kiểm tra** full-width | Xem chi tiết + dropdown task + Kiểm tra (như cũ) |
+| Checkbox bulk | Vẫn giữ | Vẫn giữ |
+| Click card | Không điều hướng (staff không có quyền xem detail) | → `/rooms/:id` |
 
-## B. Schema / Migration
+## B. UI components
 
-```sql
--- 1. Lương nhân viên
-ALTER TABLE public.users
-  ADD COLUMN IF NOT EXISTS hourly_wage_vnd numeric(12,2),
-  ADD COLUMN IF NOT EXISTS monthly_salary_vnd numeric(12,2);
-GRANT UPDATE (hourly_wage_vnd, monthly_salary_vnd) ON public.users TO authenticated;
+Sửa duy nhất `src/components/rooms/RoomGrid.tsx`:
 
--- 2. Budget/Target
-CREATE TABLE public.financial_targets (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  hotel_id uuid REFERENCES hotels(id) ON DELETE CASCADE,
-  period_month date NOT NULL,           -- YYYY-MM-01
-  metric text NOT NULL,                 -- 'occupancy'|'revpar'|'gop'|'labor_ratio'|'net_revenue'
-  target_value numeric(14,2) NOT NULL,
-  notes text,
-  created_by uuid REFERENCES users(id),
-  created_at timestamptz DEFAULT now(),
-  UNIQUE (tenant_id, hotel_id, period_month, metric)
-);
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.financial_targets TO authenticated;
-GRANT ALL ON public.financial_targets TO service_role;
-ALTER TABLE public.financial_targets ENABLE ROW LEVEL SECURITY;
--- Policies: owner/manager xem & sửa, staff không
-```
+1. Thêm `const isOperational = isOperationalRole(role)` đầu component.
+2. Tách 1 phần JSX `RoomCardOperational` (inline, không tách file) để dễ đọc — render gọn theo bảng trên.
+3. Phần đang dùng (`canViewRoomDetail`, dropdown task, nút view detail, block giá) **chỉ render khi `!isOperational`**.
+4. Khối "Việc cần làm" cho HK:
+   - Dòng 1: nếu có session đang kiểm → `Đang kiểm bởi {tên} ({type})` (orange, Clock pulse) — ưu tiên cao nhất
+   - Dòng 2: Đồ thiếu (red) hoặc Đủ đồ (green, ngắn gọn ✓)
+   - Dòng 3: Đồ giặt (cyan) — chỉ khi >0
+   - Dòng 4: Phiếu chờ giao (amber) — chỉ khi >0
+   - Dòng 5: Lần kiểm cuối — `Đã kiểm {relative}` hoặc `Chưa kiểm hôm nay` (amber khi quá hạn)
+5. Nút Kiểm tra giữ logic disable khi session người khác đang giữ.
+6. Grid spacing chặt hơn cho operational: `gap-3` thay vì `gap-4`, có thể fit 4 cột ở `lg`.
 
-### RPC mới
-- `get_operations_pnl(tenant, hotel, start, end)` → P&L USALI 4 khối + KPI tổng hợp + labor cost theo department (server side cho consistent + perf)
-- `get_labor_cost(tenant, hotel, start, end)` → tổng lương theo bộ phận từ shift_history × users.wage
+## C. Filter / Header
 
-## C. UI
+Không đổi `RoomsPage`. Chỉ thay đổi nội dung từng card.
 
-Refactor `OperationsInsightsTab.tsx` thành 4 sub-section:
+## D. i18n
+
+Bổ sung key tiếng Việt trong `src/locales/vi/rooms.json`:
 
 ```
-┌─────────────────────────────────────────────┐
-│ Header: kỳ + so sánh PoP/YoY/Budget toggle │
-├─────────────────────────────────────────────┤
-│ 1. KPI Hero (6 ô)                          │
-│    GOP | GOPPAR | RevPAR | Occupancy       │
-│    ADR | Labor Ratio                       │
-│    mỗi ô: actual | PoP Δ | YoY Δ | Target  │
-├─────────────────────────────────────────────┤
-│ 2. P&L USALI (bảng 4 khối)                 │
-│    Revenue / Departmental / Undist / GOP   │
-│    Cột: Kỳ này | Kỳ trước | YoY | Budget   │
-├─────────────────────────────────────────────┤
-│ 3. Cost Breakdown by Department            │
-│    Bar/Donut: HK | FO | F&B | Laundry |    │
-│    Maint | Admin — bao gồm labor đã phân bổ│
-├─────────────────────────────────────────────┤
-│ 4. AI Advisor + Rule Findings (như cũ)     │
-│    + Target gap analysis tự động           │
-└─────────────────────────────────────────────┘
+grid.lastCheckedRelative: "Đã kiểm {{time}}"
+grid.notCheckedToday: "Chưa kiểm hôm nay"
+grid.summaryLine: "{{type}} • {{guests}} khách • {{bed}} • {{area}}m²"
 ```
 
-Dialog mới `SetTargetsDialog` (owner only) để đặt budget tháng.
+Dùng `formatDistanceToNow` từ `date-fns` với locale `vi` cho `last_check_at`.
 
-### Component mới
-- `src/components/reports/insights/PnLTable.tsx`
-- `src/components/reports/insights/CostBreakdownChart.tsx`
-- `src/components/reports/insights/KpiHeroCardV2.tsx` (thêm Target & YoY)
-- `src/components/reports/insights/SetTargetsDialog.tsx`
+## E. Permission
 
-### Hook mới
-- `useOperationsPnL(dateRange)` — gọi RPC `get_operations_pnl`
-- `useYoYCompare(dateRange)` — fetch cùng kỳ năm trước
-- `useFinancialTargets(month)` — CRUD targets
-- Mở rộng `useOperationsInsights` để nhận labor + targets
+Không cần policy mới. Dùng `role` từ `useUser()` đã có. Logic giá phòng được giấu ở **client UI** (HK staff đã không được vào trang detail/booking — không phải rò rỉ dữ liệu nhạy cảm; nếu cần chặt hơn về sau có thể loại field giá ở RPC theo role).
 
-### Mở rộng AI advisor
-- `operationsAdvisor.ts`: thêm 6 rules
-  - R11 Labor ratio > 35% → cảnh báo
-  - R12 GOPPAR thấp hơn target > 20%
-  - R13 YoY revenue giảm > 15%
-  - R14 Cost ratio bộ phận lệch chuẩn
-  - R15 Occupancy đạt target nhưng RevPAR không → ADR thấp
-  - R16 F&B cost ratio quá cao
-- Edge function `operations-advisor`: thêm context labor + targets + YoY vào prompt; nâng model lên `google/gemini-2.5-pro` cho phân tích sâu, giữ fallback rule khi 402/429
+## F. Test cases (manual QA)
 
-### Benchmark mở rộng
-Thêm vào `industryBenchmarks.ts`:
-- `laborRatio`: { excellent: 25, good: 30, fair: 35, poor: 45 } (%) — inverse
-- `gopMargin`: { poor: 15, fair: 25, good: 35, excellent: 45 } (%)
-- `goppar`: { poor: 200_000, fair: 400_000, good: 700_000, excellent: 1_000_000 }
+1. Đăng nhập role `staff` → card không thấy giá, không thấy nút "Xem chi tiết", click card không điều hướng.
+2. Đăng nhập role `owner` / `hotel_manager` → card giữ nguyên bố cục cũ (giá, dropdown task, xem chi tiết).
+3. Phòng đang có session kiểm → card hiển thị "Đang kiểm bởi ...", nút Kiểm tra disable với người khác, "Tiếp tục kiểm" với chính mình.
+4. Phòng `last_check_at = null` → hiển thị "Chưa kiểm hôm nay" (amber).
+5. Phòng có `missing_items=0`, `items_in_laundry=0`, không phiếu chờ → khối "Việc cần làm" chỉ có 1 dòng ✓ Đủ đồ + dòng lần kiểm cuối.
+6. Mobile portrait 390px → card 1 cột, số phòng vẫn đọc rõ, nút Kiểm tra full-width thumb-zone.
 
-## D. Permission
-- Xem tab: `view_reports` (như hiện tại)
-- Đặt target: `tenant_owner` hoặc `manage_reports`
-- Sửa lương user: `tenant_owner` only — UI vào `/settings/users` (nằm ngoài scope tab này, sẽ thêm field vào form user)
+## G. Rollout
 
-## E. Test
-- `operationsAdvisor.test.ts`: thêm test cho R11-R16, labor cost integration
-- `useOperationsPnL.test.ts`: mock RPC, verify khớp công thức USALI
-- SQL test cho `get_operations_pnl`: snapshot fixture booking + shift → assert GOP đúng
-- E2E: tạo target → render gap analysis đúng
+- Thay đổi thuần UI, không migration, không breaking change cho Manager/Owner.
+- Bump `APP_VERSION` + `CURRENT_VERSION` + thêm entry `changelog.json`: *"Tối ưu lưới phòng cho nhân viên buồng phòng: số phòng to rõ, làm nổi việc cần làm, ẩn giá."*
 
-## F. Rollout
+## File sẽ chỉnh
 
-1. **Phase 1 (migration)**: thêm cột wage + bảng targets + 2 RPC. Backfill `hourly_wage_vnd` = null → labor cost = 0 cho tenant chưa cấu hình (an toàn).
-2. **Phase 2 (UI)**: render PnLTable + KPI v2 với labor=0 nếu chưa setup → banner "Cấu hình lương để xem chi phí nhân sự đầy đủ".
-3. **Phase 3 (targets)**: bật SetTargetsDialog cho owner.
-4. **Phase 4 (AI v2)**: deploy edge function nâng cấp với context mới.
-
-Feature flag `settings.reports.insights_v2 = true` (mặc định bật, có thể tắt nếu lỗi).
-
-## G. Rủi ro
-- **Phân bổ labor sai** nếu `users.position.department` null → fallback gom vào "Khác", có cảnh báo
-- **Performance**: `get_operations_pnl` chạy nặng (join shift + bookings + costs) → index sẵn có, cache 5 phút client + materialized view nếu cần
-- **YoY thiếu data** với hotel mới < 1 năm → hide cột YoY, show "—"
-- **AI cost tăng** do prompt dài hơn → giữ rule fallback, monitor 402
-
-## Files dự kiến
-**Tạo mới**: migration SQL, 4 components, 3 hooks, 1 edge function update, test files
-**Sửa**: `operationsAdvisor.ts`, `industryBenchmarks.ts`, `OperationsInsightsTab.tsx`, `useOperationsInsights.ts`, `supabase/functions/operations-advisor/index.ts`, form sửa user (thêm field lương)
-
-## Bước tiếp theo
-Sau khi duyệt plan, sẽ chia làm 4 PR theo phase. Phase 1 (migration) cần duyệt riêng trước khi tiếp Phase 2.
+- `src/components/rooms/RoomGrid.tsx` (chính)
+- `src/locales/vi/rooms.json` (thêm 3 key)
+- `src/lib/app-version.ts`, `src/components/pwa/CacheBuster.tsx`, `public/changelog.json` (bump version)
