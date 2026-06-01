@@ -80,6 +80,18 @@ export function ChatPopupWindow({
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 truncate text-sm font-semibold">{title}</div>
+          {callUrl && (
+            <a
+              href={callUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground"
+              aria-label="Gọi qua Telegram"
+              title="Gọi qua Telegram"
+            >
+              <Phone className="h-5 w-5" />
+            </a>
+          )}
           <Button
             type="button"
             variant="ghost"
