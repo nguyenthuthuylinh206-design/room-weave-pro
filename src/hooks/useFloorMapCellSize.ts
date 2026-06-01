@@ -117,6 +117,7 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
 
     const next = normalize(remoteInitial)
     if (!isDirtyRef.current || hotelChanged) applySaved(next)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applySaved, hotelId, remoteInitial?.height, remoteInitial?.cols, remoteInitial?.fontScale, remoteInitial?.preset])
 
   const setPreset = useCallback((preset: CellSizePreset) => {
