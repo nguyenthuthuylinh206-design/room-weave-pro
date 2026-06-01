@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useHasModulePermission } from '@/hooks/usePermissions'
-import { useUser } from '@/contexts/AuthContext'
+import { useUser } from '@/hooks/useUser'
 import { isAdminUser } from '@/lib/userAccess'
 import {
   useGuestsV2, useGuestStats, exportGuestsToCSV,
