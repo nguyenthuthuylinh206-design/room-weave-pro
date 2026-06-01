@@ -459,10 +459,7 @@ export function RoomFloorMapView({
           </div>
           <Popover
             open={sizePopoverOpen}
-            onOpenChange={(open) => {
-              if (!open && cellSize.isDirty && !saveCellSize.isPending) cellSize.discardDraft()
-              setSizePopoverOpen(open)
-            }}
+            onOpenChange={setSizePopoverOpen}
           >
             <PopoverTrigger asChild>
               <Button
