@@ -496,8 +496,8 @@ export function RoomFloorMapView({
                   <span className="font-mono font-medium">{cellSize.size.height}px</span>
                 </div>
                 <Slider
-                  min={72}
-                  max={160}
+                  min={64}
+                  max={220}
                   step={4}
                   value={[cellSize.size.height]}
                   onValueChange={([v]) => cellSize.setCustom({ height: v })}
@@ -522,8 +522,8 @@ export function RoomFloorMapView({
                   <span className="font-mono font-medium">{Math.round(cellSize.size.fontScale * 100)}%</span>
                 </div>
                 <Slider
-                  min={80}
-                  max={160}
+                  min={70}
+                  max={180}
                   step={5}
                   value={[Math.round(cellSize.size.fontScale * 100)]}
                   onValueChange={([v]) => cellSize.setFontScale(v / 100)}
@@ -641,7 +641,10 @@ export function RoomFloorMapView({
                           style={{ height: cellSize.size.height }}
                         >
                           {/* Badge trạng thái góc trên-trái */}
-                          <span className={cn('absolute left-1 top-1 z-10 rounded bg-black/25 px-1.5 py-0.5 font-semibold uppercase tracking-wide text-white backdrop-blur-sm', cellSize.classes.badgeCls)}>
+                          <span
+                            className={cn('absolute left-1 top-1 z-10 rounded bg-black/25 px-1.5 py-0.5 font-semibold uppercase tracking-wide text-white backdrop-blur-sm', cellSize.classes.badgeCls)}
+                            style={cellSize.classes.badgeStyle}
+                          >
                             {statusLabel}
                           </span>
 
@@ -679,18 +682,18 @@ export function RoomFloorMapView({
                           </span>
 
                           {/* Số phòng to ở giữa-trên */}
-                          <div className={cn('mt-3 font-bold leading-none text-white drop-shadow-sm', cellSize.classes.numberCls)}>
+                          <div className={cn('mt-3 font-bold leading-none text-white drop-shadow-sm', cellSize.classes.numberCls)} style={cellSize.classes.numberStyle}>
                             {room.room_number}
                           </div>
 
                           {/* Khối thông tin trung tâm */}
                           {bk?.guest_name ? (
                             <div className="flex flex-col items-center leading-tight">
-                              <div className={cn('w-full truncate font-semibold text-white', cellSize.classes.bodyCls)}>
+                              <div className={cn('w-full truncate font-semibold text-white', cellSize.classes.bodyCls)} style={cellSize.classes.bodyStyle}>
                                 {getShortName(bk.guest_name)}
                               </div>
                               {!compact && (
-                                <div className={cn('text-white/85', cellSize.classes.captionCls)}>
+                                <div className={cn('text-white/85', cellSize.classes.captionCls)} style={cellSize.classes.captionStyle}>
                                   {bk.guest_count ? `${bk.guest_count} khách` : ''}
                                   {bk.guest_count && nightsLeft > 0 ? ' · ' : ''}
                                   {nightsLeft > 0
@@ -699,42 +702,42 @@ export function RoomFloorMapView({
                                 </div>
                               )}
                               {countdown && (
-                                <div className={cn('font-bold text-white', cellSize.classes.captionCls)}>
+                                <div className={cn('font-bold text-white', cellSize.classes.captionCls)} style={cellSize.classes.captionStyle}>
                                   {bucket === 'due_out' ? `← ${countdown}` : countdown}
                                 </div>
                               )}
                             </div>
                           ) : room.next_booking?.guest_name ? (
                             <div className="flex flex-col items-center leading-tight">
-                              <div className={cn('w-full truncate font-semibold text-white', cellSize.classes.bodyCls)}>
+                              <div className={cn('w-full truncate font-semibold text-white', cellSize.classes.bodyCls)} style={cellSize.classes.bodyStyle}>
                                 {getShortName(room.next_booking.guest_name)}
                               </div>
                               {!compact && (
-                                <div className={cn('text-white/85', cellSize.classes.captionCls)}>
+                                <div className={cn('text-white/85', cellSize.classes.captionCls)} style={cellSize.classes.captionStyle}>
                                   Sắp đến · {formatArriveIn(room.next_booking.check_in_date, room.next_booking.expected_check_in_time)}
                                 </div>
                               )}
                             </div>
                           ) : (
                             <div className="flex flex-col items-center leading-tight">
-                              <div className={cn('uppercase tracking-wide text-white/85 truncate w-full', cellSize.classes.captionCls)}>
+                              <div className={cn('uppercase tracking-wide text-white/85 truncate w-full', cellSize.classes.captionCls)} style={cellSize.classes.captionStyle}>
                                 {room.room_type}
                               </div>
                               {!compact && (() => {
                                 const tp = todayPrices?.get((room.room_type ?? '').toLowerCase())
                                 if (tp && !tp.is_closed && tp.final_price > 0) {
                                   return (
-                                    <div className={cn('font-bold text-white drop-shadow-sm flex items-center gap-0.5', cellSize.classes.bodyCls)}>
+                                    <div className={cn('font-bold text-white drop-shadow-sm flex items-center gap-0.5', cellSize.classes.bodyCls)} style={cellSize.classes.bodyStyle}>
                                       {formatCurrency(tp.final_price)}
                                       {tp.has_seasonal && <span className="text-amber-200" title="Có quy tắc mùa">●</span>}
                                     </div>
                                   )
                                 }
                                 if (tp?.is_closed) {
-                                  return <div className={cn('text-white/90', cellSize.classes.captionCls)}>Đóng bán</div>
+                                  return <div className={cn('text-white/90', cellSize.classes.captionCls)} style={cellSize.classes.captionStyle}>Đóng bán</div>
                                 }
                                 if (bucket === 'sellable') {
-                                  return <div className={cn('font-semibold text-white', cellSize.classes.captionCls)}>Sẵn sàng bán</div>
+                                  return <div className={cn('font-semibold text-white', cellSize.classes.captionCls)} style={cellSize.classes.captionStyle}>Sẵn sàng bán</div>
                                 }
                                 return null
                               })()}

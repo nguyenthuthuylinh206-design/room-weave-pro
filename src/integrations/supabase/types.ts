@@ -14263,6 +14263,10 @@ export type Database = {
         }
         Returns: Json
       }
+      update_hotel_floor_map_cell_size: {
+        Args: { p_hotel_id: string; p_size: Json }
+        Returns: Json
+      }
       update_room_status_safe: {
         Args: {
           p_expected_updated_at?: string
