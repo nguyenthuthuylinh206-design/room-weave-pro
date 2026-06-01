@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { Minus, X, Maximize2, ArrowLeft } from 'lucide-react'
+import { Minus, X, Maximize2, ArrowLeft, Phone } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
