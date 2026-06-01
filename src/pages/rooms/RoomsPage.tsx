@@ -16,6 +16,7 @@ import { RoomBulkActionsBar } from '@/components/rooms/RoomBulkActionsBar'
 import { useRooms } from '@/hooks/useRooms'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useBreakpoint } from '@/lib/breakpoints'
+import { useUser } from '@/hooks/useUser'
 import { MobileRoomsPage } from '@/components/rooms/MobileRoomsPage'
 import type { RoomFilters as IRoomFilters } from '@/types/rooms.types'
 
