@@ -160,7 +160,7 @@ export function ChatPopupWindow({
         type="button"
         onClick={() => toggleMinimize(conversationId)}
         className="fixed bottom-0 z-50 flex h-9 w-[200px] items-center gap-2 rounded-t-lg border border-b-0 bg-card px-2 text-left shadow-md hover:bg-muted"
-        style={{ right: LAUNCHER_OFFSET + index * 208 }}
+        style={{ right: LAUNCHER_OFFSET + index * (POPUP_WIDTH + POPUP_GAP) }}
         aria-label={`Mở lại chat với ${title}`}
       >
         <Avatar className="h-5 w-5 shrink-0">
