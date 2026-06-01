@@ -1,7 +1,13 @@
 import { useNavigate } from 'react-router-dom'
-import { Minus, X, Maximize2, ArrowLeft, Phone } from 'lucide-react'
+import { Minus, X, Maximize2, ArrowLeft, Phone, Send } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { useConversations } from '@/hooks/useChat'
@@ -40,11 +46,10 @@ export function ChatPopupWindow({
       : conv.name || 'Nhóm'
     : 'Đang tải...'
 
-  const callUrl = conv?.peer?.telegram_username
+  const tgUrl = conv?.peer?.telegram_username
     ? `https://t.me/${conv.peer.telegram_username}`
-    : conv?.peer?.phone
-      ? `tel:${conv.peer.phone}`
-      : null
+    : null
+  const telUrl = conv?.peer?.phone ? `tel:${conv.peer.phone}` : null
 
   // ─── MOBILE ───────────────────────────────────────────────────────────────
   if (isMobile) {
@@ -80,18 +85,50 @@ export function ChatPopupWindow({
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 truncate text-sm font-semibold">{title}</div>
-          {callUrl && (
+          {tgUrl && telUrl ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-md text-foreground hover:bg-accent hover:text-accent-foreground"
+                  aria-label="Gọi"
+                  title="Gọi"
+                >
+                  <Phone className="h-5 w-5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => window.open(tgUrl, '_blank', 'noopener')}>
+                  <Send className="mr-2 h-4 w-4" />
+                  Gọi qua Telegram
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { window.location.href = telUrl }}>
+                  <Phone className="mr-2 h-4 w-4" />
+                  Gọi số điện thoại
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : tgUrl ? (
             <a
-              href={callUrl}
+              href={tgUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md text-foreground hover:bg-accent hover:text-accent-foreground"
               aria-label="Gọi qua Telegram"
               title="Gọi qua Telegram"
             >
               <Phone className="h-5 w-5" />
             </a>
-          )}
+          ) : telUrl ? (
+            <a
+              href={telUrl}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md text-foreground hover:bg-accent hover:text-accent-foreground"
+              aria-label="Gọi số điện thoại"
+              title="Gọi số điện thoại"
+            >
+              <Phone className="h-5 w-5" />
+            </a>
+          ) : null}
           <Button
             type="button"
             variant="ghost"
@@ -156,9 +193,9 @@ export function ChatPopupWindow({
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 truncate text-sm font-semibold">{title}</div>
-        {callUrl && (
+        {tgUrl && (
           <a
-            href={callUrl}
+            href={tgUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-foreground hover:bg-accent hover:text-accent-foreground"
