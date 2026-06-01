@@ -61,15 +61,44 @@ function signature(value: CellSizeState): string {
 }
 
 export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: CellSizeState | null) {
-  const [size, setSize] = useState<CellSizeState>(() => remoteInitial ? normalize(remoteInitial) : readStored(hotelId))
+  const initialSize = remoteInitial ? normalize(remoteInitial) : readStored(hotelId)
+  const [size, setSize] = useState<CellSizeState>(() => initialSize)
+  const [savedSize, setSavedSize] = useState<CellSizeState>(() => initialSize)
+  const [isDirty, setIsDirty] = useState(false)
   const sizeRef = useRef(size)
-  const dirtyRef = useRef(false)
+  const savedSizeRef = useRef(savedSize)
+  const isDirtyRef = useRef(false)
   const hotelRef = useRef(hotelId)
-  const lastSavedSignatureRef = useRef<string | null>(remoteInitial ? signature(normalize(remoteInitial)) : null)
 
   useEffect(() => {
     sizeRef.current = size
   }, [size])
+
+  useEffect(() => {
+    savedSizeRef.current = savedSize
+  }, [savedSize])
+
+  const applySaved = useCallback((next: CellSizeState) => {
+    const normalized = normalize(next)
+    sizeRef.current = normalized
+    savedSizeRef.current = normalized
+    isDirtyRef.current = false
+    setSize(normalized)
+    setSavedSize(normalized)
+    setIsDirty(false)
+    try { localStorage.setItem(storageKey(hotelId), JSON.stringify(normalized)) } catch {
+      // Local persistence is best-effort.
+    }
+  }, [hotelId])
+
+  const applyDraft = useCallback((next: CellSizeState) => {
+    const normalized = normalize(next)
+    const dirty = signature(normalized) !== signature(savedSizeRef.current)
+    sizeRef.current = normalized
+    isDirtyRef.current = dirty
+    setSize(normalized)
+    setIsDirty(dirty)
+  }, [])
 
   // Reload when hotel changes or remote arrives. Do not let stale remote values
   // overwrite local edits while the user is adjusting before pressing Save.
@@ -77,90 +106,52 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
     const hotelChanged = hotelRef.current !== hotelId
     if (hotelChanged) {
       hotelRef.current = hotelId
-      dirtyRef.current = false
     }
 
     if (!remoteInitial) {
       if (hotelChanged) {
-        const stored = readStored(hotelId)
-        sizeRef.current = stored
-        setSize(stored)
+        applySaved(readStored(hotelId))
       }
       return
     }
 
     const next = normalize(remoteInitial)
-    const remoteSignature = signature(next)
-
-    if (dirtyRef.current && !hotelChanged) return
-    if (!hotelChanged && lastSavedSignatureRef.current && remoteSignature !== lastSavedSignatureRef.current) return
-
-    sizeRef.current = next
-    setSize(next)
-    lastSavedSignatureRef.current = remoteSignature
-    try { localStorage.setItem(storageKey(hotelId), JSON.stringify(next)) } catch {
-      // Local persistence is best-effort.
-    }
+    if (!isDirtyRef.current || hotelChanged) applySaved(next)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hotelId, remoteInitial?.height, remoteInitial?.cols, remoteInitial?.fontScale, remoteInitial?.preset])
+  }, [applySaved, hotelId, remoteInitial?.height, remoteInitial?.cols, remoteInitial?.fontScale, remoteInitial?.preset])
 
   const setPreset = useCallback((preset: CellSizePreset) => {
-    dirtyRef.current = true
-    if (preset === 'custom') {
-      setSize((s) => {
-        const next = { ...s, preset: 'custom' as const }
-        sizeRef.current = next
-        return next
-      })
-    } else {
-      setSize((s) => {
-        const next = { preset, ...PRESETS[preset], fontScale: s.fontScale }
-        sizeRef.current = next
-        return next
-      })
-    }
-  }, [])
+    const current = sizeRef.current
+    applyDraft(preset === 'custom'
+      ? { ...current, preset: 'custom' }
+      : { preset, ...PRESETS[preset], fontScale: current.fontScale })
+  }, [applyDraft])
 
   const setCustom = useCallback((patch: Partial<Pick<CellSizeState, 'height' | 'cols' | 'fontScale'>>) => {
-    dirtyRef.current = true
-    setSize((s) => {
-      const next = {
-        preset: 'custom' as const,
-        height: clamp(patch.height ?? s.height, 64, 200),
-        cols: snapCols(patch.cols ?? s.cols),
-        fontScale: clamp(patch.fontScale ?? s.fontScale, 0.8, 1.6),
-      }
-      sizeRef.current = next
-      return next
+    const current = sizeRef.current
+    applyDraft({
+      preset: 'custom',
+      height: clamp(patch.height ?? current.height, 64, 200),
+      cols: snapCols(patch.cols ?? current.cols),
+      fontScale: clamp(patch.fontScale ?? current.fontScale, 0.8, 1.6),
     })
-  }, [])
+  }, [applyDraft])
 
   const setFontScale = useCallback((v: number) => {
-    dirtyRef.current = true
-    setSize((s) => {
-      const next = { ...s, fontScale: clamp(v, 0.8, 1.6) }
-      sizeRef.current = next
-      return next
-    })
-  }, [])
+    applyDraft({ ...sizeRef.current, fontScale: clamp(v, 0.8, 1.6) })
+  }, [applyDraft])
 
   const reset = useCallback(() => {
-    dirtyRef.current = true
-    const next = { preset: 'md' as const, ...PRESETS.md, fontScale: DEFAULT_FONT_SCALE }
-    sizeRef.current = next
-    setSize(next)
-  }, [])
+    applyDraft({ preset: 'md', ...PRESETS.md, fontScale: DEFAULT_FONT_SCALE })
+  }, [applyDraft])
 
   const markSynced = useCallback((value?: CellSizeState) => {
-    dirtyRef.current = false
-    const next = normalize(value ?? sizeRef.current)
-    lastSavedSignatureRef.current = signature(next)
-    sizeRef.current = next
-    setSize(next)
-    try { localStorage.setItem(storageKey(hotelId), JSON.stringify(next)) } catch {
-      // Local persistence is best-effort.
-    }
-  }, [hotelId])
+    applySaved(value ?? sizeRef.current)
+  }, [applySaved])
+
+  const discardDraft = useCallback(() => {
+    applySaved(savedSizeRef.current)
+  }, [applySaved])
 
   const getCurrentSize = useCallback(() => sizeRef.current, [])
 
@@ -173,39 +164,27 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
       if (e.key === '0') {
         e.preventDefault()
-        dirtyRef.current = true
-        setSize((s) => {
-          const next = { preset: 'md' as const, ...PRESETS.md, fontScale: s.fontScale }
-          sizeRef.current = next
-          return next
-        })
+        const current = sizeRef.current
+        applyDraft({ preset: 'md', ...PRESETS.md, fontScale: current.fontScale })
       } else if (e.key === '=' || e.key === '+') {
         e.preventDefault()
-        setSize((s) => {
-          const idx = order.indexOf(s.preset)
-          const nextIdx = idx === -1 ? order.indexOf('md') : Math.min(order.length - 1, idx + 1)
-          const p = order[nextIdx]
-          dirtyRef.current = true
-          const next = { preset: p, ...PRESETS[p as 'sm'|'md'|'lg'], fontScale: s.fontScale }
-          sizeRef.current = next
-          return next
-        })
+        const current = sizeRef.current
+        const idx = order.indexOf(current.preset)
+        const nextIdx = idx === -1 ? order.indexOf('md') : Math.min(order.length - 1, idx + 1)
+        const p = order[nextIdx]
+        applyDraft({ preset: p, ...PRESETS[p as 'sm'|'md'|'lg'], fontScale: current.fontScale })
       } else if (e.key === '-' || e.key === '_') {
         e.preventDefault()
-        setSize((s) => {
-          const idx = order.indexOf(s.preset)
-          const nextIdx = idx === -1 ? order.indexOf('md') : Math.max(0, idx - 1)
-          const p = order[nextIdx]
-          dirtyRef.current = true
-          const next = { preset: p, ...PRESETS[p as 'sm'|'md'|'lg'], fontScale: s.fontScale }
-          sizeRef.current = next
-          return next
-        })
+        const current = sizeRef.current
+        const idx = order.indexOf(current.preset)
+        const nextIdx = idx === -1 ? order.indexOf('md') : Math.max(0, idx - 1)
+        const p = order[nextIdx]
+        applyDraft({ preset: p, ...PRESETS[p as 'sm'|'md'|'lg'], fontScale: current.fontScale })
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [])
+  }, [applyDraft])
 
   const classes = useMemo(() => {
     const minCellPx = Math.max(72, Math.round(size.height * 0.85))
@@ -231,5 +210,5 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
     return `${name} · ${size.cols} cột · ${Math.round(size.fontScale * 100)}%`
   }, [size])
 
-  return { size, setPreset, setCustom, setFontScale, reset, markSynced, getCurrentSize, classes, summaryLabel, allowedCols: ALLOWED_COLS as readonly number[] }
+  return { size, savedSize, isDirty, setPreset, setCustom, setFontScale, reset, markSynced, discardDraft, getCurrentSize, classes, summaryLabel, allowedCols: ALLOWED_COLS as readonly number[] }
 }
