@@ -40,6 +40,12 @@ export function ChatPopupWindow({
       : conv.name || 'Nhóm'
     : 'Đang tải...'
 
+  const callUrl = conv?.peer?.telegram_username
+    ? `https://t.me/${conv.peer.telegram_username}`
+    : conv?.peer?.phone
+      ? `tel:${conv.peer.phone}`
+      : null
+
   // ─── MOBILE ───────────────────────────────────────────────────────────────
   if (isMobile) {
     // Only render the top-most (index 0) popup on mobile to avoid stacking sheets.
