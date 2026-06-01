@@ -18,14 +18,26 @@ interface Props {
 }
 
 export function OperationsInsightsTab({ dateRange }: Props) {
-  const { selectedHotel, isAllHotelsMode } = useHotelContext()
+  const { selectedHotel, isAllHotelsMode, availableHotels } = useHotelContext()
   const { role } = useUser()
   const canSetTargets = role === 'super_admin' || role === 'owner' || role === 'hotel_manager'
   const revenue = useRevenueReport('custom', dateRange)
   const insights = useOperationsInsights(dateRange)
   const advice = useOperationsAdvice(insights.data)
 
-  if (insights.isLoading || !insights.data) {
+  const totalRooms = isAllHotelsMode
+    ? availableHotels.reduce((s, h) => s + (h.total_rooms || 0), 0)
+    : selectedHotel?.total_rooms || 0
+
+  if (totalRooms === 0) {
+    return (
+      <div className="border rounded-lg p-8 text-center text-sm text-muted-foreground">
+        Chưa có phòng nào được cấu hình. Vui lòng thêm phòng để xem báo cáo vận hành.
+      </div>
+    )
+  }
+
+  if (insights.isLoading || insights.isFetching || (!insights.data && !insights.error)) {
     return (
       <div className="space-y-4">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -37,7 +49,7 @@ export function OperationsInsightsTab({ dateRange }: Props) {
     )
   }
 
-  if (insights.error) {
+  if (insights.error || !insights.data) {
     return (
       <div className="border rounded-lg p-8 text-center text-sm text-muted-foreground">
         Chưa đủ dữ liệu để đánh giá. Cần ít nhất một số booking và chi phí trong kỳ.
