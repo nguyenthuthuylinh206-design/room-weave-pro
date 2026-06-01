@@ -1,6 +1,21 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
 import { MessageCircle, X, Minus } from 'lucide-react'
+
+const LAUNCHER_POS_KEY = 'chat-launcher-pos-v1'
+const BTN_SIZE = 48
+
+type Pos = { right: number; bottom: number }
+
+function loadPos(): Pos | null {
+  try {
+    const raw = localStorage.getItem(LAUNCHER_POS_KEY)
+    if (!raw) return null
+    const p = JSON.parse(raw)
+    if (typeof p?.right === 'number' && typeof p?.bottom === 'number') return p
+  } catch {}
+  return null
+}
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
