@@ -56,6 +56,10 @@ function readStored(hotelId?: string | null): CellSizeState {
   return normalize(null)
 }
 
+function signature(value: CellSizeState): string {
+  return JSON.stringify(normalize(value))
+}
+
 export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: CellSizeState | null) {
   const [size, setSize] = useState<CellSizeState>(() => remoteInitial ? normalize(remoteInitial) : readStored(hotelId))
   const sizeRef = useRef(size)
@@ -195,5 +199,5 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
     return `${name} · ${size.cols} cột · ${Math.round(size.fontScale * 100)}%`
   }, [size])
 
-  return { size, setPreset, setCustom, setFontScale, reset, markSynced, classes, summaryLabel, allowedCols: ALLOWED_COLS as readonly number[] }
+  return { size, setPreset, setCustom, setFontScale, reset, markSynced, getCurrentSize, classes, summaryLabel, allowedCols: ALLOWED_COLS as readonly number[] }
 }
