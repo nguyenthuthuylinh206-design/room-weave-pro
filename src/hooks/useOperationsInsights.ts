@@ -104,18 +104,19 @@ export function useOperationsInsights(dateRange: { start: Date; end: Date }) {
       dateRange.end.toISOString(),
       totalRooms,
       revenue.data?.currentPeriod.netRevenue,
-      financial.data?.summary?.total_cost,
+      (financial.data as any)?.cost_summary?.total_cost,
       labor.data?.total_labor_cost,
       Object.values(targets.data ?? {}).join(','),
     ],
     enabled:
       !!tenantId &&
       !!revenue.data &&
-      !!financial.data?.summary &&
+      !!(financial.data as any)?.cost_summary &&
       totalRooms > 0,
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<OperationsInsightsData> => {
-      if (!tenantId || !revenue.data || !financial.data?.summary) {
+      const costSummary = (financial.data as any)?.cost_summary
+      if (!tenantId || !revenue.data || !costSummary) {
         throw new Error('Thiếu dữ liệu nguồn')
       }
 
@@ -128,7 +129,7 @@ export function useOperationsInsights(dateRange: { start: Date; end: Date }) {
 
       const cur = revenue.data.currentPeriod
       const prev = revenue.data.previousPeriod
-      const cost = financial.data.summary
+      const cost = costSummary
       const laborTotal = labor.data?.total_labor_cost ?? 0
       const laborByDept = labor.data?.by_department ?? {}
 
