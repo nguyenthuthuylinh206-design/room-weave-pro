@@ -58,8 +58,14 @@ function readStored(hotelId?: string | null): CellSizeState {
 
 export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: CellSizeState | null) {
   const [size, setSize] = useState<CellSizeState>(() => remoteInitial ? normalize(remoteInitial) : readStored(hotelId))
+  const sizeRef = useRef(size)
   const dirtyRef = useRef(false)
   const hotelRef = useRef(hotelId)
+  const lastSavedSignatureRef = useRef<string | null>(remoteInitial ? signature(normalize(remoteInitial)) : null)
+
+  useEffect(() => {
+    sizeRef.current = size
+  }, [size])
 
   // Reload when hotel changes or remote arrives. Do not let stale remote values
   // overwrite local edits while the user is adjusting before pressing Save.
@@ -70,26 +76,24 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
       dirtyRef.current = false
     }
 
-    const next = remoteInitial ? normalize(remoteInitial) : readStored(hotelId)
+    if (!remoteInitial) {
+      if (hotelChanged) setSize(readStored(hotelId))
+      return
+    }
+
+    const next = normalize(remoteInitial)
+    const remoteSignature = signature(next)
 
     if (dirtyRef.current && !hotelChanged) return
+    if (!hotelChanged && lastSavedSignatureRef.current && remoteSignature !== lastSavedSignatureRef.current) return
 
     setSize(next)
+    lastSavedSignatureRef.current = remoteSignature
     try { localStorage.setItem(storageKey(hotelId), JSON.stringify(next)) } catch {
       // Local persistence is best-effort.
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hotelId, remoteInitial?.height, remoteInitial?.cols, remoteInitial?.fontScale, remoteInitial?.preset])
-
-  // Persist localStorage (debounced)
-  useEffect(() => {
-    const t = setTimeout(() => {
-      try { localStorage.setItem(storageKey(hotelId), JSON.stringify(size)) } catch {
-        // Local persistence is best-effort.
-      }
-    }, 250)
-    return () => clearTimeout(t)
-  }, [hotelId, size])
 
   const setPreset = useCallback((preset: CellSizePreset) => {
     dirtyRef.current = true
@@ -122,12 +126,15 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
 
   const markSynced = useCallback((value?: CellSizeState) => {
     dirtyRef.current = false
-    const next = normalize(value ?? size)
+    const next = normalize(value ?? sizeRef.current)
+    lastSavedSignatureRef.current = signature(next)
     setSize(next)
     try { localStorage.setItem(storageKey(hotelId), JSON.stringify(next)) } catch {
       // Local persistence is best-effort.
     }
-  }, [hotelId, size])
+  }, [hotelId])
+
+  const getCurrentSize = useCallback(() => sizeRef.current, [])
 
   // Keyboard shortcut: Ctrl/Cmd +/-/0
   useEffect(() => {
