@@ -1,6 +1,18 @@
 {
-  "current": "1.1.40",
+  "current": "1.1.42",
   "versions": [
+    {
+      "version": "1.1.42",
+      "date": "2026-06-01",
+      "title": "Tối ưu lưới phòng cho nhân viên buồng phòng",
+      "highlights": [
+        "Card phòng cho HK staff & Trưởng bộ phận: số phòng cực to + chấm màu trạng thái",
+        "Ẩn giá phòng với vai trò tác nghiệp — chỉ Owner/Manager/Lễ tân còn thấy",
+        "Gộp loại phòng • sức chứa • giường • diện tích thành 1 dòng gọn",
+        "Thêm dòng \"Đã kiểm X giờ trước / Chưa kiểm hôm nay\" (cảnh báo amber khi >12h)",
+        "Footer 1 nút Kiểm tra full-width, bỏ Xem chi tiết & dropdown task cho HK"
+      ]
+    },
     {
       "version": "1.1.40",
       "date": "2026-06-01",
@@ -38,7 +50,6 @@
         "Gộp nhóm 'Thông báo' và 'Pháp lý' vào 'Hệ thống' / 'Vận hành' để giảm phân mảnh"
       ]
     },
-
     {
       "version": "1.1.37",
       "date": "2026-05-31",
@@ -67,7 +78,6 @@
         "Bookings deep-link: /bookings?action=checkin|checkout&bookingId=... tự nạp booking và trigger đúng dialog (single hoặc group)"
       ]
     },
-
     {
       "version": "1.1.34",
       "date": "2026-05-31",
@@ -111,7 +121,6 @@
         "Giá hôm nay giờ hiển thị đúng trên cả sơ đồ tầng và danh sách phòng"
       ]
     },
-
     {
       "version": "1.1.30",
       "date": "2026-05-31",
@@ -122,7 +131,6 @@
         "Phòng \"Đóng bán\" hiển thị trực tiếp trên ô, không phải mở chi tiết mới biết"
       ]
     },
-
     {
       "version": "1.1.29",
       "date": "2026-05-31",
@@ -135,7 +143,6 @@
         "RPC mới resolve_today_prices_for_hotel — 1 call lấy giá hôm nay cho toàn bộ hạng phòng"
       ]
     },
-
     {
       "version": "1.1.28",
       "date": "2026-05-31",
@@ -287,47 +294,95 @@
       "releaseDate": "2026-05-30",
       "title": "Xuất kho: yêu cầu bổ sung hiển thị sẵn, tạo phiếu ngay tại chỗ",
       "changes": [
-        { "type": "improvement", "text": "Banner yêu cầu bổ sung mở mặc định, hiển thị toàn bộ danh sách ngay khi mở trang Danh sách phiếu" },
-        { "type": "improvement", "text": "Tạo phiếu từ yêu cầu bổ sung thực thi inline (chọn nhân viên + Giao ngay ngay trong banner), không còn chuyển sang view 'from-requests'" },
-        { "type": "ui", "text": "Bỏ nút 'Xử lý ngay' trong banner và nút dropdown 'Tạo phiếu mới' ở header Phiếu giao hàng — tab '+ Tạo phiếu mới' của hub Xuất kho đã thay thế" },
-        { "type": "improvement", "text": "URL legacy ?view=from-requests tự redirect về ?view=list" }
+        {
+          "type": "improvement",
+          "text": "Banner yêu cầu bổ sung mở mặc định, hiển thị toàn bộ danh sách ngay khi mở trang Danh sách phiếu"
+        },
+        {
+          "type": "improvement",
+          "text": "Tạo phiếu từ yêu cầu bổ sung thực thi inline (chọn nhân viên + Giao ngay ngay trong banner), không còn chuyển sang view 'from-requests'"
+        },
+        {
+          "type": "ui",
+          "text": "Bỏ nút 'Xử lý ngay' trong banner và nút dropdown 'Tạo phiếu mới' ở header Phiếu giao hàng — tab '+ Tạo phiếu mới' của hub Xuất kho đã thay thế"
+        },
+        {
+          "type": "improvement",
+          "text": "URL legacy ?view=from-requests tự redirect về ?view=list"
+        }
       ]
     },
-
     {
       "version": "1.1.13",
       "releaseDate": "2026-05-30",
       "title": "Xuất kho: hợp nhất logic submit + category grid giữa Quick dialog và Mobile wizard",
       "changes": [
-        { "type": "improvement", "text": "Tách shared sub-form ở src/components/inventory/outbound/shared/: useOutboundSubmit (dispatcher tới outbound/distribution/laundry), OutboundCategoryGrid (compact + wizard variant), useStockValidation" },
-        { "type": "fix", "text": "QuickOutboundDialog trước đây gọi createOutbound cho mọi loại (kể cả Phòng / Giặt là) — nay đi đúng nhánh distribution / laundry như MobileOutboundForm" },
-        { "type": "improvement", "text": "MobileOutboundForm bỏ 3 useMutation rời, dùng chung useOutboundSubmit; chống lệch state loading và lệch UX giữa 2 entrypoint" },
-        { "type": "improvement", "text": "Default category của QuickOutboundDialog đổi sang 'other' để không vô tình tạo distribution order khi user chỉ muốn xuất nhanh" }
+        {
+          "type": "improvement",
+          "text": "Tách shared sub-form ở src/components/inventory/outbound/shared/: useOutboundSubmit (dispatcher tới outbound/distribution/laundry), OutboundCategoryGrid (compact + wizard variant), useStockValidation"
+        },
+        {
+          "type": "fix",
+          "text": "QuickOutboundDialog trước đây gọi createOutbound cho mọi loại (kể cả Phòng / Giặt là) — nay đi đúng nhánh distribution / laundry như MobileOutboundForm"
+        },
+        {
+          "type": "improvement",
+          "text": "MobileOutboundForm bỏ 3 useMutation rời, dùng chung useOutboundSubmit; chống lệch state loading và lệch UX giữa 2 entrypoint"
+        },
+        {
+          "type": "improvement",
+          "text": "Default category của QuickOutboundDialog đổi sang 'other' để không vô tình tạo distribution order khi user chỉ muốn xuất nhanh"
+        }
       ]
     },
-
     {
       "version": "1.1.12",
       "releaseDate": "2026-05-30",
       "title": "Xuất kho: rút gọn 2 view, dọn field rác, ở lại trong hub sau khi tạo",
       "changes": [
-        { "type": "improvement", "text": "Gộp 3 sub-tab xuất kho thành 2: Danh sách phiếu (+ banner gợi ý 'Từ yêu cầu bổ sung' inline) và + Tạo phiếu mới — bớt 1 cấp tab" },
-        { "type": "improvement", "text": "Sau khi tạo phiếu (giao phòng / lô giặt / xuất khác) ở lại hub Kho và tự chuyển về Danh sách phiếu kèm toast, không nhảy sang trang khác" },
-        { "type": "improvement", "text": "Bỏ emoji ở dropdown Loại xuất kho cho đúng chuẩn minimalist; ẩn 'Kho nguồn' khi loại là 'Xuất cho phòng' để tránh field thừa" },
-        { "type": "improvement", "text": "Hợp nhất trạng thái loading của 3 mutation (xuất kho / giao phòng / lô giặt) để chống double-submit" },
-        { "type": "improvement", "text": "Hiển thị toast lỗi rõ ràng thay vì im lặng khi thiếu phòng/sản phẩm/lô giặt" },
-        { "type": "improvement", "text": "Bookmark cũ /inventory/distributions/new và /from-supplements giờ redirect vào hub view tương ứng; xoá trang CreateDistributionPage legacy" }
+        {
+          "type": "improvement",
+          "text": "Gộp 3 sub-tab xuất kho thành 2: Danh sách phiếu (+ banner gợi ý 'Từ yêu cầu bổ sung' inline) và + Tạo phiếu mới — bớt 1 cấp tab"
+        },
+        {
+          "type": "improvement",
+          "text": "Sau khi tạo phiếu (giao phòng / lô giặt / xuất khác) ở lại hub Kho và tự chuyển về Danh sách phiếu kèm toast, không nhảy sang trang khác"
+        },
+        {
+          "type": "improvement",
+          "text": "Bỏ emoji ở dropdown Loại xuất kho cho đúng chuẩn minimalist; ẩn 'Kho nguồn' khi loại là 'Xuất cho phòng' để tránh field thừa"
+        },
+        {
+          "type": "improvement",
+          "text": "Hợp nhất trạng thái loading của 3 mutation (xuất kho / giao phòng / lô giặt) để chống double-submit"
+        },
+        {
+          "type": "improvement",
+          "text": "Hiển thị toast lỗi rõ ràng thay vì im lặng khi thiếu phòng/sản phẩm/lô giặt"
+        },
+        {
+          "type": "improvement",
+          "text": "Bookmark cũ /inventory/distributions/new và /from-supplements giờ redirect vào hub view tương ứng; xoá trang CreateDistributionPage legacy"
+        }
       ]
     },
-
     {
       "version": "1.1.11",
       "releaseDate": "2026-05-30",
       "title": "Xuất kho: gộp Danh sách phiếu + Tạo thủ công + Từ yêu cầu vào 1 trang",
       "changes": [
-        { "type": "improvement", "text": "Trang Xuất kho có 3 tab nội bộ: Danh sách phiếu (mặc định), Tạo phiếu thủ công, Từ yêu cầu bổ sung — không phải nhảy giữa nhiều mục sidebar" },
-        { "type": "improvement", "text": "Khi tạo phiếu thủ công loại 'Xuất cho phòng', form phân phối hiển thị ngay tại chỗ thay vì nút mở tab khác" },
-        { "type": "improvement", "text": "Mục 'Phiếu giao hàng' cũ trong sidebar Kho được gộp vào Xuất kho; bookmark cũ tự redirect" }
+        {
+          "type": "improvement",
+          "text": "Trang Xuất kho có 3 tab nội bộ: Danh sách phiếu (mặc định), Tạo phiếu thủ công, Từ yêu cầu bổ sung — không phải nhảy giữa nhiều mục sidebar"
+        },
+        {
+          "type": "improvement",
+          "text": "Khi tạo phiếu thủ công loại 'Xuất cho phòng', form phân phối hiển thị ngay tại chỗ thay vì nút mở tab khác"
+        },
+        {
+          "type": "improvement",
+          "text": "Mục 'Phiếu giao hàng' cũ trong sidebar Kho được gộp vào Xuất kho; bookmark cũ tự redirect"
+        }
       ]
     },
     {
@@ -335,9 +390,18 @@
       "releaseDate": "2026-05-30",
       "title": "Phiếu giao hàng: mở popup khi click thay vì chuyển trang",
       "changes": [
-        { "type": "improvement", "text": "Click vào dòng phiếu giao hàng mở popup chi tiết ngay tại chỗ, không cần chuyển trang qua lại" },
-        { "type": "improvement", "text": "Popup giữ đủ thao tác: phân công, chỉnh sửa, in, huỷ phiếu; còn nút Mở trang đầy đủ khi cần" },
-        { "type": "improvement", "text": "Mobile dùng bottom sheet 92vh, desktop dùng dialog 88vh để xử lý nhanh nhiều phiếu liên tiếp" }
+        {
+          "type": "improvement",
+          "text": "Click vào dòng phiếu giao hàng mở popup chi tiết ngay tại chỗ, không cần chuyển trang qua lại"
+        },
+        {
+          "type": "improvement",
+          "text": "Popup giữ đủ thao tác: phân công, chỉnh sửa, in, huỷ phiếu; còn nút Mở trang đầy đủ khi cần"
+        },
+        {
+          "type": "improvement",
+          "text": "Mobile dùng bottom sheet 92vh, desktop dùng dialog 88vh để xử lý nhanh nhiều phiếu liên tiếp"
+        }
       ]
     },
     {
@@ -345,9 +409,18 @@
       "releaseDate": "2026-05-30",
       "title": "Hub Kho: sắp xếp lại layout Tổng quan cho cân đối",
       "changes": [
-        { "type": "improvement", "text": "Thống nhất grid 12 cột, 2 hàng widget theo tỉ lệ 8/4 thẳng rãnh, đồng đều chiều cao" },
-        { "type": "improvement", "text": "Gộp Cảnh báo tồn kho thấp + Cảnh báo kho thành 1 card duy nhất với 3 chỉ số tổng + danh sách item" },
-        { "type": "improvement", "text": "Giao dịch gần đây tách thành hàng full-width, dễ đọc hơn" }
+        {
+          "type": "improvement",
+          "text": "Thống nhất grid 12 cột, 2 hàng widget theo tỉ lệ 8/4 thẳng rãnh, đồng đều chiều cao"
+        },
+        {
+          "type": "improvement",
+          "text": "Gộp Cảnh báo tồn kho thấp + Cảnh báo kho thành 1 card duy nhất với 3 chỉ số tổng + danh sách item"
+        },
+        {
+          "type": "improvement",
+          "text": "Giao dịch gần đây tách thành hàng full-width, dễ đọc hơn"
+        }
       ]
     },
     {
@@ -355,13 +428,34 @@
       "releaseDate": "2026-05-30",
       "title": "Hub Kho v2: KPI thông minh, search nhanh, badge realtime, shortcut",
       "changes": [
-        { "type": "improvement", "text": "Tab Tổng quan redesign theo Enterprise SaaS: 6 KPI compact (Tổng giá trị, SKU, Sắp hết <7d, Cần đặt lại, Tồn ứ đọng, Giao dịch hôm nay) — click thẳng vào tab tương ứng" },
-        { "type": "improvement", "text": "Widget Dự báo hết hàng (≤14 ngày) dùng consumption_snapshots, Top tiêu hao 30 ngày dạng bar chart, Phân bổ theo khách sạn ở chế độ Tất cả khách sạn" },
-        { "type": "improvement", "text": "Quick search Ctrl+/ — tìm item theo tên/mã, Enter để mở Danh sách tài sản với từ khoá" },
-        { "type": "improvement", "text": "Sidebar nội bộ hiển thị badge realtime: Đề xuất nhập, Phiếu giao hàng, Kiểm kê pending" },
-        { "type": "improvement", "text": "Shortcut bàn phím: g+o (Tổng quan), g+i (Nhập), g+x (Xuất), g+k (Kiểm kê), / (focus search)" },
-        { "type": "improvement", "text": "Mobile: menu 15 mục mở qua Sheet trượt trái, không tràn TabsList; sticky tabs khi cuộn" },
-        { "type": "improvement", "text": "Breadcrumb hiển thị Kho › Nhóm › Mục đang xem" }
+        {
+          "type": "improvement",
+          "text": "Tab Tổng quan redesign theo Enterprise SaaS: 6 KPI compact (Tổng giá trị, SKU, Sắp hết <7d, Cần đặt lại, Tồn ứ đọng, Giao dịch hôm nay) — click thẳng vào tab tương ứng"
+        },
+        {
+          "type": "improvement",
+          "text": "Widget Dự báo hết hàng (≤14 ngày) dùng consumption_snapshots, Top tiêu hao 30 ngày dạng bar chart, Phân bổ theo khách sạn ở chế độ Tất cả khách sạn"
+        },
+        {
+          "type": "improvement",
+          "text": "Quick search Ctrl+/ — tìm item theo tên/mã, Enter để mở Danh sách tài sản với từ khoá"
+        },
+        {
+          "type": "improvement",
+          "text": "Sidebar nội bộ hiển thị badge realtime: Đề xuất nhập, Phiếu giao hàng, Kiểm kê pending"
+        },
+        {
+          "type": "improvement",
+          "text": "Shortcut bàn phím: g+o (Tổng quan), g+i (Nhập), g+x (Xuất), g+k (Kiểm kê), / (focus search)"
+        },
+        {
+          "type": "improvement",
+          "text": "Mobile: menu 15 mục mở qua Sheet trượt trái, không tràn TabsList; sticky tabs khi cuộn"
+        },
+        {
+          "type": "improvement",
+          "text": "Breadcrumb hiển thị Kho › Nhóm › Mục đang xem"
+        }
       ]
     },
     {
@@ -369,9 +463,18 @@
       "releaseDate": "2026-05-30",
       "title": "Hub Kho: menu nội bộ đủ mục như sidebar cũ",
       "changes": [
-        { "type": "fix", "text": "Thêm menu nội bộ trong /inventory theo đúng nhóm cũ: Tổng quan, Sản phẩm, Xuất nhập kho, Phân tích, Thiết lập" },
-        { "type": "fix", "text": "Hiện rõ Phiếu giao hàng, Đề xuất nhập hàng, Bổ sung đồ và Quản lý kho trong Hub" },
-        { "type": "improvement", "text": "Các URL cũ như /inventory/distributions, /inventory/reorder, /supplements, /settings/warehouses tự mở đúng tab trong Hub" }
+        {
+          "type": "fix",
+          "text": "Thêm menu nội bộ trong /inventory theo đúng nhóm cũ: Tổng quan, Sản phẩm, Xuất nhập kho, Phân tích, Thiết lập"
+        },
+        {
+          "type": "fix",
+          "text": "Hiện rõ Phiếu giao hàng, Đề xuất nhập hàng, Bổ sung đồ và Quản lý kho trong Hub"
+        },
+        {
+          "type": "improvement",
+          "text": "Các URL cũ như /inventory/distributions, /inventory/reorder, /supplements, /settings/warehouses tự mở đúng tab trong Hub"
+        }
       ]
     },
     {
@@ -379,9 +482,18 @@
       "releaseDate": "2026-05-30",
       "title": "Hub Kho: bổ sung đủ 15 mục — thêm Nhập/Xuất/Chuyển/Thêm tài sản",
       "changes": [
-        { "type": "improvement", "text": "Tab Xuất nhập có 7 sub-tab: Giao dịch · Nhập kho · Xuất kho · Chuyển kho · Kiểm kê · Phiếu giao · Đề xuất nhập" },
-        { "type": "improvement", "text": "Tab Tài sản có 3 sub-tab: Danh sách · Danh mục · Thêm tài sản" },
-        { "type": "improvement", "text": "Khôi phục đủ 15 mục của menu cũ vào trong hub /inventory" }
+        {
+          "type": "improvement",
+          "text": "Tab Xuất nhập có 7 sub-tab: Giao dịch · Nhập kho · Xuất kho · Chuyển kho · Kiểm kê · Phiếu giao · Đề xuất nhập"
+        },
+        {
+          "type": "improvement",
+          "text": "Tab Tài sản có 3 sub-tab: Danh sách · Danh mục · Thêm tài sản"
+        },
+        {
+          "type": "improvement",
+          "text": "Khôi phục đủ 15 mục của menu cũ vào trong hub /inventory"
+        }
       ]
     },
     {
@@ -389,12 +501,30 @@
       "releaseDate": "2026-05-30",
       "title": "Gọn menu Kho & Tài sản — gom thành 1 hub có tab",
       "changes": [
-        { "type": "improvement", "text": "Sidebar Kho & Tài sản: từ 15 mục con xuống còn 1 lối vào duy nhất" },
-        { "type": "improvement", "text": "Trang /inventory là hub 5 tab: Tổng quan · Tài sản · Xuất nhập · Phân tích · Thiết lập" },
-        { "type": "improvement", "text": "Tab Xuất nhập gộp Giao dịch, Kiểm kê, Phiếu giao, Đề xuất nhập" },
-        { "type": "improvement", "text": "Nút 'Thao tác' header truy cập nhanh Nhập / Xuất / Chuyển / Kiểm kê / Thêm tài sản" },
-        { "type": "improvement", "text": "Lazy-load mỗi tab — chỉ tab đang xem mới gọi dữ liệu, không nặng trang" },
-        { "type": "improvement", "text": "URL ?tab=&sub= để giữ deep-link, F5 vẫn ở đúng tab" }
+        {
+          "type": "improvement",
+          "text": "Sidebar Kho & Tài sản: từ 15 mục con xuống còn 1 lối vào duy nhất"
+        },
+        {
+          "type": "improvement",
+          "text": "Trang /inventory là hub 5 tab: Tổng quan · Tài sản · Xuất nhập · Phân tích · Thiết lập"
+        },
+        {
+          "type": "improvement",
+          "text": "Tab Xuất nhập gộp Giao dịch, Kiểm kê, Phiếu giao, Đề xuất nhập"
+        },
+        {
+          "type": "improvement",
+          "text": "Nút 'Thao tác' header truy cập nhanh Nhập / Xuất / Chuyển / Kiểm kê / Thêm tài sản"
+        },
+        {
+          "type": "improvement",
+          "text": "Lazy-load mỗi tab — chỉ tab đang xem mới gọi dữ liệu, không nặng trang"
+        },
+        {
+          "type": "improvement",
+          "text": "URL ?tab=&sub= để giữ deep-link, F5 vẫn ở đúng tab"
+        }
       ]
     },
     {
@@ -402,11 +532,26 @@
       "releaseDate": "2026-05-30",
       "title": "Đồng bộ palette: mọi tông màu Tailwind khớp Slate Professional",
       "changes": [
-        { "type": "improvement", "text": "Override toàn bộ thang màu Tailwind (slate/gray/blue/green/amber/red/violet…) về tông Slate Professional" },
-        { "type": "improvement", "text": "Tông cyan/sky/indigo gộp vào xanh dương #2563EB — bỏ màu chói mắt" },
-        { "type": "improvement", "text": "Tông teal/emerald/lime gộp vào xanh lá #15803D — đồng nhất status OK" },
-        { "type": "improvement", "text": "Tông yellow/orange gộp vào cam-nâu #B45309 — bỏ vàng chanh khó đọc" },
-        { "type": "improvement", "text": "Tông rose/pink gộp vào đỏ #DC2626 — đồng nhất status lỗi" }
+        {
+          "type": "improvement",
+          "text": "Override toàn bộ thang màu Tailwind (slate/gray/blue/green/amber/red/violet…) về tông Slate Professional"
+        },
+        {
+          "type": "improvement",
+          "text": "Tông cyan/sky/indigo gộp vào xanh dương #2563EB — bỏ màu chói mắt"
+        },
+        {
+          "type": "improvement",
+          "text": "Tông teal/emerald/lime gộp vào xanh lá #15803D — đồng nhất status OK"
+        },
+        {
+          "type": "improvement",
+          "text": "Tông yellow/orange gộp vào cam-nâu #B45309 — bỏ vàng chanh khó đọc"
+        },
+        {
+          "type": "improvement",
+          "text": "Tông rose/pink gộp vào đỏ #DC2626 — đồng nhất status lỗi"
+        }
       ]
     },
     {
@@ -414,11 +559,26 @@
       "releaseDate": "2026-05-30",
       "title": "Bộ màu mới Slate Professional — tăng tương phản, dễ đọc",
       "changes": [
-        { "type": "improvement", "text": "Nền trắng tinh, chữ navy đậm — đạt WCAG AAA cho text chính" },
-        { "type": "improvement", "text": "Primary chuyển sang xanh royal #2563EB, bỏ accent cyan chói mắt" },
-        { "type": "improvement", "text": "Success/Warning/Destructive đậm hơn — đọc rõ trên nền trắng" },
-        { "type": "improvement", "text": "Sidebar navy đậm #0F172A, item active xanh nổi bật" },
-        { "type": "improvement", "text": "Border #CBD5E1 đậm hơn — phân tách bảng và card rõ ràng hơn" }
+        {
+          "type": "improvement",
+          "text": "Nền trắng tinh, chữ navy đậm — đạt WCAG AAA cho text chính"
+        },
+        {
+          "type": "improvement",
+          "text": "Primary chuyển sang xanh royal #2563EB, bỏ accent cyan chói mắt"
+        },
+        {
+          "type": "improvement",
+          "text": "Success/Warning/Destructive đậm hơn — đọc rõ trên nền trắng"
+        },
+        {
+          "type": "improvement",
+          "text": "Sidebar navy đậm #0F172A, item active xanh nổi bật"
+        },
+        {
+          "type": "improvement",
+          "text": "Border #CBD5E1 đậm hơn — phân tách bảng và card rõ ràng hơn"
+        }
       ]
     },
     {
@@ -426,34 +586,68 @@
       "releaseDate": "2026-05-30",
       "title": "Sidebar: lối vào Bảng giá 4 trục, Quy tắc mùa giá & Khai báo lưu trú BCA",
       "changes": [
-        { "type": "feature", "text": "Sidebar › Phòng › Đặt phòng & Khách: thêm \"Khai báo lưu trú\" (BCA)" },
-        { "type": "feature", "text": "Sidebar › Cài đặt › Nghiệp vụ: thêm \"Bảng giá 4 trục\" và \"Quy tắc mùa giá\"" },
-        { "type": "feature", "text": "Sidebar › Cài đặt › Pháp lý (nhóm mới): thêm \"Cấu hình khai báo BCA\"" }
+        {
+          "type": "feature",
+          "text": "Sidebar › Phòng › Đặt phòng & Khách: thêm \"Khai báo lưu trú\" (BCA)"
+        },
+        {
+          "type": "feature",
+          "text": "Sidebar › Cài đặt › Nghiệp vụ: thêm \"Bảng giá 4 trục\" và \"Quy tắc mùa giá\""
+        },
+        {
+          "type": "feature",
+          "text": "Sidebar › Cài đặt › Pháp lý (nhóm mới): thêm \"Cấu hình khai báo BCA\""
+        }
       ]
     },
-
     {
       "version": "1.1.1",
       "releaseDate": "2026-05-30",
       "title": "Sprint 1 Day 7–8: Pricing v2 trong BookingWizard + Quy tắc mùa giá CRUD",
       "changes": [
-        { "type": "feature", "text": "Bước chọn phòng: thêm nút \"Áp dụng giá theo bảng\" — tự tính giá theo Pricing v2 (4 trục: ngày/qua đêm/giờ/tháng) cho mỗi phòng đã chọn" },
-        { "type": "feature", "text": "Hiển thị breakdown giá chi tiết: cơ sở × số đơn vị × hệ số cuối tuần + điều chỉnh mùa + phụ thu sớm/trễ = tổng" },
-        { "type": "feature", "text": "Lưu price_breakdown JSONB vào room_bookings khi tạo đặt phòng — phục vụ kiểm toán giá sau này" },
-        { "type": "feature", "text": "Trang Quy tắc mùa giá (/settings/pricing/seasonal): CRUD đầy đủ — mùa lễ, cuối tuần, sự kiện; chế độ cộng thêm (stack) hoặc ghi đè (priority)" },
-        { "type": "feature", "text": "Hỗ trợ 3 kiểu điều chỉnh: phần trăm, số tiền cố định, đặt giá tuyệt đối; áp dụng theo loại phòng + loại đặt cụ thể" }
+        {
+          "type": "feature",
+          "text": "Bước chọn phòng: thêm nút \"Áp dụng giá theo bảng\" — tự tính giá theo Pricing v2 (4 trục: ngày/qua đêm/giờ/tháng) cho mỗi phòng đã chọn"
+        },
+        {
+          "type": "feature",
+          "text": "Hiển thị breakdown giá chi tiết: cơ sở × số đơn vị × hệ số cuối tuần + điều chỉnh mùa + phụ thu sớm/trễ = tổng"
+        },
+        {
+          "type": "feature",
+          "text": "Lưu price_breakdown JSONB vào room_bookings khi tạo đặt phòng — phục vụ kiểm toán giá sau này"
+        },
+        {
+          "type": "feature",
+          "text": "Trang Quy tắc mùa giá (/settings/pricing/seasonal): CRUD đầy đủ — mùa lễ, cuối tuần, sự kiện; chế độ cộng thêm (stack) hoặc ghi đè (priority)"
+        },
+        {
+          "type": "feature",
+          "text": "Hỗ trợ 3 kiểu điều chỉnh: phần trăm, số tiền cố định, đặt giá tuyệt đối; áp dụng theo loại phòng + loại đặt cụ thể"
+        }
       ]
     },
-
     {
       "version": "1.0.99",
       "releaseDate": "2026-05-29",
       "title": "Sơ đồ phòng: tuỳ chỉnh kích thước ô phòng (Nhỏ / Vừa / Lớn / Tuỳ chỉnh)",
       "changes": [
-        { "type": "feature", "text": "Thanh công cụ thêm 3 nút Nhỏ / Vừa / Lớn để thay đổi nhanh kích thước ô phòng + popover tuỳ chỉnh chiều cao (72–160px) và số cột (4–16)" },
-        { "type": "feature", "text": "Cài đặt lưu riêng theo từng khách sạn (localStorage), tự load lại khi đổi khách sạn hoặc reload trang" },
-        { "type": "feature", "text": "Phím tắt Ctrl/Cmd + + / - / 0 để tăng / giảm / reset kích thước ô (không trigger khi đang gõ trong ô tìm kiếm)" },
-        { "type": "improvement", "text": "Số phòng và chấm màu auto scale theo chiều cao ô — đọc rõ ở mọi cỡ từ TV đến laptop nhỏ" }
+        {
+          "type": "feature",
+          "text": "Thanh công cụ thêm 3 nút Nhỏ / Vừa / Lớn để thay đổi nhanh kích thước ô phòng + popover tuỳ chỉnh chiều cao (72–160px) và số cột (4–16)"
+        },
+        {
+          "type": "feature",
+          "text": "Cài đặt lưu riêng theo từng khách sạn (localStorage), tự load lại khi đổi khách sạn hoặc reload trang"
+        },
+        {
+          "type": "feature",
+          "text": "Phím tắt Ctrl/Cmd + + / - / 0 để tăng / giảm / reset kích thước ô (không trigger khi đang gõ trong ô tìm kiếm)"
+        },
+        {
+          "type": "improvement",
+          "text": "Số phòng và chấm màu auto scale theo chiều cao ô — đọc rõ ở mọi cỡ từ TV đến laptop nhỏ"
+        }
       ]
     },
     {
@@ -461,54 +655,123 @@
       "releaseDate": "2026-05-29",
       "title": "Popup phòng nâng cấp: 3 tab (Tổng quan / Tài chính / Vận hành) + menu đổi trạng thái + gia hạn 1-click",
       "changes": [
-        { "type": "feature", "text": "Tab Tổng quan: hiện đầy đủ khách (VIP tag, SĐT bấm gọi, CCCD + ảnh, quốc tịch, khách thân thiết), mã booking, nguồn, số đêm đã ở / tổng đêm, lịch sử lưu trú 3 lần gần nhất" },
-        { "type": "feature", "text": "Tab Tài chính: chi tiết tiền phòng / dịch vụ / minibar / phụ thu / VAT / đã cọc / đã thanh toán / còn phải thu — kèm danh sách item dịch vụ-minibar đã dùng" },
-        { "type": "feature", "text": "Tab Vận hành: danh sách HK task + maintenance đang mở (chấm màu priority), lần dọn cuối, link xem audit log đầy đủ" },
-        { "type": "feature", "text": "Phòng trống: hiện 3 bảng giá (Đêm/Giờ/Tháng), tiện nghi chip, booking 7 ngày tới — chốt bán nhanh không cần rời popup" },
-        { "type": "feature", "text": "Menu [···] header: Gỡ trạng thái / DND / OOS / OOO + tạo task HK / Maintenance + Lịch sử phòng (gọi RPC transition_room_status có audit)" },
-        { "type": "feature", "text": "Nút Gia hạn ở footer mở ExtendBookingDialog trực tiếp; nút Checkout đi thẳng vào flow checkout" },
-        { "type": "improvement", "text": "Popup mở rộng lên max-w-2xl, tabs scrollable, footer sticky bám đáy" }
+        {
+          "type": "feature",
+          "text": "Tab Tổng quan: hiện đầy đủ khách (VIP tag, SĐT bấm gọi, CCCD + ảnh, quốc tịch, khách thân thiết), mã booking, nguồn, số đêm đã ở / tổng đêm, lịch sử lưu trú 3 lần gần nhất"
+        },
+        {
+          "type": "feature",
+          "text": "Tab Tài chính: chi tiết tiền phòng / dịch vụ / minibar / phụ thu / VAT / đã cọc / đã thanh toán / còn phải thu — kèm danh sách item dịch vụ-minibar đã dùng"
+        },
+        {
+          "type": "feature",
+          "text": "Tab Vận hành: danh sách HK task + maintenance đang mở (chấm màu priority), lần dọn cuối, link xem audit log đầy đủ"
+        },
+        {
+          "type": "feature",
+          "text": "Phòng trống: hiện 3 bảng giá (Đêm/Giờ/Tháng), tiện nghi chip, booking 7 ngày tới — chốt bán nhanh không cần rời popup"
+        },
+        {
+          "type": "feature",
+          "text": "Menu [···] header: Gỡ trạng thái / DND / OOS / OOO + tạo task HK / Maintenance + Lịch sử phòng (gọi RPC transition_room_status có audit)"
+        },
+        {
+          "type": "feature",
+          "text": "Nút Gia hạn ở footer mở ExtendBookingDialog trực tiếp; nút Checkout đi thẳng vào flow checkout"
+        },
+        {
+          "type": "improvement",
+          "text": "Popup mở rộng lên max-w-2xl, tabs scrollable, footer sticky bám đáy"
+        }
       ]
     },
-
     {
       "version": "1.0.97",
       "releaseDate": "2026-05-29",
       "title": "Sơ đồ phòng → màn tác nghiệp Lễ tân (nhìn 3 giây, click đặt phòng)",
       "changes": [
-        { "type": "feature", "text": "KPI bar 4 ô lớn ở đầu sơ đồ: 🟢 Bán được · 🟡 Checkout hôm nay · 🔴 Đang dọn · 🔵 Có khách — click để lọc tức thì" },
-        { "type": "feature", "text": "Ô phòng tối giản: số phòng to + chấm màu lớn ở giữa + loại phòng — lễ tân chỉ nhìn màu là biết, không cần đọc chữ" },
-        { "type": "feature", "text": "Click phòng trống → popup nhanh hiện giá hôm nay, sức chứa, tầng + 2 nút 'Đặt phòng' / 'Checkin nhanh' (5 giây từ điện thoại đến xong)" },
-        { "type": "feature", "text": "Click phòng có khách → popup tên khách, SĐT (bấm gọi), giờ checkout dự kiến + countdown 'Còn 3h' (xanh/cam/đỏ theo độ khẩn), nút mở chi tiết booking" },
-        { "type": "improvement", "text": "Gom 11 trạng thái nội bộ thành 5 nhóm nghiệp vụ (Bán được / Sắp trả / Đang dọn / Có khách / Khoá): đổi 'vacant_clean' thành 🟢 Bán được — ngôn ngữ lễ tân, không phải ngôn ngữ hệ thống" },
-        { "type": "improvement", "text": "Phòng có khách trên ô vẫn hiện họ khách và countdown giờ ra; phòng sắp trả (Checkout hôm nay) tự gán bucket riêng để lễ tân ưu tiên xử lý" }
+        {
+          "type": "feature",
+          "text": "KPI bar 4 ô lớn ở đầu sơ đồ: 🟢 Bán được · 🟡 Checkout hôm nay · 🔴 Đang dọn · 🔵 Có khách — click để lọc tức thì"
+        },
+        {
+          "type": "feature",
+          "text": "Ô phòng tối giản: số phòng to + chấm màu lớn ở giữa + loại phòng — lễ tân chỉ nhìn màu là biết, không cần đọc chữ"
+        },
+        {
+          "type": "feature",
+          "text": "Click phòng trống → popup nhanh hiện giá hôm nay, sức chứa, tầng + 2 nút 'Đặt phòng' / 'Checkin nhanh' (5 giây từ điện thoại đến xong)"
+        },
+        {
+          "type": "feature",
+          "text": "Click phòng có khách → popup tên khách, SĐT (bấm gọi), giờ checkout dự kiến + countdown 'Còn 3h' (xanh/cam/đỏ theo độ khẩn), nút mở chi tiết booking"
+        },
+        {
+          "type": "improvement",
+          "text": "Gom 11 trạng thái nội bộ thành 5 nhóm nghiệp vụ (Bán được / Sắp trả / Đang dọn / Có khách / Khoá): đổi 'vacant_clean' thành 🟢 Bán được — ngôn ngữ lễ tân, không phải ngôn ngữ hệ thống"
+        },
+        {
+          "type": "improvement",
+          "text": "Phòng có khách trên ô vẫn hiện họ khách và countdown giờ ra; phòng sắp trả (Checkout hôm nay) tự gán bucket riêng để lễ tân ưu tiên xử lý"
+        }
       ]
     },
-
     {
       "version": "1.0.96",
       "releaseDate": "2026-05-29",
       "title": "Quản lý phòng nâng cao — #3 Gỡ DND/OOS + Bulk action + Lịch sử trạng thái",
       "changes": [
-        { "type": "feature", "text": "Sơ đồ phòng: hover ô phòng đang DND/OOS/OOO hiện nút 'Gỡ' để chuyển nhanh về 'Trống – đã dọn' (qua RPC transition_room_status, có audit log)" },
-        { "type": "feature", "text": "Sơ đồ phòng: nút 'Sử' (lịch sử) trên mỗi ô — mở dialog xem 100 thay đổi trạng thái gần nhất với người thực hiện, lý do, thời điểm tự gỡ" },
-        { "type": "feature", "text": "Trang chi tiết phòng: nút 'Lịch sử' hiển thị audit log đầy đủ của phòng (lọc bỏ cron tick rỗng)" },
-        { "type": "improvement", "text": "RoomBulkActionsBar: dropdown trạng thái nay hỗ trợ đầy đủ 10 trạng thái V2 (Trống/Đang ở/DND/OOO/OOS...) chia nhóm Vận hành / Đặc biệt; thêm tuỳ chọn '↺ Gỡ DND/OOS · về Trống sạch' để xử lý hàng loạt" },
-        { "type": "improvement", "text": "Hook useRoomAuditLog: gộp thông tin user (tên/email) cho từng entry, sort mới → cũ, lọc bỏ cron tick lift_expired_dnd_oos không có thay đổi" }
+        {
+          "type": "feature",
+          "text": "Sơ đồ phòng: hover ô phòng đang DND/OOS/OOO hiện nút 'Gỡ' để chuyển nhanh về 'Trống – đã dọn' (qua RPC transition_room_status, có audit log)"
+        },
+        {
+          "type": "feature",
+          "text": "Sơ đồ phòng: nút 'Sử' (lịch sử) trên mỗi ô — mở dialog xem 100 thay đổi trạng thái gần nhất với người thực hiện, lý do, thời điểm tự gỡ"
+        },
+        {
+          "type": "feature",
+          "text": "Trang chi tiết phòng: nút 'Lịch sử' hiển thị audit log đầy đủ của phòng (lọc bỏ cron tick rỗng)"
+        },
+        {
+          "type": "improvement",
+          "text": "RoomBulkActionsBar: dropdown trạng thái nay hỗ trợ đầy đủ 10 trạng thái V2 (Trống/Đang ở/DND/OOO/OOS...) chia nhóm Vận hành / Đặc biệt; thêm tuỳ chọn '↺ Gỡ DND/OOS · về Trống sạch' để xử lý hàng loạt"
+        },
+        {
+          "type": "improvement",
+          "text": "Hook useRoomAuditLog: gộp thông tin user (tên/email) cho từng entry, sort mới → cũ, lọc bỏ cron tick lift_expired_dnd_oos không có thay đổi"
+        }
       ]
     },
-
     {
       "version": "1.0.95",
       "releaseDate": "2026-05-29",
       "title": "Sơ đồ phòng & trải nghiệm — đợt nâng cấp #1–#6",
       "changes": [
-        { "type": "feature", "text": "Sơ đồ phòng: thêm toolbar tìm số phòng, lọc theo trạng thái và tầng; cảnh báo công việc tồn đọng (housekeeping/maintenance) bằng chấm đỏ + số trên góc ô phòng" },
-        { "type": "feature", "text": "Sơ đồ phòng: viền màu nhóm cho các phòng cùng booking_group_id (>1 phòng) — giúp nhận diện nhóm đoàn nhanh" },
-        { "type": "improvement", "text": "RPC get_floor_plan_live: mở rộng cửa sổ 'sắp đến' từ 24h lên 48h (hỗ trợ ca đêm), bổ sung open_tasks/open_hk_tasks/open_maintenance, subscribe realtime thêm bảng housekeeping_tasks + maintenance_requests" },
-        { "type": "improvement", "text": "RoomsPage: lưu tab đang chọn qua ?view= + localStorage; Sơ đồ phòng có CTA 'Thêm phòng' và 'Import từ Excel' khi rỗng" },
-        { "type": "improvement", "text": "BookingDetailDialog: lazy-load + skeleton loading, mở popup nhanh và mượt hơn" },
-        { "type": "fix", "text": "RoomTapeChart: thay useIsMobile (deprecated) bằng useBreakpoint, hết cảnh báo console" }
+        {
+          "type": "feature",
+          "text": "Sơ đồ phòng: thêm toolbar tìm số phòng, lọc theo trạng thái và tầng; cảnh báo công việc tồn đọng (housekeeping/maintenance) bằng chấm đỏ + số trên góc ô phòng"
+        },
+        {
+          "type": "feature",
+          "text": "Sơ đồ phòng: viền màu nhóm cho các phòng cùng booking_group_id (>1 phòng) — giúp nhận diện nhóm đoàn nhanh"
+        },
+        {
+          "type": "improvement",
+          "text": "RPC get_floor_plan_live: mở rộng cửa sổ 'sắp đến' từ 24h lên 48h (hỗ trợ ca đêm), bổ sung open_tasks/open_hk_tasks/open_maintenance, subscribe realtime thêm bảng housekeeping_tasks + maintenance_requests"
+        },
+        {
+          "type": "improvement",
+          "text": "RoomsPage: lưu tab đang chọn qua ?view= + localStorage; Sơ đồ phòng có CTA 'Thêm phòng' và 'Import từ Excel' khi rỗng"
+        },
+        {
+          "type": "improvement",
+          "text": "BookingDetailDialog: lazy-load + skeleton loading, mở popup nhanh và mượt hơn"
+        },
+        {
+          "type": "fix",
+          "text": "RoomTapeChart: thay useIsMobile (deprecated) bằng useBreakpoint, hết cảnh báo console"
+        }
       ]
     },
     {
@@ -516,82 +779,135 @@
       "releaseDate": "2026-05-29",
       "title": "Sơ đồ phòng theo thời gian thực",
       "changes": [
-        { "type": "feature", "text": "Thêm tab 'Sơ đồ phòng' tại /rooms — lưới phòng theo tầng, màu đậm theo trạng thái (trống/đang ở/sắp đến/chờ dọn/bảo trì), hiển thị tên khách + chip thời lượng lưu trú (Hôm qua, 2 ngày, 5 giờ)" },
-        { "type": "feature", "text": "RPC mới get_floor_plan_live trả về trạng thái phòng + booking hiện tại + booking sắp tới trong 24h, cập nhật realtime qua subscription rooms/room_bookings" },
-        { "type": "improvement", "text": "Click ô phòng đang có khách → mở popup chi tiết booking; ô phòng trống → mở dialog tạo booking nhanh; lọc theo loại phòng (Standard/Deluxe/Suite...)" }
+        {
+          "type": "feature",
+          "text": "Thêm tab 'Sơ đồ phòng' tại /rooms — lưới phòng theo tầng, màu đậm theo trạng thái (trống/đang ở/sắp đến/chờ dọn/bảo trì), hiển thị tên khách + chip thời lượng lưu trú (Hôm qua, 2 ngày, 5 giờ)"
+        },
+        {
+          "type": "feature",
+          "text": "RPC mới get_floor_plan_live trả về trạng thái phòng + booking hiện tại + booking sắp tới trong 24h, cập nhật realtime qua subscription rooms/room_bookings"
+        },
+        {
+          "type": "improvement",
+          "text": "Click ô phòng đang có khách → mở popup chi tiết booking; ô phòng trống → mở dialog tạo booking nhanh; lọc theo loại phòng (Standard/Deluxe/Suite...)"
+        }
       ]
     },
-
     {
       "version": "1.0.92",
       "releaseDate": "2026-05-29",
       "title": "Tape chart — thanh booking đậm màu, dễ nhìn",
       "changes": [
-        { "type": "improvement", "text": "Đổi nền thanh booking từ pastel sang màu đậm (500) chữ trắng — tương phản cao, nhìn rõ trên màn LCD lễ tân" },
-        { "type": "improvement", "text": "Cập nhật chú giải (legend) khớp màu mới: xanh dương đang lưu trú, xanh lá đã cọc đủ, vàng cọc một phần, cam chưa cọc, đỏ còn nợ, xám đã trả phòng" }
+        {
+          "type": "improvement",
+          "text": "Đổi nền thanh booking từ pastel sang màu đậm (500) chữ trắng — tương phản cao, nhìn rõ trên màn LCD lễ tân"
+        },
+        {
+          "type": "improvement",
+          "text": "Cập nhật chú giải (legend) khớp màu mới: xanh dương đang lưu trú, xanh lá đã cọc đủ, vàng cọc một phần, cam chưa cọc, đỏ còn nợ, xám đã trả phòng"
+        }
       ]
     },
-
     {
       "version": "1.0.91",
       "releaseDate": "2026-05-29",
       "title": "Tape chart — mở phiếu booking dạng popup, không rời trang",
       "changes": [
-        { "type": "improvement", "text": "Click 'Mở phiếu booking' từ tape chart sheet mở dialog overlay (95vw × 92vh) thay vì điều hướng — lễ tân không phải bấm Back" },
-        { "type": "improvement", "text": "Click booking khác trong nhóm đặt phòng cũng mở dialog inline thay vì rời trang" }
+        {
+          "type": "improvement",
+          "text": "Click 'Mở phiếu booking' từ tape chart sheet mở dialog overlay (95vw × 92vh) thay vì điều hướng — lễ tân không phải bấm Back"
+        },
+        {
+          "type": "improvement",
+          "text": "Click booking khác trong nhóm đặt phòng cũng mở dialog inline thay vì rời trang"
+        }
       ]
     },
-
     {
       "version": "1.0.90",
       "releaseDate": "2026-05-29",
       "title": "Tape chart sheet — tổ chức lại theo flow lễ tân",
       "changes": [
-        { "type": "improvement", "text": "Đưa Tóm tắt nhanh (ngày nhận/trả + đêm) và 3 số tài chính cốt lõi (Tổng / Đã thu / Còn thu) lên đầu — lễ tân trả lời điện thoại không cần scroll" },
-        { "type": "improvement", "text": "Quick actions ngay trong sheet: Gọi khách, Mở phiếu booking, CTA chính theo trạng thái" },
-        { "type": "improvement", "text": "Ẩn các chi tiết phụ (breakdown tài chính, giấy tờ, CRM, lịch sử, ghi chú) vào mục Xem chi tiết — mở khi cần, tránh nhiễu" },
-        { "type": "fix", "text": "Lịch sử thay đổi: dịch action sang tiếng Việt (move → Đổi phòng, update → Cập nhật booking, price_change → Sửa giá...)" }
+        {
+          "type": "improvement",
+          "text": "Đưa Tóm tắt nhanh (ngày nhận/trả + đêm) và 3 số tài chính cốt lõi (Tổng / Đã thu / Còn thu) lên đầu — lễ tân trả lời điện thoại không cần scroll"
+        },
+        {
+          "type": "improvement",
+          "text": "Quick actions ngay trong sheet: Gọi khách, Mở phiếu booking, CTA chính theo trạng thái"
+        },
+        {
+          "type": "improvement",
+          "text": "Ẩn các chi tiết phụ (breakdown tài chính, giấy tờ, CRM, lịch sử, ghi chú) vào mục Xem chi tiết — mở khi cần, tránh nhiễu"
+        },
+        {
+          "type": "fix",
+          "text": "Lịch sử thay đổi: dịch action sang tiếng Việt (move → Đổi phòng, update → Cập nhật booking, price_change → Sửa giá...)"
+        }
       ]
     },
-
     {
       "version": "1.0.89",
       "releaseDate": "2026-05-29",
       "title": "Tape chart sheet — breakdown tài chính, CCCD, CRM khách & lịch sử",
       "changes": [
-        { "type": "feature", "text": "Tài chính: hiển thị tiền phòng (giá × đêm), phụ thu nhận sớm/trả muộn/khác, đền bù hư hỏng, danh sách dịch vụ và minibar chi tiết" },
-        { "type": "feature", "text": "Mục Giấy tờ: trạng thái Đã scan / Chưa scan + preview ảnh CCCD/Hộ chiếu, cảnh báo bổ sung trước khi nhận phòng" },
-        { "type": "feature", "text": "Hồ sơ khách (CRM): match theo số CCCD hoặc SĐT, hiển thị VIP, số lượt lưu trú, tổng chi tiêu, lần gần nhất, mở thẳng sang trang khách" },
-        { "type": "feature", "text": "Lịch sử thay đổi: lấy 6 bản ghi mới nhất từ audit_log với hành động và trường thay đổi" }
+        {
+          "type": "feature",
+          "text": "Tài chính: hiển thị tiền phòng (giá × đêm), phụ thu nhận sớm/trả muộn/khác, đền bù hư hỏng, danh sách dịch vụ và minibar chi tiết"
+        },
+        {
+          "type": "feature",
+          "text": "Mục Giấy tờ: trạng thái Đã scan / Chưa scan + preview ảnh CCCD/Hộ chiếu, cảnh báo bổ sung trước khi nhận phòng"
+        },
+        {
+          "type": "feature",
+          "text": "Hồ sơ khách (CRM): match theo số CCCD hoặc SĐT, hiển thị VIP, số lượt lưu trú, tổng chi tiêu, lần gần nhất, mở thẳng sang trang khách"
+        },
+        {
+          "type": "feature",
+          "text": "Lịch sử thay đổi: lấy 6 bản ghi mới nhất từ audit_log với hành động và trường thay đổi"
+        }
       ]
     },
-
     {
       "version": "1.0.88",
       "releaseDate": "2026-05-29",
       "title": "Tape chart — redesign sheet chi tiết booking (Command Bar)",
       "changes": [
-        { "type": "improvement", "text": "Sheet booking: header gọn 1 dòng, số điện thoại tap-to-call, cảnh báo phòng bẩn/hỏng/còn nợ nổi bật" },
-        { "type": "improvement", "text": "Tài chính hiển thị TB/đêm, tách 'Còn phải thu' (đang lưu trú) vs 'Còn nợ' (đã trả phòng)" },
-        { "type": "improvement", "text": "Footer sticky với CTA chính theo trạng thái: Tiếp tục nhận phòng / Trả phòng / Thu tiền & trả phòng" }
+        {
+          "type": "improvement",
+          "text": "Sheet booking: header gọn 1 dòng, số điện thoại tap-to-call, cảnh báo phòng bẩn/hỏng/còn nợ nổi bật"
+        },
+        {
+          "type": "improvement",
+          "text": "Tài chính hiển thị TB/đêm, tách 'Còn phải thu' (đang lưu trú) vs 'Còn nợ' (đã trả phòng)"
+        },
+        {
+          "type": "improvement",
+          "text": "Footer sticky với CTA chính theo trạng thái: Tiếp tục nhận phòng / Trả phòng / Thu tiền & trả phòng"
+        }
       ]
     },
-
     {
       "version": "1.0.87",
       "releaseDate": "2026-05-29",
       "title": "Tape chart — sửa nền cột Phòng trong suốt gây đè chữ",
       "changes": [
-        { "type": "fix", "text": "Header 'Phòng' và row 'Tầng X' dùng nền opaque, không còn bị các ô ngày xuyên qua khi cuộn ngang" }
+        {
+          "type": "fix",
+          "text": "Header 'Phòng' và row 'Tầng X' dùng nền opaque, không còn bị các ô ngày xuyên qua khi cuộn ngang"
+        }
       ]
     },
-
     {
       "version": "1.0.86",
       "releaseDate": "2026-05-29",
       "title": "Tape chart — sửa booking bar đè chữ cột phòng",
       "changes": [
-        { "type": "fix", "text": "Cột phòng sticky (P101, Deluxe · Bẩn...) không còn bị bar booking đè khi cuộn ngang" }
+        {
+          "type": "fix",
+          "text": "Cột phòng sticky (P101, Deluxe · Bẩn...) không còn bị bar booking đè khi cuộn ngang"
+        }
       ]
     },
     {
@@ -599,12 +915,30 @@
       "releaseDate": "2026-05-28",
       "title": "Tape chart v2c.1 — sửa cuộn ngang, kéo-pan, dọn text đè, điều hướng theo tuần",
       "changes": [
-        { "type": "fix", "text": "Header ngày đồng bộ cuộn ngang với body: cuộn trái/phải không còn lệch cột ngày với bar booking" },
-        { "type": "feature", "text": "Kéo-pan bằng chuột: nhấn giữ trên vùng trống của chart và kéo để di chuyển ngang/dọc (không cần dùng thanh cuộn)" },
-        { "type": "feature", "text": "Điều hướng theo tuần: nút ◀/▶ chuyển 1 tuần, ◀◀/▶▶ chuyển nguyên cửa sổ; chọn ngày trong lịch đặt ngày đó vào 1/4 đầu cửa sổ và highlight" },
-        { "type": "feature", "text": "Phím tắt: ←/→ cuộn 7 ngày, T về hôm nay, [ và ] đổi cửa sổ 3/7/14/30" },
-        { "type": "improvement", "text": "Dọn text đè: header ngày cao 56px đủ chỗ cho dòng lễ Việt Nam; KPI strip chia 2 nhóm (vận hành / tài chính) với phân tách dọc, số tabular-nums không nhảy" },
-        { "type": "improvement", "text": "Hôm nay không còn nhảy về cột đầu — đặt vào 1/4 đầu cửa sổ để thấy cả quá khứ gần" }
+        {
+          "type": "fix",
+          "text": "Header ngày đồng bộ cuộn ngang với body: cuộn trái/phải không còn lệch cột ngày với bar booking"
+        },
+        {
+          "type": "feature",
+          "text": "Kéo-pan bằng chuột: nhấn giữ trên vùng trống của chart và kéo để di chuyển ngang/dọc (không cần dùng thanh cuộn)"
+        },
+        {
+          "type": "feature",
+          "text": "Điều hướng theo tuần: nút ◀/▶ chuyển 1 tuần, ◀◀/▶▶ chuyển nguyên cửa sổ; chọn ngày trong lịch đặt ngày đó vào 1/4 đầu cửa sổ và highlight"
+        },
+        {
+          "type": "feature",
+          "text": "Phím tắt: ←/→ cuộn 7 ngày, T về hôm nay, [ và ] đổi cửa sổ 3/7/14/30"
+        },
+        {
+          "type": "improvement",
+          "text": "Dọn text đè: header ngày cao 56px đủ chỗ cho dòng lễ Việt Nam; KPI strip chia 2 nhóm (vận hành / tài chính) với phân tách dọc, số tabular-nums không nhảy"
+        },
+        {
+          "type": "improvement",
+          "text": "Hôm nay không còn nhảy về cột đầu — đặt vào 1/4 đầu cửa sổ để thấy cả quá khứ gần"
+        }
       ]
     },
     {
@@ -612,11 +946,26 @@
       "releaseDate": "2026-05-28",
       "title": "Tape chart v2c — KPI ADR/RevPAR/Pickup, in/PDF, lễ Việt Nam, lưu preference, chế độ hỗ trợ màu",
       "changes": [
-        { "type": "feature", "text": "KPI nâng cao trên thanh tape chart: ADR, RevPAR và Pickup 24h (booking mới tạo) cho cửa sổ đang hiển thị, kèm % lấp đầy theo khoảng N ngày" },
-        { "type": "feature", "text": "Nút 'In' xuất tape chart ra máy in hoặc PDF (A3 ngang) — toolbar và sidebar tự ẩn khi in" },
-        { "type": "feature", "text": "Tô màu cột ngày lễ Việt Nam 2025–2027 (Tết, Giỗ Tổ, 30/4, 1/5, 2/9, Tết Dương lịch) và hiển thị tên rút gọn trên header" },
-        { "type": "feature", "text": "Lưu preference người dùng vào trình duyệt: khoảng ngày 3/7/14/30, bộ lọc trạng thái, lọc tầng, chế độ hỗ trợ màu — lần mở sau không phải set lại" },
-        { "type": "feature", "text": "Chế độ hỗ trợ màu (CB): thêm pattern sọc theo từng nhóm trạng thái thanh toán/lưu trú, giúp người không phân biệt màu vẫn đọc được tape chart" }
+        {
+          "type": "feature",
+          "text": "KPI nâng cao trên thanh tape chart: ADR, RevPAR và Pickup 24h (booking mới tạo) cho cửa sổ đang hiển thị, kèm % lấp đầy theo khoảng N ngày"
+        },
+        {
+          "type": "feature",
+          "text": "Nút 'In' xuất tape chart ra máy in hoặc PDF (A3 ngang) — toolbar và sidebar tự ẩn khi in"
+        },
+        {
+          "type": "feature",
+          "text": "Tô màu cột ngày lễ Việt Nam 2025–2027 (Tết, Giỗ Tổ, 30/4, 1/5, 2/9, Tết Dương lịch) và hiển thị tên rút gọn trên header"
+        },
+        {
+          "type": "feature",
+          "text": "Lưu preference người dùng vào trình duyệt: khoảng ngày 3/7/14/30, bộ lọc trạng thái, lọc tầng, chế độ hỗ trợ màu — lần mở sau không phải set lại"
+        },
+        {
+          "type": "feature",
+          "text": "Chế độ hỗ trợ màu (CB): thêm pattern sọc theo từng nhóm trạng thái thanh toán/lưu trú, giúp người không phân biệt màu vẫn đọc được tape chart"
+        }
       ]
     },
     {
@@ -624,11 +973,26 @@
       "releaseDate": "2026-05-28",
       "title": "Tape chart v2b — kéo–thả chuyển phòng, chặn phòng theo khoảng ngày, menu chuột phải",
       "changes": [
-        { "type": "feature", "text": "Kéo–thả bar booking sang phòng hoặc ngày khác — tự kiểm tra trùng booking/block, có audit log, không cho di chuyển booking đã trả phòng" },
-        { "type": "feature", "text": "Chặn phòng theo khoảng ngày (Bảo trì / OOO / OOS / Giữ VIP / Khác) — chuột phải ô trống → 'Chặn phòng từ ngày này', hiển thị thanh xám sọc trên tape chart" },
-        { "type": "feature", "text": "Menu chuột phải trên bar booking (Xem chi tiết, hướng dẫn kéo–thả) và trên block (Gỡ block)" },
-        { "type": "feature", "text": "KPI hiển thị số block đang hiệu lực; phòng đã block không cho tạo booking đè lên" },
-        { "type": "improvement", "text": "Realtime đồng bộ block phòng giữa các máy: máy A chặn phòng → máy B thấy ngay không cần refresh" }
+        {
+          "type": "feature",
+          "text": "Kéo–thả bar booking sang phòng hoặc ngày khác — tự kiểm tra trùng booking/block, có audit log, không cho di chuyển booking đã trả phòng"
+        },
+        {
+          "type": "feature",
+          "text": "Chặn phòng theo khoảng ngày (Bảo trì / OOO / OOS / Giữ VIP / Khác) — chuột phải ô trống → 'Chặn phòng từ ngày này', hiển thị thanh xám sọc trên tape chart"
+        },
+        {
+          "type": "feature",
+          "text": "Menu chuột phải trên bar booking (Xem chi tiết, hướng dẫn kéo–thả) và trên block (Gỡ block)"
+        },
+        {
+          "type": "feature",
+          "text": "KPI hiển thị số block đang hiệu lực; phòng đã block không cho tạo booking đè lên"
+        },
+        {
+          "type": "improvement",
+          "text": "Realtime đồng bộ block phòng giữa các máy: máy A chặn phòng → máy B thấy ngay không cần refresh"
+        }
       ]
     },
     {
@@ -636,17 +1000,50 @@
       "releaseDate": "2026-05-28",
       "title": "Tape chart v2 — vị trí theo giờ thực, phát hiện trùng giờ, sidebar việc cần làm",
       "changes": [
-        { "type": "feature", "text": "Bar booking giờ định vị theo GIỜ THỰC check-in/check-out (mặc định 14:00–12:00) — khách đi 12h và khách đến 14h cùng phòng cùng ngày không còn chồng nhau" },
-        { "type": "feature", "text": "Phát hiện overbooking: 2 booking trùng giờ tự xếp 2 hàng trong cùng phòng và viền đỏ cảnh báo; có nút lọc 'Trùng giờ' trên thanh KPI" },
-        { "type": "feature", "text": "Màu bar theo 5 trạng thái thanh toán: chưa cọc / cọc một phần / cọc đủ / đang lưu trú / còn nợ sau trả" },
-        { "type": "feature", "text": "Hover bar trong nhóm đặt phòng → tất cả phòng cùng nhóm sáng cùng lúc, các bar khác mờ đi" },
-        { "type": "feature", "text": "Sidebar 'Cần làm hôm nay' bên phải: khách đến, khách đi, phòng dơ cần dọn, booking còn nợ — bấm là mở chi tiết" },
-        { "type": "feature", "text": "Đường đỏ chỉ thời điểm hiện tại chạy dọc theo cột hôm nay, tự cập nhật mỗi phút" },
-        { "type": "feature", "text": "Sheet chi tiết booking mở từ ngay tape chart (không cần rời trang), có thông tin lưu trú/tài chính/nhóm/ghi chú" },
-        { "type": "feature", "text": "Bộ lọc nhanh: tìm theo tên khách/SĐT, lọc theo trạng thái booking, lọc theo tầng, chọn khoảng 3/7/14/30 ngày, jump-to-date bằng lịch" },
-        { "type": "feature", "text": "Badge nguồn booking (WI/BK/AG/AB/EX...) ở đầu bar để phân biệt walk-in và OTA" },
-        { "type": "improvement", "text": "Hiển thị trạng thái phòng v2 đầy đủ trên cột phòng (Trống/Sạch/Bẩn/DND/OOO/OOS…)" },
-        { "type": "improvement", "text": "Virtualization theo dòng — khách sạn 100+ phòng × 30 ngày cuộn mượt 60fps, render lần đầu < 800ms" }
+        {
+          "type": "feature",
+          "text": "Bar booking giờ định vị theo GIỜ THỰC check-in/check-out (mặc định 14:00–12:00) — khách đi 12h và khách đến 14h cùng phòng cùng ngày không còn chồng nhau"
+        },
+        {
+          "type": "feature",
+          "text": "Phát hiện overbooking: 2 booking trùng giờ tự xếp 2 hàng trong cùng phòng và viền đỏ cảnh báo; có nút lọc 'Trùng giờ' trên thanh KPI"
+        },
+        {
+          "type": "feature",
+          "text": "Màu bar theo 5 trạng thái thanh toán: chưa cọc / cọc một phần / cọc đủ / đang lưu trú / còn nợ sau trả"
+        },
+        {
+          "type": "feature",
+          "text": "Hover bar trong nhóm đặt phòng → tất cả phòng cùng nhóm sáng cùng lúc, các bar khác mờ đi"
+        },
+        {
+          "type": "feature",
+          "text": "Sidebar 'Cần làm hôm nay' bên phải: khách đến, khách đi, phòng dơ cần dọn, booking còn nợ — bấm là mở chi tiết"
+        },
+        {
+          "type": "feature",
+          "text": "Đường đỏ chỉ thời điểm hiện tại chạy dọc theo cột hôm nay, tự cập nhật mỗi phút"
+        },
+        {
+          "type": "feature",
+          "text": "Sheet chi tiết booking mở từ ngay tape chart (không cần rời trang), có thông tin lưu trú/tài chính/nhóm/ghi chú"
+        },
+        {
+          "type": "feature",
+          "text": "Bộ lọc nhanh: tìm theo tên khách/SĐT, lọc theo trạng thái booking, lọc theo tầng, chọn khoảng 3/7/14/30 ngày, jump-to-date bằng lịch"
+        },
+        {
+          "type": "feature",
+          "text": "Badge nguồn booking (WI/BK/AG/AB/EX...) ở đầu bar để phân biệt walk-in và OTA"
+        },
+        {
+          "type": "improvement",
+          "text": "Hiển thị trạng thái phòng v2 đầy đủ trên cột phòng (Trống/Sạch/Bẩn/DND/OOO/OOS…)"
+        },
+        {
+          "type": "improvement",
+          "text": "Virtualization theo dòng — khách sạn 100+ phòng × 30 ngày cuộn mượt 60fps, render lần đầu < 800ms"
+        }
       ]
     },
     {
@@ -654,10 +1051,22 @@
       "releaseDate": "2026-05-28",
       "title": "Tape chart cho lễ tân — xem cả tuần đặt phòng trên 1 màn hình",
       "changes": [
-        { "type": "feature", "text": "Tab 'Sơ đồ tầng' đổi thành 'Tape chart' kiểu PMS: mỗi phòng 1 dòng × 3/7/14 ngày, hiển thị thanh booking theo tên khách và màu trạng thái" },
-        { "type": "feature", "text": "KPI nhanh: số phòng đang ở, khách đến/đi hôm nay, tỉ lệ lấp đầy" },
-        { "type": "feature", "text": "Chạm thanh booking để xem chi tiết; chạm ô trống để tạo đặt phòng mới đúng phòng + ngày" },
-        { "type": "feature", "text": "Tự cập nhật realtime khi có booking mới hoặc trạng thái phòng thay đổi" }
+        {
+          "type": "feature",
+          "text": "Tab 'Sơ đồ tầng' đổi thành 'Tape chart' kiểu PMS: mỗi phòng 1 dòng × 3/7/14 ngày, hiển thị thanh booking theo tên khách và màu trạng thái"
+        },
+        {
+          "type": "feature",
+          "text": "KPI nhanh: số phòng đang ở, khách đến/đi hôm nay, tỉ lệ lấp đầy"
+        },
+        {
+          "type": "feature",
+          "text": "Chạm thanh booking để xem chi tiết; chạm ô trống để tạo đặt phòng mới đúng phòng + ngày"
+        },
+        {
+          "type": "feature",
+          "text": "Tự cập nhật realtime khi có booking mới hoặc trạng thái phòng thay đổi"
+        }
       ]
     },
     {
@@ -665,8 +1074,14 @@
       "releaseDate": "2026-05-28",
       "title": "Sửa khoảng trắng khi vuốt trên PWA iOS",
       "changes": [
-        { "type": "fix", "text": "Vuốt quá đầu/cuối trang trên PWA iPhone không còn lộ vùng trắng — màu nền khớp với theme tối" },
-        { "type": "fix", "text": "Status bar trên iPhone đồng bộ màu với nền app thay vì hiện dải trắng" }
+        {
+          "type": "fix",
+          "text": "Vuốt quá đầu/cuối trang trên PWA iPhone không còn lộ vùng trắng — màu nền khớp với theme tối"
+        },
+        {
+          "type": "fix",
+          "text": "Status bar trên iPhone đồng bộ màu với nền app thay vì hiện dải trắng"
+        }
       ]
     },
     {
@@ -674,9 +1089,18 @@
       "releaseDate": "2026-05-28",
       "title": "Tin nhắn gửi tức thì như Messenger",
       "changes": [
-        { "type": "improvement", "text": "Tin nhắn hiện ngay khi nhấn Enter (<50ms) thay vì chờ máy chủ phản hồi — gõ và gửi liên tục không bị khựng" },
-        { "type": "improvement", "text": "Tin đang gửi hiển thị mờ nhẹ, tự sáng lại khi máy chủ xác nhận" },
-        { "type": "fix", "text": "Bỏ refetch toàn bộ 50 tin mỗi khi mình gửi xong — giảm tải mạng và hết hiện tượng nhấp nháy" }
+        {
+          "type": "improvement",
+          "text": "Tin nhắn hiện ngay khi nhấn Enter (<50ms) thay vì chờ máy chủ phản hồi — gõ và gửi liên tục không bị khựng"
+        },
+        {
+          "type": "improvement",
+          "text": "Tin đang gửi hiển thị mờ nhẹ, tự sáng lại khi máy chủ xác nhận"
+        },
+        {
+          "type": "fix",
+          "text": "Bỏ refetch toàn bộ 50 tin mỗi khi mình gửi xong — giảm tải mạng và hết hiện tượng nhấp nháy"
+        }
       ]
     },
     {
@@ -684,8 +1108,14 @@
       "releaseDate": "2026-05-28",
       "title": "Sửa lỗi nhân viên/quản lý đăng nhập bị đá về 'Không có quyền'",
       "changes": [
-        { "type": "fix", "text": "Sửa RPC get_user_permissions_summary bị lỗi 'column module is ambiguous' khiến mọi tài khoản không phải Chủ/Super Admin không tải được quyền và bị chuyển về trang Không có quyền" },
-        { "type": "fix", "text": "Quản lý khách sạn và nhân viên buồng nay đăng nhập vào đúng module có quyền truy cập" }
+        {
+          "type": "fix",
+          "text": "Sửa RPC get_user_permissions_summary bị lỗi 'column module is ambiguous' khiến mọi tài khoản không phải Chủ/Super Admin không tải được quyền và bị chuyển về trang Không có quyền"
+        },
+        {
+          "type": "fix",
+          "text": "Quản lý khách sạn và nhân viên buồng nay đăng nhập vào đúng module có quyền truy cập"
+        }
       ]
     },
     {
@@ -693,19 +1123,33 @@
       "releaseDate": "2026-05-28",
       "title": "Sửa crash khi tải quyền truy cập",
       "changes": [
-        { "type": "fix", "text": "Thêm fallback ?? [] khi permissions chưa tải về hoặc RPC thất bại — tránh lỗi 'Cannot read properties of undefined (reading find')" },
-        { "type": "fix", "text": "AuthCallback không còn bị kẹt 'Đang xác thực...' khi dữ liệu phân quyền rỗng hoặc lỗi" }
+        {
+          "type": "fix",
+          "text": "Thêm fallback ?? [] khi permissions chưa tải về hoặc RPC thất bại — tránh lỗi 'Cannot read properties of undefined (reading find')"
+        },
+        {
+          "type": "fix",
+          "text": "AuthCallback không còn bị kẹt 'Đang xác thực...' khi dữ liệu phân quyền rỗng hoặc lỗi"
+        }
       ]
     },
     {
       "version": "1.0.75",
-      "version": "1.0.75",
       "releaseDate": "2026-05-28",
       "title": "Sửa lỗi kẹt 'Đang xác thực...' sau khi đăng nhập",
       "changes": [
-        { "type": "fix", "text": "Không còn kẹt vô hạn ở màn hình 'Đang xác thực...' khi tài khoản nhân viên chưa có dữ liệu phân quyền — tự động chuyển vào trang phù hợp" },
-        { "type": "improvement", "text": "Thêm timeout an toàn 8 giây và nút 'Đăng nhập lại' xuất hiện sau 5 giây để thoát khỏi màn hình chờ nếu mạng/quyền tải chậm" },
-        { "type": "improvement", "text": "Hiển thị dòng phụ 'Đang tải quyền truy cập' để biết app đang làm gì" }
+        {
+          "type": "fix",
+          "text": "Không còn kẹt vô hạn ở màn hình 'Đang xác thực...' khi tài khoản nhân viên chưa có dữ liệu phân quyền — tự động chuyển vào trang phù hợp"
+        },
+        {
+          "type": "improvement",
+          "text": "Thêm timeout an toàn 8 giây và nút 'Đăng nhập lại' xuất hiện sau 5 giây để thoát khỏi màn hình chờ nếu mạng/quyền tải chậm"
+        },
+        {
+          "type": "improvement",
+          "text": "Hiển thị dòng phụ 'Đang tải quyền truy cập' để biết app đang làm gì"
+        }
       ]
     },
     {
@@ -713,10 +1157,22 @@
       "releaseDate": "2026-05-28",
       "title": "Toast tin nhắn theo phong cách Messenger",
       "changes": [
-        { "type": "improvement", "text": "Toast tin nhắn mới hiển thị avatar thật của người gửi, tên đậm và preview nội dung — bố cục giống Messenger" },
-        { "type": "improvement", "text": "Bấm bất kỳ đâu trên toast là mở ngay cửa sổ chat đúng cuộc trò chuyện (bỏ nút 'Mở chat' rời)" },
-        { "type": "improvement", "text": "Chat nhóm hiển thị huy hiệu Users trên avatar và dòng phụ 'trong \"Tên nhóm\"' để dễ nhận diện" },
-        { "type": "improvement", "text": "Tin có ảnh/đính kèm khi body trống hiển thị '📷 Ảnh' hoặc '📎 Tệp đính kèm'" }
+        {
+          "type": "improvement",
+          "text": "Toast tin nhắn mới hiển thị avatar thật của người gửi, tên đậm và preview nội dung — bố cục giống Messenger"
+        },
+        {
+          "type": "improvement",
+          "text": "Bấm bất kỳ đâu trên toast là mở ngay cửa sổ chat đúng cuộc trò chuyện (bỏ nút 'Mở chat' rời)"
+        },
+        {
+          "type": "improvement",
+          "text": "Chat nhóm hiển thị huy hiệu Users trên avatar và dòng phụ 'trong \"Tên nhóm\"' để dễ nhận diện"
+        },
+        {
+          "type": "improvement",
+          "text": "Tin có ảnh/đính kèm khi body trống hiển thị '📷 Ảnh' hoặc '📎 Tệp đính kèm'"
+        }
       ]
     },
     {
@@ -724,9 +1180,18 @@
       "releaseDate": "2026-05-28",
       "title": "Chat mobile: chuyển sang nút nổi giống desktop",
       "changes": [
-        { "type": "improvement", "text": "Gỡ tab 'Tin nhắn' khỏi bottom nav trên mobile — giải phóng 1 slot cho module nghiệp vụ" },
-        { "type": "improvement", "text": "Hiển thị nút chat nổi (floating) trên mobile, đặt phía trên bottom nav để dễ thao tác bằng ngón cái" },
-        { "type": "improvement", "text": "Badge số tin chưa đọc hiển thị ngay trên nút nổi, đồng bộ trải nghiệm với desktop" }
+        {
+          "type": "improvement",
+          "text": "Gỡ tab 'Tin nhắn' khỏi bottom nav trên mobile — giải phóng 1 slot cho module nghiệp vụ"
+        },
+        {
+          "type": "improvement",
+          "text": "Hiển thị nút chat nổi (floating) trên mobile, đặt phía trên bottom nav để dễ thao tác bằng ngón cái"
+        },
+        {
+          "type": "improvement",
+          "text": "Badge số tin chưa đọc hiển thị ngay trên nút nổi, đồng bộ trải nghiệm với desktop"
+        }
       ]
     },
     {
@@ -734,9 +1199,18 @@
       "releaseDate": "2026-05-28",
       "title": "Cải thiện thông báo tin nhắn đến",
       "changes": [
-        { "type": "improvement", "text": "Toast tin nhắn có icon (MessageCircle / Users) và viền trái màu primary — phân biệt rõ chat 1-1 và nhóm" },
-        { "type": "improvement", "text": "Nội dung toast hiển thị đúng: chat nhóm thì 'Người gửi → Tên nhóm', chat 1-1 thì tên người gửi" },
-        { "type": "improvement", "text": "Nút action đổi từ 'Mở' thành 'Mở chat' rõ nghĩa hơn, cả trên realtime toast và notification bell" }
+        {
+          "type": "improvement",
+          "text": "Toast tin nhắn có icon (MessageCircle / Users) và viền trái màu primary — phân biệt rõ chat 1-1 và nhóm"
+        },
+        {
+          "type": "improvement",
+          "text": "Nội dung toast hiển thị đúng: chat nhóm thì 'Người gửi → Tên nhóm', chat 1-1 thì tên người gửi"
+        },
+        {
+          "type": "improvement",
+          "text": "Nút action đổi từ 'Mở' thành 'Mở chat' rõ nghĩa hơn, cả trên realtime toast và notification bell"
+        }
       ]
     },
     {
@@ -744,9 +1218,18 @@
       "releaseDate": "2026-05-28",
       "title": "Chat mobile: pin ô nhập + nút về cuối",
       "changes": [
-        { "type": "fix", "text": "Form nhập tin và nút gửi luôn sticky ở đáy (sticky bottom-0), không bị đẩy đi khi bàn phím iOS mở/đóng" },
-        { "type": "improvement", "text": "Khu vực cuộn tin nhắn dùng absolute inset-0 + overscroll-contain để tách hoàn toàn khỏi form gửi" },
-        { "type": "feature", "text": "Thêm nút 'Về cuối' nổi (ChevronDown) khi cuộn lên cao; auto-scroll chỉ khi đang ở gần đáy để không cướp vị trí đọc" }
+        {
+          "type": "fix",
+          "text": "Form nhập tin và nút gửi luôn sticky ở đáy (sticky bottom-0), không bị đẩy đi khi bàn phím iOS mở/đóng"
+        },
+        {
+          "type": "improvement",
+          "text": "Khu vực cuộn tin nhắn dùng absolute inset-0 + overscroll-contain để tách hoàn toàn khỏi form gửi"
+        },
+        {
+          "type": "feature",
+          "text": "Thêm nút 'Về cuối' nổi (ChevronDown) khi cuộn lên cao; auto-scroll chỉ khi đang ở gần đáy để không cướp vị trí đọc"
+        }
       ]
     },
     {
@@ -754,7 +1237,10 @@
       "releaseDate": "2026-05-28",
       "title": "Khóa ô nhập tin chat ở cuối màn hình mobile",
       "changes": [
-        { "type": "fix", "text": "Cửa sổ chat mobile dùng 100svh thay vì 100dvh: ô nhập tin và nút gửi không bị đẩy lên/xuống khi cuộn (thanh địa chỉ Safari thay đổi)" }
+        {
+          "type": "fix",
+          "text": "Cửa sổ chat mobile dùng 100svh thay vì 100dvh: ô nhập tin và nút gửi không bị đẩy lên/xuống khi cuộn (thanh địa chỉ Safari thay đổi)"
+        }
       ]
     },
     {
@@ -762,9 +1248,18 @@
       "releaseDate": "2026-05-28",
       "title": "Cải thiện hộp thoại chat trên mobile",
       "changes": [
-        { "type": "fix", "text": "Cửa sổ chat mobile dùng 100dvh + interactive-widget=resizes-content: khi mở bàn phím, layout co lại đúng, ô nhập và tin nhắn không còn bị che" },
-        { "type": "fix", "text": "Bỏ padding safe-area kép giữa popup và form gửi tin → khu vực cuộn tin nhắn rộng hơn" },
-        { "type": "improvement", "text": "Header chat mobile cao hơn, tap target nút Back/Đóng 40×40, tôn trọng safe-area-top" }
+        {
+          "type": "fix",
+          "text": "Cửa sổ chat mobile dùng 100dvh + interactive-widget=resizes-content: khi mở bàn phím, layout co lại đúng, ô nhập và tin nhắn không còn bị che"
+        },
+        {
+          "type": "fix",
+          "text": "Bỏ padding safe-area kép giữa popup và form gửi tin → khu vực cuộn tin nhắn rộng hơn"
+        },
+        {
+          "type": "improvement",
+          "text": "Header chat mobile cao hơn, tap target nút Back/Đóng 40×40, tôn trọng safe-area-top"
+        }
       ]
     },
     {
