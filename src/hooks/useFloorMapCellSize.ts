@@ -61,15 +61,44 @@ function signature(value: CellSizeState): string {
 }
 
 export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: CellSizeState | null) {
-  const [size, setSize] = useState<CellSizeState>(() => remoteInitial ? normalize(remoteInitial) : readStored(hotelId))
+  const initialSize = remoteInitial ? normalize(remoteInitial) : readStored(hotelId)
+  const [size, setSize] = useState<CellSizeState>(() => initialSize)
+  const [savedSize, setSavedSize] = useState<CellSizeState>(() => initialSize)
+  const [isDirty, setIsDirty] = useState(false)
   const sizeRef = useRef(size)
-  const dirtyRef = useRef(false)
+  const savedSizeRef = useRef(savedSize)
+  const isDirtyRef = useRef(false)
   const hotelRef = useRef(hotelId)
-  const lastSavedSignatureRef = useRef<string | null>(remoteInitial ? signature(normalize(remoteInitial)) : null)
 
   useEffect(() => {
     sizeRef.current = size
   }, [size])
+
+  useEffect(() => {
+    savedSizeRef.current = savedSize
+  }, [savedSize])
+
+  const applySaved = useCallback((next: CellSizeState) => {
+    const normalized = normalize(next)
+    sizeRef.current = normalized
+    savedSizeRef.current = normalized
+    isDirtyRef.current = false
+    setSize(normalized)
+    setSavedSize(normalized)
+    setIsDirty(false)
+    try { localStorage.setItem(storageKey(hotelId), JSON.stringify(normalized)) } catch {
+      // Local persistence is best-effort.
+    }
+  }, [hotelId])
+
+  const applyDraft = useCallback((next: CellSizeState) => {
+    const normalized = normalize(next)
+    const dirty = signature(normalized) !== signature(savedSizeRef.current)
+    sizeRef.current = normalized
+    isDirtyRef.current = dirty
+    setSize(normalized)
+    setIsDirty(dirty)
+  }, [])
 
   // Reload when hotel changes or remote arrives. Do not let stale remote values
   // overwrite local edits while the user is adjusting before pressing Save.
@@ -77,32 +106,18 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
     const hotelChanged = hotelRef.current !== hotelId
     if (hotelChanged) {
       hotelRef.current = hotelId
-      dirtyRef.current = false
     }
 
     if (!remoteInitial) {
       if (hotelChanged) {
-        const stored = readStored(hotelId)
-        sizeRef.current = stored
-        setSize(stored)
+        applySaved(readStored(hotelId))
       }
       return
     }
 
     const next = normalize(remoteInitial)
-    const remoteSignature = signature(next)
-
-    if (dirtyRef.current && !hotelChanged) return
-    if (!hotelChanged && lastSavedSignatureRef.current && remoteSignature !== lastSavedSignatureRef.current) return
-
-    sizeRef.current = next
-    setSize(next)
-    lastSavedSignatureRef.current = remoteSignature
-    try { localStorage.setItem(storageKey(hotelId), JSON.stringify(next)) } catch {
-      // Local persistence is best-effort.
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hotelId, remoteInitial?.height, remoteInitial?.cols, remoteInitial?.fontScale, remoteInitial?.preset])
+    if (!isDirtyRef.current || hotelChanged) applySaved(next)
+  }, [applySaved, hotelId, remoteInitial?.height, remoteInitial?.cols, remoteInitial?.fontScale, remoteInitial?.preset])
 
   const setPreset = useCallback((preset: CellSizePreset) => {
     dirtyRef.current = true

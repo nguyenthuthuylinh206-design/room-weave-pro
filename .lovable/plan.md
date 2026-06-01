@@ -1,43 +1,59 @@
-## Mục tiêu
-Sửa lỗi sau khi chỉnh kích thước/cỡ chữ sơ đồ phòng và bấm **Lưu**, giao diện vẫn có lúc bị quay về giá trị cũ.
+## Vấn đề hiện tại
+Các nút **Nhỏ / Vừa / Lớn** và popup chỉnh kích thước đang đổi UI tạm thời, nhưng trải nghiệm **Lưu** gây hiểu nhầm/không có tác dụng rõ ràng vì:
 
-## Phát hiện chính
-- API lưu vào backend đã thành công: request `PATCH hotels` trả `204` và dữ liệu `floor_map_cell_size` đã có trong `hotels.settings`.
-- Lỗi nằm ở client state: hook local nhận `remoteInitial` từ query cũ và mỗi lần component re-render/refetch có thể set lại state theo giá trị remote cũ, làm cảm giác “lưu xong lại trở về như cũ”.
-- Sau khi lưu, hook chỉ `setQueryData` cho query riêng `['floor-map-cell-size', hotelId]`, nhưng danh sách `hotels` cũng refetch; cần cập nhật đồng bộ cache danh sách hotels để tránh context kéo cấu hình cũ về.
+- Nút preset ngoài toolbar không có nút Lưu ngay bên cạnh, nên người dùng bấm preset xong tưởng đã lưu.
+- Dữ liệu thực tế có gửi PATCH thành công, nhưng nguồn state đang có nhiều lớp: remote settings, localStorage, state tạm, cache hotels.
+- Hook hiện vẫn ưu tiên chống overwrite hơi phức tạp, dễ tạo cảm giác state đã lưu nhưng UI không đổi hoặc quay lại khi remote/local cache lệch nhau.
+
+## Cách sửa triệt để
+Chuyển sang mô hình rõ ràng:
+
+```text
+server settings -> savedSize
+người dùng chỉnh -> draftSize
+bấm Lưu -> save draftSize vào server + localStorage -> savedSize = draftSize
+bấm Hủy/đóng không lưu -> draft quay lại savedSize
+```
 
 ## Kế hoạch triển khai
-1. **Ổn định state local của sơ đồ phòng**
-   - Thêm cơ chế “dirty/local edited” trong `useFloorMapCellSize`.
-   - Khi người dùng đang chỉnh hoặc vừa chỉnh, không cho `remoteInitial` cũ ghi đè state local.
-   - Khi lưu thành công, đánh dấu state hiện tại là đã đồng bộ.
+1. **Tách draft và saved size trong `useFloorMapCellSize`**
+   - `savedSize`: cấu hình đã được tải/lưu chính thức.
+   - `size`: cấu hình đang áp dụng trên UI để người dùng xem thử.
+   - `isDirty`: có thay đổi chưa lưu hay không.
+   - `markSynced(value)`: sau khi server lưu xong, set cả `savedSize` và `size` về value.
+   - `discardDraft()`: quay lại cấu hình đã lưu nếu người dùng không muốn giữ thay đổi.
 
-2. **Đồng bộ cache sau khi lưu vĩnh viễn**
-   - Sửa `useFloorMapCellSizeRemote` để sau khi lưu thành công:
-     - cập nhật query `['floor-map-cell-size', hotelId]` ngay lập tức,
-     - cập nhật mọi cache danh sách `hotels` đang có, merge `settings.floor_map_cell_size` vào đúng khách sạn,
-     - tránh refetch kéo dữ liệu cũ làm UI nhảy ngược.
+2. **Nút preset Nhỏ/Vừa/Lớn phải lưu thật**
+   - Đổi hành vi các nút preset ngoài toolbar: click **Nhỏ/Vừa/Lớn** sẽ lưu luôn preset đó lên server, không chỉ đổi UI tạm.
+   - Nếu chưa có khách sạn, lưu local thiết bị.
+   - Hiển thị trạng thái loading/disabled khi đang lưu.
 
-3. **Sửa UX nút Lưu**
-   - Sau khi bấm **Lưu**, vẫn lưu localStorage trước như hiện tại.
-   - Khi backend lưu thành công, gọi hàm xác nhận sync để giá trị hiện tại không bị remote cũ overwrite.
-   - Hiển thị toast đúng trạng thái: “Đã lưu vĩnh viễn…” chỉ khi backend thật sự thành công.
+3. **Popup tùy chỉnh phải có trạng thái rõ ràng**
+   - Trong popup, chỉnh slider vẫn preview ngay.
+   - Hiển thị nhãn “Chưa lưu” khi có thay đổi.
+   - Nút **Lưu** chỉ enable khi có thay đổi.
+   - Thêm nút **Hủy** hoặc khi đóng popup thì gọi `discardDraft()` để không giữ nhầm thay đổi chưa lưu.
 
-4. **Kiểm tra sau sửa**
-   - Test thao tác: kéo cỡ chữ/kích thước → lưu → chuyển tab/refresh → giá trị vẫn giữ.
-   - Kiểm tra network vẫn có `PATCH hotels 204`.
-   - Không thêm migration vì đây là lỗi state/cache frontend, schema backend đã lưu được.
+4. **Đồng bộ cache backend sau lưu**
+   - Giữ logic cập nhật `['floor-map-cell-size', tenantId, hotelId]`.
+   - Cập nhật cache `['hotels', ...]` đúng hotel.
+   - Không invalidate ngay lập tức nếu không cần, tránh refetch kéo giá trị cũ trong vài ms.
 
-## File dự kiến sửa
+5. **Kiểm tra**
+   - Kiểm tra request PATCH gửi đúng body sau khi bấm Nhỏ/Vừa/Lớn.
+   - Kiểm tra popup: kéo slider -> thấy “Chưa lưu” -> bấm Lưu -> refresh vẫn giữ.
+   - Chạy lint các file liên quan.
+
+## File sẽ sửa
 - `src/hooks/useFloorMapCellSize.ts`
-- `src/hooks/useFloorMapCellSizeRemote.ts`
 - `src/components/rooms/RoomFloorMapView.tsx`
+- `src/hooks/useFloorMapCellSizeRemote.ts` nếu cần tinh chỉnh cache nhẹ
 
 ## Migration
 - Không thêm migration.
 
-## Test dự kiến
-- Không thêm test tự động nếu project chưa có test cho hook này; sẽ kiểm tra bằng preview/network sau khi implement.
+## Test
+- Không thêm test tự động trong lượt này; sẽ chạy lint và kiểm tra network/preview nếu phiên browser có auth.
 
 ## Phần còn thiếu/rủi ro
-- Nếu quyền cập nhật `hotels.settings` bị hạn chế theo role ở một tài khoản khác, người đó vẫn có thể chỉ lưu cục bộ; cần tách quyền “lưu cho toàn khách sạn” ở phase sau nếu muốn.
+- Nếu người dùng muốn preset ngoài toolbar chỉ preview chứ không lưu luôn, cần đổi lại theo hướng có nút “Lưu” luôn hiện ngoài toolbar. Nhưng theo phản hồi hiện tại, preset nên có tác dụng lưu thật ngay khi bấm.
