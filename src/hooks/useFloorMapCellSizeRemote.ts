@@ -61,23 +61,23 @@ export function useFloorMapCellSizeRemote(hotelId?: string | null) {
     mutationFn: async (value: CellSizeState) => {
       if (!hotelId) throw new Error('Chưa chọn khách sạn')
       if (!tenantId) throw new Error('Chưa xác định tenant')
-      const { data: row, error: readErr } = await supabase
+      const normalized = normalizeCellSize(value)
+      const { data, error } = await supabase.rpc('update_hotel_floor_map_cell_size' as any, {
+        p_hotel_id: hotelId,
+        p_size: toCellSizeJson(normalized),
+      }) as { data: unknown; error: { message?: string } | null }
+      if (error) throw error
+      const saved = normalizeCellSize(data as Partial<CellSizeState>)
+
+      const { data: row, error: confirmErr } = await supabase
         .from('hotels')
         .select('settings')
         .eq('tenant_id', tenantId)
         .eq('id', hotelId)
         .maybeSingle()
-      if (readErr) throw readErr
-      const current = asSettings(row?.settings)
-      const normalized = normalizeCellSize(value)
-      const newSettings = { ...current, floor_map_cell_size: toCellSizeJson(normalized) } as Json
-      const { error } = await supabase
-        .from('hotels')
-        .update({ settings: newSettings })
-        .eq('tenant_id', tenantId)
-        .eq('id', hotelId)
-      if (error) throw error
-      return normalized
+      if (confirmErr) throw confirmErr
+      const confirmed = asSettings(row?.settings).floor_map_cell_size
+      return confirmed ? normalizeCellSize(confirmed as Partial<CellSizeState>) : saved
     },
     onSuccess: (value) => {
       qc.setQueryData(['floor-map-cell-size', tenantId, hotelId], value)
