@@ -27,7 +27,7 @@ import { vi } from 'date-fns/locale'
 import { Search, Plus, FileSpreadsheet, History, Unlock, Maximize2, Check, RotateCcw } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Slider } from '@/components/ui/slider'
-import { useFloorMapCellSize } from '@/hooks/useFloorMapCellSize'
+import { getPresetCellSize, useFloorMapCellSize, type CellSizeState } from '@/hooks/useFloorMapCellSize'
 import { useFloorMapCellSizeRemote } from '@/hooks/useFloorMapCellSizeRemote'
 import { toast } from 'sonner'
 import { useTodayPricesByHotel } from '@/hooks/usePricingDaily'
@@ -233,39 +233,28 @@ export function RoomFloorMapView({
 
   const canBook = hasPermission(role, 'manage_rooms')
 
-  const saveSizeValue = (value = cellSize.getCurrentSize(), successMessage?: string) => {
-    try {
-      localStorage.setItem(
-        `rooms.floorMap.cellSize:${selectedHotel?.id || 'default'}`,
-        JSON.stringify(value),
-      )
-    } catch {
-      // Local persistence is best-effort.
-    }
+  const saveSizeValue = (value: CellSizeState, successMessage?: string, onSaved?: () => void) => {
     if (!selectedHotel?.id) {
       cellSize.markSynced(value)
       toast.success('Đã lưu trên thiết bị này')
+      onSaved?.()
       return
     }
     saveCellSize.mutate(value, {
-      onSuccess: () => {
-        cellSize.markSynced(value)
+      onSuccess: (savedValue) => {
+        cellSize.markSynced(savedValue)
         toast.success(successMessage || `Đã lưu vĩnh viễn cho ${selectedHotel.name}`)
+        onSaved?.()
       },
       onError: (err: unknown) => {
         console.error('[saveCellSize]', err)
-        toast.error('Lưu lên máy chủ thất bại, đã giữ bản chỉnh sửa trên màn hình')
+        toast.error('Lưu thất bại, thay đổi vẫn chỉ là bản xem thử')
       },
     })
   }
 
   const savePresetImmediately = (preset: 'sm' | 'md' | 'lg') => {
-    const presetConfig = preset === 'sm'
-      ? { height: 80, cols: 16 }
-      : preset === 'lg'
-        ? { height: 128, cols: 8 }
-        : { height: 96, cols: 12 }
-    const next = { preset, ...presetConfig, fontScale: cellSize.getCurrentSize().fontScale }
+    const next = getPresetCellSize(preset, cellSize.getCurrentSize().fontScale)
     cellSize.setPreset(preset)
     saveSizeValue(next, `Đã lưu chế độ ${preset === 'sm' ? 'Nhỏ' : preset === 'lg' ? 'Lớn' : 'Vừa'}`)
   }
@@ -459,7 +448,12 @@ export function RoomFloorMapView({
           </div>
           <Popover
             open={sizePopoverOpen}
-            onOpenChange={setSizePopoverOpen}
+            onOpenChange={(open) => {
+              setSizePopoverOpen(open)
+              if (!open && cellSize.isDirty && !saveCellSize.isPending) {
+                cellSize.discardDraft()
+              }
+            }}
           >
             <PopoverTrigger asChild>
               <Button
@@ -565,8 +559,7 @@ export function RoomFloorMapView({
                   disabled={saveCellSize.isPending || !cellSize.isDirty}
                   onClick={() => {
                     const currentSize = cellSize.getCurrentSize()
-                    saveSizeValue(currentSize)
-                    setSizePopoverOpen(false)
+                    saveSizeValue(currentSize, undefined, () => setSizePopoverOpen(false))
                   }}
                 >
                   <Check className="h-3.5 w-3.5" />
@@ -628,10 +621,18 @@ export function RoomFloorMapView({
                   return (
                     <Tooltip key={room.id}>
                       <TooltipTrigger asChild>
-                        <button
-                          type="button"
+                        <div
+                          role="button"
+                          tabIndex={0}
                           onClick={() => handleRoomClick(room)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault()
+                              handleRoomClick(room)
+                            }
+                          }}
                           className={cn(
+                            'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                             'group relative flex flex-col items-stretch justify-between rounded-lg border border-black/10 p-2 text-center text-white shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-95',
                             m.solid,
                             showGroupRing && cn('ring-2 ring-offset-1', ringForGroup(gid!)),
@@ -740,7 +741,7 @@ export function RoomFloorMapView({
                             </div>
                           )}
 
-                        </button>
+                        </div>
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-xs">
                         <RoomTooltip

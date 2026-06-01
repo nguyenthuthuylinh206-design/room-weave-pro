@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 
 export type CellSizePreset = 'sm' | 'md' | 'lg' | 'custom'
 
@@ -9,7 +9,7 @@ export interface CellSizeState {
   fontScale: number // 0.8 – 1.4
 }
 
-const PRESETS: Record<Exclude<CellSizePreset, 'custom'>, { height: number; cols: number }> = {
+export const FLOOR_MAP_CELL_SIZE_PRESETS: Record<Exclude<CellSizePreset, 'custom'>, { height: number; cols: number }> = {
   sm: { height: 80, cols: 16 },
   md: { height: 96, cols: 12 },
   lg: { height: 128, cols: 8 },
@@ -30,13 +30,13 @@ function snapCols(c: number): number {
   return best
 }
 
-function storageKey(hotelId?: string | null) {
+export function floorMapCellSizeStorageKey(hotelId?: string | null) {
   return `rooms.floorMap.cellSize:${hotelId || 'default'}`
 }
 
-function normalize(p: Partial<CellSizeState> | null | undefined): CellSizeState {
+export function normalizeCellSize(p: Partial<CellSizeState> | null | undefined): CellSizeState {
   if (!p || typeof p.height !== 'number' || typeof p.cols !== 'number') {
-    return { preset: 'md', ...PRESETS.md, fontScale: DEFAULT_FONT_SCALE }
+    return { preset: 'md', ...FLOOR_MAP_CELL_SIZE_PRESETS.md, fontScale: DEFAULT_FONT_SCALE }
   }
   return {
     preset: (p.preset as CellSizePreset) || 'custom',
@@ -46,28 +46,31 @@ function normalize(p: Partial<CellSizeState> | null | undefined): CellSizeState 
   }
 }
 
+export function getPresetCellSize(preset: Exclude<CellSizePreset, 'custom'>, fontScale = DEFAULT_FONT_SCALE): CellSizeState {
+  return normalizeCellSize({ preset, ...FLOOR_MAP_CELL_SIZE_PRESETS[preset], fontScale })
+}
+
 function readStored(hotelId?: string | null): CellSizeState {
   try {
-    const raw = localStorage.getItem(storageKey(hotelId))
-    if (raw) return normalize(JSON.parse(raw))
+    const raw = localStorage.getItem(floorMapCellSizeStorageKey(hotelId))
+    if (raw) return normalizeCellSize(JSON.parse(raw))
   } catch {
     // Ignore corrupted local preferences and fall back to defaults.
   }
-  return normalize(null)
+  return normalizeCellSize(null)
 }
 
-function signature(value: CellSizeState): string {
-  return JSON.stringify(normalize(value))
+export function cellSizeSignature(value: CellSizeState): string {
+  return JSON.stringify(normalizeCellSize(value))
 }
 
 export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: CellSizeState | null) {
-  const initialSize = remoteInitial ? normalize(remoteInitial) : readStored(hotelId)
+  const initialSize = remoteInitial ? normalizeCellSize(remoteInitial) : readStored(hotelId)
   const [size, setSize] = useState<CellSizeState>(() => initialSize)
   const [savedSize, setSavedSize] = useState<CellSizeState>(() => initialSize)
-  const [isDirty, setIsDirty] = useState(false)
+  const [dirtySignature, setDirtySignature] = useState(() => cellSizeSignature(initialSize))
   const sizeRef = useRef(size)
   const savedSizeRef = useRef(savedSize)
-  const isDirtyRef = useRef(false)
   const hotelRef = useRef(hotelId)
 
   useEffect(() => {
@@ -78,26 +81,23 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
     savedSizeRef.current = savedSize
   }, [savedSize])
 
-  const applySaved = useCallback((next: CellSizeState) => {
-    const normalized = normalize(next)
+  const applySaved = useCallback((next: Partial<CellSizeState> | null | undefined) => {
+    const normalized = normalizeCellSize(next)
     sizeRef.current = normalized
     savedSizeRef.current = normalized
-    isDirtyRef.current = false
     setSize(normalized)
     setSavedSize(normalized)
-    setIsDirty(false)
-    try { localStorage.setItem(storageKey(hotelId), JSON.stringify(normalized)) } catch {
+    setDirtySignature(cellSizeSignature(normalized))
+    try { localStorage.setItem(floorMapCellSizeStorageKey(hotelId), JSON.stringify(normalized)) } catch {
       // Local persistence is best-effort.
     }
   }, [hotelId])
 
-  const applyDraft = useCallback((next: CellSizeState) => {
-    const normalized = normalize(next)
-    const dirty = signature(normalized) !== signature(savedSizeRef.current)
+  const applyDraft = useCallback((next: Partial<CellSizeState>) => {
+    const normalized = normalizeCellSize(next)
     sizeRef.current = normalized
-    isDirtyRef.current = dirty
     setSize(normalized)
-    setIsDirty(dirty)
+    setDirtySignature(cellSizeSignature(normalized))
   }, [])
 
   // Reload when hotel changes or remote arrives. Do not let stale remote values
@@ -115,8 +115,9 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
       return
     }
 
-    const next = normalize(remoteInitial)
-    if (!isDirtyRef.current || hotelChanged) applySaved(next)
+    const next = normalizeCellSize(remoteInitial)
+    const hasUnsavedChanges = cellSizeSignature(sizeRef.current) !== cellSizeSignature(savedSizeRef.current)
+    if (!hasUnsavedChanges || hotelChanged) applySaved(next)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applySaved, hotelId, remoteInitial?.height, remoteInitial?.cols, remoteInitial?.fontScale, remoteInitial?.preset])
 
@@ -124,7 +125,7 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
     const current = sizeRef.current
     applyDraft(preset === 'custom'
       ? { ...current, preset: 'custom' }
-      : { preset, ...PRESETS[preset], fontScale: current.fontScale })
+      : getPresetCellSize(preset, current.fontScale))
   }, [applyDraft])
 
   const setCustom = useCallback((patch: Partial<Pick<CellSizeState, 'height' | 'cols' | 'fontScale'>>) => {
@@ -142,7 +143,7 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
   }, [applyDraft])
 
   const reset = useCallback(() => {
-    applyDraft({ preset: 'md', ...PRESETS.md, fontScale: DEFAULT_FONT_SCALE })
+    applyDraft(getPresetCellSize('md'))
   }, [applyDraft])
 
   const markSynced = useCallback((value?: CellSizeState) => {
@@ -165,21 +166,21 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
       if (e.key === '0') {
         e.preventDefault()
         const current = sizeRef.current
-        applyDraft({ preset: 'md', ...PRESETS.md, fontScale: current.fontScale })
+        applyDraft(getPresetCellSize('md', current.fontScale))
       } else if (e.key === '=' || e.key === '+') {
         e.preventDefault()
         const current = sizeRef.current
         const idx = order.indexOf(current.preset)
         const nextIdx = idx === -1 ? order.indexOf('md') : Math.min(order.length - 1, idx + 1)
         const p = order[nextIdx]
-        applyDraft({ preset: p, ...PRESETS[p as 'sm'|'md'|'lg'], fontScale: current.fontScale })
+        applyDraft(getPresetCellSize(p as 'sm'|'md'|'lg', current.fontScale))
       } else if (e.key === '-' || e.key === '_') {
         e.preventDefault()
         const current = sizeRef.current
         const idx = order.indexOf(current.preset)
         const nextIdx = idx === -1 ? order.indexOf('md') : Math.max(0, idx - 1)
         const p = order[nextIdx]
-        applyDraft({ preset: p, ...PRESETS[p as 'sm'|'md'|'lg'], fontScale: current.fontScale })
+        applyDraft(getPresetCellSize(p as 'sm'|'md'|'lg', current.fontScale))
       }
     }
     window.addEventListener('keydown', handler)
@@ -189,7 +190,7 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
   const classes = useMemo(() => {
     const minCellPx = Math.max(72, Math.round(size.height * 0.85))
     const targetMin = Math.round(minCellPx * (12 / Math.max(4, size.cols)))
-    const gridStyle: React.CSSProperties = {
+    const gridStyle: CSSProperties = {
       gridTemplateColumns: `repeat(auto-fill, minmax(${targetMin}px, 1fr))`,
     }
 
@@ -209,6 +210,8 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
     const name = size.preset === 'sm' ? 'Nhỏ' : size.preset === 'lg' ? 'Lớn' : size.preset === 'md' ? 'Vừa' : 'Tuỳ chỉnh'
     return `${name} · ${size.cols} cột · ${Math.round(size.fontScale * 100)}%`
   }, [size])
+
+  const isDirty = dirtySignature !== cellSizeSignature(savedSize)
 
   return { size, savedSize, isDirty, setPreset, setCustom, setFontScale, reset, markSynced, discardDraft, getCurrentSize, classes, summaryLabel, allowedCols: ALLOWED_COLS as readonly number[] }
 }
