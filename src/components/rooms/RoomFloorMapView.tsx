@@ -515,16 +515,19 @@ export function RoomFloorMapView({
                         `rooms.floorMap.cellSize:${selectedHotel?.id || 'default'}`,
                         JSON.stringify(cellSize.size),
                       )
-                    } catch {}
+                    } catch {
+                      // Local persistence is best-effort.
+                    }
                     if (!selectedHotel?.id) {
                       toast.success('Đã lưu trên thiết bị này')
                       return
                     }
                     saveCellSize.mutate(cellSize.size, {
                       onSuccess: () => {
+                        cellSize.markSynced(cellSize.size)
                         toast.success(`Đã lưu vĩnh viễn cho ${selectedHotel.name}`)
                       },
-                      onError: (err: any) => {
+                      onError: (err: unknown) => {
                         console.error('[saveCellSize]', err)
                         toast.error('Lưu lên máy chủ thất bại, đã lưu cục bộ trên thiết bị này')
                       },
@@ -577,7 +580,9 @@ export function RoomFloorMapView({
                       const hrs = differenceInHours(out, new Date())
                       if (hrs < 0) countdown = 'Trễ'
                       else if (hrs < 24) countdown = `${hrs}h`
-                    } catch {}
+                    } catch {
+                      // Ignore malformed checkout time and hide countdown.
+                    }
                   }
 
                   const statusLabel = getStatusBadgeLabel(room, bucket)

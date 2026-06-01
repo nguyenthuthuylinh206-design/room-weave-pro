@@ -1,6 +1,34 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
+import type { Json } from '@/integrations/supabase/types'
 import type { CellSizeState } from './useFloorMapCellSize'
+import { useUser } from './useUser'
+
+type HotelCacheRow = { id?: string; settings?: Record<string, unknown> | null; [key: string]: unknown }
+
+function asSettings(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+}
+
+function toCellSizeJson(value: CellSizeState): Json {
+  return {
+    preset: value.preset,
+    height: value.height,
+    cols: value.cols,
+    fontScale: value.fontScale,
+  }
+}
+
+function mergeFloorMapCellSizeIntoHotel<T extends HotelCacheRow>(hotel: T, hotelId: string, value: CellSizeState): T {
+  if (!hotel || hotel.id !== hotelId) return hotel
+  return {
+    ...hotel,
+    settings: {
+      ...asSettings(hotel.settings),
+      floor_map_cell_size: value,
+    },
+  }
+}
 
 /**
  * Load + persist Floor Map cell-size vào hotels.settings.floor_map_cell_size.
@@ -8,45 +36,56 @@ import type { CellSizeState } from './useFloorMapCellSize'
  */
 export function useFloorMapCellSizeRemote(hotelId?: string | null) {
   const qc = useQueryClient()
+  const { tenantId } = useUser()
 
   const query = useQuery({
-    queryKey: ['floor-map-cell-size', hotelId],
+    queryKey: ['floor-map-cell-size', tenantId, hotelId],
     queryFn: async (): Promise<CellSizeState | null> => {
-      if (!hotelId) return null
+      if (!hotelId || !tenantId) return null
       const { data, error } = await supabase
         .from('hotels')
         .select('settings')
+        .eq('tenant_id', tenantId)
         .eq('id', hotelId)
         .maybeSingle()
       if (error) throw error
-      const s = (data?.settings as any)?.floor_map_cell_size
-      return s ?? null
+      const s = asSettings(data?.settings).floor_map_cell_size
+      return s ? s as CellSizeState : null
     },
-    enabled: !!hotelId,
+    enabled: !!hotelId && !!tenantId,
     staleTime: 5 * 60 * 1000,
   })
 
   const save = useMutation({
     mutationFn: async (value: CellSizeState) => {
       if (!hotelId) throw new Error('Chưa chọn khách sạn')
+      if (!tenantId) throw new Error('Chưa xác định tenant')
       const { data: row, error: readErr } = await supabase
         .from('hotels')
         .select('settings')
+        .eq('tenant_id', tenantId)
         .eq('id', hotelId)
         .maybeSingle()
       if (readErr) throw readErr
-      const current = (row?.settings as any) ?? {}
-      const newSettings = { ...current, floor_map_cell_size: value }
+      const current = asSettings(row?.settings)
+      const newSettings = { ...current, floor_map_cell_size: toCellSizeJson(value) } as Json
       const { error } = await supabase
         .from('hotels')
         .update({ settings: newSettings })
+        .eq('tenant_id', tenantId)
         .eq('id', hotelId)
       if (error) throw error
       return value
     },
     onSuccess: (value) => {
-      qc.setQueryData(['floor-map-cell-size', hotelId], value)
-      qc.invalidateQueries({ queryKey: ['hotels'] })
+      qc.setQueryData(['floor-map-cell-size', tenantId, hotelId], value)
+      qc.setQueriesData({ queryKey: ['hotels'] }, (old: unknown) => {
+        if (!hotelId || !old) return old
+        if (Array.isArray(old)) {
+          return old.map((hotel) => mergeFloorMapCellSizeIntoHotel(hotel as HotelCacheRow, hotelId, value))
+        }
+        return mergeFloorMapCellSizeIntoHotel(old as HotelCacheRow, hotelId, value)
+      })
     },
   })
 
