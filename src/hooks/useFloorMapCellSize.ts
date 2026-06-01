@@ -84,7 +84,6 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
   // Persist localStorage (debounced)
   useEffect(() => {
     const t = setTimeout(() => {
-      try { localStorage.setItem(storageKey(hotelId), JSON.stringify(size)) } catch {}
       try { localStorage.setItem(storageKey(hotelId), JSON.stringify(size)) } catch {
         // Local persistence is best-effort.
       }
