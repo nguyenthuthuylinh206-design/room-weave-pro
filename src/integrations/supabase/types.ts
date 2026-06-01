@@ -2456,6 +2456,88 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_targets: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          hotel_id: string | null
+          id: string
+          metric: string
+          notes: string | null
+          period_month: string
+          target_value: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          hotel_id?: string | null
+          id?: string
+          metric: string
+          notes?: string | null
+          period_month: string
+          target_value: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          hotel_id?: string | null
+          id?: string
+          metric?: string
+          notes?: string | null
+          period_month?: string
+          target_value?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_targets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_targets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_targets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_effective_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "financial_targets_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "financial_targets_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_targets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_invoices: {
         Row: {
           amount_paid: number
@@ -10428,6 +10510,7 @@ export type Database = {
           email: string
           full_name: string
           hotel_id: string | null
+          hourly_wage_vnd: number | null
           id: string
           is_primary_owner: boolean | null
           is_super_admin: boolean | null
@@ -10436,6 +10519,7 @@ export type Database = {
           locked_reason: string | null
           login_count: number | null
           metadata: Json | null
+          monthly_salary_vnd: number | null
           must_change_password: boolean | null
           notes: string | null
           phone: string | null
@@ -10460,6 +10544,7 @@ export type Database = {
           email: string
           full_name: string
           hotel_id?: string | null
+          hourly_wage_vnd?: number | null
           id: string
           is_primary_owner?: boolean | null
           is_super_admin?: boolean | null
@@ -10468,6 +10553,7 @@ export type Database = {
           locked_reason?: string | null
           login_count?: number | null
           metadata?: Json | null
+          monthly_salary_vnd?: number | null
           must_change_password?: boolean | null
           notes?: string | null
           phone?: string | null
@@ -10492,6 +10578,7 @@ export type Database = {
           email?: string
           full_name?: string
           hotel_id?: string | null
+          hourly_wage_vnd?: number | null
           id?: string
           is_primary_owner?: boolean | null
           is_super_admin?: boolean | null
@@ -10500,6 +10587,7 @@ export type Database = {
           locked_reason?: string | null
           login_count?: number | null
           metadata?: Json | null
+          monthly_salary_vnd?: number | null
           must_change_password?: boolean | null
           notes?: string | null
           phone?: string | null
@@ -12753,6 +12841,15 @@ export type Database = {
               warehouse_breakdown: Json
             }[]
           }
+      get_labor_cost: {
+        Args: {
+          p_end_date: string
+          p_hotel_id: string
+          p_start_date: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
       get_last_room_check: {
         Args: { _room_id: string }
         Returns: {
@@ -13311,6 +13408,7 @@ export type Database = {
           email: string
           full_name: string
           hotel_id: string | null
+          hourly_wage_vnd: number | null
           id: string
           is_primary_owner: boolean | null
           is_super_admin: boolean | null
@@ -13319,6 +13417,7 @@ export type Database = {
           locked_reason: string | null
           login_count: number | null
           metadata: Json | null
+          monthly_salary_vnd: number | null
           must_change_password: boolean | null
           notes: string | null
           phone: string | null
