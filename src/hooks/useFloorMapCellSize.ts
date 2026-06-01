@@ -163,39 +163,27 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
       if (e.key === '0') {
         e.preventDefault()
-        dirtyRef.current = true
-        setSize((s) => {
-          const next = { preset: 'md' as const, ...PRESETS.md, fontScale: s.fontScale }
-          sizeRef.current = next
-          return next
-        })
+        const current = sizeRef.current
+        applyDraft({ preset: 'md', ...PRESETS.md, fontScale: current.fontScale })
       } else if (e.key === '=' || e.key === '+') {
         e.preventDefault()
-        setSize((s) => {
-          const idx = order.indexOf(s.preset)
-          const nextIdx = idx === -1 ? order.indexOf('md') : Math.min(order.length - 1, idx + 1)
-          const p = order[nextIdx]
-          dirtyRef.current = true
-          const next = { preset: p, ...PRESETS[p as 'sm'|'md'|'lg'], fontScale: s.fontScale }
-          sizeRef.current = next
-          return next
-        })
+        const current = sizeRef.current
+        const idx = order.indexOf(current.preset)
+        const nextIdx = idx === -1 ? order.indexOf('md') : Math.min(order.length - 1, idx + 1)
+        const p = order[nextIdx]
+        applyDraft({ preset: p, ...PRESETS[p as 'sm'|'md'|'lg'], fontScale: current.fontScale })
       } else if (e.key === '-' || e.key === '_') {
         e.preventDefault()
-        setSize((s) => {
-          const idx = order.indexOf(s.preset)
-          const nextIdx = idx === -1 ? order.indexOf('md') : Math.max(0, idx - 1)
-          const p = order[nextIdx]
-          dirtyRef.current = true
-          const next = { preset: p, ...PRESETS[p as 'sm'|'md'|'lg'], fontScale: s.fontScale }
-          sizeRef.current = next
-          return next
-        })
+        const current = sizeRef.current
+        const idx = order.indexOf(current.preset)
+        const nextIdx = idx === -1 ? order.indexOf('md') : Math.max(0, idx - 1)
+        const p = order[nextIdx]
+        applyDraft({ preset: p, ...PRESETS[p as 'sm'|'md'|'lg'], fontScale: current.fontScale })
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [])
+  }, [applyDraft])
 
   const classes = useMemo(() => {
     const minCellPx = Math.max(72, Math.round(size.height * 0.85))
@@ -221,5 +209,5 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
     return `${name} · ${size.cols} cột · ${Math.round(size.fontScale * 100)}%`
   }, [size])
 
-  return { size, setPreset, setCustom, setFontScale, reset, markSynced, getCurrentSize, classes, summaryLabel, allowedCols: ALLOWED_COLS as readonly number[] }
+  return { size, savedSize, isDirty, setPreset, setCustom, setFontScale, reset, markSynced, discardDraft, getCurrentSize, classes, summaryLabel, allowedCols: ALLOWED_COLS as readonly number[] }
 }
