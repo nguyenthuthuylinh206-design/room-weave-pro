@@ -186,6 +186,7 @@ export function RoomFloorMapView({
   const [bucketFilter, setBucketFilter] = useState<ReceptionBucket | 'all'>('all')
   const [floorFilter, setFloorFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
+  const [sizePopoverOpen, setSizePopoverOpen] = useState(false)
   const transitionRoom = useRoomTransition()
   const { remote: remoteCellSize, save: saveCellSize } = useFloorMapCellSizeRemote(selectedHotel?.id)
   const cellSize = useFloorMapCellSize(selectedHotel?.id, remoteCellSize)
@@ -231,6 +232,43 @@ export function RoomFloorMapView({
   }, [data])
 
   const canBook = hasPermission(role, 'manage_rooms')
+
+  const saveSizeValue = (value = cellSize.getCurrentSize(), successMessage?: string) => {
+    try {
+      localStorage.setItem(
+        `rooms.floorMap.cellSize:${selectedHotel?.id || 'default'}`,
+        JSON.stringify(value),
+      )
+    } catch {
+      // Local persistence is best-effort.
+    }
+    if (!selectedHotel?.id) {
+      cellSize.markSynced(value)
+      toast.success('Đã lưu trên thiết bị này')
+      return
+    }
+    saveCellSize.mutate(value, {
+      onSuccess: () => {
+        cellSize.markSynced(value)
+        toast.success(successMessage || `Đã lưu vĩnh viễn cho ${selectedHotel.name}`)
+      },
+      onError: (err: unknown) => {
+        console.error('[saveCellSize]', err)
+        toast.error('Lưu lên máy chủ thất bại, đã giữ bản chỉnh sửa trên màn hình')
+      },
+    })
+  }
+
+  const savePresetImmediately = (preset: 'sm' | 'md' | 'lg') => {
+    const presetConfig = preset === 'sm'
+      ? { height: 80, cols: 16 }
+      : preset === 'lg'
+        ? { height: 128, cols: 8 }
+        : { height: 96, cols: 12 }
+    const next = { preset, ...presetConfig, fontScale: cellSize.getCurrentSize().fontScale }
+    cellSize.setPreset(preset)
+    saveSizeValue(next, `Đã lưu chế độ ${preset === 'sm' ? 'Nhỏ' : preset === 'lg' ? 'Lớn' : 'Vừa'}`)
+  }
 
   // Click phòng → mở Reception Quick Dialog cho mọi trạng thái.
   // Dialog sẽ render khác nhau dựa trên có booking hay không.
