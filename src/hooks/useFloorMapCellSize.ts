@@ -9,7 +9,7 @@ export interface CellSizeState {
   fontScale: number // 0.8 – 1.4
 }
 
-const PRESETS: Record<Exclude<CellSizePreset, 'custom'>, { height: number; cols: number }> = {
+export const FLOOR_MAP_CELL_SIZE_PRESETS: Record<Exclude<CellSizePreset, 'custom'>, { height: number; cols: number }> = {
   sm: { height: 80, cols: 16 },
   md: { height: 96, cols: 12 },
   lg: { height: 128, cols: 8 },
@@ -30,13 +30,13 @@ function snapCols(c: number): number {
   return best
 }
 
-function storageKey(hotelId?: string | null) {
+export function floorMapCellSizeStorageKey(hotelId?: string | null) {
   return `rooms.floorMap.cellSize:${hotelId || 'default'}`
 }
 
-function normalize(p: Partial<CellSizeState> | null | undefined): CellSizeState {
+export function normalizeCellSize(p: Partial<CellSizeState> | null | undefined): CellSizeState {
   if (!p || typeof p.height !== 'number' || typeof p.cols !== 'number') {
-    return { preset: 'md', ...PRESETS.md, fontScale: DEFAULT_FONT_SCALE }
+    return { preset: 'md', ...FLOOR_MAP_CELL_SIZE_PRESETS.md, fontScale: DEFAULT_FONT_SCALE }
   }
   return {
     preset: (p.preset as CellSizePreset) || 'custom',
@@ -46,18 +46,22 @@ function normalize(p: Partial<CellSizeState> | null | undefined): CellSizeState 
   }
 }
 
+export function getPresetCellSize(preset: Exclude<CellSizePreset, 'custom'>, fontScale = DEFAULT_FONT_SCALE): CellSizeState {
+  return normalizeCellSize({ preset, ...FLOOR_MAP_CELL_SIZE_PRESETS[preset], fontScale })
+}
+
 function readStored(hotelId?: string | null): CellSizeState {
   try {
-    const raw = localStorage.getItem(storageKey(hotelId))
-    if (raw) return normalize(JSON.parse(raw))
+    const raw = localStorage.getItem(floorMapCellSizeStorageKey(hotelId))
+    if (raw) return normalizeCellSize(JSON.parse(raw))
   } catch {
     // Ignore corrupted local preferences and fall back to defaults.
   }
-  return normalize(null)
+  return normalizeCellSize(null)
 }
 
-function signature(value: CellSizeState): string {
-  return JSON.stringify(normalize(value))
+export function cellSizeSignature(value: CellSizeState): string {
+  return JSON.stringify(normalizeCellSize(value))
 }
 
 export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: CellSizeState | null) {
