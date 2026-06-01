@@ -81,7 +81,11 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
     }
 
     if (!remoteInitial) {
-      if (hotelChanged) setSize(readStored(hotelId))
+      if (hotelChanged) {
+        const stored = readStored(hotelId)
+        sizeRef.current = stored
+        setSize(stored)
+      }
       return
     }
 
@@ -91,6 +95,7 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
     if (dirtyRef.current && !hotelChanged) return
     if (!hotelChanged && lastSavedSignatureRef.current && remoteSignature !== lastSavedSignatureRef.current) return
 
+    sizeRef.current = next
     setSize(next)
     lastSavedSignatureRef.current = remoteSignature
     try { localStorage.setItem(storageKey(hotelId), JSON.stringify(next)) } catch {
@@ -102,36 +107,55 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
   const setPreset = useCallback((preset: CellSizePreset) => {
     dirtyRef.current = true
     if (preset === 'custom') {
-      setSize((s) => ({ ...s, preset: 'custom' }))
+      setSize((s) => {
+        const next = { ...s, preset: 'custom' as const }
+        sizeRef.current = next
+        return next
+      })
     } else {
-      setSize((s) => ({ preset, ...PRESETS[preset], fontScale: s.fontScale }))
+      setSize((s) => {
+        const next = { preset, ...PRESETS[preset], fontScale: s.fontScale }
+        sizeRef.current = next
+        return next
+      })
     }
   }, [])
 
   const setCustom = useCallback((patch: Partial<Pick<CellSizeState, 'height' | 'cols' | 'fontScale'>>) => {
     dirtyRef.current = true
-    setSize((s) => ({
-      preset: 'custom',
-      height: clamp(patch.height ?? s.height, 64, 200),
-      cols: snapCols(patch.cols ?? s.cols),
-      fontScale: clamp(patch.fontScale ?? s.fontScale, 0.8, 1.6),
-    }))
+    setSize((s) => {
+      const next = {
+        preset: 'custom' as const,
+        height: clamp(patch.height ?? s.height, 64, 200),
+        cols: snapCols(patch.cols ?? s.cols),
+        fontScale: clamp(patch.fontScale ?? s.fontScale, 0.8, 1.6),
+      }
+      sizeRef.current = next
+      return next
+    })
   }, [])
 
   const setFontScale = useCallback((v: number) => {
     dirtyRef.current = true
-    setSize((s) => ({ ...s, fontScale: clamp(v, 0.8, 1.6) }))
+    setSize((s) => {
+      const next = { ...s, fontScale: clamp(v, 0.8, 1.6) }
+      sizeRef.current = next
+      return next
+    })
   }, [])
 
   const reset = useCallback(() => {
     dirtyRef.current = true
-    setSize({ preset: 'md', ...PRESETS.md, fontScale: DEFAULT_FONT_SCALE })
+    const next = { preset: 'md' as const, ...PRESETS.md, fontScale: DEFAULT_FONT_SCALE }
+    sizeRef.current = next
+    setSize(next)
   }, [])
 
   const markSynced = useCallback((value?: CellSizeState) => {
     dirtyRef.current = false
     const next = normalize(value ?? sizeRef.current)
     lastSavedSignatureRef.current = signature(next)
+    sizeRef.current = next
     setSize(next)
     try { localStorage.setItem(storageKey(hotelId), JSON.stringify(next)) } catch {
       // Local persistence is best-effort.
