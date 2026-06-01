@@ -442,20 +442,28 @@ export function RoomFloorMapView({
               <button
                 key={p}
                 type="button"
-                onClick={() => cellSize.setPreset(p)}
+                disabled={saveCellSize.isPending}
+                onClick={() => savePresetImmediately(p)}
                 className={cn(
                   'h-6 rounded px-2 text-[11px] font-medium transition-colors',
                   cellSize.size.preset === p
                     ? 'bg-foreground text-background'
                     : 'text-muted-foreground hover:text-foreground',
+                  saveCellSize.isPending && 'cursor-not-allowed opacity-60',
                 )}
-                title={p === 'sm' ? 'Nhỏ (Ctrl -)' : p === 'lg' ? 'Lớn (Ctrl +)' : 'Vừa (Ctrl 0)'}
+                title={p === 'sm' ? 'Lưu cỡ nhỏ' : p === 'lg' ? 'Lưu cỡ lớn' : 'Lưu cỡ vừa'}
               >
                 {p === 'sm' ? 'Nhỏ' : p === 'lg' ? 'Lớn' : 'Vừa'}
               </button>
             ))}
           </div>
-          <Popover>
+          <Popover
+            open={sizePopoverOpen}
+            onOpenChange={(open) => {
+              if (!open && cellSize.isDirty && !saveCellSize.isPending) cellSize.discardDraft()
+              setSizePopoverOpen(open)
+            }}
+          >
             <PopoverTrigger asChild>
               <Button
                 size="sm"
@@ -469,7 +477,10 @@ export function RoomFloorMapView({
             </PopoverTrigger>
             <PopoverContent align="end" className="w-72 space-y-4">
               <div>
-                <div className="mb-2 text-xs font-semibold">Kích thước ô phòng</div>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="text-xs font-semibold">Kích thước ô phòng</div>
+                  {cellSize.isDirty && <span className="text-[10px] font-medium text-amber-600">Chưa lưu</span>}
+                </div>
                 <div className="grid grid-cols-3 gap-1">
                   {(['sm', 'md', 'lg'] as const).map((p) => (
                     <button
@@ -534,43 +545,31 @@ export function RoomFloorMapView({
                   variant="ghost"
                   className="h-7 gap-1 px-2 text-xs"
                   onClick={() => {
-                    cellSize.reset()
-                    toast.success('Đã đặt lại mặc định')
+                    cellSize.discardDraft()
+                    setSizePopoverOpen(false)
                   }}
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
-                  Đặt lại
+                  Hủy
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-xs"
+                  onClick={cellSize.reset}
+                >
+                  Mặc định
                 </Button>
                 <Button
                   type="button"
                   size="sm"
                   className="h-7 gap-1 px-3 text-xs"
-                  disabled={saveCellSize.isPending || !selectedHotel?.id}
+                  disabled={saveCellSize.isPending || !cellSize.isDirty}
                   onClick={() => {
                     const currentSize = cellSize.getCurrentSize()
-                    // Lưu localStorage trước (không mất nếu DB lỗi)
-                    try {
-                      localStorage.setItem(
-                        `rooms.floorMap.cellSize:${selectedHotel?.id || 'default'}`,
-                        JSON.stringify(currentSize),
-                      )
-                    } catch {
-                      // Local persistence is best-effort.
-                    }
-                    if (!selectedHotel?.id) {
-                      toast.success('Đã lưu trên thiết bị này')
-                      return
-                    }
-                    saveCellSize.mutate(currentSize, {
-                      onSuccess: () => {
-                        cellSize.markSynced(currentSize)
-                        toast.success(`Đã lưu vĩnh viễn cho ${selectedHotel.name}`)
-                      },
-                      onError: (err: unknown) => {
-                        console.error('[saveCellSize]', err)
-                        toast.error('Lưu lên máy chủ thất bại, đã lưu cục bộ trên thiết bị này')
-                      },
-                    })
+                    saveSizeValue(currentSize)
+                    setSizePopoverOpen(false)
                   }}
                 >
                   <Check className="h-3.5 w-3.5" />
