@@ -28,6 +28,7 @@ import { Search, Plus, FileSpreadsheet, History, Unlock, Maximize2, Check, Rotat
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Slider } from '@/components/ui/slider'
 import { useFloorMapCellSize } from '@/hooks/useFloorMapCellSize'
+import { useFloorMapCellSizeRemote } from '@/hooks/useFloorMapCellSizeRemote'
 import { toast } from 'sonner'
 import { useTodayPricesByHotel } from '@/hooks/usePricingDaily'
 
