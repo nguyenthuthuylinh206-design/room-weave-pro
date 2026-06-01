@@ -16,7 +16,7 @@ export interface ConversationListItem {
   muted_until: string | null
   last_read_message_id: string | null
   unread_count: number
-  peer?: { id: string; full_name: string | null; avatar_url: string | null } | null
+  peer?: { id: string; full_name: string | null; avatar_url: string | null; phone: string | null; telegram_username: string | null } | null
 }
 
 export interface ChatAttachment {
@@ -91,7 +91,7 @@ export function useConversations() {
         if (peerIds.length > 0) {
           const { data: users } = await supabase
             .from('users')
-            .select('id, full_name, avatar_url')
+            .select('id, full_name, avatar_url, phone, telegram_username')
             .in('id', peerIds)
           const userMap = new Map((users || []).map((u: any) => [u.id, u]))
           const peerByConv = new Map<string, any>()

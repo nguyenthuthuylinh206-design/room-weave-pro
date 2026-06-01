@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { Minus, X, Maximize2, ArrowLeft } from 'lucide-react'
+import { Minus, X, Maximize2, ArrowLeft, Phone } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -40,6 +40,12 @@ export function ChatPopupWindow({
       : conv.name || 'Nhóm'
     : 'Đang tải...'
 
+  const callUrl = conv?.peer?.telegram_username
+    ? `https://t.me/${conv.peer.telegram_username}`
+    : conv?.peer?.phone
+      ? `tel:${conv.peer.phone}`
+      : null
+
   // ─── MOBILE ───────────────────────────────────────────────────────────────
   if (isMobile) {
     // Only render the top-most (index 0) popup on mobile to avoid stacking sheets.
@@ -74,6 +80,18 @@ export function ChatPopupWindow({
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 truncate text-sm font-semibold">{title}</div>
+          {callUrl && (
+            <a
+              href={callUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground"
+              aria-label="Gọi qua Telegram"
+              title="Gọi qua Telegram"
+            >
+              <Phone className="h-5 w-5" />
+            </a>
+          )}
           <Button
             type="button"
             variant="ghost"
@@ -138,6 +156,18 @@ export function ChatPopupWindow({
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 truncate text-sm font-semibold">{title}</div>
+        {callUrl && (
+          <a
+            href={callUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-foreground hover:bg-accent hover:text-accent-foreground"
+            aria-label="Gọi qua Telegram"
+            title="Gọi qua Telegram"
+          >
+            <Phone className="h-3.5 w-3.5" />
+          </a>
+        )}
         <Button
           type="button"
           variant="ghost"
