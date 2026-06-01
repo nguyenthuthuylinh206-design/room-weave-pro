@@ -7,6 +7,11 @@
 
 import { classifyBenchmark, INDUSTRY_BENCHMARKS } from './industryBenchmarks'
 
+export interface LaborBreakdown {
+  total: number
+  byDepartment: Record<string, number>
+}
+
 export interface KpiSnapshot {
   /** Số ngày trong kỳ */
   periodDays: number
@@ -18,12 +23,14 @@ export interface KpiSnapshot {
   grossRevenue: number
   /** Doanh thu dịch vụ thêm (service + extra) */
   extraRevenue: number
-  /** Tổng chi phí (purchase + laundry + maintenance) */
+  /** Tổng chi phí (purchase + laundry + maintenance + labor) */
   totalCost: number
   costBreakdown: {
     purchase: number
     laundry: number
     maintenance: number
+    /** Chi phí nhân sự (tổng) — có thể = 0 nếu chưa cấu hình lương */
+    labor: number
   }
   /** Số đêm phòng đã bán */
   roomNightsSold: number
@@ -33,23 +40,51 @@ export interface KpiSnapshot {
   prevNetRevenue: number
   prevBookingsCount: number
   prevRoomNightsSold: number
+  /** YoY: cùng kỳ năm trước (optional, undefined nếu chưa đủ data) */
+  yoyNetRevenue?: number
+  yoyRoomNightsSold?: number
+  /** Labor cost chi tiết theo bộ phận */
+  laborByDepartment?: Record<string, number>
+  /** Targets/budget tháng (optional) */
+  targets?: Partial<{
+    occupancy: number
+    revpar: number
+    adr: number
+    gop_margin: number
+    goppar: number
+    labor_ratio: number
+    net_revenue: number
+    gop: number
+  }>
 }
 
 export interface DerivedKpis {
+  /** Lợi nhuận thuần (net revenue − total cost) */
   profit: number
   profitMargin: number
+  /** GOP = net revenue − departmental costs − labor; ở đây dùng total cost trừ undistributed (maintenance) */
+  gop: number
+  gopMargin: number
+  goppar: number
   occupancy: number
   revpar: number
+  trevpar: number
   adr: number
   extraRevenueShare: number
   costPerRoomDay: number
+  costPor: number
   laundryCostPerRoom: number
+  laborRatio: number
+  /** % delta so kỳ trước liền kề */
   revenueGrowth: number
   occupancyGrowth: number
+  /** % delta so cùng kỳ năm trước */
+  yoyRevenueGrowth?: number
+  yoyOccupancyGrowth?: number
 }
 
 export type Severity = 'high' | 'medium' | 'low'
-export type Category = 'revenue' | 'cost' | 'occupancy' | 'service' | 'efficiency'
+export type Category = 'revenue' | 'cost' | 'occupancy' | 'service' | 'efficiency' | 'labor' | 'target'
 
 export interface Finding {
   id: string
@@ -67,27 +102,50 @@ export function computeDerivedKpis(s: KpiSnapshot): DerivedKpis {
   const totalRoomDays = s.totalRooms * s.periodDays
   const profit = s.netRevenue - s.totalCost
   const profitMargin = safe(profit, s.netRevenue) * 100
+  // GOP = doanh thu − (departmental costs + labor); maintenance & admin là undistributed → KHÔNG trừ vào GOP
+  const departmentalCost = s.costBreakdown.purchase + s.costBreakdown.laundry + s.costBreakdown.labor
+  const gop = s.netRevenue - departmentalCost
+  const gopMargin = safe(gop, s.netRevenue) * 100
+  const goppar = safe(gop, totalRoomDays)
   const occupancy = safe(s.roomNightsSold, totalRoomDays) * 100
   const revpar = safe(s.netRevenue, totalRoomDays)
+  const trevpar = safe(s.grossRevenue, totalRoomDays)
   const adr = safe(s.netRevenue, s.roomNightsSold)
   const extraRevenueShare = safe(s.extraRevenue, s.grossRevenue) * 100
   const costPerRoomDay = safe(s.totalCost, totalRoomDays)
-  // Chi phí giặt / phòng / 30 ngày
+  const costPor = safe(s.totalCost, s.roomNightsSold)
   const laundryCostPerRoom = safe(s.costBreakdown.laundry, s.totalRooms) * (30 / Math.max(1, s.periodDays))
+  const laborRatio = safe(s.costBreakdown.labor, s.netRevenue) * 100
   const revenueGrowth = safe(s.netRevenue - s.prevNetRevenue, s.prevNetRevenue) * 100
   const prevOcc = safe(s.prevRoomNightsSold, s.totalRooms * s.periodDays) * 100
   const occupancyGrowth = prevOcc > 0 ? occupancy - prevOcc : 0
+  const yoyRevenueGrowth =
+    s.yoyNetRevenue !== undefined && s.yoyNetRevenue > 0
+      ? ((s.netRevenue - s.yoyNetRevenue) / s.yoyNetRevenue) * 100
+      : undefined
+  const yoyOccupancy =
+    s.yoyRoomNightsSold !== undefined ? safe(s.yoyRoomNightsSold, totalRoomDays) * 100 : undefined
+  const yoyOccupancyGrowth = yoyOccupancy !== undefined ? occupancy - yoyOccupancy : undefined
+
   return {
     profit,
     profitMargin,
+    gop,
+    gopMargin,
+    goppar,
     occupancy,
     revpar,
+    trevpar,
     adr,
     extraRevenueShare,
     costPerRoomDay,
+    costPor,
     laundryCostPerRoom,
+    laborRatio,
     revenueGrowth,
     occupancyGrowth,
+    yoyRevenueGrowth,
+    yoyOccupancyGrowth,
   }
 }
 
@@ -121,28 +179,27 @@ export function runOperationsAdvisor(snapshot: KpiSnapshot): Finding[] {
       category: 'cost',
       finding: `Biên lợi nhuận chỉ ${k.profitMargin.toFixed(1)}%, dưới mức an toàn 20%.`,
       suggestion:
-        'Rà soát chi phí cố định, đặc biệt giặt là và mua sắm. Cân nhắc đàm phán lại hợp đồng vendor.',
+        'Rà soát chi phí cố định, đặc biệt giặt là, nhân sự và mua sắm. Cân nhắc đàm phán lại hợp đồng vendor.',
       impactVnd: Math.round(snapshot.totalCost * 0.1),
     })
   }
 
   // R3 — RevPAR thấp
-  const revparLevel = classifyBenchmark('revpar', k.revpar)
-  if (revparLevel === 'poor' && k.revpar > 0) {
+  if (classifyBenchmark('revpar', k.revpar) === 'poor' && k.revpar > 0) {
     findings.push({
       id: 'low-revpar',
       severity: 'medium',
       category: 'revenue',
       finding: `RevPAR đạt ${(k.revpar / 1000).toFixed(0)}k/phòng/ngày, dưới mức trung bình ngành.`,
-      suggestion:
-        'Tăng giá phòng vào cuối tuần, áp dụng dynamic pricing, hoặc nâng cấp dịch vụ để tăng ADR.',
+      suggestion: 'Tăng giá phòng vào cuối tuần, áp dụng dynamic pricing, hoặc nâng cấp dịch vụ để tăng ADR.',
     })
   }
 
   // R4 — Doanh thu dịch vụ thêm thấp
   if (k.extraRevenueShare < INDUSTRY_BENCHMARKS.extraRevenueShare.fair && snapshot.grossRevenue > 0) {
     const target = INDUSTRY_BENCHMARKS.extraRevenueShare.good
-    const impact = ((target - k.extraRevenueShare) / 100) * snapshot.grossRevenue * (30 / Math.max(1, snapshot.periodDays))
+    const impact =
+      ((target - k.extraRevenueShare) / 100) * snapshot.grossRevenue * (30 / Math.max(1, snapshot.periodDays))
     findings.push({
       id: 'low-extra-revenue',
       severity: 'medium',
@@ -155,8 +212,7 @@ export function runOperationsAdvisor(snapshot: KpiSnapshot): Finding[] {
   }
 
   // R5 — Chi phí giặt cao
-  const laundryLevel = classifyBenchmark('laundryCostPerRoom', k.laundryCostPerRoom)
-  if (laundryLevel === 'poor' && k.laundryCostPerRoom > 0) {
+  if (classifyBenchmark('laundryCostPerRoom', k.laundryCostPerRoom) === 'poor' && k.laundryCostPerRoom > 0) {
     const target = INDUSTRY_BENCHMARKS.laundryCostPerRoom.good
     const saving = (k.laundryCostPerRoom - target) * snapshot.totalRooms
     findings.push({
@@ -170,7 +226,7 @@ export function runOperationsAdvisor(snapshot: KpiSnapshot): Finding[] {
     })
   }
 
-  // R6 — Chi phí bảo trì tăng đột biến (so cost vs revenue)
+  // R6 — Chi phí bảo trì tăng đột biến
   if (snapshot.netRevenue > 0 && snapshot.costBreakdown.maintenance / snapshot.netRevenue > 0.08) {
     findings.push({
       id: 'high-maintenance-cost',
@@ -226,6 +282,94 @@ export function runOperationsAdvisor(snapshot: KpiSnapshot): Finding[] {
       finding: `Giá phòng trung bình ${Math.round(k.adr / 1000)}k/đêm, thấp so phân khúc.`,
       suggestion:
         'Phân khúc lại sản phẩm: tạo gói cao cấp (view đẹp, tầng cao), nâng cấp ảnh OTA, dùng dynamic pricing.',
+    })
+  }
+
+  // R11 — Labor ratio quá cao
+  if (snapshot.costBreakdown.labor > 0 && k.laborRatio > INDUSTRY_BENCHMARKS.laborRatio.fair) {
+    const target = INDUSTRY_BENCHMARKS.laborRatio.good
+    const saving = ((k.laborRatio - target) / 100) * snapshot.netRevenue
+    findings.push({
+      id: 'high-labor-ratio',
+      severity: 'high',
+      category: 'labor',
+      finding: `Chi phí nhân sự chiếm ${k.laborRatio.toFixed(1)}% doanh thu, cao hơn chuẩn ngành (${target}%).`,
+      suggestion:
+        'Tối ưu lịch ca theo công suất phòng, cắt giảm ca dư thừa ngày thấp điểm, cross-training nhân viên đa nhiệm.',
+      impactVnd: Math.round(saving * (30 / Math.max(1, snapshot.periodDays))),
+    })
+  }
+
+  // R12 — GOPPAR thấp hơn target > 20%
+  if (snapshot.targets?.goppar && snapshot.targets.goppar > 0 && k.goppar > 0) {
+    const gap = ((snapshot.targets.goppar - k.goppar) / snapshot.targets.goppar) * 100
+    if (gap > 20) {
+      findings.push({
+        id: 'goppar-below-target',
+        severity: 'high',
+        category: 'target',
+        finding: `GOPPAR thực tế ${Math.round(k.goppar / 1000)}k thấp hơn mục tiêu ${Math.round(snapshot.targets.goppar / 1000)}k (${gap.toFixed(0)}%).`,
+        suggestion:
+          'Đánh giá lại 2 nhánh: tăng GOP (cắt chi phí departmental) hoặc tăng RevPAR (giá phòng + lấp đầy).',
+        impactVnd: Math.round((snapshot.targets.goppar - k.goppar) * snapshot.totalRooms * 30),
+      })
+    }
+  }
+
+  // R13 — YoY revenue giảm > 15%
+  if (k.yoyRevenueGrowth !== undefined && k.yoyRevenueGrowth < -15) {
+    findings.push({
+      id: 'yoy-revenue-decline',
+      severity: 'high',
+      category: 'revenue',
+      finding: `Doanh thu giảm ${Math.abs(k.yoyRevenueGrowth).toFixed(0)}% so cùng kỳ năm trước.`,
+      suggestion:
+        'Phân tích nguyên nhân: thị trường, cạnh tranh, chất lượng dịch vụ, hay vấn đề kênh phân phối? Đặt mục tiêu phục hồi 90 ngày.',
+    })
+  }
+
+  // R14 — Occupancy đạt target nhưng RevPAR không → ADR thấp
+  if (
+    snapshot.targets?.occupancy &&
+    snapshot.targets?.revpar &&
+    k.occupancy >= snapshot.targets.occupancy * 0.95 &&
+    k.revpar < snapshot.targets.revpar * 0.85
+  ) {
+    findings.push({
+      id: 'occ-ok-revpar-low',
+      severity: 'medium',
+      category: 'revenue',
+      finding: 'Lấp đầy đạt mục tiêu nhưng RevPAR thiếu hụt — giá phòng đang bán quá thấp.',
+      suggestion:
+        'Tăng giá phòng 5-10% ở các phân khúc bán chạy, giảm chiết khấu OTA, ưu tiên direct booking để giữ margin.',
+    })
+  }
+
+  // R15 — Lương phụ thuộc 1 bộ phận quá lớn
+  if (snapshot.laborByDepartment && snapshot.costBreakdown.labor > 0) {
+    const entries = Object.entries(snapshot.laborByDepartment)
+    const totalLabor = snapshot.costBreakdown.labor
+    const top = entries.reduce((m, [d, v]) => (v > m.v ? { d, v } : m), { d: '', v: 0 })
+    if (top.v / totalLabor > 0.6 && entries.length > 1) {
+      findings.push({
+        id: 'labor-concentration',
+        severity: 'low',
+        category: 'labor',
+        finding: `Bộ phận "${top.d}" chiếm ${((top.v / totalLabor) * 100).toFixed(0)}% chi phí nhân sự.`,
+        suggestion: 'Rà soát ca làm bộ phận này, đảm bảo không thừa giờ. Cân nhắc cross-training để chia tải.',
+      })
+    }
+  }
+
+  // R16 — CostPOR cao bất thường
+  if (classifyBenchmark('costPor', k.costPor) === 'poor' && k.costPor > 0) {
+    findings.push({
+      id: 'high-cost-por',
+      severity: 'medium',
+      category: 'cost',
+      finding: `Chi phí trên mỗi đêm phòng bán ra ${Math.round(k.costPor / 1000)}k — cao hơn chuẩn ngành.`,
+      suggestion:
+        'Giảm tiêu hao amenities (xà phòng, dầu gội đóng chai → bình lớn), tối ưu hóa tần suất giặt khăn theo lựa chọn khách.',
     })
   }
 
