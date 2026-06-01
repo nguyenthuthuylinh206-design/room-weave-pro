@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
+import type { Json } from '@/integrations/supabase/types'
 import type { CellSizeState } from './useFloorMapCellSize'
 import { useUser } from './useUser'
 
@@ -7,6 +8,15 @@ type HotelCacheRow = { id?: string; settings?: Record<string, unknown> | null; [
 
 function asSettings(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+}
+
+function toCellSizeJson(value: CellSizeState): Json {
+  return {
+    preset: value.preset,
+    height: value.height,
+    cols: value.cols,
+    fontScale: value.fontScale,
+  }
 }
 
 function mergeFloorMapCellSizeIntoHotel<T extends HotelCacheRow>(hotel: T, hotelId: string, value: CellSizeState): T {
@@ -58,7 +68,7 @@ export function useFloorMapCellSizeRemote(hotelId?: string | null) {
         .maybeSingle()
       if (readErr) throw readErr
       const current = asSettings(row?.settings)
-      const newSettings = { ...current, floor_map_cell_size: value }
+      const newSettings = { ...current, floor_map_cell_size: toCellSizeJson(value) } as Json
       const { error } = await supabase
         .from('hotels')
         .update({ settings: newSettings })
