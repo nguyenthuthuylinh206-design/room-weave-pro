@@ -36,7 +36,7 @@ import { canCreateHousekeepingTask } from '@/lib/userAccess'
 import { formatCurrency } from '@/lib/utils'
 import { calcRoomPriority, getMissingDisplay, type PriorityTier } from '@/lib/roomPriority'
 import type { RoomWithStats, RoomStatus } from '@/types/rooms.types'
-import type { TaskType } from '@/types/housekeeping.types'
+// (TaskType chỉ dùng gián tiếp qua TASK_TYPE_LABELS)
 import { TASK_TYPE_LABELS } from '@/types/housekeeping.types'
 
 type ManualTaskType = 'checkout_inspection' | 'cleaning' | 'checkin_prep' | 'amenity_request' | 'other'
