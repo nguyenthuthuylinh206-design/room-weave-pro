@@ -3,12 +3,18 @@ import { supabase } from '@/integrations/supabase/client'
 import type { CellSizeState } from './useFloorMapCellSize'
 import { useUser } from './useUser'
 
-function mergeFloorMapCellSizeIntoHotel(hotel: any, hotelId: string, value: CellSizeState) {
+type HotelCacheRow = { id?: string; settings?: Record<string, unknown> | null; [key: string]: unknown }
+
+function asSettings(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+}
+
+function mergeFloorMapCellSizeIntoHotel<T extends HotelCacheRow>(hotel: T, hotelId: string, value: CellSizeState): T {
   if (!hotel || hotel.id !== hotelId) return hotel
   return {
     ...hotel,
     settings: {
-      ...((hotel.settings as any) ?? {}),
+      ...asSettings(hotel.settings),
       floor_map_cell_size: value,
     },
   }
@@ -33,8 +39,8 @@ export function useFloorMapCellSizeRemote(hotelId?: string | null) {
         .eq('id', hotelId)
         .maybeSingle()
       if (error) throw error
-      const s = (data?.settings as any)?.floor_map_cell_size
-      return s ?? null
+      const s = asSettings(data?.settings).floor_map_cell_size
+      return s ? s as CellSizeState : null
     },
     enabled: !!hotelId && !!tenantId,
     staleTime: 5 * 60 * 1000,
@@ -51,7 +57,7 @@ export function useFloorMapCellSizeRemote(hotelId?: string | null) {
         .eq('id', hotelId)
         .maybeSingle()
       if (readErr) throw readErr
-      const current = (row?.settings as any) ?? {}
+      const current = asSettings(row?.settings)
       const newSettings = { ...current, floor_map_cell_size: value }
       const { error } = await supabase
         .from('hotels')
@@ -63,12 +69,12 @@ export function useFloorMapCellSizeRemote(hotelId?: string | null) {
     },
     onSuccess: (value) => {
       qc.setQueryData(['floor-map-cell-size', tenantId, hotelId], value)
-      qc.setQueriesData({ queryKey: ['hotels'] }, (old: any) => {
+      qc.setQueriesData({ queryKey: ['hotels'] }, (old: unknown) => {
         if (!hotelId || !old) return old
         if (Array.isArray(old)) {
-          return old.map((hotel) => mergeFloorMapCellSizeIntoHotel(hotel, hotelId, value))
+          return old.map((hotel) => mergeFloorMapCellSizeIntoHotel(hotel as HotelCacheRow, hotelId, value))
         }
-        return mergeFloorMapCellSizeIntoHotel(old, hotelId, value)
+        return mergeFloorMapCellSizeIntoHotel(old as HotelCacheRow, hotelId, value)
       })
     },
   })
