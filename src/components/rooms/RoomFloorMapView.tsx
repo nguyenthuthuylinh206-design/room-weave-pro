@@ -573,7 +573,7 @@ export function RoomFloorMapView({
                           style={{ height: cellSize.size.height }}
                         >
                           {/* Badge trạng thái góc trên-trái */}
-                          <span className="absolute left-1 top-1 z-10 rounded bg-black/25 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
+                          <span className={cn('absolute left-1 top-1 z-10 rounded bg-black/25 px-1.5 py-0.5 font-semibold uppercase tracking-wide text-white backdrop-blur-sm', cellSize.classes.badgeCls)}>
                             {statusLabel}
                           </span>
 
