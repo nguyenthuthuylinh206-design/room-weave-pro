@@ -4,7 +4,9 @@ import { useUser } from './useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useRevenueReport } from './useRevenueReport'
 import { useFinancialReport } from './useReports'
-import { differenceInDays, subDays } from 'date-fns'
+import { useLaborCost } from './useLaborCost'
+import { useFinancialTargets } from './useFinancialTargets'
+import { differenceInDays, subDays, subYears } from 'date-fns'
 import {
   computeDerivedKpis,
   runOperationsAdvisor,
@@ -16,14 +18,9 @@ export interface OperationsInsightsData {
   snapshot: KpiSnapshot
   derived: ReturnType<typeof computeDerivedKpis>
   ruleFindings: Finding[]
-  /** Khoảng kỳ hiện tại (để hiển thị) */
   dateRange: { start: Date; end: Date }
 }
 
-/**
- * Tính room-nights sold từ bookings (sum check_out - check_in).
- * Trả về Map<period, nights>.
- */
 async function fetchRoomNights(
   tenantId: string,
   hotelId: string | null,
@@ -50,10 +47,33 @@ async function fetchRoomNights(
   return nights
 }
 
+async function fetchPeriodNetRevenue(
+  tenantId: string,
+  hotelId: string | null,
+  start: Date,
+  end: Date,
+): Promise<number> {
+  let q = supabase
+    .from('room_bookings')
+    .select('total_amount, payment_status')
+    .eq('tenant_id', tenantId)
+    .gte('check_out_date', start.toISOString())
+    .lte('check_out_date', end.toISOString())
+    .neq('payment_status', 'refunded')
+    .limit(10000)
+  if (hotelId) q = q.eq('hotel_id', hotelId)
+  const { data, error } = await q
+  if (error) throw error
+  let net = 0
+  for (const b of (data || []) as Array<{ total_amount: number | null }>) {
+    net += b.total_amount || 0
+  }
+  return net
+}
+
 /**
- * Hook chính cho tab "Đánh giá vận hành".
- * Gom revenue + cost + occupancy → tính KPI + chạy rule engine local.
- * AI advice gọi riêng qua useOperationsAdvice để không block UI khi AI chậm.
+ * Hook chính cho tab "Đánh giá vận hành" v2.
+ * Gom revenue + cost + labor + targets + YoY → tính KPI + chạy rule engine.
  */
 export function useOperationsInsights(dateRange: { start: Date; end: Date }) {
   const { tenantId } = useUser()
@@ -61,10 +81,14 @@ export function useOperationsInsights(dateRange: { start: Date; end: Date }) {
 
   const revenue = useRevenueReport('custom', dateRange)
   const financial = useFinancialReport(dateRange)
+  const labor = useLaborCost(dateRange)
+  const targets = useFinancialTargets(dateRange.start)
 
   const periodDays = Math.max(1, differenceInDays(dateRange.end, dateRange.start) + 1)
   const prevEnd = subDays(dateRange.start, 1)
   const prevStart = subDays(prevEnd, periodDays - 1)
+  const yoyStart = subYears(dateRange.start, 1)
+  const yoyEnd = subYears(dateRange.end, 1)
 
   const hotelId = isAllHotelsMode ? null : selectedHotel?.id ?? null
   const totalRooms = isAllHotelsMode
@@ -81,22 +105,34 @@ export function useOperationsInsights(dateRange: { start: Date; end: Date }) {
       totalRooms,
       revenue.data?.currentPeriod.netRevenue,
       financial.data?.summary?.total_cost,
+      labor.data?.total_labor_cost,
+      Object.values(targets.data ?? {}).join(','),
     ],
-    enabled: !!tenantId && !!revenue.data && !!financial.data?.summary && totalRooms > 0,
+    enabled:
+      !!tenantId &&
+      !!revenue.data &&
+      !!financial.data?.summary &&
+      totalRooms > 0,
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<OperationsInsightsData> => {
       if (!tenantId || !revenue.data || !financial.data?.summary) {
         throw new Error('Thiếu dữ liệu nguồn')
       }
 
-      const [currentNights, prevNights] = await Promise.all([
+      const [currentNights, prevNights, yoyNights, yoyNet] = await Promise.all([
         fetchRoomNights(tenantId, hotelId, dateRange.start, dateRange.end),
         fetchRoomNights(tenantId, hotelId, prevStart, prevEnd),
+        fetchRoomNights(tenantId, hotelId, yoyStart, yoyEnd).catch(() => 0),
+        fetchPeriodNetRevenue(tenantId, hotelId, yoyStart, yoyEnd).catch(() => 0),
       ])
 
       const cur = revenue.data.currentPeriod
       const prev = revenue.data.previousPeriod
       const cost = financial.data.summary
+      const laborTotal = labor.data?.total_labor_cost ?? 0
+      const laborByDept = labor.data?.by_department ?? {}
+
+      const baseCost = (cost.total_cost || 0) + laborTotal
 
       const snapshot: KpiSnapshot = {
         periodDays,
@@ -104,17 +140,22 @@ export function useOperationsInsights(dateRange: { start: Date; end: Date }) {
         netRevenue: cur.netRevenue,
         grossRevenue: cur.totalRevenue,
         extraRevenue: cur.surcharges.serviceCharges + cur.surcharges.extraCharges,
-        totalCost: cost.total_cost || 0,
+        totalCost: baseCost,
         costBreakdown: {
           purchase: cost.purchase_cost || 0,
           laundry: cost.laundry_cost || 0,
           maintenance: cost.maintenance_cost || 0,
+          labor: laborTotal,
         },
         roomNightsSold: currentNights,
         bookingsCount: cur.bookingsCount,
         prevNetRevenue: prev.netRevenue,
         prevBookingsCount: prev.bookingsCount,
         prevRoomNightsSold: prevNights,
+        yoyNetRevenue: yoyNet > 0 ? yoyNet : undefined,
+        yoyRoomNightsSold: yoyNights > 0 ? yoyNights : undefined,
+        laborByDepartment: laborByDept,
+        targets: targets.data,
       }
 
       const derived = computeDerivedKpis(snapshot)

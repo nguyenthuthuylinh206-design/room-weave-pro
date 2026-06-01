@@ -18,11 +18,12 @@ interface Body {
   findings: Finding[]
 }
 
-const SYSTEM_PROMPT = `Bạn là chuyên gia vận hành khách sạn 2-4 sao tại Việt Nam.
-Nhận snapshot KPI + danh sách phát hiện rule-based, hãy viết lại 3-5 lời khuyên tiếng Việt tự nhiên, ưu tiên theo tác động VNĐ.
-Mỗi lời khuyên ngắn gọn, hành động cụ thể, phù hợp chủ khách sạn nhỏ ít chuyên môn tài chính.
-Tránh thuật ngữ tiếng Anh trừ khi cần (ADR, RevPAR có thể giữ nhưng giải thích).
-Không lặp lại nguyên văn finding — hãy tổng hợp, kết hợp các finding liên quan thành 1 lời khuyên.`
+const SYSTEM_PROMPT = `Bạn là chuyên gia vận hành khách sạn 2-4 sao tại Việt Nam, am hiểu chuẩn USALI rút gọn.
+Phân tích KPI (GOP, GOPPAR, RevPAR, ADR, Lấp đầy, Tỷ lệ chi phí nhân sự), so sánh với kỳ trước (PoP), cùng kỳ năm trước (YoY) và mục tiêu (budget).
+Viết 3-5 lời khuyên tiếng Việt tự nhiên, ưu tiên theo tác động VNĐ và mức độ lệch mục tiêu.
+Mỗi lời khuyên: hành động cụ thể, dễ thực thi cho chủ KS nhỏ ít chuyên môn tài chính.
+Tránh thuật ngữ tiếng Anh trừ khi cần (ADR, RevPAR, GOP có thể giữ nhưng giải thích ngắn).
+Tổng hợp các finding liên quan thành 1 lời khuyên — không lặp nguyên văn.`
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -43,13 +44,25 @@ Deno.serve(async (req) => {
       })
     }
 
-    const userPrompt = `KPI snapshot:
+    const s = body.snapshot as Record<string, unknown>
+    const targets = (s.targets ?? {}) as Record<string, number>
+    const laborByDept = (s.laborByDepartment ?? {}) as Record<string, number>
+
+    const userPrompt = `KPI snapshot (derived):
 ${JSON.stringify(body.derived, null, 2)}
 
-Phát hiện rule-based (đã sort theo mức độ):
-${body.findings.map((f, i) => `${i + 1}. [${f.severity.toUpperCase()}] ${f.finding} → ${f.suggestion}${f.impactVnd ? ` (tác động ~${Math.round(f.impactVnd / 1_000_000)}M/tháng)` : ''}`).join('\n')}
+Chi phí nhân sự theo bộ phận (VNĐ):
+${JSON.stringify(laborByDept, null, 2)}
 
-Hãy trả về 3-5 lời khuyên ưu tiên cho chủ khách sạn.`
+Mục tiêu kỳ này:
+${Object.keys(targets).length ? JSON.stringify(targets, null, 2) : '(chưa đặt mục tiêu)'}
+
+YoY: net revenue cùng kỳ năm trước = ${s.yoyNetRevenue ?? 'chưa đủ data'}
+
+Phát hiện rule-based (đã sort):
+${body.findings.map((f, i) => `${i + 1}. [${f.severity.toUpperCase()}] ${f.finding} → ${f.suggestion}${f.impactVnd ? ` (~${Math.round(f.impactVnd / 1_000_000)}M/tháng)` : ''}`).join('\n')}
+
+Hãy trả về 3-5 lời khuyên ưu tiên cho chủ khách sạn, kết hợp các finding liên quan.`
 
     const aiResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',

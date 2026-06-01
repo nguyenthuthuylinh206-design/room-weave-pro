@@ -15,7 +15,7 @@ function baseSnapshot(overrides: Partial<KpiSnapshot> = {}): KpiSnapshot {
     grossRevenue: 220_000_000,
     extraRevenue: 20_000_000,
     totalCost: 120_000_000,
-    costBreakdown: { purchase: 40_000_000, laundry: 50_000_000, maintenance: 30_000_000 },
+    costBreakdown: { purchase: 40_000_000, laundry: 50_000_000, maintenance: 30_000_000, labor: 0 },
     roomNightsSold: 420,
     bookingsCount: 140,
     prevNetRevenue: 180_000_000,
