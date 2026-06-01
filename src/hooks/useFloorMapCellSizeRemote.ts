@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import type { Json } from '@/integrations/supabase/types'
-import type { CellSizeState } from './useFloorMapCellSize'
+import { normalizeCellSize, type CellSizeState } from './useFloorMapCellSize'
 import { useUser } from './useUser'
 
 type HotelCacheRow = { id?: string; settings?: Record<string, unknown> | null; [key: string]: unknown }
@@ -11,11 +11,12 @@ function asSettings(value: unknown): Record<string, unknown> {
 }
 
 function toCellSizeJson(value: CellSizeState): Json {
+  const normalized = normalizeCellSize(value)
   return {
-    preset: value.preset,
-    height: value.height,
-    cols: value.cols,
-    fontScale: value.fontScale,
+    preset: normalized.preset,
+    height: normalized.height,
+    cols: normalized.cols,
+    fontScale: normalized.fontScale,
   }
 }
 
@@ -50,7 +51,7 @@ export function useFloorMapCellSizeRemote(hotelId?: string | null) {
         .maybeSingle()
       if (error) throw error
       const s = asSettings(data?.settings).floor_map_cell_size
-      return s ? s as CellSizeState : null
+      return s ? normalizeCellSize(s as Partial<CellSizeState>) : null
     },
     enabled: !!hotelId && !!tenantId,
     staleTime: 5 * 60 * 1000,
@@ -68,14 +69,15 @@ export function useFloorMapCellSizeRemote(hotelId?: string | null) {
         .maybeSingle()
       if (readErr) throw readErr
       const current = asSettings(row?.settings)
-      const newSettings = { ...current, floor_map_cell_size: toCellSizeJson(value) } as Json
+      const normalized = normalizeCellSize(value)
+      const newSettings = { ...current, floor_map_cell_size: toCellSizeJson(normalized) } as Json
       const { error } = await supabase
         .from('hotels')
         .update({ settings: newSettings })
         .eq('tenant_id', tenantId)
         .eq('id', hotelId)
       if (error) throw error
-      return value
+      return normalized
     },
     onSuccess: (value) => {
       qc.setQueryData(['floor-map-cell-size', tenantId, hotelId], value)
