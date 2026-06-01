@@ -1,91 +1,43 @@
-# Refactor menu Cài đặt (Sidebar)
+# Thêm slider cỡ chữ + lưu vĩnh viễn cho Sơ đồ phòng
 
 ## Mục tiêu
-Sửa các lỗi UX phát hiện qua đánh giá: header nhóm bị lặp, quá tải 17 mục, trùng lặp ngữ nghĩa, mục lạc chỗ, tên kỹ thuật khó hiểu.
+1. Thêm thanh kéo riêng để chỉnh **cỡ chữ** trong ô phòng (độc lập với chiều cao ô).
+2. Nút **Lưu** ghi vào cả `localStorage` (per-hotel) và DB (`hotels.settings.floor_map_cell_size`) để mọi thiết bị/lần đăng nhập đều giữ nguyên.
 
-## Phạm vi
-Chỉ frontend: `src/components/layout/Sidebar.tsx` (mảng `children` của item `settings`, lines 197–220) và file dịch `src/i18n/locales/vi/navigation.json` (+ `en/navigation.json`). **Không** thay route, không đổi nội dung trang.
+## A. Thay đổi hook `useFloorMapCellSize.ts`
+- Thêm field mới vào `CellSizeState`: `fontScale: number` (0.8 – 1.4, step 0.05, default 1.0).
+- `classes.numberCls/bodyCls/captionCls/badgeCls` hiện tính theo `height` → đổi sang tính theo `effectiveHeight = height * fontScale` (giữ tương thích, nhưng cho phép user phóng to chữ mà không cần ô to hơn).
+- Thêm setter `setFontScale(v)`.
+- Đọc state ưu tiên: **DB (hotel settings) → localStorage → default**.
+- Khi user kéo slider: chỉ update state + localStorage (như cũ). Khi bấm **Lưu**: ghi DB.
 
-## A. Cấu trúc mới (5 nhóm, sắp xếp liền mạch)
-
+## B. UI `RoomFloorMapView.tsx` – Popover kích thước
+Thêm mục thứ 3 trong popover, dưới slider "Số cột":
+```text
+Cỡ chữ               [ 100% ]
+[────●─────────────]   80% – 140%
 ```
-CÀI ĐẶT
-├─ Tài khoản
-│   ├─ Hồ sơ cá nhân            /settings/profile          (chuyển từ avatar menu)
-│   ├─ Đổi mật khẩu             /settings/change-password
-│   └─ Người dùng & Phân quyền  /settings/users
-│
-├─ Khách sạn
-│   ├─ Thông tin khách sạn      /settings/hotels            (đổi tên từ "Khách sạn")
-│   ├─ Chính sách khách sạn     /settings/hotel-policy
-│   └─ Cấu hình nghiệp vụ       /settings/business
-│
-├─ Bảng giá & Phụ thu
-│   ├─ Bảng giá phòng           /settings/pricing           (đổi từ "Bảng giá 4 trục")
-│   ├─ Mùa giá                  /settings/pricing/seasonal  (đổi từ "Quy tắc mùa giá")
-│   └─ Phụ thu & Thuế phí       /settings/pricing-rules
-│
-├─ Vận hành
-│   ├─ Kiểm tra phòng           /settings/room-check
-│   ├─ Tự động hóa              /settings/workflows
-│   └─ Khai báo lưu trú (BCA)   /settings/legal/stay-registration  (gộp BCA + giải thích)
-│
-├─ Thanh toán & Gói
-│   ├─ Đăng ký & Thanh toán     /settings/subscription
-│   └─ Mức sử dụng              /settings/usage
-│
-└─ Hệ thống
-    ├─ Cài đặt chung            /settings/general
-    ├─ Thông báo                /settings/notifications
-    ├─ Telegram                 /settings/telegram
-    ├─ Cài đặt AI               /settings/ai
-    └─ Nhật ký thay đổi         /settings/audit-log
-```
+- Nút **Lưu** hiện tại chỉ ghi localStorage → đổi thành: ghi localStorage + gọi mutation cập nhật `hotels.settings.floor_map_cell_size = { height, cols, fontScale, preset }`.
+- Toast: "Đã lưu cho khách sạn {tên} – áp dụng trên mọi thiết bị".
+- Nút **Đặt lại** vẫn về preset `md` + fontScale 1.0.
 
-## B. Thay đổi cụ thể
+## C. Persistence DB
+- Dùng cột `hotels.settings` JSONB sẵn có.
+- Key: `settings.floor_map_cell_size = { preset, height, cols, fontScale }`.
+- Hook mới `useFloorMapCellSizeSync(hotelId)`: load 1 lần khi mount, fallback localStorage nếu DB rỗng.
+- Mutation `updateHotelFloorMapCellSize(hotelId, value)`: `UPDATE hotels SET settings = jsonb_set(settings, '{floor_map_cell_size}', $1) WHERE id = $2 AND tenant_id = $3`.
+- Không cần migration (cột `settings` đã tồn tại).
 
-### 1. Sắp xếp lại array (fix bug header lặp)
-Trong `Sidebar.tsx`, mảng `children` của `settings`: viết lại theo đúng thứ tự nhóm ở trên. Sau khi sửa, mỗi label nhóm chỉ xuất hiện 1 lần (logic `lastGroup` hiện tại sẽ tự đúng).
+## D. Permission
+- Chỉ Owner/Hotel Manager mới có quyền lưu vào DB (ảnh hưởng cả hotel). Staff vẫn lưu được localStorage cá nhân nhưng nút "Lưu" sẽ hiển thị tooltip "Chỉ quản lý mới lưu được cho toàn khách sạn" — vẫn cho lưu local.
 
-### 2. Dời mục lạc chỗ
-- `assetGroupMigration` ("Phân loại tài sản") → **xoá khỏi Cài đặt**, chuyển vào nhánh `inventory` (đã có module Kho). Giữ route cũ để không vỡ link.
+## E. Files dự kiến sửa
+- `src/hooks/useFloorMapCellSize.ts` – thêm `fontScale` + load từ DB
+- `src/hooks/useFloorMapCellSizeSync.ts` – **mới**, query + mutation hotel settings
+- `src/components/rooms/RoomFloorMapView.tsx` – thêm slider Cỡ chữ + cập nhật nút Lưu
+- `src/lib/app-version.ts` + `public/changelog.json` – bump version
 
-### 3. Đổi tên (i18n `vi/navigation.json`)
-| Cũ | Mới |
-|---|---|
-| Bảng giá 4 trục | Bảng giá phòng |
-| Quy tắc mùa giá | Mùa giá |
-| Cấu hình khai báo BCA | Khai báo lưu trú (BCA) |
-| Khách sạn (trong Cài đặt) | Thông tin khách sạn |
-| Cấu hình khách sạn | Chính sách khách sạn |
-
-### 4. Đổi tên nhóm
-- "Thông báo" (group) → gộp vào nhóm **Hệ thống** (chỉ có 2 mục, không đáng tách).
-- "Pháp lý" (group) → gộp vào **Vận hành**.
-- "Tài khoản" / "Thanh toán" giữ nguyên.
-
-### 5. Tinh chỉnh thị giác (tuỳ chọn)
-Trong block render group label (line 504–509), tăng tương phản nhóm đầu vs nhóm tiếp theo: thêm `mt-2 border-t border-border/40 pt-3` cho nhóm thứ 2 trở đi để mắt nhảy nhóm dễ hơn.
-
-## C. Không ảnh hưởng
-- Không sửa route, không sửa page component.
-- Không sửa permission/`minMode` của từng item (giữ nguyên).
-- Không đụng DB / RPC / edge function.
-
-## D. QA checklist
-- [ ] Mỗi label nhóm xuất hiện đúng 1 lần khi mở Cài đặt.
-- [ ] Số mục con ≤ 5 trong mỗi nhóm.
-- [ ] Click từng mục → vẫn đến đúng trang cũ.
-- [ ] "Phân loại tài sản" xuất hiện trong menu Kho, không còn trong Cài đặt.
-- [ ] Role Staff/Manager: các mục `minMode` vẫn được ẩn đúng.
-- [ ] Mobile: bottom nav không bị ảnh hưởng (Settings không nằm trong bottom 5).
-
-## E. Rollback
-Revert 2 file: `Sidebar.tsx` + `navigation.json` (vi/en). Không có migration.
-
-## F. File sẽ sửa
-- `src/components/layout/Sidebar.tsx` (mảng children settings + thêm `assetGroupMigration` vào inventory)
-- `src/i18n/locales/vi/navigation.json`
-- `src/i18n/locales/en/navigation.json`
-- `src/lib/app-version.ts` (bump)
-- `public/changelog.json` (entry mới)
+## F. Test
+- Kéo slider cỡ chữ → chữ trong ô đổi ngay, ô không đổi cao.
+- Bấm Lưu → reload trang → đăng nhập trên máy khác cùng hotel → vẫn giữ kích thước.
+- Đổi hotel → load đúng setting của hotel đó.
