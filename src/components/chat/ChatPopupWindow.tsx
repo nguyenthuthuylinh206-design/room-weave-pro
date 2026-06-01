@@ -85,18 +85,50 @@ export function ChatPopupWindow({
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 truncate text-sm font-semibold">{title}</div>
-          {callUrl && (
+          {tgUrl && telUrl ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-md text-foreground hover:bg-accent hover:text-accent-foreground"
+                  aria-label="Gọi"
+                  title="Gọi"
+                >
+                  <Phone className="h-5 w-5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => window.open(tgUrl, '_blank', 'noopener')}>
+                  <Send className="mr-2 h-4 w-4" />
+                  Gọi qua Telegram
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { window.location.href = telUrl }}>
+                  <Phone className="mr-2 h-4 w-4" />
+                  Gọi số điện thoại
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : tgUrl ? (
             <a
-              href={callUrl}
+              href={tgUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md text-foreground hover:bg-accent hover:text-accent-foreground"
               aria-label="Gọi qua Telegram"
               title="Gọi qua Telegram"
             >
               <Phone className="h-5 w-5" />
             </a>
-          )}
+          ) : telUrl ? (
+            <a
+              href={telUrl}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md text-foreground hover:bg-accent hover:text-accent-foreground"
+              aria-label="Gọi số điện thoại"
+              title="Gọi số điện thoại"
+            >
+              <Phone className="h-5 w-5" />
+            </a>
+          ) : null}
           <Button
             type="button"
             variant="ghost"
