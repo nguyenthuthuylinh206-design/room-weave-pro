@@ -16,6 +16,7 @@ import { RoomBulkActionsBar } from '@/components/rooms/RoomBulkActionsBar'
 import { useRooms } from '@/hooks/useRooms'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useBreakpoint } from '@/lib/breakpoints'
+import { useUser } from '@/hooks/useUser'
 import { MobileRoomsPage } from '@/components/rooms/MobileRoomsPage'
 import type { RoomFilters as IRoomFilters } from '@/types/rooms.types'
 
@@ -37,6 +38,7 @@ export function RoomsPage() {
   const { t } = useTranslation('rooms')
   const { isMobile } = useBreakpoint()
   const navigate = useNavigate()
+  const { role } = useUser()
   const [searchParams, setSearchParams] = useSearchParams()
   const [viewMode, setViewMode] = useState<ViewMode>(() => readInitialView(searchParams))
   const [filters, setFilters] = useState<IRoomFilters>({})
@@ -45,6 +47,13 @@ export function RoomsPage() {
 
   const { data: rooms, isLoading } = useRooms(filters)
   const { selectedHotel } = useHotelContext()
+
+  // Staff (HK) không cần thấy toàn bộ danh sách phòng — chuyển sang "Việc của tôi".
+  useEffect(() => {
+    if (role === 'staff') {
+      navigate('/my-tasks', { replace: true })
+    }
+  }, [role, navigate])
 
   // Persist tab to URL + localStorage
   useEffect(() => {
@@ -56,6 +65,8 @@ export function RoomsPage() {
       setSearchParams(next, { replace: true })
     }
   }, [viewMode, searchParams, setSearchParams])
+
+  if (role === 'staff') return null
 
   if (isMobile) {
     return <MobileRoomsPage />

@@ -1,6 +1,19 @@
 {
-  "current": "1.1.42",
+  "current": "1.1.43",
   "versions": [
+    {
+      "version": "1.1.43",
+      "date": "2026-06-01",
+      "title": "Lưới phòng: ưu tiên xử lý + tách view theo vai trò",
+      "highlights": [
+        "Sắp xếp phòng theo độ ưu tiên: Cần xử lý ngay → Theo dõi → Bình thường, có viền màu trái",
+        "Badge \"Khẩn\"/\"Theo dõi\" + lý do ưu tiên hiển thị ngay trên card (vd: \"Quá hạn kiểm 45 ngày\")",
+        "Fix mâu thuẫn dữ liệu: phòng đã dọn mà thiếu món → \"Chờ bổ sung X món\" (amber) thay vì \"Thiếu items\" (đỏ)",
+        "Phòng khách đang ở: không hiển thị cảnh báo thiếu items (không actionable lúc đó)",
+        "Thời gian kiểm tra: <7 ngày muted, 7–30 ngày amber, >30 ngày đỏ đậm",
+        "Staff (HK) tự động chuyển sang /my-tasks — không còn lạc vào danh sách toàn bộ phòng"
+      ]
+    },
     {
       "version": "1.1.42",
       "date": "2026-06-01",
