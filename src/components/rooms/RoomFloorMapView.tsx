@@ -496,8 +496,8 @@ export function RoomFloorMapView({
                   <span className="font-mono font-medium">{cellSize.size.height}px</span>
                 </div>
                 <Slider
-                  min={72}
-                  max={160}
+                  min={64}
+                  max={220}
                   step={4}
                   value={[cellSize.size.height]}
                   onValueChange={([v]) => cellSize.setCustom({ height: v })}
@@ -522,8 +522,8 @@ export function RoomFloorMapView({
                   <span className="font-mono font-medium">{Math.round(cellSize.size.fontScale * 100)}%</span>
                 </div>
                 <Slider
-                  min={80}
-                  max={160}
+                  min={70}
+                  max={180}
                   step={5}
                   value={[Math.round(cellSize.size.fontScale * 100)]}
                   onValueChange={([v]) => cellSize.setFontScale(v / 100)}
