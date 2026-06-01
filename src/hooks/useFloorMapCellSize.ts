@@ -174,7 +174,11 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
       if (e.key === '0') {
         e.preventDefault()
         dirtyRef.current = true
-        setSize((s) => ({ preset: 'md', ...PRESETS.md, fontScale: s.fontScale }))
+        setSize((s) => {
+          const next = { preset: 'md' as const, ...PRESETS.md, fontScale: s.fontScale }
+          sizeRef.current = next
+          return next
+        })
       } else if (e.key === '=' || e.key === '+') {
         e.preventDefault()
         setSize((s) => {
@@ -182,7 +186,9 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
           const nextIdx = idx === -1 ? order.indexOf('md') : Math.min(order.length - 1, idx + 1)
           const p = order[nextIdx]
           dirtyRef.current = true
-          return { preset: p, ...PRESETS[p as 'sm'|'md'|'lg'], fontScale: s.fontScale }
+          const next = { preset: p, ...PRESETS[p as 'sm'|'md'|'lg'], fontScale: s.fontScale }
+          sizeRef.current = next
+          return next
         })
       } else if (e.key === '-' || e.key === '_') {
         e.preventDefault()
@@ -191,7 +197,9 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
           const nextIdx = idx === -1 ? order.indexOf('md') : Math.max(0, idx - 1)
           const p = order[nextIdx]
           dirtyRef.current = true
-          return { preset: p, ...PRESETS[p as 'sm'|'md'|'lg'], fontScale: s.fontScale }
+          const next = { preset: p, ...PRESETS[p as 'sm'|'md'|'lg'], fontScale: s.fontScale }
+          sizeRef.current = next
+          return next
         })
       }
     }
