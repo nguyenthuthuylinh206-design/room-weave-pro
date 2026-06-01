@@ -26,8 +26,8 @@ export default function GuestsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { user } = useUser()
   const isAdmin = isAdminUser(user)
-  const { hasPermission: canManagePerm } = useHasModulePermission('bookings', 'manage')
-  const canManage = isAdmin || canManagePerm
+  const { data: canManagePerm } = useHasModulePermission('bookings', 'manage')
+  const canManage = isAdmin || !!canManagePerm
 
   const segment = (searchParams.get('seg') as GuestSegment) || 'all'
   const [search, setSearch] = useState(searchParams.get('q') || '')
