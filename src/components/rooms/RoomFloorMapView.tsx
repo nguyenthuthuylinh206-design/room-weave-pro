@@ -28,6 +28,7 @@ import { Search, Plus, FileSpreadsheet, History, Unlock, Maximize2, Check, Rotat
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Slider } from '@/components/ui/slider'
 import { useFloorMapCellSize } from '@/hooks/useFloorMapCellSize'
+import { useFloorMapCellSizeRemote } from '@/hooks/useFloorMapCellSizeRemote'
 import { toast } from 'sonner'
 import { useTodayPricesByHotel } from '@/hooks/usePricingDaily'
 
@@ -186,7 +187,8 @@ export function RoomFloorMapView({
   const [floorFilter, setFloorFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
   const transitionRoom = useRoomTransition()
-  const cellSize = useFloorMapCellSize(selectedHotel?.id)
+  const { remote: remoteCellSize, save: saveCellSize } = useFloorMapCellSizeRemote(selectedHotel?.id)
+  const cellSize = useFloorMapCellSize(selectedHotel?.id, remoteCellSize)
   const { data: todayPrices } = useTodayPricesByHotel(selectedHotel?.id)
 
 
@@ -474,6 +476,19 @@ export function RoomFloorMapView({
                   onValueChange={([v]) => cellSize.setCustom({ cols: v })}
                 />
               </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-muted-foreground">Cỡ chữ</span>
+                  <span className="font-mono font-medium">{Math.round(cellSize.size.fontScale * 100)}%</span>
+                </div>
+                <Slider
+                  min={80}
+                  max={160}
+                  step={5}
+                  value={[Math.round(cellSize.size.fontScale * 100)]}
+                  onValueChange={([v]) => cellSize.setFontScale(v / 100)}
+                />
+              </div>
               <div className="flex items-center justify-between gap-2 border-t pt-3">
                 <Button
                   type="button"
@@ -481,8 +496,8 @@ export function RoomFloorMapView({
                   variant="ghost"
                   className="h-7 gap-1 px-2 text-xs"
                   onClick={() => {
-                    cellSize.setPreset('md')
-                    toast.success('Đã đặt lại kích thước mặc định')
+                    cellSize.reset()
+                    toast.success('Đã đặt lại mặc định')
                   }}
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
@@ -492,20 +507,32 @@ export function RoomFloorMapView({
                   type="button"
                   size="sm"
                   className="h-7 gap-1 px-3 text-xs"
+                  disabled={saveCellSize.isPending || !selectedHotel?.id}
                   onClick={() => {
+                    // Lưu localStorage trước (không mất nếu DB lỗi)
                     try {
                       localStorage.setItem(
                         `rooms.floorMap.cellSize:${selectedHotel?.id || 'default'}`,
                         JSON.stringify(cellSize.size),
                       )
-                      toast.success('Đã lưu kích thước ô phòng')
-                    } catch {
-                      toast.error('Không thể lưu, vui lòng thử lại')
+                    } catch {}
+                    if (!selectedHotel?.id) {
+                      toast.success('Đã lưu trên thiết bị này')
+                      return
                     }
+                    saveCellSize.mutate(cellSize.size, {
+                      onSuccess: () => {
+                        toast.success(`Đã lưu vĩnh viễn cho ${selectedHotel.name}`)
+                      },
+                      onError: (err: any) => {
+                        console.error('[saveCellSize]', err)
+                        toast.error('Lưu lên máy chủ thất bại, đã lưu cục bộ trên thiết bị này')
+                      },
+                    })
                   }}
                 >
                   <Check className="h-3.5 w-3.5" />
-                  Lưu
+                  {saveCellSize.isPending ? 'Đang lưu…' : 'Lưu'}
                 </Button>
               </div>
               <div className="text-[10px] text-muted-foreground">

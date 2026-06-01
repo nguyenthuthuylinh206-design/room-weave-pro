@@ -6,6 +6,7 @@ export interface CellSizeState {
   preset: CellSizePreset
   height: number // px
   cols: number  // xl breakpoint cols
+  fontScale: number // 0.8 – 1.4
 }
 
 const PRESETS: Record<Exclude<CellSizePreset, 'custom'>, { height: number; cols: number }> = {
@@ -14,31 +15,8 @@ const PRESETS: Record<Exclude<CellSizePreset, 'custom'>, { height: number; cols:
   lg: { height: 128, cols: 8 },
 }
 
+const DEFAULT_FONT_SCALE = 1.0
 const ALLOWED_COLS = [4, 6, 8, 10, 12, 14, 16] as const
-
-// Safelist Tailwind classes (must be static for purge)
-const XL_COLS: Record<number, string> = {
-  4: 'xl:grid-cols-4',
-  6: 'xl:grid-cols-6',
-  8: 'xl:grid-cols-8',
-  10: 'xl:grid-cols-10',
-  12: 'xl:grid-cols-12',
-  14: 'xl:grid-cols-14',
-  16: 'xl:grid-cols-16',
-}
-const LG_COLS: Record<number, string> = {
-  3: 'lg:grid-cols-3', 4: 'lg:grid-cols-4', 5: 'lg:grid-cols-5', 6: 'lg:grid-cols-6',
-  7: 'lg:grid-cols-7', 8: 'lg:grid-cols-8', 9: 'lg:grid-cols-9', 10: 'lg:grid-cols-10',
-  11: 'lg:grid-cols-11', 12: 'lg:grid-cols-12',
-}
-const MD_COLS: Record<number, string> = {
-  3: 'md:grid-cols-3', 4: 'md:grid-cols-4', 5: 'md:grid-cols-5', 6: 'md:grid-cols-6',
-  7: 'md:grid-cols-7', 8: 'md:grid-cols-8', 9: 'md:grid-cols-9', 10: 'md:grid-cols-10',
-}
-const SM_COLS: Record<number, string> = {
-  3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4', 5: 'sm:grid-cols-5', 6: 'sm:grid-cols-6',
-  7: 'sm:grid-cols-7', 8: 'sm:grid-cols-8',
-}
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v))
 
@@ -56,32 +34,42 @@ function storageKey(hotelId?: string | null) {
   return `rooms.floorMap.cellSize:${hotelId || 'default'}`
 }
 
+function normalize(p: Partial<CellSizeState> | null | undefined): CellSizeState {
+  if (!p || typeof p.height !== 'number' || typeof p.cols !== 'number') {
+    return { preset: 'md', ...PRESETS.md, fontScale: DEFAULT_FONT_SCALE }
+  }
+  return {
+    preset: (p.preset as CellSizePreset) || 'custom',
+    height: clamp(p.height, 64, 200),
+    cols: snapCols(p.cols),
+    fontScale: clamp(typeof p.fontScale === 'number' ? p.fontScale : DEFAULT_FONT_SCALE, 0.8, 1.6),
+  }
+}
+
 function readStored(hotelId?: string | null): CellSizeState {
   try {
     const raw = localStorage.getItem(storageKey(hotelId))
-    if (raw) {
-      const p = JSON.parse(raw) as CellSizeState
-      if (p && typeof p.height === 'number' && typeof p.cols === 'number') {
-        return {
-          preset: p.preset || 'custom',
-          height: clamp(p.height, 64, 180),
-          cols: snapCols(p.cols),
-        }
-      }
-    }
+    if (raw) return normalize(JSON.parse(raw))
   } catch {}
-  return { preset: 'md', ...PRESETS.md }
+  return normalize(null)
 }
 
-export function useFloorMapCellSize(hotelId?: string | null) {
-  const [size, setSize] = useState<CellSizeState>(() => readStored(hotelId))
+export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: CellSizeState | null) {
+  const [size, setSize] = useState<CellSizeState>(() => remoteInitial ? normalize(remoteInitial) : readStored(hotelId))
 
-  // Reload when hotel changes
+  // Reload when hotel changes or remote arrives
   useEffect(() => {
-    setSize(readStored(hotelId))
-  }, [hotelId])
+    if (remoteInitial) {
+      const next = normalize(remoteInitial)
+      setSize(next)
+      try { localStorage.setItem(storageKey(hotelId), JSON.stringify(next)) } catch {}
+    } else {
+      setSize(readStored(hotelId))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hotelId, remoteInitial?.height, remoteInitial?.cols, remoteInitial?.fontScale, remoteInitial?.preset])
 
-  // Persist (debounced)
+  // Persist localStorage (debounced)
   useEffect(() => {
     const t = setTimeout(() => {
       try { localStorage.setItem(storageKey(hotelId), JSON.stringify(size)) } catch {}
@@ -93,16 +81,25 @@ export function useFloorMapCellSize(hotelId?: string | null) {
     if (preset === 'custom') {
       setSize((s) => ({ ...s, preset: 'custom' }))
     } else {
-      setSize({ preset, ...PRESETS[preset] })
+      setSize((s) => ({ preset, ...PRESETS[preset], fontScale: s.fontScale }))
     }
   }, [])
 
-  const setCustom = useCallback((patch: Partial<Pick<CellSizeState, 'height' | 'cols'>>) => {
+  const setCustom = useCallback((patch: Partial<Pick<CellSizeState, 'height' | 'cols' | 'fontScale'>>) => {
     setSize((s) => ({
       preset: 'custom',
-      height: clamp(patch.height ?? s.height, 64, 180),
+      height: clamp(patch.height ?? s.height, 64, 200),
       cols: snapCols(patch.cols ?? s.cols),
+      fontScale: clamp(patch.fontScale ?? s.fontScale, 0.8, 1.6),
     }))
+  }, [])
+
+  const setFontScale = useCallback((v: number) => {
+    setSize((s) => ({ ...s, fontScale: clamp(v, 0.8, 1.6) }))
+  }, [])
+
+  const reset = useCallback(() => {
+    setSize({ preset: 'md', ...PRESETS.md, fontScale: DEFAULT_FONT_SCALE })
   }, [])
 
   // Keyboard shortcut: Ctrl/Cmd +/-/0
@@ -114,15 +111,14 @@ export function useFloorMapCellSize(hotelId?: string | null) {
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
       if (e.key === '0') {
         e.preventDefault()
-        setPreset('md')
+        setSize((s) => ({ preset: 'md', ...PRESETS.md, fontScale: s.fontScale }))
       } else if (e.key === '=' || e.key === '+') {
         e.preventDefault()
         setSize((s) => {
           const idx = order.indexOf(s.preset as any)
-          // bigger = fewer cols & taller. lg > md > sm
           const nextIdx = idx === -1 ? order.indexOf('md') : Math.min(order.length - 1, idx + 1)
           const p = order[nextIdx]
-          return { preset: p, ...PRESETS[p as 'sm'|'md'|'lg'] }
+          return { preset: p, ...PRESETS[p as 'sm'|'md'|'lg'], fontScale: s.fontScale }
         })
       } else if (e.key === '-' || e.key === '_') {
         e.preventDefault()
@@ -130,40 +126,37 @@ export function useFloorMapCellSize(hotelId?: string | null) {
           const idx = order.indexOf(s.preset as any)
           const nextIdx = idx === -1 ? order.indexOf('md') : Math.max(0, idx - 1)
           const p = order[nextIdx]
-          return { preset: p, ...PRESETS[p as 'sm'|'md'|'lg'] }
+          return { preset: p, ...PRESETS[p as 'sm'|'md'|'lg'], fontScale: s.fontScale }
         })
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [setPreset])
+  }, [])
 
   const classes = useMemo(() => {
-    // Min cell width tỉ lệ chiều cao (ô vuông-ish). Cell càng cao càng rộng.
     const minCellPx = Math.max(72, Math.round(size.height * 0.85))
-    // auto-fill + minmax: tự co giãn theo container, ô càng to → cột càng ít. Cols slider gián
-    // tiếp ảnh hưởng qua việc tăng/giảm minCellPx nhẹ để gần với mục tiêu của user.
     const targetMin = Math.round(minCellPx * (12 / Math.max(4, size.cols)))
     const gridStyle: React.CSSProperties = {
       gridTemplateColumns: `repeat(auto-fill, minmax(${targetMin}px, 1fr))`,
     }
 
-    // Font scale theo chiều cao ô
-    const h = size.height
-    const numberCls = h >= 130 ? 'text-3xl' : h >= 110 ? 'text-2xl' : h >= 90 ? 'text-xl' : h >= 76 ? 'text-base' : 'text-sm'
-    const bodyCls = h >= 130 ? 'text-sm' : h >= 110 ? 'text-[13px]' : h >= 90 ? 'text-[12px]' : 'text-[11px]'
-    const captionCls = h >= 130 ? 'text-[12px]' : h >= 110 ? 'text-[11px]' : h >= 90 ? 'text-[10px]' : 'text-[9px]'
-    const badgeCls = h >= 110 ? 'text-[11px]' : h >= 90 ? 'text-[10px]' : 'text-[9px]'
+    // Effective height tính cả fontScale → cỡ chữ co giãn độc lập
+    const h = size.height * size.fontScale
+    const numberCls = h >= 140 ? 'text-3xl' : h >= 115 ? 'text-2xl' : h >= 95 ? 'text-xl' : h >= 78 ? 'text-base' : 'text-sm'
+    const bodyCls = h >= 140 ? 'text-base' : h >= 115 ? 'text-sm' : h >= 95 ? 'text-[13px]' : h >= 78 ? 'text-[12px]' : 'text-[11px]'
+    const captionCls = h >= 140 ? 'text-[13px]' : h >= 115 ? 'text-[12px]' : h >= 95 ? 'text-[11px]' : h >= 78 ? 'text-[10px]' : 'text-[9px]'
+    const badgeCls = h >= 115 ? 'text-[11px]' : h >= 95 ? 'text-[10px]' : 'text-[9px]'
     const labelCls = captionCls
-    const dotPx = h >= 120 ? 'h-6 w-6' : h >= 90 ? 'h-5 w-5' : 'h-4 w-4'
+    const dotPx = h >= 130 ? 'h-6 w-6' : h >= 95 ? 'h-5 w-5' : 'h-4 w-4'
 
     return { gridStyle, numberCls, bodyCls, captionCls, badgeCls, labelCls, dotPx }
   }, [size])
 
   const summaryLabel = useMemo(() => {
     const name = size.preset === 'sm' ? 'Nhỏ' : size.preset === 'lg' ? 'Lớn' : size.preset === 'md' ? 'Vừa' : 'Tuỳ chỉnh'
-    return `${name} · ${size.cols} cột`
+    return `${name} · ${size.cols} cột · ${Math.round(size.fontScale * 100)}%`
   }, [size])
 
-  return { size, setPreset, setCustom, classes, summaryLabel, allowedCols: ALLOWED_COLS as readonly number[] }
+  return { size, setPreset, setCustom, setFontScale, reset, classes, summaryLabel, allowedCols: ALLOWED_COLS as readonly number[] }
 }
