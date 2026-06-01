@@ -55,7 +55,7 @@ async function fetchPeriodNetRevenue(
 ): Promise<number> {
   let q = supabase
     .from('room_bookings')
-    .select('total_amount, ota_commission, discount_amount, payment_status')
+    .select('total_amount, payment_status')
     .eq('tenant_id', tenantId)
     .gte('check_out_date', start.toISOString())
     .lte('check_out_date', end.toISOString())
@@ -65,12 +65,8 @@ async function fetchPeriodNetRevenue(
   const { data, error } = await q
   if (error) throw error
   let net = 0
-  for (const b of (data || []) as Array<{
-    total_amount: number | null
-    ota_commission: number | null
-    discount_amount: number | null
-  }>) {
-    net += (b.total_amount || 0) - (b.ota_commission || 0) - (b.discount_amount || 0)
+  for (const b of (data || []) as Array<{ total_amount: number | null }>) {
+    net += b.total_amount || 0
   }
   return net
 }
