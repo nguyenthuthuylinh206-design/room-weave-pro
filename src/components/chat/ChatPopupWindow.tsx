@@ -46,11 +46,10 @@ export function ChatPopupWindow({
       : conv.name || 'Nhóm'
     : 'Đang tải...'
 
-  const callUrl = conv?.peer?.telegram_username
+  const tgUrl = conv?.peer?.telegram_username
     ? `https://t.me/${conv.peer.telegram_username}`
-    : conv?.peer?.phone
-      ? `tel:${conv.peer.phone}`
-      : null
+    : null
+  const telUrl = conv?.peer?.phone ? `tel:${conv.peer.phone}` : null
 
   // ─── MOBILE ───────────────────────────────────────────────────────────────
   if (isMobile) {
