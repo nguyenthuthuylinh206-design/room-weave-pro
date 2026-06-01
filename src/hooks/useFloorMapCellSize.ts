@@ -150,11 +150,14 @@ export function useFloorMapCellSize(hotelId?: string | null) {
 
     // Font scale theo chiều cao ô
     const h = size.height
-    const numberCls = h >= 120 ? 'text-2xl' : h >= 90 ? 'text-xl' : h >= 76 ? 'text-base' : 'text-sm'
-    const labelCls = h >= 110 ? 'text-[11px]' : 'text-[10px]'
+    const numberCls = h >= 130 ? 'text-3xl' : h >= 110 ? 'text-2xl' : h >= 90 ? 'text-xl' : h >= 76 ? 'text-base' : 'text-sm'
+    const bodyCls = h >= 130 ? 'text-sm' : h >= 110 ? 'text-[13px]' : h >= 90 ? 'text-[12px]' : 'text-[11px]'
+    const captionCls = h >= 130 ? 'text-[12px]' : h >= 110 ? 'text-[11px]' : h >= 90 ? 'text-[10px]' : 'text-[9px]'
+    const badgeCls = h >= 110 ? 'text-[11px]' : h >= 90 ? 'text-[10px]' : 'text-[9px]'
+    const labelCls = captionCls
     const dotPx = h >= 120 ? 'h-6 w-6' : h >= 90 ? 'h-5 w-5' : 'h-4 w-4'
 
-    return { gridStyle, numberCls, labelCls, dotPx }
+    return { gridStyle, numberCls, bodyCls, captionCls, badgeCls, labelCls, dotPx }
   }, [size])
 
   const summaryLabel = useMemo(() => {

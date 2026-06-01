@@ -573,7 +573,7 @@ export function RoomFloorMapView({
                           style={{ height: cellSize.size.height }}
                         >
                           {/* Badge trạng thái góc trên-trái */}
-                          <span className="absolute left-1 top-1 z-10 rounded bg-black/25 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
+                          <span className={cn('absolute left-1 top-1 z-10 rounded bg-black/25 px-1.5 py-0.5 font-semibold uppercase tracking-wide text-white backdrop-blur-sm', cellSize.classes.badgeCls)}>
                             {statusLabel}
                           </span>
 
@@ -618,11 +618,11 @@ export function RoomFloorMapView({
                           {/* Khối thông tin trung tâm */}
                           {bk?.guest_name ? (
                             <div className="flex flex-col items-center leading-tight">
-                              <div className="w-full truncate text-[11px] font-semibold text-white">
+                              <div className={cn('w-full truncate font-semibold text-white', cellSize.classes.bodyCls)}>
                                 {getShortName(bk.guest_name)}
                               </div>
                               {!compact && (
-                                <div className="text-[10px] text-white/85">
+                                <div className={cn('text-white/85', cellSize.classes.captionCls)}>
                                   {bk.guest_count ? `${bk.guest_count} khách` : ''}
                                   {bk.guest_count && nightsLeft > 0 ? ' · ' : ''}
                                   {nightsLeft > 0
@@ -631,42 +631,42 @@ export function RoomFloorMapView({
                                 </div>
                               )}
                               {countdown && (
-                                <div className="text-[10px] font-bold text-white">
+                                <div className={cn('font-bold text-white', cellSize.classes.captionCls)}>
                                   {bucket === 'due_out' ? `← ${countdown}` : countdown}
                                 </div>
                               )}
                             </div>
                           ) : room.next_booking?.guest_name ? (
                             <div className="flex flex-col items-center leading-tight">
-                              <div className="w-full truncate text-[11px] font-semibold text-white">
+                              <div className={cn('w-full truncate font-semibold text-white', cellSize.classes.bodyCls)}>
                                 {getShortName(room.next_booking.guest_name)}
                               </div>
                               {!compact && (
-                                <div className="text-[10px] text-white/85">
+                                <div className={cn('text-white/85', cellSize.classes.captionCls)}>
                                   Sắp đến · {formatArriveIn(room.next_booking.check_in_date, room.next_booking.expected_check_in_time)}
                                 </div>
                               )}
                             </div>
                           ) : (
                             <div className="flex flex-col items-center leading-tight">
-                              <div className="text-[10px] uppercase tracking-wide text-white/85 truncate w-full">
+                              <div className={cn('uppercase tracking-wide text-white/85 truncate w-full', cellSize.classes.captionCls)}>
                                 {room.room_type}
                               </div>
                               {!compact && (() => {
                                 const tp = todayPrices?.get((room.room_type ?? '').toLowerCase())
                                 if (tp && !tp.is_closed && tp.final_price > 0) {
                                   return (
-                                    <div className="text-[11px] font-bold text-white drop-shadow-sm flex items-center gap-0.5">
+                                    <div className={cn('font-bold text-white drop-shadow-sm flex items-center gap-0.5', cellSize.classes.bodyCls)}>
                                       {formatCurrency(tp.final_price)}
                                       {tp.has_seasonal && <span className="text-amber-200" title="Có quy tắc mùa">●</span>}
                                     </div>
                                   )
                                 }
                                 if (tp?.is_closed) {
-                                  return <div className="text-[10px] text-white/90">Đóng bán</div>
+                                  return <div className={cn('text-white/90', cellSize.classes.captionCls)}>Đóng bán</div>
                                 }
                                 if (bucket === 'sellable') {
-                                  return <div className="text-[10px] font-semibold text-white">Sẵn sàng bán</div>
+                                  return <div className={cn('font-semibold text-white', cellSize.classes.captionCls)}>Sẵn sàng bán</div>
                                 }
                                 return null
                               })()}
