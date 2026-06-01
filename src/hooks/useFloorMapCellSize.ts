@@ -62,7 +62,6 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
   const [size, setSize] = useState<CellSizeState>(() => remoteInitial ? normalize(remoteInitial) : readStored(hotelId))
   const dirtyRef = useRef(false)
   const hotelRef = useRef(hotelId)
-  const lastRemoteSignatureRef = useRef<string | null>(remoteInitial ? signature(normalize(remoteInitial)) : null)
 
   // Reload when hotel changes or remote arrives. Do not let stale remote values
   // overwrite local edits while the user is adjusting before pressing Save.
@@ -71,16 +70,13 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
     if (hotelChanged) {
       hotelRef.current = hotelId
       dirtyRef.current = false
-      lastRemoteSignatureRef.current = null
     }
 
     const next = remoteInitial ? normalize(remoteInitial) : readStored(hotelId)
-    const nextSignature = signature(next)
 
     if (dirtyRef.current && !hotelChanged) return
 
     setSize(next)
-    lastRemoteSignatureRef.current = remoteInitial ? nextSignature : null
     try { localStorage.setItem(storageKey(hotelId), JSON.stringify(next)) } catch {}
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hotelId, remoteInitial?.height, remoteInitial?.cols, remoteInitial?.fontScale, remoteInitial?.preset])
@@ -125,7 +121,6 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
   const markSynced = useCallback((value?: CellSizeState) => {
     dirtyRef.current = false
     const next = normalize(value ?? size)
-    lastRemoteSignatureRef.current = signature(next)
     setSize(next)
     try { localStorage.setItem(storageKey(hotelId), JSON.stringify(next)) } catch {}
   }, [hotelId, size])
@@ -139,6 +134,7 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
       if (e.key === '0') {
         e.preventDefault()
+        dirtyRef.current = true
         setSize((s) => ({ preset: 'md', ...PRESETS.md, fontScale: s.fontScale }))
       } else if (e.key === '=' || e.key === '+') {
         e.preventDefault()
