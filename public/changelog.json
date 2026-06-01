@@ -1,6 +1,21 @@
 {
-  "current": "1.1.39",
+  "current": "1.1.40",
   "versions": [
+    {
+      "version": "1.1.40",
+      "date": "2026-06-01",
+      "title": "Khách hàng v2: KPI dashboard, segment, bảng/desktop + card/mobile, gộp trùng SĐT, export CSV",
+      "highlights": [
+        "Thêm dải KPI: Tổng khách, VIP, Mới 30 ngày, Quay lại, Sinh nhật tháng, Tổng chi tiêu — bấm để lọc nhanh",
+        "Tabs segment: Tất cả / VIP / Mới / Quay lại / Sinh nhật / Blacklist với badge số lượng",
+        "Desktop: bảng có sort theo Họ tên / Lần ở / Chi tiêu / Lần cuối + phân trang 50/trang",
+        "Mobile: giữ card list nâng cấp, dropdown thao tác nhanh",
+        "Dropdown thao tác: Sửa nhanh, đổi hạng VIP/Vàng/Thường, Blacklist, Gộp khách trùng",
+        "Gộp khách trùng SĐT: RPC merge_guests an toàn — chuyển booking, cộng dồn lần ở/chi tiêu, fill thông tin còn thiếu, xoá nguồn",
+        "Xuất CSV (UTF-8 BOM) tương thích Excel Việt Nam",
+        "Thêm/Sửa khách qua dialog ngay trên trang, không cần vào trang chi tiết"
+      ]
+    },
     {
       "version": "1.1.39",
       "date": "2026-06-01",

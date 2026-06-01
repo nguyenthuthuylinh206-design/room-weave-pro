@@ -1,105 +1,123 @@
-## Vấn đề cần xử lý
-Chức năng hiện tại đang báo “Đã lưu” nhưng thay đổi không chắc chắn được ghi và không chắc chắn được áp vào giao diện sau khi thoát/vào lại. Nguyên nhân rủi ro chính:
+## Mục tiêu
+Nâng cấp module Khách hàng từ list cơ bản thành **Guest CRM v2** đầy đủ: KPI tổng quan, segment lọc nhanh, bảng/dữ liệu nâng cao desktop + card mobile, thao tác nhanh inline, và trang chi tiết khách 360°.
 
-- State local/remote/draft còn nhiều nguồn, dễ bị remote hoặc localStorage ghi đè.
-- Save đang update toàn bộ `hotels.settings`, dễ fail do quyền cột hoặc ghi đè settings khác nếu có thao tác đồng thời.
-- UI dùng `height` trực tiếp nhưng grid width lại tính gián tiếp, nên người dùng có thể bấm “Nhỏ/Lớn” mà cảm giác “không đổi rõ”.
-- Chưa có xác nhận đọc lại sau khi lưu, nên toast thành công có thể không phản ánh đúng dữ liệu thật.
+## A. Kiến trúc & nghiệp vụ
 
-## Những gì sẽ reuse
-- Bảng hiện có: `hotels.settings.floor_map_cell_size`.
-- Màn hiện có: `/rooms?view=map`, component `RoomFloorMapView`.
-- Hook hiện có: `useFloorMapCellSize`, `useFloorMapCellSizeRemote`.
-- UI popup hiện có để chỉnh: chiều cao ô, số cột, cỡ chữ.
+### Segment (tab lọc nhanh)
+| Segment | Logic |
+|---|---|
+| Tất cả | không filter |
+| VIP | `vip_level IN ('gold','vip')` |
+| Mới (30d) | `created_at >= now() - 30d` |
+| Quay lại | `total_stays >= 2` |
+| Sinh nhật tháng này | `extract(month from date_of_birth) = current_month` |
+| Blacklist | `vip_level = 'blacklist'` |
 
-## Cần refactor
-1. Biến hook size thành một state machine đơn giản:
-   - `saved`: giá trị đã lưu thật.
-   - `draft`: giá trị đang xem thử trên UI.
-   - `dirty`: draft khác saved.
-   - Không tự động save localStorage khi kéo slider.
-   - Remote load chỉ áp vào UI khi chưa có draft chưa lưu.
+### KPI cards (header)
+- Tổng khách (count)
+- VIP / Gold (count)
+- Khách mới 30 ngày
+- Sinh nhật tháng này
+- Tổng doanh thu khách (sum `total_spent`)
+- Khách quay lại (count `total_stays >= 2`)
 
-2. Làm save flow đáng tin cậy:
-   - User kéo slider/chọn preset trong popup: chỉ preview.
-   - User bấm `Lưu`: ghi backend, đọc lại giá trị vừa lưu, rồi mới toast thành công.
-   - User bấm preset nhanh `Nhỏ/Vừa/Lớn`: preview ngay, ghi backend, đọc lại, rồi giữ state đã lưu.
-   - Nếu fail: giữ draft trên màn và toast lỗi rõ ràng, không báo lưu thành công giả.
+→ Tính client-side từ `guests` đã fetch (limit raise lên 1000) + 1 query `count` riêng cho mỗi KPI nếu vượt limit. Phase 1 làm client-side.
 
-3. Làm thay đổi hiển thị nhìn thấy rõ:
-   - `height` sẽ áp trực tiếp vào ô phòng.
-   - `cols` sẽ đổi công thức `gridTemplateColumns` theo đúng số cột mong muốn trên desktop thay vì auto-fill mơ hồ.
-   - `fontScale` sẽ ảnh hưởng trực tiếp bằng CSS variable/font-size inline cho số phòng và text phụ, không chỉ đổi class theo ngưỡng.
+### Gộp trùng SĐT
+- RPC `merge_guests(source_ids uuid[], target_id uuid)`:
+  1. Validate cùng `tenant_id`, caller có quyền `manage_guests`/owner.
+  2. `UPDATE room_bookings SET guest_id = target_id WHERE guest_id = ANY(source_ids)`.
+  3. Merge `total_stays`, `total_spent`, `last_stay_date` (sum/max) vào target.
+  4. Copy non-null fields từ source nếu target trống (id_number, address, …).
+  5. `DELETE FROM guests WHERE id = ANY(source_ids)`.
+  6. Audit log.
 
-## Cần thêm mới
-1. RPC/database function atomic để merge đúng một key JSON:
-   - `update_hotel_floor_map_cell_size(hotel_id, size_json)`.
-   - Validate `tenant_id`, role/permission, và hotel thuộc tenant.
-   - Merge `settings.floor_map_cell_size` không ghi đè các key settings khác.
-   - Trả lại giá trị đã lưu sau normalize.
+## B. Schema / Migration
 
-2. Migration quyền:
-   - Nếu thiếu quyền cập nhật `hotels.settings`, cấp đúng quyền cần thiết cho `authenticated` hoặc dùng RPC `SECURITY DEFINER` có kiểm tra tenant/role.
-   - Không tạo bảng mới.
+Không đổi schema bảng. Chỉ thêm RPC:
 
-3. Test cho logic quan trọng:
-   - Normalize/clamp height/cols/fontScale.
-   - Dirty state khi preview.
-   - Save success sync saved=draft.
-   - Discard trả về saved.
-
-## Rủi ro migration
-- Không thay schema bảng, chỉ thêm RPC và grant execute nên rủi ro thấp.
-- RPC sẽ chỉ update `hotels.settings.floor_map_cell_size`, không đụng `room_check` hoặc settings khác.
-- Rollback: drop RPC mới, frontend có thể quay lại update cũ nếu cần.
-
-## Kiến trúc / logic nghiệp vụ
-```text
-Load /rooms?view=map
-  -> fetch hotel settings floor_map_cell_size
-  -> normalize
-  -> saved = draft = value
-
-User chỉnh
-  -> draft đổi ngay
-  -> UI đổi ngay
-  -> chưa lưu thì hiện “Chưa lưu”
-
-User Lưu
-  -> call RPC atomic
-  -> RPC merge JSON + return saved value
-  -> saved = draft = returned value
-  -> invalidate/refetch cache
+```sql
+CREATE OR REPLACE FUNCTION public.merge_guests(
+  p_target_id uuid,
+  p_source_ids uuid[]
+) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_tenant uuid; v_count int;
+BEGIN
+  SELECT tenant_id INTO v_tenant FROM guests WHERE id = p_target_id;
+  IF v_tenant IS NULL THEN RAISE EXCEPTION 'TARGET_NOT_FOUND'; END IF;
+  IF NOT (has_role(auth.uid(),'owner') OR has_role(auth.uid(),'tenant_owner')
+       OR has_permission(auth.uid(),'manage_guests')) THEN
+    RAISE EXCEPTION 'PERMISSION_DENIED';
+  END IF;
+  IF EXISTS (SELECT 1 FROM guests WHERE id = ANY(p_source_ids) AND tenant_id <> v_tenant) THEN
+    RAISE EXCEPTION 'CROSS_TENANT';
+  END IF;
+  UPDATE room_bookings SET guest_id = p_target_id
+   WHERE guest_id = ANY(p_source_ids) AND tenant_id = v_tenant;
+  -- merge stats, copy missing fields, delete sources...
+  RETURN jsonb_build_object('merged', array_length(p_source_ids,1));
+END $$;
+GRANT EXECUTE ON FUNCTION public.merge_guests(uuid, uuid[]) TO authenticated;
 ```
 
-## Schema / migration
-- Thêm migration tạo RPC `public.update_hotel_floor_map_cell_size`.
-- Grant execute cho `authenticated`.
-- Không tạo bảng mới.
+Rollback: `DROP FUNCTION public.merge_guests(uuid, uuid[]);`
 
-## API / RPC / server actions
-- `useFloorMapCellSizeRemote.save()` chuyển sang gọi RPC thay vì update `hotels.settings` trực tiếp.
-- Sau save sẽ set query cache và refetch/confirm giá trị.
+## C. API / Hooks
 
-## UI screens / components
-- `RoomFloorMapView.tsx` giữ UI hiện tại nhưng sửa hành vi:
-  - Preset nhanh lưu thật và có trạng thái đang lưu.
-  - Popup có preview rõ, `Lưu`, `Hủy`, `Mặc định`.
-  - Summary hiển thị đúng giá trị đang dùng.
-  - Ô phòng và chữ đổi rõ khi kéo slider.
+`src/hooks/useGuests.ts` thêm:
+- `useGuestStats()` — trả về KPI {total, vip, newCount, birthday, returning, totalRevenue}.
+- `useMergeGuests()` — gọi RPC `merge_guests`.
+- `useGuests({ segment, search, sortBy, sortDir, page, pageSize })` — mở rộng, hỗ trợ server-side pagination.
+- `useExportGuestsCSV()` — fetch all + tải CSV (tên, SĐT, email, VIP, lần ở, chi tiêu, lần cuối).
 
-## Permission / role rules
-- Chỉ user cùng tenant và có quyền cập nhật hotel settings được lưu kích thước chung.
-- Nếu user không có quyền, UI sẽ báo lỗi lưu; không hiện toast thành công giả.
+## D. UI / Components
 
-## Test cases
-- Chọn `Lớn` → ô cao hơn, ít cột hơn, refresh vẫn là `Lớn`.
-- Chỉnh cỡ chữ 160% → số phòng to rõ, bấm lưu, thoát/vào lại vẫn giữ.
-- Chỉnh rồi bấm `Hủy` → quay về size đã lưu.
-- Lưu lỗi → không đóng popup, không báo thành công, draft vẫn còn để thử lưu lại.
-- Chuyển khách sạn → load size riêng của khách sạn đó.
+```
+src/pages/guests/GuestsPage.tsx                (rewrite)
+src/components/guests/
+  GuestKpiBar.tsx          — 6 thẻ KPI, click filter segment
+  GuestSegmentTabs.tsx     — tabs: Tất cả / VIP / Mới / Quay lại / Sinh nhật / Blacklist
+  GuestToolbar.tsx         — search + sort + export + Thêm khách
+  GuestDataTable.tsx       — desktop: sort cột, checkbox row, pagination
+  GuestCardList.tsx        — mobile: card hiện tại được nâng cấp
+  GuestQuickActions.tsx    — dropdown: Sửa nhanh / Đổi VIP / Blacklist / Gộp
+  GuestFormDialog.tsx      — Thêm/Sửa khách (reuse field từ GuestDetailPage edit form)
+  MergeGuestsDialog.tsx    — chọn target, preview tác động, confirm
+```
 
-## Rollout notes
-- Không xóa dữ liệu cũ trong `hotels.settings.floor_map_cell_size`.
-- Giá trị cũ sẽ được normalize khi đọc lần đầu.
-- Sau khi triển khai sẽ kiểm tra lại bằng console/network hoặc preview để xác nhận lưu và reload vẫn giữ.
+Responsive: `md:` breakpoint → table; `<md` → card list. Cả hai dùng cùng data source và filter.
+
+### GuestDetailPage 360°
+Refactor thành 4 tab:
+1. **Tổng quan** — info + KPI khách (lần ở, doanh thu, chi tiêu TB, lần cuối, tần suất).
+2. **Lịch sử booking** — danh sách hiện tại + filter theo năm.
+3. **Tài chính** — tổng chi tiêu, breakdown theo phòng/dịch vụ, dư nợ chưa thu.
+4. **Giấy tờ & Ghi chú** — file CCCD/Hộ chiếu (id_image_url), notes timeline.
+
+## E. Permission
+- `view_guests` → xem trang + KPI.
+- `manage_guests` → Thêm/Sửa/Blacklist/Export/Merge.
+- Staff không có quyền: ẩn nút thao tác, chỉ xem.
+
+## F. Test cases
+1. KPI tính đúng khi đổi segment.
+2. Segment "Sinh nhật" chỉ hiện khách có `date_of_birth` trong tháng hiện tại.
+3. Sort theo `total_spent` desc/asc đúng thứ tự.
+4. Export CSV: số cột & encoding UTF-8 BOM OK trên Excel VN.
+5. Merge 2 khách trùng SĐT: bookings chuyển hết về target, source bị xoá, stats cộng dồn.
+6. Staff không có `manage_guests` → ẩn nút Merge/Blacklist.
+7. Mobile <768px: card layout; ≥768px: table layout.
+8. Pagination 50/trang chạy mượt với 1000+ khách.
+
+## G. Rollout
+1. Migration RPC `merge_guests` (không phá vỡ).
+2. Deploy UI v2 (GuestsPage rewrite) — flag `?v=1` để toggle về v1 nếu cần (giữ file cũ làm `GuestsPageLegacy.tsx`).
+3. Theo dõi 48h → xoá legacy.
+
+**Rollback**: revert route về `GuestsPageLegacy`, drop RPC.
+
+## Phạm vi không làm trong lần này
+- Marketing/SMS tới khách (tạo skill riêng).
+- Loyalty points (cần schema mới).
+- Import khách từ Excel (đã có ở module khác).
