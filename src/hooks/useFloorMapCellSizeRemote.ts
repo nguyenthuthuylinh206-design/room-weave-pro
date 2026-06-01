@@ -2,6 +2,17 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import type { CellSizeState } from './useFloorMapCellSize'
 
+function mergeFloorMapCellSizeIntoHotel(hotel: any, hotelId: string, value: CellSizeState) {
+  if (!hotel || hotel.id !== hotelId) return hotel
+  return {
+    ...hotel,
+    settings: {
+      ...((hotel.settings as any) ?? {}),
+      floor_map_cell_size: value,
+    },
+  }
+}
+
 /**
  * Load + persist Floor Map cell-size vào hotels.settings.floor_map_cell_size.
  * Lưu chung cho cả hotel → áp dụng cho mọi user/thiết bị.
@@ -46,7 +57,13 @@ export function useFloorMapCellSizeRemote(hotelId?: string | null) {
     },
     onSuccess: (value) => {
       qc.setQueryData(['floor-map-cell-size', hotelId], value)
-      qc.invalidateQueries({ queryKey: ['hotels'] })
+      qc.setQueriesData({ queryKey: ['hotels'] }, (old: any) => {
+        if (!hotelId || !old) return old
+        if (Array.isArray(old)) {
+          return old.map((hotel) => mergeFloorMapCellSizeIntoHotel(hotel, hotelId, value))
+        }
+        return mergeFloorMapCellSizeIntoHotel(old, hotelId, value)
+      })
     },
   })
 
