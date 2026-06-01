@@ -13616,6 +13616,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      merge_guests: {
+        Args: { p_source_ids: string[]; p_target_id: string }
+        Returns: Json
+      }
       move_booking: {
         Args: {
           p_booking_id: string
