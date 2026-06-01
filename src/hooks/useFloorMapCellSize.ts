@@ -50,7 +50,9 @@ function readStored(hotelId?: string | null): CellSizeState {
   try {
     const raw = localStorage.getItem(storageKey(hotelId))
     if (raw) return normalize(JSON.parse(raw))
-  } catch {}
+  } catch {
+    // Ignore corrupted local preferences and fall back to defaults.
+  }
   return normalize(null)
 }
 
@@ -73,7 +75,9 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
     if (dirtyRef.current && !hotelChanged) return
 
     setSize(next)
-    try { localStorage.setItem(storageKey(hotelId), JSON.stringify(next)) } catch {}
+    try { localStorage.setItem(storageKey(hotelId), JSON.stringify(next)) } catch {
+      // Local persistence is best-effort.
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hotelId, remoteInitial?.height, remoteInitial?.cols, remoteInitial?.fontScale, remoteInitial?.preset])
 
@@ -81,6 +85,9 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
   useEffect(() => {
     const t = setTimeout(() => {
       try { localStorage.setItem(storageKey(hotelId), JSON.stringify(size)) } catch {}
+      try { localStorage.setItem(storageKey(hotelId), JSON.stringify(size)) } catch {
+        // Local persistence is best-effort.
+      }
     }, 250)
     return () => clearTimeout(t)
   }, [hotelId, size])
@@ -118,7 +125,9 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
     dirtyRef.current = false
     const next = normalize(value ?? size)
     setSize(next)
-    try { localStorage.setItem(storageKey(hotelId), JSON.stringify(next)) } catch {}
+    try { localStorage.setItem(storageKey(hotelId), JSON.stringify(next)) } catch {
+      // Local persistence is best-effort.
+    }
   }, [hotelId, size])
 
   // Keyboard shortcut: Ctrl/Cmd +/-/0
@@ -135,7 +144,7 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
       } else if (e.key === '=' || e.key === '+') {
         e.preventDefault()
         setSize((s) => {
-          const idx = order.indexOf(s.preset as any)
+          const idx = order.indexOf(s.preset)
           const nextIdx = idx === -1 ? order.indexOf('md') : Math.min(order.length - 1, idx + 1)
           const p = order[nextIdx]
           dirtyRef.current = true
@@ -144,7 +153,7 @@ export function useFloorMapCellSize(hotelId?: string | null, remoteInitial?: Cel
       } else if (e.key === '-' || e.key === '_') {
         e.preventDefault()
         setSize((s) => {
-          const idx = order.indexOf(s.preset as any)
+          const idx = order.indexOf(s.preset)
           const nextIdx = idx === -1 ? order.indexOf('md') : Math.max(0, idx - 1)
           const p = order[nextIdx]
           dirtyRef.current = true
