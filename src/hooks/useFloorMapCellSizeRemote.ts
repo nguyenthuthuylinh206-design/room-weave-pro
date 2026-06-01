@@ -5,6 +5,10 @@ import { normalizeCellSize, type CellSizeState } from './useFloorMapCellSize'
 import { useUser } from './useUser'
 
 type HotelCacheRow = { id?: string; settings?: Record<string, unknown> | null; [key: string]: unknown }
+type FloorMapCellSizeRpc = (
+  fn: 'update_hotel_floor_map_cell_size',
+  args: { p_hotel_id: string; p_size: Json },
+) => Promise<{ data: unknown; error: { message?: string } | null }>
 
 function asSettings(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
@@ -62,10 +66,11 @@ export function useFloorMapCellSizeRemote(hotelId?: string | null) {
       if (!hotelId) throw new Error('Chưa chọn khách sạn')
       if (!tenantId) throw new Error('Chưa xác định tenant')
       const normalized = normalizeCellSize(value)
-      const { data, error } = await supabase.rpc('update_hotel_floor_map_cell_size' as any, {
+      const callRpc = supabase.rpc as unknown as FloorMapCellSizeRpc
+      const { data, error } = await callRpc('update_hotel_floor_map_cell_size', {
         p_hotel_id: hotelId,
         p_size: toCellSizeJson(normalized),
-      }) as { data: unknown; error: { message?: string } | null }
+      })
       if (error) throw error
       const saved = normalizeCellSize(data as Partial<CellSizeState>)
 
