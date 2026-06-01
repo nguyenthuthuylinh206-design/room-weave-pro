@@ -509,11 +509,12 @@ export function RoomFloorMapView({
                   className="h-7 gap-1 px-3 text-xs"
                   disabled={saveCellSize.isPending || !selectedHotel?.id}
                   onClick={() => {
+                    const currentSize = cellSize.getCurrentSize()
                     // Lưu localStorage trước (không mất nếu DB lỗi)
                     try {
                       localStorage.setItem(
                         `rooms.floorMap.cellSize:${selectedHotel?.id || 'default'}`,
-                        JSON.stringify(cellSize.size),
+                        JSON.stringify(currentSize),
                       )
                     } catch {
                       // Local persistence is best-effort.
@@ -522,9 +523,9 @@ export function RoomFloorMapView({
                       toast.success('Đã lưu trên thiết bị này')
                       return
                     }
-                    saveCellSize.mutate(cellSize.size, {
+                    saveCellSize.mutate(currentSize, {
                       onSuccess: () => {
-                        cellSize.markSynced(cellSize.size)
+                        cellSize.markSynced(currentSize)
                         toast.success(`Đã lưu vĩnh viễn cho ${selectedHotel.name}`)
                       },
                       onError: (err: unknown) => {
