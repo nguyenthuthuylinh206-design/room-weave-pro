@@ -522,6 +522,7 @@ export function RoomFloorMapView({
                     }
                     saveCellSize.mutate(cellSize.size, {
                       onSuccess: () => {
+                        cellSize.markSynced(cellSize.size)
                         toast.success(`Đã lưu vĩnh viễn cho ${selectedHotel.name}`)
                       },
                       onError: (err: any) => {
