@@ -193,9 +193,9 @@ export function ChatPopupWindow({
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 truncate text-sm font-semibold">{title}</div>
-        {callUrl && (
+        {tgUrl && (
           <a
-            href={callUrl}
+            href={tgUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-foreground hover:bg-accent hover:text-accent-foreground"
