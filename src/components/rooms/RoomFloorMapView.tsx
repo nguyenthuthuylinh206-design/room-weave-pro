@@ -186,7 +186,8 @@ export function RoomFloorMapView({
   const [floorFilter, setFloorFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
   const transitionRoom = useRoomTransition()
-  const cellSize = useFloorMapCellSize(selectedHotel?.id)
+  const { remote: remoteCellSize, save: saveCellSize } = useFloorMapCellSizeRemote(selectedHotel?.id)
+  const cellSize = useFloorMapCellSize(selectedHotel?.id, remoteCellSize)
   const { data: todayPrices } = useTodayPricesByHotel(selectedHotel?.id)
 
 
