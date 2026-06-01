@@ -1,6 +1,17 @@
 {
-  "current": "1.1.38",
+  "current": "1.1.39",
   "versions": [
+    {
+      "version": "1.1.39",
+      "date": "2026-06-01",
+      "title": "Sơ đồ phòng: slider Cỡ chữ + nút Lưu vĩnh viễn theo khách sạn",
+      "highlights": [
+        "Thêm thanh kéo Cỡ chữ (80%–160%) trong popover kích thước — chữ trong ô tự co giãn không cần thay đổi chiều cao ô",
+        "Nút Lưu giờ ghi vào hotels.settings.floor_map_cell_size → áp dụng cho mọi user/thiết bị của cùng khách sạn, không bị mất khi đăng nhập máy khác",
+        "Đặt lại đưa về preset Vừa + cỡ chữ 100%",
+        "Fallback localStorage khi DB lỗi, không chặn UX"
+      ]
+    },
     {
       "version": "1.1.38",
       "date": "2026-05-31",
