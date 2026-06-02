@@ -46,10 +46,6 @@ interface RoomGridProps {
   onSelectionChange: (ids: string[]) => void
 }
 
-/** Vai trò chỉ thấy thông tin vận hành, không thấy giá phòng. */
-function hidesPrice(role: string | null | undefined) {
-  return role === 'staff' || role === 'department_manager'
-}
 
 function statusDotClass(status: string): string {
   switch (status) {
