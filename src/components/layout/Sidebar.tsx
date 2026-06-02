@@ -118,6 +118,7 @@ const navigation: NavItem[] = [
     roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
     minMode: 'homestay',
     children: [
+      { titleKey: 'housekeepingOverview', href: '/housekeeping', icon: List, group: 'Quản lý phòng' },
       { titleKey: 'roomsList', href: '/rooms', icon: List, group: 'Quản lý phòng' },
       { titleKey: 'roomStandards', href: '/rooms/standards', icon: Settings, minMode: 'standard', group: 'Quản lý phòng' },
       { titleKey: 'addRoom', href: '/rooms/new', icon: Plus, group: 'Quản lý phòng' },

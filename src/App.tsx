@@ -207,6 +207,7 @@ const ScanDocumentPage = lazy(() => import("./pages/scan/ScanDocumentPage"));
 const HousekeepingStaffDashboard = lazy(() => import("./pages/HousekeepingStaffDashboard"));
 const TasksPendingReviewPage = lazy(() => import("./pages/housekeeping/TasksPendingReviewPage"));
 const QcDashboardPage = lazy(() => import("./pages/housekeeping/QcDashboardPage"));
+const HousekeepingDashboardPage = lazy(() => import("./pages/housekeeping/HousekeepingDashboardPage"));
 const IssuesReviewPage = lazy(() => import("./pages/housekeeping/IssuesReviewPage"));
 
 const queryClient = new QueryClient({
@@ -482,6 +483,7 @@ const router = createBrowserRouter([
       { path: "staff", element: <PermissionRoute module="users"><StaffManagementPage /></PermissionRoute> },
       { path: "my-tasks", element: <MyTasksPage /> },
       { path: "staff/housekeeping", element: <HousekeepingStaffDashboard /> },
+      { path: "housekeeping", element: <PermissionRoute module="rooms"><HousekeepingDashboardPage /></PermissionRoute> },
       { path: "housekeeping/review", element: <PermissionRoute module="rooms"><TasksPendingReviewPage /></PermissionRoute> },
       { path: "housekeeping/qc", element: <PermissionRoute module="rooms"><QcDashboardPage /></PermissionRoute> },
       { path: "housekeeping/issues-review", element: <RoleGuard allowedRoles={['super_admin', 'owner', 'hotel_manager', 'department_manager']}><IssuesReviewPage /></RoleGuard> },
