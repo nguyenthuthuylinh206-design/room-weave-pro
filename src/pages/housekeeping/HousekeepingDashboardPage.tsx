@@ -15,6 +15,8 @@ import { CheckoutTodayPanel } from '@/components/housekeeping/dashboard/Checkout
 import { CleaningProgressPanel } from '@/components/housekeeping/dashboard/CleaningProgressPanel'
 import { StaffPerformancePanel } from '@/components/housekeeping/dashboard/StaffPerformancePanel'
 import { FloorMapLarge } from '@/components/housekeeping/dashboard/FloorMapLarge'
+import { OpsSummaryStrip } from '@/components/housekeeping/dashboard/OpsSummaryStrip'
+import { useHousekeepingOpsSummary } from '@/hooks/useHousekeepingOpsSummary'
 
 export default function HousekeepingDashboardPage() {
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
@@ -25,6 +27,7 @@ export default function HousekeepingDashboardPage() {
   const checkout = useCheckoutToday(hotelId)
   const progress = useCleaningProgressToday(hotelId)
   const staff = useStaffPerformanceToday(hotelId)
+  const ops = useHousekeepingOpsSummary(hotelId)
 
   return (
     <div className="flex flex-col gap-3 p-3 sm:p-4 max-w-[1600px] mx-auto w-full">
@@ -62,10 +65,13 @@ export default function HousekeepingDashboardPage() {
             <StaffPerformancePanel data={staff.data} loading={staff.isLoading} />
           </div>
 
-          {/* Hàng 3 — Sơ đồ phòng lớn */}
+          {/* Hàng 3 — Vận hành liên quan (Bảo trì / Thất lạc / Giặt ủi / Giao đồ) */}
+          <OpsSummaryStrip data={ops.data} loading={ops.isLoading} />
+
+          {/* Hàng 4 — Sơ đồ phòng lớn */}
           <FloorMapLarge />
 
-          {/* Hàng 4 — Tổng cộng */}
+          {/* Hàng 5 — Tổng cộng */}
           <KpiTotalsStrip data={kpi.data} loading={kpi.isLoading} />
         </>
       )}
