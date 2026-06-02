@@ -4,9 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import {
-  Users,
   Bed,
-  Maximize,
   CheckCircle,
   AlertTriangle,
   Wind,
@@ -15,9 +13,7 @@ import {
   ClipboardList,
   PackageOpen,
 } from 'lucide-react'
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -33,14 +29,12 @@ import { usePendingRoomDistributions } from '@/hooks/usePendingRoomDistributions
 import { useUser } from '@/hooks/useUser'
 import { hasPermission } from '@/lib/permissions'
 import { canCreateHousekeepingTask } from '@/lib/userAccess'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, cn } from '@/lib/utils'
 import { calcRoomPriority, getMissingDisplay, type PriorityTier } from '@/lib/roomPriority'
 import type { RoomWithStats, RoomStatus } from '@/types/rooms.types'
-// (TaskType chỉ dùng gián tiếp qua TASK_TYPE_LABELS)
 import { TASK_TYPE_LABELS } from '@/types/housekeeping.types'
 
 type ManualTaskType = 'checkout_inspection' | 'cleaning' | 'checkin_prep' | 'amenity_request' | 'other'
-
 const MANUAL_TASK_TYPES: ManualTaskType[] = ['checkout_inspection', 'cleaning', 'checkin_prep', 'amenity_request']
 
 interface RoomGridProps {
@@ -50,12 +44,11 @@ interface RoomGridProps {
   onSelectionChange: (ids: string[]) => void
 }
 
-/** Vai trò tác nghiệp (chỉ HK staff): card gọn, ẩn giá. Department manager xem layout manager. */
-function isOperationalRole(role: string | null | undefined) {
-  return role === 'staff'
+/** Vai trò chỉ thấy thông tin vận hành, không thấy giá phòng. */
+function hidesPrice(role: string | null | undefined) {
+  return role === 'staff' || role === 'department_manager'
 }
 
-/** Map trạng thái phòng → màu chấm (semantic). */
 function statusDotClass(status: string): string {
   switch (status) {
     case 'vacant_clean':
@@ -86,33 +79,21 @@ function statusDotClass(status: string): string {
   }
 }
 
-/** Màu chữ cho mức độ trễ kiểm phòng. */
 function lastCheckClass(days: number | null): string {
-  if (days === null) return 'text-amber-600 font-medium' // chưa từng kiểm
-  if (days > 30) return 'text-red-600 font-semibold'
+  if (days === null) return 'text-amber-600'
+  if (days > 30) return 'text-red-600 font-medium'
   if (days > 7) return 'text-amber-600'
   return 'text-muted-foreground'
-}
-
-function priorityBadgeClass(tier: PriorityTier): string {
-  switch (tier) {
-    case 'urgent':
-      return 'border-red-500 text-red-600 bg-red-50 dark:bg-red-950/30'
-    case 'warning':
-      return 'border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950/30'
-    default:
-      return ''
-  }
 }
 
 function priorityRingClass(tier: PriorityTier): string {
   switch (tier) {
     case 'urgent':
-      return 'border-l-4 border-l-red-500'
+      return 'border-l-[3px] border-l-red-500'
     case 'warning':
-      return 'border-l-4 border-l-amber-500'
+      return 'border-l-[3px] border-l-amber-500'
     default:
-      return 'border-l-4 border-l-transparent'
+      return 'border-l-[3px] border-l-transparent'
   }
 }
 
@@ -126,11 +107,10 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
   const [taskRoom, setTaskRoom] = useState<{ id: string; number: string; hotelId: string } | null>(null)
   const [taskType, setTaskType] = useState<ManualTaskType>('cleaning')
 
-  const isOperational = isOperationalRole(role)
   const canViewRoomDetail = hasPermission(role, 'manage_rooms') || role !== 'staff'
   const canCreateTask = canCreateHousekeepingTask(user)
+  const showPrice = !hidesPrice(role)
 
-  // Sắp xếp theo priority + nhóm thành 3 section.
   const grouped = useMemo(() => {
     const items = rooms.map((room) => {
       const pendingCount = pendingDistributions?.get(room.id) || 0
@@ -159,20 +139,14 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
 
   if (isLoading) {
     return (
-      <div className={`grid ${isOperational ? 'gap-3' : 'gap-4'} sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}>
-        {[...Array(8)].map((_, i) => (
-          <Card key={i}>
-            <CardHeader>
-              <Skeleton className="h-6 w-20" />
-              <Skeleton className="h-4 w-32" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-20 w-full" />
-            </CardContent>
-            <CardFooter>
-              <Skeleton className="h-9 w-full" />
-            </CardFooter>
-          </Card>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+        {[...Array(10)].map((_, i) => (
+          <div key={i} className="rounded-lg border p-3 space-y-2">
+            <Skeleton className="h-7 w-20" />
+            <Skeleton className="h-3 w-32" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-8 w-full" />
+          </div>
         ))}
       </div>
     )
@@ -194,105 +168,72 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
     const session = checkSessions[room.id]
     const missing = getMissingDisplay(room)
     const roomTypeLabel = t(`roomTypes.${room.room_type}`, { defaultValue: room.room_type })
+    const statusLabel = t(`status.${room.status}`, { defaultValue: room.status })
 
-    // Last check display
+    const hasPriorityReason = !!priority.reason && priority.tier !== 'normal'
+    const showLastCheck = !hasPriorityReason && (priority.daysSinceCheck === null || priority.daysSinceCheck > 7)
+
     const lastCheckText = room.last_check_at
       ? t('grid.lastCheckedRelative', {
           time: formatDistanceToNow(new Date(room.last_check_at), { locale: vi, addSuffix: false }),
         })
       : t('grid.neverChecked')
 
+    // Meta row: type • guests • bed • area
+    const metaParts = [
+      roomTypeLabel,
+      `${room.max_guests} khách`,
+      room.bed_type || null,
+      room.area_sqm ? `${room.area_sqm}m²` : null,
+    ].filter(Boolean)
+
     return (
-      <Card
+      <div
         key={room.id}
-        className={`transition-all hover:shadow-lg ${priorityRingClass(priority.tier)} ${
-          isSelected ? 'ring-2 ring-primary bg-primary/5' : ''
-        } ${canViewRoomDetail && !isOperational ? 'cursor-pointer' : ''}`}
-        onClick={() => canViewRoomDetail && !isOperational && navigate(`/rooms/${room.id}`)}
+        className={cn(
+          'group rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md hover:border-foreground/20',
+          priorityRingClass(priority.tier),
+          isSelected && 'ring-2 ring-primary bg-primary/5',
+          canViewRoomDetail && 'cursor-pointer',
+        )}
+        onClick={() => canViewRoomDetail && navigate(`/rooms/${room.id}`)}
       >
-        <CardHeader className={isOperational ? 'pb-2' : 'pb-3'}>
+        <div className="p-3 space-y-2">
+          {/* Line 1: checkbox + dot + room # + status selector */}
           <div className="flex items-start justify-between gap-2">
-            <div className="flex items-start gap-3 min-w-0 flex-1">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
               <div onClick={(e) => e.stopPropagation()}>
                 <Checkbox
                   checked={isSelected}
                   onCheckedChange={(checked) => handleSelectRoom(room.id, !!checked)}
-                  className="mt-1"
                 />
               </div>
-              <div className="min-w-0 flex-1">
-                {isOperational ? (
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`inline-block h-2.5 w-2.5 rounded-full ${statusDotClass(room.status)}`}
-                      aria-hidden
-                    />
-                    <h3 className="text-3xl font-bold leading-none tracking-tight">
-                      {room.room_number}
-                    </h3>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span
-                      className={`inline-block h-2 w-2 rounded-full ${statusDotClass(room.status)}`}
-                      aria-hidden
-                    />
-                    <h3 className="text-2xl font-bold leading-none">{room.room_number}</h3>
-                    {priority.tier !== 'normal' && (
-                      <Badge variant="outline" className={`text-[10px] h-5 ${priorityBadgeClass(priority.tier)}`}>
-                        {priority.tier === 'urgent' ? t('grid.priorityUrgent') : t('grid.priorityWarning')}
-                      </Badge>
-                    )}
-                  </div>
-                )}
-                <p className="mt-1 text-xs text-muted-foreground truncate">
-                  {isOperational
-                    ? `${roomTypeLabel} • ${room.max_guests} khách • ${room.bed_type || t('detail.na')}${
-                        room.area_sqm ? ` • ${room.area_sqm}m²` : ''
-                      }`
-                    : roomTypeLabel}
-                </p>
-                {/* Lý do ưu tiên (chỉ cho non-operational, khi có) */}
-                {!isOperational && priority.reason && priority.tier !== 'normal' && (
-                  <p
-                    className={`mt-1 text-xs font-medium ${
-                      priority.tier === 'urgent' ? 'text-red-600' : 'text-amber-600'
-                    }`}
-                  >
-                    {priority.reason}
-                  </p>
-                )}
-              </div>
+              <span className={cn('inline-block h-2 w-2 rounded-full shrink-0', statusDotClass(room.status))} aria-hidden />
+              <h3 className="text-2xl font-bold leading-none tracking-tight truncate">{room.room_number}</h3>
             </div>
-            <div onClick={(e) => e.stopPropagation()}>
+            <div onClick={(e) => e.stopPropagation()} className="shrink-0">
               <RoomStatusSelector roomId={room.id} currentStatus={room.status as RoomStatus} />
             </div>
           </div>
-        </CardHeader>
 
-        <CardContent className={isOperational ? 'space-y-2 pb-3' : 'space-y-3'}>
-          {!isOperational && (
-            <div className="grid grid-cols-3 gap-2 text-xs">
-              <div className="flex items-center gap-1">
-                <Users className="h-3 w-3 text-muted-foreground" />
-                <span>{room.max_guests}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Bed className="h-3 w-3 text-muted-foreground" />
-                <span className="capitalize">{room.bed_type || t('detail.na')}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Maximize className="h-3 w-3 text-muted-foreground" />
-                <span>{room.area_sqm || t('detail.na')} m²</span>
-              </div>
-            </div>
+          {/* Line 2: priority reason (if any) — đặt lên trên cùng để Manager scan nhanh */}
+          {hasPriorityReason && (
+            <p
+              className={cn(
+                'text-xs font-medium',
+                priority.tier === 'urgent' ? 'text-red-600' : 'text-amber-600',
+              )}
+            >
+              {priority.reason}
+            </p>
           )}
 
-          <div className={`space-y-1 text-xs ${isOperational ? '' : 'border-t pt-2'}`}>
+          {/* Line 3: actionable info — session / missing / laundry / pending / last check */}
+          <div className="space-y-1 text-xs">
             {session ? (
               <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400">
                 <Clock className="h-3 w-3 animate-pulse" />
-                <span className="font-medium">
+                <span className="font-medium truncate">
                   {t('checkSession.checking', {
                     name: session.user_name,
                     type: getCheckTypeLabel(session.check_type),
@@ -330,63 +271,34 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
               </div>
             )}
 
-            <div className={`flex items-center gap-1 ${lastCheckClass(priority.daysSinceCheck)}`}>
-              <Clock className="h-3 w-3" />
-              <span>{lastCheckText}</span>
-            </div>
+            {showLastCheck && (
+              <div className={cn('flex items-center gap-1', lastCheckClass(priority.daysSinceCheck))}>
+                <Clock className="h-3 w-3" />
+                <span>{lastCheckText}</span>
+              </div>
+            )}
           </div>
 
-          {!isOperational && room.base_price && (
-            <div className="border-t pt-2">
-              <p className="text-xs text-muted-foreground">{t('grid.basePrice')}</p>
-              <p className="font-semibold">
+          {/* Line 4: meta row (gộp loại/khách/giường/m² + giá nếu được phép) */}
+          <div className="flex items-center justify-between gap-2 pt-1 border-t text-[11px] text-muted-foreground">
+            <span className="truncate" title={metaParts.join(' • ')}>
+              {metaParts.join(' • ')}
+            </span>
+            {showPrice && room.base_price ? (
+              <span className="font-medium text-foreground shrink-0">
                 {formatCurrency(room.base_price)}
-                {t('grid.perNight')}
-              </p>
-            </div>
-          )}
-        </CardContent>
+              </span>
+            ) : null}
+          </div>
+        </div>
 
-        <CardFooter className="gap-2">
-          {!isOperational && canViewRoomDetail && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="flex-1"
-              onClick={(e) => {
-                e.stopPropagation()
-                navigate(`/rooms/${room.id}`)
-              }}
-            >
-              {t('actions.viewDetail')}
-            </Button>
-          )}
-
-          {!isOperational && canCreateTask && (
-            <div onClick={(e) => e.stopPropagation()}>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline">
-                    <ClipboardList className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-background">
-                  {MANUAL_TASK_TYPES.map((type) => (
-                    <DropdownMenuItem key={type} onClick={() => openTaskDialog(room, type)}>
-                      {TASK_TYPE_LABELS[type]}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )}
-
+        {/* Footer actions */}
+        <div className="flex items-center gap-2 px-3 pb-3" onClick={(e) => e.stopPropagation()}>
           <Button
             size="sm"
-            className="flex-1"
+            className="flex-1 h-8"
             disabled={!!session && session.user_id !== user?.id}
-            onClick={(e) => {
-              e.stopPropagation()
+            onClick={() => {
               const hasSession = !!session && session.user_id === user?.id
               navigate(`/rooms/${room.id}/check${hasSession ? '?resume=true' : ''}`)
             }}
@@ -397,12 +309,27 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
                 : t('checkSession.inProgress')
               : t('checkSession.check')}
           </Button>
-        </CardFooter>
-      </Card>
+
+          {canCreateTask && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline" className="h-8 w-8 p-0" title={t('actions.createTask', { defaultValue: 'Giao việc' })}>
+                  <ClipboardList className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-background">
+                {MANUAL_TASK_TYPES.map((type) => (
+                  <DropdownMenuItem key={type} onClick={() => openTaskDialog(room, type)}>
+                    {TASK_TYPE_LABELS[type]}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+      </div>
     )
   }
-
-  const gapClass = isOperational ? 'gap-3' : 'gap-4'
 
   const renderSection = (
     title: string,
@@ -412,8 +339,8 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
     if (items.length === 0) return null
     return (
       <section className="space-y-3">
-        <h2 className={`text-sm font-semibold uppercase tracking-wide ${headerClass}`}>{title}</h2>
-        <div className={`grid ${gapClass} sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}>
+        <h2 className={cn('text-xs font-semibold uppercase tracking-wider', headerClass)}>{title}</h2>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {items.map(renderCard)}
         </div>
       </section>
@@ -422,21 +349,9 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
 
   return (
     <div className="space-y-6">
-      {renderSection(
-        t('grid.sectionUrgent', { count: grouped.urgent.length }),
-        grouped.urgent,
-        'text-red-600',
-      )}
-      {renderSection(
-        t('grid.sectionWarning', { count: grouped.warning.length }),
-        grouped.warning,
-        'text-amber-600',
-      )}
-      {renderSection(
-        t('grid.sectionNormal', { count: grouped.normal.length }),
-        grouped.normal,
-        'text-muted-foreground',
-      )}
+      {renderSection(t('grid.sectionUrgent', { count: grouped.urgent.length }), grouped.urgent, 'text-red-600')}
+      {renderSection(t('grid.sectionWarning', { count: grouped.warning.length }), grouped.warning, 'text-amber-600')}
+      {renderSection(t('grid.sectionNormal', { count: grouped.normal.length }), grouped.normal, 'text-muted-foreground')}
 
       {taskRoom && (
         <CreateTaskDialog
