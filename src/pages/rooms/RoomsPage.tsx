@@ -133,6 +133,7 @@ export function RoomsPage() {
             </TabsTrigger>
           </TabsList>
         </Tabs>
+        </div>
       </div>
 
       {/* Bulk Actions Bar */}
