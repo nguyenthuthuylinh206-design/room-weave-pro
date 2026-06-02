@@ -6,21 +6,22 @@ import { useUser } from '@/hooks/useUser'
 export interface HousekeepingKpi {
   totalRooms: number
   occupied: number          // Đang có khách
-  checkoutToday: number     // Booking trả hôm nay (status checked_in)
-  needCleaning: number      // vacant_dirty + cleaning + occupied_dirty
-  maintenance: number       // out_of_order + out_of_service + maintenance
-  missingItems: number      // phòng không có khách nhưng còn thiếu đồ
+  vacantClean: number       // Trống - sạch
+  cleaning: number          // Đang dọn
+  vacantDirty: number       // Bẩn - chờ dọn
+  maintenance: number       // Bảo trì / OOO / OOS
+  reserved: number          // Đã đặt trước
+  checkoutToday: number
+  missingItems: number
 }
 
 const OCCUPIED_SET = new Set(['occupied', 'occupied_clean', 'occupied_dirty', 'dnd', 'sleep_out', 'service_refused'])
-const DIRTY_SET = new Set(['vacant_dirty', 'cleaning', 'occupied_dirty', 'check_out'])
+const VACANT_CLEAN_SET = new Set(['vacant_clean', 'vacant_inspected', 'vacant'])
+const CLEANING_SET = new Set(['cleaning'])
+const VACANT_DIRTY_SET = new Set(['vacant_dirty', 'check_out', 'occupied_dirty'])
 const MAINT_SET = new Set(['out_of_order', 'out_of_service', 'maintenance'])
+const RESERVED_SET = new Set(['reserved'])
 
-/**
- * Aggregate 6 KPI cho cockpit Trưởng buồng phòng.
- * Dựa trên RPC `get_rooms_filtered` (đã có sẵn missing_items).
- * Realtime invalidate khi rooms/room_bookings thay đổi.
- */
 export function useHousekeepingKpi(hotelId?: string | null) {
   const { user } = useUser()
   const tenantId = user?.tenant_id
@@ -33,7 +34,7 @@ export function useHousekeepingKpi(hotelId?: string | null) {
     queryFn: async () => {
       const today = new Date().toISOString().slice(0, 10)
 
-      const [roomsRes, bookingsRes] = await Promise.all([
+      const [roomsRes, checkoutRes, reservedBookingRes] = await Promise.all([
         supabase.rpc('get_rooms_filtered', {
           p_tenant_id: tenantId!,
           p_hotel_id: hotelId!,
@@ -50,33 +51,45 @@ export function useHousekeepingKpi(hotelId?: string | null) {
           .eq('hotel_id', hotelId!)
           .eq('status', 'checked_in')
           .eq('check_out_date', today),
+        supabase
+          .from('room_bookings')
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', tenantId!)
+          .eq('hotel_id', hotelId!)
+          .in('status', ['confirmed', 'pending'])
+          .lte('check_in_date', today)
+          .gte('check_out_date', today),
       ])
 
       if (roomsRes.error) throw roomsRes.error
-      if (bookingsRes.error) throw bookingsRes.error
 
       const rooms = (roomsRes.data || []) as Array<{ id: string; status: string; missing_items: number | null }>
 
-      let occupied = 0
-      let needCleaning = 0
-      let maintenance = 0
-      let missingItems = 0
-
+      let occupied = 0, vacantClean = 0, cleaning = 0, vacantDirty = 0, maintenance = 0, reservedRoom = 0, missingItems = 0
       for (const r of rooms) {
         const s = r.status
         const isOccupied = OCCUPIED_SET.has(s)
         if (isOccupied) occupied++
-        if (DIRTY_SET.has(s)) needCleaning++
+        else if (VACANT_CLEAN_SET.has(s)) vacantClean++
+        if (CLEANING_SET.has(s)) cleaning++
+        if (VACANT_DIRTY_SET.has(s)) vacantDirty++
         if (MAINT_SET.has(s)) maintenance++
+        if (RESERVED_SET.has(s)) reservedRoom++
         if (!isOccupied && (r.missing_items || 0) > 0) missingItems++
       }
+
+      // Reserved = max(room status reserved, active reserved bookings today)
+      const reserved = Math.max(reservedRoom, reservedBookingRes.count || 0)
 
       return {
         totalRooms: rooms.length,
         occupied,
-        checkoutToday: bookingsRes.count || 0,
-        needCleaning,
+        vacantClean,
+        cleaning,
+        vacantDirty,
         maintenance,
+        reserved,
+        checkoutToday: checkoutRes.count || 0,
         missingItems,
       }
     },
