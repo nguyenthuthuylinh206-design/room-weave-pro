@@ -1,6 +1,17 @@
 {
-  "current": "1.1.50",
+  "current": "1.1.51",
   "versions": [
+    {
+      "version": "1.1.51",
+      "date": "2026-06-02",
+      "title": "Mùa giá: ghi đè đúng giá mặc định khi đặt giá tuyệt đối",
+      "highlights": [
+        "Sửa RPC calculate_booking_price: quy tắc mùa 'Ghi đè + Đặt giá tuyệt đối' nay áp đúng giá mùa (vd 2.500.000 ₫/đêm) thay vì lấy giá mặc định",
+        "Quy tắc mùa 'Ghi đè + Phần trăm' nay tính đúng = giá nền × (1 + %/100)",
+        "Form Quy tắc mùa giá: mặc định 'Đặt giá mùa (₫)', tự khoá chế độ Ghi đè khi chọn đặt giá tuyệt đối, có gợi ý số tiền/đêm",
+        "Lưu/xóa quy tắc mùa nay refresh ngay giá hiển thị ở Quản lý phòng (sơ đồ + bảng) và Lịch giá theo ngày"
+      ]
+    },
     {
       "version": "1.1.50",
       "date": "2026-06-02",
