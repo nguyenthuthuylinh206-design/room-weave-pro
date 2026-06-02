@@ -107,7 +107,8 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
 
   const canViewRoomDetail = hasPermission(role, 'manage_rooms') || role !== 'staff'
   const canCreateTask = canCreateHousekeepingTask(user)
-  const showPrice = !hidesPrice(role)
+  const { selectedHotel } = useHotelContext()
+  const { styles } = useRoomViewDensity(selectedHotel?.id)
 
   const grouped = useMemo(() => {
     const items = rooms.map((room) => {
