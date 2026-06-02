@@ -197,41 +197,42 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
         )}
         onClick={() => canViewRoomDetail && navigate(`/rooms/${room.id}`)}
       >
-        <div className="p-3 space-y-2">
-          {/* Line 1: checkbox + dot + room # + status selector */}
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <div onClick={(e) => e.stopPropagation()}>
-                <Checkbox
-                  checked={isSelected}
-                  onCheckedChange={(checked) => handleSelectRoom(room.id, !!checked)}
-                />
-              </div>
+        <div className={cn('space-y-2', styles.cellPadding)}>
+          {/* Line 1: room number ALWAYS visible (no truncate) + status dot + checkbox + status selector */}
+          <div className="flex items-start justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 shrink-0">
               <span className={cn('inline-block h-2 w-2 rounded-full shrink-0', statusDotClass(room.status))} aria-hidden />
-              <h3 className="text-2xl font-bold leading-none tracking-tight truncate">{room.room_number}</h3>
+              <h3 className="font-bold leading-none tracking-tight shrink-0" style={styles.numberStyle}>
+                {room.room_number}
+              </h3>
             </div>
-            <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+            <div className="flex items-center gap-2 shrink-0 ml-auto" onClick={(e) => e.stopPropagation()}>
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={(checked) => handleSelectRoom(room.id, !!checked)}
+              />
               <RoomStatusSelector roomId={room.id} currentStatus={room.status as RoomStatus} />
             </div>
           </div>
 
-          {/* Line 2: priority reason (if any) — đặt lên trên cùng để Manager scan nhanh */}
+          {/* Line 2: priority reason */}
           {hasPriorityReason && (
             <p
               className={cn(
-                'text-xs font-medium',
+                'font-medium',
                 priority.tier === 'urgent' ? 'text-red-600' : 'text-amber-600',
               )}
+              style={styles.bodyStyle}
             >
               {priority.reason}
             </p>
           )}
 
-          {/* Line 3: actionable info — session / missing / laundry / pending / last check */}
-          <div className="space-y-1 text-xs">
+          {/* Line 3: actionable info */}
+          <div className="space-y-1" style={styles.bodyStyle}>
             {session ? (
               <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400">
-                <Clock className="h-3 w-3 animate-pulse" />
+                <Clock className="h-3 w-3 animate-pulse shrink-0" />
                 <span className="font-medium truncate">
                   {t('checkSession.checking', {
                     name: session.user_name,
@@ -241,53 +242,48 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
               </div>
             ) : missing.kind === 'complete' ? (
               <div className="flex items-center gap-1 text-green-600">
-                <CheckCircle className="h-3 w-3" />
+                <CheckCircle className="h-3 w-3 shrink-0" />
                 <span>{t('grid.itemsComplete')}</span>
               </div>
             ) : missing.kind === 'after_clean' ? (
               <div className="flex items-center gap-1 text-red-600">
-                <AlertTriangle className="h-3 w-3" />
+                <AlertTriangle className="h-3 w-3 shrink-0" />
                 <span>{t('grid.missingAfterClean', { count: missing.count })}</span>
               </div>
             ) : missing.kind === 'restock' ? (
               <div className="flex items-center gap-1 text-amber-600">
-                <PackageOpen className="h-3 w-3" />
+                <PackageOpen className="h-3 w-3 shrink-0" />
                 <span>{t('grid.needRestock', { count: missing.count })}</span>
               </div>
             ) : null}
 
             {room.items_in_laundry > 0 && (
               <div className="flex items-center gap-1 text-cyan-600">
-                <Wind className="h-3 w-3" />
+                <Wind className="h-3 w-3 shrink-0" />
                 <span>{t('grid.itemsInLaundry', { count: room.items_in_laundry })}</span>
               </div>
             )}
 
             {pendingCount > 0 && (
               <div className="flex items-center gap-1 text-amber-600">
-                <Truck className="h-3 w-3" />
+                <Truck className="h-3 w-3 shrink-0" />
                 <span>{t('distribution:roomHistory.pendingDeliveries', { count: pendingCount })}</span>
               </div>
             )}
 
             {showLastCheck && (
               <div className={cn('flex items-center gap-1', lastCheckClass(priority.daysSinceCheck))}>
-                <Clock className="h-3 w-3" />
+                <Clock className="h-3 w-3 shrink-0" />
                 <span>{lastCheckText}</span>
               </div>
             )}
           </div>
 
-          {/* Line 4: meta row (gộp loại/khách/giường/m² + giá nếu được phép) */}
-          <div className="flex items-center justify-between gap-2 pt-1 border-t text-[11px] text-muted-foreground">
-            <span className="truncate" title={metaParts.join(' • ')}>
+          {/* Line 4: meta row (loại • khách • giường • m²) — không còn giá phòng */}
+          <div className="pt-1 border-t text-muted-foreground" style={styles.captionStyle}>
+            <span className="truncate block" title={metaParts.join(' • ')}>
               {metaParts.join(' • ')}
             </span>
-            {showPrice && room.base_price ? (
-              <span className="font-medium text-foreground shrink-0">
-                {formatCurrency(room.base_price)}
-              </span>
-            ) : null}
           </div>
         </div>
 
