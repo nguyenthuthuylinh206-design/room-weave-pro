@@ -127,8 +127,10 @@ export function SelectionToolbar({
               type="text"
               inputMode="numeric"
               value={priceVal}
-              onChange={(e) => setPriceVal(formatNum(e.target.value))}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submitPrice() } }}
+              onChange={handleNumChange(setPriceVal)}
+              onCompositionStart={handleCompositionStart}
+              onCompositionEnd={handleCompositionEnd(setPriceVal)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !composingRef.current) { e.preventDefault(); submitPrice() } }}
               placeholder={hasSelection ? 'Giá gốc' : 'Bôi đen ô…'}
               disabled={!hasSelection}
               className={cn('h-7 w-28 text-xs tabular-nums', hasSelection ? 'bg-background text-foreground' : 'bg-background/60')}
@@ -140,8 +142,10 @@ export function SelectionToolbar({
               type="text"
               inputMode="numeric"
               value={saleVal}
-              onChange={(e) => setSaleVal(formatNum(e.target.value))}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submitPrice() } }}
+              onChange={handleNumChange(setSaleVal)}
+              onCompositionStart={handleCompositionStart}
+              onCompositionEnd={handleCompositionEnd(setSaleVal)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !composingRef.current) { e.preventDefault(); submitPrice() } }}
               placeholder={hasSelection ? 'Giá KM (0 = bỏ)' : ''}
               disabled={!hasSelection}
               className={cn('h-7 w-32 text-xs tabular-nums', hasSelection ? 'bg-background text-foreground' : 'bg-background/60')}
