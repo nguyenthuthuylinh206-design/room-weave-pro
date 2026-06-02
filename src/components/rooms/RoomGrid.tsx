@@ -199,21 +199,25 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
   }
 
   const renderCard = (entry: (typeof grouped.urgent)[number]) => {
-    const { room, pendingCount, priority } = entry
+    const { room, pendingCount, priority, booking, minutesToCheckout } = entry
     const isSelected = selectedIds.includes(room.id)
     const session = checkSessions[room.id]
     const missing = getMissingDisplay(room)
     const roomTypeLabel = t(`roomTypes.${room.room_type}`, { defaultValue: room.room_type })
     const statusLabel = t(`status.${room.status}`, { defaultValue: room.status })
 
+    const isOccupied = isOccupiedStatus(room.status)
+    const showBookingLine = isOccupied && !!booking
     const hasPriorityReason = !!priority.reason && priority.tier !== 'normal'
-    const showLastCheck = !hasPriorityReason && (priority.daysSinceCheck === null || priority.daysSinceCheck > 7)
+    // Khi đã có booking line → không cần lặp lại last-check
+    const showLastCheck = !showBookingLine && !hasPriorityReason && (priority.daysSinceCheck === null || priority.daysSinceCheck > 7)
 
     const lastCheckText = room.last_check_at
       ? t('grid.lastCheckedRelative', {
           time: formatDistanceToNow(new Date(room.last_check_at), { locale: vi, addSuffix: false }),
         })
       : t('grid.neverChecked')
+
 
     // Meta row: type • guests • bed • area
     const metaParts = [
