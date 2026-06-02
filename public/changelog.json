@@ -1,6 +1,16 @@
 {
-  "current": "1.1.51",
+  "current": "1.1.52",
   "versions": [
+    {
+      "version": "1.1.52",
+      "date": "2026-06-02",
+      "title": "Giá theo ngày: nhận đúng Giá KM trên sơ đồ phòng",
+      "highlights": [
+        "Sửa RPC resolve_daily_prices_bulk: nếu ô giá theo ngày chỉ có Giá KM (sale_price) thì dùng Giá KM làm giá hiệu lực",
+        "Sơ đồ phòng và danh sách phòng nay hiển thị 2.500.000 ₫ thay vì quay về giá mặc định 30.000.000 ₫",
+        "Lưu giá theo ngày tự làm mới cache giá hôm nay, phòng khả dụng và sơ đồ phòng"
+      ]
+    },
     {
       "version": "1.1.51",
       "date": "2026-06-02",
