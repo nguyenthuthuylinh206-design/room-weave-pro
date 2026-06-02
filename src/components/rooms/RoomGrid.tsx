@@ -281,6 +281,8 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
                   })}
                 </span>
               </div>
+            ) : showBookingLine ? (
+              <BookingLine booking={booking!} minutesToCheckout={minutesToCheckout} t={t} />
             ) : missing.kind === 'complete' ? (
               <div className="flex items-center gap-1 text-green-600">
                 <CheckCircle className="h-3 w-3 shrink-0" />
@@ -319,6 +321,7 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
               </div>
             )}
           </div>
+
 
           {/* Line 4: meta row (loại • khách • giường • m²) — không còn giá phòng */}
           <div className="pt-1 border-t text-muted-foreground" style={styles.captionStyle}>
