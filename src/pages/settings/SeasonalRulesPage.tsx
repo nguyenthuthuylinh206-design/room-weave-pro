@@ -45,9 +45,9 @@ const emptyForm = (): FormState => ({
   hotel_id: null,
   room_type_ids: [],
   apply_to: ['daily'],
-  mode: 'add_on',
-  adjust_type: 'percent',
-  adjust_value: 10,
+  mode: 'overwrite',
+  adjust_type: 'set_rate',
+  adjust_value: 0,
   priority: 100,
   active: true,
 })
