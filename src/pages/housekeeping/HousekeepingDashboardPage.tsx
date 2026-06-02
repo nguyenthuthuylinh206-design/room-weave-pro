@@ -3,6 +3,7 @@ import { useRoomsNeedingActionToday } from '@/hooks/useRoomsNeedingActionToday'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { KpiRow } from '@/components/housekeeping/dashboard/KpiRow'
 import { ActionRow } from '@/components/housekeeping/dashboard/ActionRow'
+import { FloorMapMini } from '@/components/housekeeping/dashboard/FloorMapMini'
 
 export default function HousekeepingDashboardPage() {
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
@@ -41,8 +42,12 @@ export default function HousekeepingDashboardPage() {
             <ActionRow data={buckets.data} loading={buckets.isLoading} />
           </section>
 
+          <section>
+            <FloorMapMini />
+          </section>
+
           <section className="border rounded-lg p-4 text-sm text-muted-foreground">
-            Sơ đồ phòng và tiến độ nhân viên sẽ ra mắt ở phiên bản kế tiếp.
+            Tiến độ nhân viên sẽ ra mắt ở phiên bản kế tiếp.
           </section>
         </>
       )}
