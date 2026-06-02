@@ -106,6 +106,9 @@ export default function PricingDailyPage() {
     qc.invalidateQueries({ queryKey: ['rt-availability'] })
     qc.invalidateQueries({ queryKey: ['rate-plans'] })
     qc.invalidateQueries({ queryKey: ['resolved-daily-prices'] })
+    qc.invalidateQueries({ queryKey: ['today-prices-by-hotel'] })
+    qc.invalidateQueries({ queryKey: ['available-rooms'] })
+    qc.invalidateQueries({ queryKey: ['floor-plan-live'] })
     qc.invalidateQueries({ queryKey: ['pricing-health'] })
   }
 

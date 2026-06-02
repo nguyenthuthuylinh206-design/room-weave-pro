@@ -389,7 +389,8 @@ export const useTodayPricesByHotel = (hotelId?: string | null, applyTo: 'daily' 
       return map
     },
     enabled: !!tenantId && !!hotelId,
-    staleTime: 60_000,
+    staleTime: 10_000,
+    refetchOnMount: 'always',
   })
 }
 
