@@ -1,5 +1,5 @@
 // Selection toolbar — port từ Deal Hotel Hub, giữ nguyên UI
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Lock, Unlock, Copy, ClipboardPaste, RotateCcw, X, Check, MousePointerClick, Tag, Percent } from 'lucide-react'
@@ -33,6 +33,9 @@ export function SelectionToolbar({
   const [priceVal, setPriceVal] = useState('')
   const [saleVal, setSaleVal] = useState('')
   const [qtyVal, setQtyVal] = useState('')
+  // Trạng thái compose của IME (bộ gõ tiếng Việt). Khi đang compose,
+  // KHÔNG được format lại value (chèn dấu .) vì sẽ làm hỏng buffer của IME.
+  const composingRef = useRef(false)
 
   useEffect(() => { setPriceVal(''); setSaleVal(''); setQtyVal('') }, [count, rowKind])
 
@@ -48,6 +51,23 @@ export function SelectionToolbar({
     const digits = formatted.replace(/\D/g, '')
     return digits === '' ? NaN : Number(digits)
   }
+
+  // Handler chung cho 3 ô số: bỏ qua format khi đang IME-compose,
+  // và format lại đúng 1 lần khi compositionend.
+  const handleNumChange = (setter: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value
+    if (composingRef.current) {
+      // Giữ nguyên buffer thô để IME tiếp tục compose, không format
+      setter(raw)
+    } else {
+      setter(formatNum(raw))
+    }
+  }
+  const handleCompositionEnd = (setter: (v: string) => void) => (e: React.CompositionEvent<HTMLInputElement>) => {
+    composingRef.current = false
+    setter(formatNum((e.target as HTMLInputElement).value))
+  }
+  const handleCompositionStart = () => { composingRef.current = true }
 
   const submitPrice = () => {
     if (!hasSelection) return
@@ -107,8 +127,10 @@ export function SelectionToolbar({
               type="text"
               inputMode="numeric"
               value={priceVal}
-              onChange={(e) => setPriceVal(formatNum(e.target.value))}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submitPrice() } }}
+              onChange={handleNumChange(setPriceVal)}
+              onCompositionStart={handleCompositionStart}
+              onCompositionEnd={handleCompositionEnd(setPriceVal)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !composingRef.current) { e.preventDefault(); submitPrice() } }}
               placeholder={hasSelection ? 'Giá gốc' : 'Bôi đen ô…'}
               disabled={!hasSelection}
               className={cn('h-7 w-28 text-xs tabular-nums', hasSelection ? 'bg-background text-foreground' : 'bg-background/60')}
@@ -120,8 +142,10 @@ export function SelectionToolbar({
               type="text"
               inputMode="numeric"
               value={saleVal}
-              onChange={(e) => setSaleVal(formatNum(e.target.value))}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submitPrice() } }}
+              onChange={handleNumChange(setSaleVal)}
+              onCompositionStart={handleCompositionStart}
+              onCompositionEnd={handleCompositionEnd(setSaleVal)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !composingRef.current) { e.preventDefault(); submitPrice() } }}
               placeholder={hasSelection ? 'Giá KM (0 = bỏ)' : ''}
               disabled={!hasSelection}
               className={cn('h-7 w-32 text-xs tabular-nums', hasSelection ? 'bg-background text-foreground' : 'bg-background/60')}
