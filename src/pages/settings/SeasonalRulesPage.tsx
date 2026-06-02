@@ -45,9 +45,9 @@ const emptyForm = (): FormState => ({
   hotel_id: null,
   room_type_ids: [],
   apply_to: ['daily'],
-  mode: 'add_on',
-  adjust_type: 'percent',
-  adjust_value: 10,
+  mode: 'overwrite',
+  adjust_type: 'set_rate',
+  adjust_value: 0,
   priority: 100,
   active: true,
 })
@@ -222,7 +222,11 @@ export default function SeasonalRulesPage() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs">Chế độ</Label>
-                <Select value={form.mode} onValueChange={(v: any) => setForm({ ...form, mode: v })}>
+                <Select
+                  value={form.mode}
+                  onValueChange={(v: any) => setForm({ ...form, mode: v })}
+                  disabled={form.adjust_type === 'set_rate'}
+                >
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="add_on">Cộng thêm (stack)</SelectItem>
@@ -232,21 +236,40 @@ export default function SeasonalRulesPage() {
               </div>
               <div>
                 <Label className="text-xs">Kiểu điều chỉnh</Label>
-                <Select value={form.adjust_type} onValueChange={(v: any) => setForm({ ...form, adjust_type: v })}>
+                <Select
+                  value={form.adjust_type}
+                  onValueChange={(v: any) => setForm({
+                    ...form,
+                    adjust_type: v,
+                    // Đặt giá tuyệt đối luôn đi với "Ghi đè"
+                    mode: v === 'set_rate' ? 'overwrite' : form.mode,
+                  })}
+                >
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="set_rate">Đặt giá mùa (₫) — khuyên dùng</SelectItem>
                     <SelectItem value="percent">Phần trăm (%)</SelectItem>
-                    <SelectItem value="fixed_amount">Số tiền cố định (₫)</SelectItem>
-                    <SelectItem value="set_rate">Đặt giá tuyệt đối (₫)</SelectItem>
+                    <SelectItem value="fixed_amount">Số tiền cộng/trừ (₫)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs">Giá trị (âm = giảm)</Label>
+                <Label className="text-xs">
+                  {form.adjust_type === 'set_rate'
+                    ? 'Giá mùa cho mỗi đêm (₫)'
+                    : form.adjust_type === 'percent'
+                      ? 'Phần trăm (âm = giảm)'
+                      : 'Số tiền (âm = giảm)'}
+                </Label>
                 <Input type="number" value={form.adjust_value}
                   onChange={e => setForm({ ...form, adjust_value: Number(e.target.value) })} />
+                {form.adjust_type === 'set_rate' && (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    VD: nhập 2.500.000 → giá phòng trong khoảng ngày này sẽ là 2.500.000 ₫/đêm, bất kể giá mặc định.
+                  </p>
+                )}
               </div>
               <div>
                 <Label className="text-xs">Ưu tiên (số nhỏ = áp trước)</Label>

@@ -1,191 +1,62 @@
 ## Mục tiêu
+Khi trong **Quy tắc mùa giá** chọn kiểu **Đặt giá tuyệt đối** với giá ví dụ `2.500.000 ₫`, giá hiển thị ở **Quản lý phòng** và giá dùng khi **tạo đặt phòng** phải lấy `2.500.000 ₫`, không lấy giá mặc định `20.000.000 ₫`.
 
-Xây **một màn duy nhất** cho Trưởng buồng phòng / Executive Housekeeper, gom 13 nhóm thông tin nghiệp vụ chuẩn KS 3–5 sao về một cockpit ở route `/housekeeping`. Reuse tối đa dữ liệu hiện có, không đụng module rời (`/laundry`, `/maintenance`, `/lost-found` vẫn giữ — đây là **trang điều hành tổng**).
+## Phát hiện hiện tại
+- **Có thể reuse**
+  - `resolve_daily_prices_bulk` đã là single source để tính giá ngày cho grid và sơ đồ phòng.
+  - `useTodayPricesByHotel` đã dùng RPC này để hiển thị giá hôm nay ở `RoomFloorMapView` và `RoomTable`.
+  - `seasonal_rate_overrides.adjust_type = 'set_rate'` đã có sẵn để biểu diễn giá tuyệt đối.
+- **Cần refactor/fix**
+  - UI `SeasonalRulesPage` đang cho chọn cả `mode` và `adjust_type`, dễ tạo sai tổ hợp; với “giá theo ngày tuyệt đối” phải tự hiểu là `mode='overwrite'` + `adjust_type='set_rate'`.
+  - Sau khi lưu/xóa mùa giá, cache `today-prices-by-hotel`, `resolved-daily-prices`, `pricing-health` chưa được invalidate nên màn Quản lý phòng có thể vẫn hiển thị giá mặc định cũ.
+  - RPC `calculate_booking_price` dùng khi tạo đặt phòng đang xử lý `percent` trong `overwrite` sai công thức và chưa thống nhất hoàn toàn với resolver giá ngày.
+- **Cần thêm mới**
+  - Migration vá RPC `calculate_booking_price` để `set_rate` luôn là giá tuyệt đối theo đơn vị ngày/đêm; ví dụ Standard mặc định 20.000.000, mùa set 2.500.000 thì tổng 1 đêm = 2.500.000.
+  - UI copy rõ hơn: “Đặt giá mùa” thay vì để người dùng phải hiểu “Ghi đè + Đặt giá tuyệt đối”.
+- **Rủi ro migration**
+  - Không tạo bảng mới, không đổi schema, chỉ replace function hiện có nên rủi ro thấp.
+  - Cần giữ tương thích với `fixed_amount` và `percent` hiện tại để không làm hỏng quy tắc cũ.
 
----
+## Kế hoạch triển khai
 
-## A. Phân tích codebase hiện tại
+### A. Kiến trúc / logic nghiệp vụ
+- Chuẩn hóa nghĩa của quy tắc mùa:
+  - `set_rate`: đặt giá cuối cùng tuyệt đối cho mỗi ngày/đêm.
+  - `fixed_amount`: cộng/trừ số tiền vào giá hiện tại nếu `add_on`; nếu `overwrite` thì xem như đặt giá tuyệt đối để giữ tương thích dữ liệu cũ.
+  - `percent`: tăng/giảm theo phần trăm dựa trên giá nền.
+- Quy tắc ngày cụ thể trong `rate_plan_daily_prices` vẫn ưu tiên cao nhất; nếu có override theo ngày thì nó thắng mùa giá.
 
-**Reuse được (không cần thêm DB)**
-- `useUnifiedTasks` + `useHousekeepingTasks` → tasks today, by status, by assignee
-- `useTaskQc` + `TasksPendingReviewPage` → phòng chờ kiểm tra, không đạt
-- `useActiveRoomBookings` (mới tạo) → khách đang ở, giờ trả
-- `useAllRoomCheckSessions` → ai đang kiểm phòng nào
-- `usePendingRoomDistributions` → phiếu giao đồ chờ
-- `useLaundryDashboard` → tồn linen / giặt / hỏng
-- `useOnShiftStaffList` / `useOnShiftStaffListAll` → nhân viên đang ca + realtime
-- `useShiftTimer` / `useShiftManagement` → ai đang ca, thời lượng
-- `calcRoomPriority` + `getMissingDisplay` → logic phân loại đã có
-- `MaintenanceDashboard` / Lost-Found query hooks
+### B. Schema / migration
+- Thêm migration thay thế RPC `calculate_booking_price`:
+  - Sửa `overwrite + set_rate` trả đúng `adjust_value * số_đêm`.
+  - Sửa `overwrite + percent` thành `giá nền * (1 + %/100)` thay vì chỉ lấy phần trăm.
+  - Giữ `GRANT EXECUTE` hiện có cho người dùng đã đăng nhập và service role.
+- Không thêm bảng/cột mới.
 
-**Cần thêm mới**
-- 1 hook tổng hợp `useHousekeepingKpi(hotelId)` — gom 6 KPI từ rooms + tasks + bookings
-- 1 hook `useRoomsNeedingActionToday(hotelId)` — 4 bucket critical (checkout chưa dọn / thiếu đồ / QC không đạt / task khẩn)
-- 1 hook `useStaffProgressToday(hotelId)` — gom task per assignee (đếm done / in_progress / todo)
-- Mini floor map component dùng lại `RoomFloorMapView` ở chế độ "compact, không click chi tiết"
+### C. API / RPC / server actions
+- Giữ `resolve_daily_prices_bulk` làm chuẩn cho giá hiển thị.
+- Đồng bộ logic trong `calculate_booking_price` để đặt phòng không lệch với màn giá.
 
-**Cần refactor nhẹ**
-- Tách bớt logic shared từ `RoomFloorMapView` thành `RoomFloorMapMini` (read-only, KPI focused)
-- Thêm route mới `/housekeeping` (hiện chỉ có sub-routes `/housekeeping/qc`, `/housekeeping/review`)
+### D. UI screens / components
+- Sửa `SeasonalRulesPage`:
+  - Đổi default form tạo mới sang `mode='overwrite'`, `adjust_type='set_rate'`, nhập giá trị tiền tuyệt đối.
+  - Khi chọn “Đặt giá tuyệt đối”, tự khóa/ép mode sang “Ghi đè”.
+  - Đổi label mô tả để người dùng hiểu: nhập `2.500.000` nghĩa là giá phòng trong mùa là `2.500.000 ₫`.
+- Sửa `useSeasonalRates`:
+  - Sau lưu/xóa mùa giá, invalidate thêm `today-prices-by-hotel`, `resolved-daily-prices`, `pricing-health`, `rate-plans`, `daily-prices`.
 
-**Rủi ro migration**
-- Không có. Pure-frontend aggregation, query song song, không thay schema.
-- Performance: 6–8 query parallel, đều có index sẵn. Cache 30–60s + realtime invalidate cho rooms/bookings/tasks.
+### E. Permission / role rules
+- Không đổi quyền hiện tại.
+- Vẫn dựa trên RLS và quyền hiện có của bảng mùa giá.
 
----
+### F. Test cases
+- Thêm test logic thuần cho helper tính giá mùa:
+  - Base `20.000.000`, `overwrite + set_rate 2.500.000` → `2.500.000`.
+  - Base `20.000.000`, `overwrite + percent 10` → `22.000.000`.
+  - Base `20.000.000`, `add_on + fixed_amount -1.000.000` → `19.000.000`.
+- Nếu build mode cho phép, chạy test liên quan bằng `bunx vitest run` hoặc `lovable-exec test`.
 
-## B. Schema / migration
-
-**Không cần migration**. Toàn bộ dữ liệu đã có trong:
-- `rooms`, `room_bookings`, `housekeeping_tasks`, `room_checks`, `room_check_issues`, `staff_status`, `shift_logs`, `maintenance_requests`, `lost_found_items`, `distribution_orders`, `laundry_batches`
-
-Tương lai (phase 4+, không trong scope ngay):
-- View materialized `housekeeping_dashboard_snapshot` nếu p95 query > 500ms
-
----
-
-## C. API / RPC
-
-Không thêm RPC mới. Tất cả là SELECT từ client với `.eq('tenant_id', tenantId).eq('hotel_id', hotelId)`.
-
----
-
-## D. UI / Components
-
-### Route
-- **NEW** `/housekeeping` → `HousekeepingDashboardPage`
-- Permission: `module: 'rooms'` (Owner / Hotel Manager / Department Manager — không hiện cho staff; staff redirect `/my-tasks` như đã làm)
-
-### Layout (mobile-first, 4 hàng)
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│ Header: "Quản lý buồng phòng · {{hotel}}"   [Cỡ hiển thị]  │
-├─────────────────────────────────────────────────────────────┤
-│ Hàng 1 — 6 KPI tiles (clickable, scroll-x trên mobile)     │
-│ [Tổng] [Đang ở] [C/O hôm nay] [Cần dọn] [Bảo trì] [Thiếu] │
-├─────────────────────────────────────────────────────────────┤
-│ Hàng 2 — "Cần xử lý ngay" (4 cột tablet, stack mobile)     │
-│ ┌─Checkout chưa dọn─┐ ┌─Thiếu đồ─┐ ┌─QC ko đạt─┐ ┌─Khẩn─┐ │
-│ │ P101 11:00 · 30m  │ │ P205 ×3  │ │ P310 Lan  │ │ ...  │ │
-│ └────────────────────┘ └──────────┘ └───────────┘ └──────┘ │
-├─────────────────────────────────────────────────────────────┤
-│ Hàng 3 — Sơ đồ phòng mini (overview, click → /rooms)       │
-│ Tầng 1: ■■■■■■■  Tầng 2: ■■■■■■■  Tầng 3: ■■■■■■■        │
-├─────────────────────────────────────────────────────────────┤
-│ Hàng 4 — Tiến độ nhân viên (progress bar / staff)          │
-│ Lan    [████████░░] 8/12 · 2 đang làm · 2 chưa làm        │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Components mới
-
-```
-src/pages/housekeeping/HousekeepingDashboardPage.tsx
-src/components/housekeeping/dashboard/
-  ├── KpiTile.tsx               (compact tile + click filter)
-  ├── KpiRow.tsx                (6 KPI, scroll-x mobile)
-  ├── ActionBucket.tsx          (1 cột critical — header + list)
-  ├── ActionRow.tsx             (4 bucket grid)
-  ├── FloorMapMini.tsx          (compact wrap, no popups)
-  └── StaffProgressRow.tsx      (mỗi nhân viên 1 progress row)
-src/hooks/useHousekeepingKpi.ts
-src/hooks/useRoomsNeedingActionToday.ts
-src/hooks/useStaffProgressToday.ts
-```
-
-### Click behavior (deeplink)
-
-| Tile / Item                | Click đi đâu                                    |
-|----------------------------|--------------------------------------------------|
-| KPI "Cần dọn"              | `/rooms?view=grid&status=vacant_dirty`           |
-| KPI "Đang ở"               | `/rooms?view=grid&status=occupied`               |
-| KPI "C/O hôm nay"          | `/bookings?tab=checkout-today`                   |
-| KPI "Bảo trì"              | `/maintenance/requests?status=pending,in_progress` |
-| KPI "Thiếu đồ"             | `/rooms?view=grid&missing=1`                     |
-| Bucket "QC không đạt"      | `/housekeeping/review`                           |
-| Bucket "Task khẩn"         | `/my-tasks?priority=urgent` (hoặc `/housekeeping/review`) |
-| Ô phòng mini map           | `/rooms/:id` (giữ Quick Dialog nếu desktop)      |
-| Staff row                  | `/staff-management/users/:id` hoặc filter `/my-tasks?assignee=:id` |
-
----
-
-## E. Permission / role
-
-- Route: `module: 'rooms'`
-- **Staff**: tiếp tục redirect `/my-tasks` (đã có cơ chế)
-- **Department Manager (Buồng phòng)**: full quyền cockpit
-- **Hotel Manager / Owner**: full quyền + thấy across hotels khi All Hotels mode (KPI cộng dồn, sơ đồ ẩn — yêu cầu chọn 1 hotel)
-
----
-
-## F. Sidebar / Navigation
-
-- Thêm mục **"Tổng quan buồng phòng"** ở đầu nhóm Housekeeping trong sidebar (trên "Phòng", "Kiểm tra phòng", "QC")
-- Bottom nav mobile (max 5): nếu role = `department_manager` của buồng phòng → tab "Tổng quan" thay `/rooms`
-
----
-
-## G. Phân pha thực thi
-
-### **Pha 1 — Cockpit MVP (làm ngay trong loop này)**
-**Deliverable**: route `/housekeeping` chạy được với Hàng 1 (KPI) + Hàng 2 (Cần xử lý ngay).
-- Files: KpiRow, KpiTile, ActionRow, ActionBucket, 2 hook KPI + bucket, HousekeepingDashboardPage, sidebar item, route App.tsx
-- Test: 6 KPI có số đúng; click → trang con filter đúng; 4 bucket hiển thị đúng phòng/task
-- Version bump **1.1.47**
-
-### **Pha 2 — Floor Map Mini + Staff Progress (lượt kế tiếp)**
-- Hàng 3 FloorMapMini (read-only, click → `/rooms/:id`)
-- Hàng 4 StaffProgressRow (per-staff bar) + realtime
-- Wire bottom nav cho Department Manager
-- Version **1.1.48**
-
-### **Pha 3 — Polish + End-of-Day Report (lượt sau)**
-- Mini widget "Báo cáo cuối ngày" (tổng phòng dọn, top nhân viên, lỗi phát sinh)
-- Nút "Xuất CSV" (reuse `/reports/housekeeping`)
-- Cảnh báo Linen tồn thấp (tích hợp `useLaundryDashboard`)
-- Version **1.1.49**
-
-**Pha 1 đủ tự đứng** — nếu duyệt thì tôi build Pha 1 ngay, các pha sau triển khai trong các lượt tiếp.
-
----
-
-## H. Test cases (Pha 1)
-
-1. KPI "Tổng phòng" = `count(rooms)` theo hotel
-2. KPI "Đang ở" = `count` phòng status ∈ {occupied*, dnd, sleep_out}
-3. KPI "C/O hôm nay" = `count(room_bookings WHERE check_out_date = today AND status = checked_in)`
-4. KPI "Cần dọn" = `count(rooms WHERE status ∈ {vacant_dirty, cleaning})`
-5. KPI "Bảo trì" = `count(rooms WHERE status ∈ {out_of_order, out_of_service, maintenance})`
-6. KPI "Thiếu đồ" = `count(rooms WHERE missing_items > 0 AND NOT occupied)`
-7. Bucket "Checkout chưa dọn" = phòng `status = vacant_dirty` AND có booking `checked_out` hôm nay
-8. Bucket "Thiếu đồ" = top 5 phòng `missing_items DESC`
-9. Bucket "QC không đạt" = tasks `status = rejected` 7 ngày gần nhất
-10. Bucket "Task khẩn" = tasks `priority = urgent` AND status ∈ {todo, in_progress}
-11. Click KPI → URL filter đúng, route render đúng tập con
-12. All Hotels mode → KPI cộng dồn, banner yêu cầu chọn hotel cho bucket
-13. Realtime: thay đổi room status → KPI cập nhật < 3s
-
----
-
-## I. Rollout notes Pha 1
-
-- Files NEW:
-  - `src/pages/housekeeping/HousekeepingDashboardPage.tsx`
-  - `src/components/housekeeping/dashboard/{KpiTile,KpiRow,ActionBucket,ActionRow}.tsx`
-  - `src/hooks/useHousekeepingKpi.ts`
-  - `src/hooks/useRoomsNeedingActionToday.ts`
-- Files SỬA:
-  - `src/App.tsx` (lazy route + permission)
-  - `src/components/layout/Sidebar*.tsx` (item mới)
-  - `src/i18n/locales/vi/rooms.json` (+ `housekeeping.json` mới nếu cần)
-  - `src/lib/app-version.ts` → 1.1.47
-  - `public/changelog.json`
-- **Rollback**: revert files, không có schema change.
-- **Không scope Pha 1**: floor map mini, staff progress, end-of-day report.
-
----
-
-**Câu hỏi mở nhỏ** (không chặn plan):
-- Route `/housekeeping` hay `/rooms/overview`? Tôi chọn `/housekeeping` cho rõ là cockpit Bộ phận, không phải subpage của `/rooms`.
-- Đồng ý phân 3 pha và build Pha 1 ngay?
+### G. Rollout notes
+- Sau migration, giá ở **Quản lý phòng** sẽ cập nhật sau khi cache bị invalidate hoặc refresh.
+- Các quy tắc mùa cũ vẫn hoạt động; quy tắc “Đặt giá tuyệt đối” sẽ trở thành cách mặc định để set giá mùa như mong muốn.
+- Rollback: revert migration RPC về bản trước và revert thay đổi UI/cache.
