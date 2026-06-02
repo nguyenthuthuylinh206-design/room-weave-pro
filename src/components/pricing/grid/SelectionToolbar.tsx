@@ -33,6 +33,9 @@ export function SelectionToolbar({
   const [priceVal, setPriceVal] = useState('')
   const [saleVal, setSaleVal] = useState('')
   const [qtyVal, setQtyVal] = useState('')
+  // Trạng thái compose của IME (bộ gõ tiếng Việt). Khi đang compose,
+  // KHÔNG được format lại value (chèn dấu .) vì sẽ làm hỏng buffer của IME.
+  const composingRef = useRef(false)
 
   useEffect(() => { setPriceVal(''); setSaleVal(''); setQtyVal('') }, [count, rowKind])
 
@@ -48,6 +51,23 @@ export function SelectionToolbar({
     const digits = formatted.replace(/\D/g, '')
     return digits === '' ? NaN : Number(digits)
   }
+
+  // Handler chung cho 3 ô số: bỏ qua format khi đang IME-compose,
+  // và format lại đúng 1 lần khi compositionend.
+  const handleNumChange = (setter: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value
+    if (composingRef.current) {
+      // Giữ nguyên buffer thô để IME tiếp tục compose, không format
+      setter(raw)
+    } else {
+      setter(formatNum(raw))
+    }
+  }
+  const handleCompositionEnd = (setter: (v: string) => void) => (e: React.CompositionEvent<HTMLInputElement>) => {
+    composingRef.current = false
+    setter(formatNum((e.target as HTMLInputElement).value))
+  }
+  const handleCompositionStart = () => { composingRef.current = true }
 
   const submitPrice = () => {
     if (!hasSelection) return
