@@ -49,6 +49,7 @@ export function RoomsPage() {
 
   const { data: rooms, isLoading } = useRooms(filters)
   const { selectedHotel } = useHotelContext()
+  const density = useRoomViewDensity(selectedHotel?.id)
 
   // Staff (HK) không cần thấy toàn bộ danh sách phòng — chuyển sang "Việc của tôi".
   useEffect(() => {
