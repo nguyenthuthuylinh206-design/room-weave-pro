@@ -65,6 +65,7 @@ export function RoomTable({ rooms, isLoading, selectedIds, onSelectionChange }: 
   const dateLocale = i18n.language === 'vi' ? vi : enUS
   const { selectedHotel } = useHotelContext()
   const { data: todayPrices } = useTodayPricesByHotel(selectedHotel?.id)
+  const { styles, state: densityState } = useRoomViewDensity(selectedHotel?.id)
 
   const isAllSelected = rooms.length > 0 && selectedIds.length === rooms.length
   const isSomeSelected = selectedIds.length > 0 && selectedIds.length < rooms.length
