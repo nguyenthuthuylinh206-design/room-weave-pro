@@ -1,9 +1,20 @@
+import { Link } from 'react-router-dom'
+import { FileText, Filter } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { useHousekeepingKpi } from '@/hooks/useHousekeepingKpi'
 import { useRoomsNeedingActionToday } from '@/hooks/useRoomsNeedingActionToday'
+import {
+  useCheckoutToday,
+  useCleaningProgressToday,
+  useStaffPerformanceToday,
+} from '@/hooks/useHousekeepingDashboardPanels'
 import { useHotelContext } from '@/contexts/HotelContext'
-import { KpiRow } from '@/components/housekeeping/dashboard/KpiRow'
-import { ActionRow } from '@/components/housekeeping/dashboard/ActionRow'
-import { FloorMapMini } from '@/components/housekeeping/dashboard/FloorMapMini'
+import { KpiTopRow, KpiTotalsStrip } from '@/components/housekeeping/dashboard/KpiTopRow'
+import { RoomActionListPanel } from '@/components/housekeeping/dashboard/RoomActionListPanel'
+import { CheckoutTodayPanel } from '@/components/housekeeping/dashboard/CheckoutTodayPanel'
+import { CleaningProgressPanel } from '@/components/housekeeping/dashboard/CleaningProgressPanel'
+import { StaffPerformancePanel } from '@/components/housekeeping/dashboard/StaffPerformancePanel'
+import { FloorMapLarge } from '@/components/housekeeping/dashboard/FloorMapLarge'
 
 export default function HousekeepingDashboardPage() {
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
@@ -11,15 +22,24 @@ export default function HousekeepingDashboardPage() {
 
   const kpi = useHousekeepingKpi(hotelId)
   const buckets = useRoomsNeedingActionToday(hotelId)
+  const checkout = useCheckoutToday(hotelId)
+  const progress = useCleaningProgressToday(hotelId)
+  const staff = useStaffPerformanceToday(hotelId)
 
   return (
-    <div className="flex flex-col gap-4 p-3 sm:p-4 max-w-[1440px] mx-auto w-full">
-      <header className="flex items-baseline justify-between gap-2">
+    <div className="flex flex-col gap-3 p-3 sm:p-4 max-w-[1600px] mx-auto w-full">
+      <header className="flex items-start justify-between gap-2 flex-wrap">
         <div>
-          <h1 className="text-lg sm:text-xl font-semibold">Tổng quan buồng phòng</h1>
-          <p className="text-xs text-muted-foreground">
-            {selectedHotel?.name || (isAllHotelsMode ? 'Tất cả khách sạn' : '—')}
-          </p>
+          <h1 className="text-lg sm:text-xl font-semibold">Theo dõi phòng</h1>
+          <p className="text-xs text-muted-foreground">Tổng quan tình trạng phòng theo thời gian thực</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/reports/housekeeping"><FileText className="h-4 w-4 mr-1.5" /> Báo cáo buồng</Link>
+          </Button>
+          <Button variant="outline" size="sm">
+            <Filter className="h-4 w-4 mr-1.5" /> Bộ lọc
+          </Button>
         </div>
       </header>
 
@@ -31,24 +51,22 @@ export default function HousekeepingDashboardPage() {
 
       {!isAllHotelsMode && (
         <>
-          <section>
-            <KpiRow data={kpi.data} loading={kpi.isLoading} />
-          </section>
+          {/* Hàng 1 — KPI 7 ô */}
+          <KpiTopRow data={kpi.data} loading={kpi.isLoading} />
 
-          <section>
-            <div className="flex items-baseline justify-between mb-2">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Cần xử lý ngay</h2>
-            </div>
-            <ActionRow data={buckets.data} loading={buckets.isLoading} />
-          </section>
+          {/* Hàng 2 — 4 panel */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+            <RoomActionListPanel data={buckets.data} loading={buckets.isLoading} />
+            <CheckoutTodayPanel data={checkout.data} loading={checkout.isLoading} />
+            <CleaningProgressPanel data={progress.data} loading={progress.isLoading} />
+            <StaffPerformancePanel data={staff.data} loading={staff.isLoading} />
+          </div>
 
-          <section>
-            <FloorMapMini />
-          </section>
+          {/* Hàng 3 — Sơ đồ phòng lớn */}
+          <FloorMapLarge />
 
-          <section className="border rounded-lg p-4 text-sm text-muted-foreground">
-            Tiến độ nhân viên sẽ ra mắt ở phiên bản kế tiếp.
-          </section>
+          {/* Hàng 4 — Tổng cộng */}
+          <KpiTotalsStrip data={kpi.data} loading={kpi.isLoading} />
         </>
       )}
     </div>
