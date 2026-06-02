@@ -104,7 +104,16 @@ export function RoomsPage() {
           onFilterChange={(newFilters) => setFilters(prev => ({ ...prev, ...newFilters }))}
         />
 
-        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
+        <div className="flex items-center gap-2">
+          {(viewMode === 'grid' || viewMode === 'list') && (
+            <RoomViewDensityControl
+              state={density.state}
+              onPresetChange={density.setPreset}
+              onFontScaleChange={density.setFontScale}
+              onReset={density.reset}
+            />
+          )}
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
           <TabsList>
             <TabsTrigger value="grid">
               <Grid3x3 className="h-4 w-4 mr-2" />
