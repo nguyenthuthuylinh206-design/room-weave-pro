@@ -1,6 +1,21 @@
 {
-  "current": "1.1.43",
+  "current": "1.1.44",
   "versions": [
+    {
+      "version": "1.1.44",
+      "date": "2026-06-02",
+      "title": "Lưới phòng: card gọn 4 dòng, ẩn giá với Trưởng buồng phòng",
+      "highlights": [
+        "Tái cấu trúc card phòng: 4 dòng (Số phòng → Lý do ưu tiên → Việc cần làm → Meta + Giá)",
+        "Ẩn giá phòng với role Trưởng bộ phận (department_manager) — chỉ Owner/Hotel Manager/Lễ tân thấy giá",
+        "Gộp Loại phòng • Khách • Giường • m² vào 1 dòng meta xám gọn, không còn grid 3 cột rườm rà",
+        "Bỏ badge \"Khẩn\"/\"Theo dõi\" trùng lặp (section header đã có) — chỉ giữ viền trái màu",
+        "Ẩn dòng \"Đã kiểm X\" khi đã có lý do ưu tiên — không lặp thông tin",
+        "Nút \"Kiểm tra\" full-width là primary; nút giao việc thu thành icon — \"Xem chi tiết\" gỡ khỏi footer (click card để vào)",
+        "Lưới chặt hơn: hỗ trợ tới 5 cột ở màn 2xl, padding p-3"
+      ]
+    },
+
     {
       "version": "1.1.43",
       "date": "2026-06-01",
