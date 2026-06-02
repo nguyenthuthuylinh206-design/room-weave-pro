@@ -1,6 +1,20 @@
 {
-  "current": "1.1.45",
+  "current": "1.1.46",
   "versions": [
+    {
+      "version": "1.1.46",
+      "date": "2026-06-02",
+      "title": "Lưới phòng: hiện booking trên phòng đang ở, gom 'Bình thường' mặc định",
+      "highlights": [
+        "Phòng đang có khách (occupied/DND/sleep_out): hiện dòng 'Trả 12:00 · Tên khách' thay cho thông tin items",
+        "Tự động cảnh báo cam khi ≤ 2h tới giờ trả phòng và đỏ khi quá giờ ('Quá giờ trả X phút')",
+        "Quá giờ trả → đẩy phòng lên section 'Cần xử lý ngay'; sắp trả (≤30 phút) → section 'Theo dõi'",
+        "Section 'Bình thường' mặc định thu gọn, click header để mở rộng — trạng thái lưu theo từng khách sạn",
+        "Realtime cập nhật khi check-in/checkout: card phản ánh ngay không cần F5",
+        "Recompute countdown mỗi phút để màu cam/đỏ luôn đúng"
+      ]
+    },
+
     {
       "version": "1.1.45",
       "date": "2026-06-02",

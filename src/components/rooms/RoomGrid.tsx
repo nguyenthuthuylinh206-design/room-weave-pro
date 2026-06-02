@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { formatDistanceToNow } from 'date-fns'
@@ -12,6 +12,9 @@ import {
   Truck,
   ClipboardList,
   PackageOpen,
+  ChevronDown,
+  ChevronRight,
+  LogOut,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -26,11 +29,12 @@ import { RoomStatusSelector } from './RoomStatusSelector'
 import { CreateTaskDialog } from '@/components/housekeeping/CreateTaskDialog'
 import { useAllRoomCheckSessions } from '@/hooks/useRoomCheckSession'
 import { usePendingRoomDistributions } from '@/hooks/usePendingRoomDistributions'
+import { useActiveRoomBookings, minutesUntilCheckout, formatCheckoutTime, type ActiveBooking } from '@/hooks/useActiveRoomBookings'
 import { useUser } from '@/hooks/useUser'
 import { hasPermission } from '@/lib/permissions'
 import { canCreateHousekeepingTask } from '@/lib/userAccess'
 import { cn } from '@/lib/utils'
-import { calcRoomPriority, getMissingDisplay, type PriorityTier } from '@/lib/roomPriority'
+import { calcRoomPriority, getMissingDisplay, isOccupiedStatus, type PriorityTier } from '@/lib/roomPriority'
 import { useRoomViewDensity } from '@/hooks/useRoomViewDensity'
 import { useHotelContext } from '@/contexts/HotelContext'
 import type { RoomWithStats, RoomStatus } from '@/types/rooms.types'
@@ -101,20 +105,52 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
   const { user, role } = useUser()
   const checkSessions = useAllRoomCheckSessions(user?.tenant_id)
   const { data: pendingDistributions } = usePendingRoomDistributions()
+  const { selectedHotel } = useHotelContext()
+  const { data: activeBookings } = useActiveRoomBookings(selectedHotel?.id)
 
   const [taskRoom, setTaskRoom] = useState<{ id: string; number: string; hotelId: string } | null>(null)
   const [taskType, setTaskType] = useState<ManualTaskType>('cleaning')
 
   const canViewRoomDetail = hasPermission(role, 'manage_rooms') || role !== 'staff'
   const canCreateTask = canCreateHousekeepingTask(user)
-  const { selectedHotel } = useHotelContext()
   const { styles } = useRoomViewDensity(selectedHotel?.id)
 
+  // Tick mỗi 60s để recompute countdown trả phòng
+  const [nowTick, setNowTick] = useState(() => Date.now())
+  useEffect(() => {
+    const id = window.setInterval(() => setNowTick(Date.now()), 60_000)
+    return () => window.clearInterval(id)
+  }, [])
+
+  // Collapse "Bình thường" mặc định + persist theo hotel
+  const collapseKey = `rooms.grid.normalCollapsed:${selectedHotel?.id || 'default'}`
+  const [normalCollapsed, setNormalCollapsed] = useState<boolean>(true)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(collapseKey)
+      setNormalCollapsed(raw === null ? true : raw === '1')
+    } catch {
+      setNormalCollapsed(true)
+    }
+  }, [collapseKey])
+  const toggleNormal = () => {
+    setNormalCollapsed((prev) => {
+      const next = !prev
+      try { localStorage.setItem(collapseKey, next ? '1' : '0') } catch {}
+      return next
+    })
+  }
+
   const grouped = useMemo(() => {
+    const now = new Date(nowTick)
     const items = rooms.map((room) => {
       const pendingCount = pendingDistributions?.get(room.id) || 0
-      const priority = calcRoomPriority(room, pendingCount)
-      return { room, pendingCount, priority }
+      const booking = activeBookings?.get(room.id) || null
+      const mins = booking && isOccupiedStatus(room.status)
+        ? minutesUntilCheckout(booking, now)
+        : null
+      const priority = calcRoomPriority(room, { pendingDistributions: pendingCount, minutesToCheckout: mins })
+      return { room, pendingCount, priority, booking, minutesToCheckout: mins }
     })
     items.sort((a, b) => b.priority.score - a.priority.score)
     return {
@@ -122,12 +158,13 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
       warning: items.filter((i) => i.priority.tier === 'warning'),
       normal: items.filter((i) => i.priority.tier === 'normal'),
     }
-  }, [rooms, pendingDistributions])
+  }, [rooms, pendingDistributions, activeBookings, nowTick])
 
   const handleSelectRoom = (roomId: string, checked: boolean) => {
     if (checked) onSelectionChange([...selectedIds, roomId])
     else onSelectionChange(selectedIds.filter((id) => id !== roomId))
   }
+
 
   const openTaskDialog = (room: RoomWithStats, type: ManualTaskType) => {
     setTaskType(type)
@@ -162,21 +199,25 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
   }
 
   const renderCard = (entry: (typeof grouped.urgent)[number]) => {
-    const { room, pendingCount, priority } = entry
+    const { room, pendingCount, priority, booking, minutesToCheckout } = entry
     const isSelected = selectedIds.includes(room.id)
     const session = checkSessions[room.id]
     const missing = getMissingDisplay(room)
     const roomTypeLabel = t(`roomTypes.${room.room_type}`, { defaultValue: room.room_type })
     const statusLabel = t(`status.${room.status}`, { defaultValue: room.status })
 
+    const isOccupied = isOccupiedStatus(room.status)
+    const showBookingLine = isOccupied && !!booking
     const hasPriorityReason = !!priority.reason && priority.tier !== 'normal'
-    const showLastCheck = !hasPriorityReason && (priority.daysSinceCheck === null || priority.daysSinceCheck > 7)
+    // Khi đã có booking line → không cần lặp lại last-check
+    const showLastCheck = !showBookingLine && !hasPriorityReason && (priority.daysSinceCheck === null || priority.daysSinceCheck > 7)
 
     const lastCheckText = room.last_check_at
       ? t('grid.lastCheckedRelative', {
           time: formatDistanceToNow(new Date(room.last_check_at), { locale: vi, addSuffix: false }),
         })
       : t('grid.neverChecked')
+
 
     // Meta row: type • guests • bed • area
     const metaParts = [
@@ -240,6 +281,8 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
                   })}
                 </span>
               </div>
+            ) : showBookingLine ? (
+              <BookingLine booking={booking!} minutesToCheckout={minutesToCheckout} t={t} />
             ) : missing.kind === 'complete' ? (
               <div className="flex items-center gap-1 text-green-600">
                 <CheckCircle className="h-3 w-3 shrink-0" />
@@ -278,6 +321,7 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
               </div>
             )}
           </div>
+
 
           {/* Line 4: meta row (loại • khách • giường • m²) — không còn giá phòng */}
           <div className="pt-1 border-t text-muted-foreground" style={styles.captionStyle}>
@@ -330,14 +374,36 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
     title: string,
     items: typeof grouped.urgent,
     headerClass: string,
+    options?: { collapsible?: boolean; collapsed?: boolean; onToggle?: () => void },
   ) => {
     if (items.length === 0) return null
+    const collapsible = options?.collapsible
+    const collapsed = options?.collapsed
     return (
       <section className="space-y-3">
-        <h2 className={cn('text-xs font-semibold uppercase tracking-wider', headerClass)}>{title}</h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-          {items.map(renderCard)}
-        </div>
+        {collapsible ? (
+          <button
+            type="button"
+            onClick={options?.onToggle}
+            className={cn(
+              'flex w-full items-center gap-1.5 text-xs font-semibold uppercase tracking-wider transition-colors hover:opacity-70',
+              headerClass,
+            )}
+          >
+            {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            <span>{title}</span>
+            <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground">
+              · {collapsed ? t('grid.expandSection') : t('grid.collapseSection')}
+            </span>
+          </button>
+        ) : (
+          <h2 className={cn('text-xs font-semibold uppercase tracking-wider', headerClass)}>{title}</h2>
+        )}
+        {(!collapsible || !collapsed) && (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+            {items.map(renderCard)}
+          </div>
+        )}
       </section>
     )
   }
@@ -346,7 +412,12 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
     <div className="space-y-6">
       {renderSection(t('grid.sectionUrgent', { count: grouped.urgent.length }), grouped.urgent, 'text-red-600')}
       {renderSection(t('grid.sectionWarning', { count: grouped.warning.length }), grouped.warning, 'text-amber-600')}
-      {renderSection(t('grid.sectionNormal', { count: grouped.normal.length }), grouped.normal, 'text-muted-foreground')}
+      {renderSection(
+        t('grid.sectionNormal', { count: grouped.normal.length }),
+        grouped.normal,
+        'text-muted-foreground',
+        { collapsible: true, collapsed: normalCollapsed, onToggle: toggleNormal },
+      )}
 
       {taskRoom && (
         <CreateTaskDialog
@@ -361,3 +432,48 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
     </div>
   )
 }
+
+/**
+ * Dòng booking cho phòng đang có khách: "Trả 12:00 · Nguyễn Văn A" + trạng thái countdown.
+ */
+function BookingLine({
+  booking,
+  minutesToCheckout,
+  t,
+}: {
+  booking: ActiveBooking
+  minutesToCheckout: number | null
+  t: (key: string, opts?: Record<string, unknown>) => string
+}) {
+  const time = formatCheckoutTime(booking.expected_check_out_time)
+  const overdue = minutesToCheckout !== null && minutesToCheckout < 0
+  const soon = minutesToCheckout !== null && minutesToCheckout >= 0 && minutesToCheckout <= 120
+
+  const colorClass = overdue
+    ? 'text-red-600'
+    : soon
+      ? 'text-orange-600'
+      : 'text-foreground'
+
+  return (
+    <div className={cn('flex flex-col gap-0.5 font-medium', colorClass)}>
+      <div className="flex items-center gap-1">
+        <LogOut className="h-3 w-3 shrink-0" />
+        <span className="truncate">
+          {t('grid.checkoutAt', { time })} · {booking.guest_name}
+        </span>
+      </div>
+      {overdue && (
+        <span className="text-[0.95em] font-normal pl-4">
+          {t('grid.checkoutOverdue', { minutes: Math.abs(minutesToCheckout!) })}
+        </span>
+      )}
+      {!overdue && soon && (
+        <span className="text-[0.95em] font-normal pl-4">
+          {t('grid.checkoutSoon')}
+        </span>
+      )}
+    </div>
+  )
+}
+

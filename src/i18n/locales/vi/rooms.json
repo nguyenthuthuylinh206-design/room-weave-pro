@@ -325,7 +325,12 @@
     "priorityWarning": "Theo dõi",
     "sectionUrgent": "Cần xử lý ngay ({{count}})",
     "sectionWarning": "Theo dõi ({{count}})",
-    "sectionNormal": "Bình thường ({{count}})"
+    "sectionNormal": "Bình thường ({{count}})",
+    "checkoutAt": "Trả {{time}}",
+    "checkoutSoon": "Sắp trả phòng",
+    "checkoutOverdue": "Quá giờ trả {{minutes}} phút",
+    "expandSection": "Mở rộng",
+    "collapseSection": "Thu gọn"
   },
   "deleteDialog": {
     "title": "Xác nhận xóa phòng",
