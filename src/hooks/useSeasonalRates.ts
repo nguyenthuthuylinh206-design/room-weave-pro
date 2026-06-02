@@ -62,6 +62,12 @@ export const useUpsertSeasonalRate = () => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['seasonal-rates'] })
+      qc.invalidateQueries({ queryKey: ['today-prices-by-hotel'] })
+      qc.invalidateQueries({ queryKey: ['resolved-daily-prices'] })
+      qc.invalidateQueries({ queryKey: ['pricing-health'] })
+      qc.invalidateQueries({ queryKey: ['rate-plans'] })
+      qc.invalidateQueries({ queryKey: ['daily-prices'] })
+      qc.invalidateQueries({ queryKey: ['available-rooms'] })
       toast.success('Đã lưu quy tắc mùa giá')
     },
     onError: (e: any) => toast.error(e.message || 'Lưu thất bại'),
@@ -77,6 +83,12 @@ export const useDeleteSeasonalRate = () => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['seasonal-rates'] })
+      qc.invalidateQueries({ queryKey: ['today-prices-by-hotel'] })
+      qc.invalidateQueries({ queryKey: ['resolved-daily-prices'] })
+      qc.invalidateQueries({ queryKey: ['pricing-health'] })
+      qc.invalidateQueries({ queryKey: ['rate-plans'] })
+      qc.invalidateQueries({ queryKey: ['daily-prices'] })
+      qc.invalidateQueries({ queryKey: ['available-rooms'] })
       toast.success('Đã xóa quy tắc')
     },
     onError: (e: any) => toast.error(e.message || 'Xóa thất bại'),
