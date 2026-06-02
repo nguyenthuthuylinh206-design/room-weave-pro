@@ -29,8 +29,10 @@ import { usePendingRoomDistributions } from '@/hooks/usePendingRoomDistributions
 import { useUser } from '@/hooks/useUser'
 import { hasPermission } from '@/lib/permissions'
 import { canCreateHousekeepingTask } from '@/lib/userAccess'
-import { formatCurrency, cn } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { calcRoomPriority, getMissingDisplay, type PriorityTier } from '@/lib/roomPriority'
+import { useRoomViewDensity } from '@/hooks/useRoomViewDensity'
+import { useHotelContext } from '@/contexts/HotelContext'
 import type { RoomWithStats, RoomStatus } from '@/types/rooms.types'
 import { TASK_TYPE_LABELS } from '@/types/housekeeping.types'
 
