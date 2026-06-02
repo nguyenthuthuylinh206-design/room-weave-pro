@@ -105,20 +105,52 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
   const { user, role } = useUser()
   const checkSessions = useAllRoomCheckSessions(user?.tenant_id)
   const { data: pendingDistributions } = usePendingRoomDistributions()
+  const { selectedHotel } = useHotelContext()
+  const { data: activeBookings } = useActiveRoomBookings(selectedHotel?.id)
 
   const [taskRoom, setTaskRoom] = useState<{ id: string; number: string; hotelId: string } | null>(null)
   const [taskType, setTaskType] = useState<ManualTaskType>('cleaning')
 
   const canViewRoomDetail = hasPermission(role, 'manage_rooms') || role !== 'staff'
   const canCreateTask = canCreateHousekeepingTask(user)
-  const { selectedHotel } = useHotelContext()
   const { styles } = useRoomViewDensity(selectedHotel?.id)
 
+  // Tick mỗi 60s để recompute countdown trả phòng
+  const [nowTick, setNowTick] = useState(() => Date.now())
+  useEffect(() => {
+    const id = window.setInterval(() => setNowTick(Date.now()), 60_000)
+    return () => window.clearInterval(id)
+  }, [])
+
+  // Collapse "Bình thường" mặc định + persist theo hotel
+  const collapseKey = `rooms.grid.normalCollapsed:${selectedHotel?.id || 'default'}`
+  const [normalCollapsed, setNormalCollapsed] = useState<boolean>(true)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(collapseKey)
+      setNormalCollapsed(raw === null ? true : raw === '1')
+    } catch {
+      setNormalCollapsed(true)
+    }
+  }, [collapseKey])
+  const toggleNormal = () => {
+    setNormalCollapsed((prev) => {
+      const next = !prev
+      try { localStorage.setItem(collapseKey, next ? '1' : '0') } catch {}
+      return next
+    })
+  }
+
   const grouped = useMemo(() => {
+    const now = new Date(nowTick)
     const items = rooms.map((room) => {
       const pendingCount = pendingDistributions?.get(room.id) || 0
-      const priority = calcRoomPriority(room, pendingCount)
-      return { room, pendingCount, priority }
+      const booking = activeBookings?.get(room.id) || null
+      const mins = booking && isOccupiedStatus(room.status)
+        ? minutesUntilCheckout(booking, now)
+        : null
+      const priority = calcRoomPriority(room, { pendingDistributions: pendingCount, minutesToCheckout: mins })
+      return { room, pendingCount, priority, booking, minutesToCheckout: mins }
     })
     items.sort((a, b) => b.priority.score - a.priority.score)
     return {
@@ -126,12 +158,13 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
       warning: items.filter((i) => i.priority.tier === 'warning'),
       normal: items.filter((i) => i.priority.tier === 'normal'),
     }
-  }, [rooms, pendingDistributions])
+  }, [rooms, pendingDistributions, activeBookings, nowTick])
 
   const handleSelectRoom = (roomId: string, checked: boolean) => {
     if (checked) onSelectionChange([...selectedIds, roomId])
     else onSelectionChange(selectedIds.filter((id) => id !== roomId))
   }
+
 
   const openTaskDialog = (room: RoomWithStats, type: ManualTaskType) => {
     setTaskType(type)
