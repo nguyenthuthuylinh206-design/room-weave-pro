@@ -1,5 +1,5 @@
 // Selection toolbar — port từ Deal Hotel Hub, giữ nguyên UI
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Lock, Unlock, Copy, ClipboardPaste, RotateCcw, X, Check, MousePointerClick, Tag, Percent } from 'lucide-react'
