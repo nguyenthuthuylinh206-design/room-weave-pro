@@ -1,6 +1,19 @@
 {
-  "current": "1.1.46",
+  "current": "1.1.47",
   "versions": [
+    {
+      "version": "1.1.47",
+      "date": "2026-06-02",
+      "title": "Cockpit Trưởng buồng phòng (Pha 1): KPI + Cần xử lý ngay",
+      "highlights": [
+        "Trang mới /housekeeping: gom 6 KPI nghiệp vụ (Tổng phòng, Đang có khách, Trả phòng hôm nay, Cần dọn, Bảo trì, Thiếu đồ)",
+        "Click KPI nhảy thẳng vào tập con phòng/booking/bảo trì tương ứng",
+        "4 bucket 'Cần xử lý ngay': Trả phòng chưa dọn, Thiếu đồ, QC không đạt, Task khẩn",
+        "Realtime cập nhật khi rooms/bookings/tasks thay đổi",
+        "Sidebar nhóm 'Phòng' có mục mới 'Tổng quan buồng phòng' ở đầu",
+        "Pha 2 (sơ đồ phòng mini + tiến độ nhân viên) sẽ phát hành tiếp theo"
+      ]
+    },
     {
       "version": "1.1.46",
       "date": "2026-06-02",
