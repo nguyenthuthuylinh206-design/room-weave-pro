@@ -22,7 +22,12 @@ export interface PriorityResult {
 
 const DIRTY_STATUSES = new Set(['vacant_dirty', 'cleaning', 'check_out'])
 const OOO_STATUSES = new Set(['out_of_order', 'out_of_service', 'maintenance'])
-const OCCUPIED_STATUSES = new Set(['occupied', 'occupied_clean', 'occupied_dirty'])
+const OCCUPIED_STATUSES = new Set(['occupied', 'occupied_clean', 'occupied_dirty', 'dnd', 'sleep_out', 'service_refused'])
+
+export function isOccupiedStatus(status: string): boolean {
+  return OCCUPIED_STATUSES.has(status)
+}
+
 
 export interface PriorityInputs {
   pendingDistributions?: number
