@@ -374,14 +374,36 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
     title: string,
     items: typeof grouped.urgent,
     headerClass: string,
+    options?: { collapsible?: boolean; collapsed?: boolean; onToggle?: () => void },
   ) => {
     if (items.length === 0) return null
+    const collapsible = options?.collapsible
+    const collapsed = options?.collapsed
     return (
       <section className="space-y-3">
-        <h2 className={cn('text-xs font-semibold uppercase tracking-wider', headerClass)}>{title}</h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-          {items.map(renderCard)}
-        </div>
+        {collapsible ? (
+          <button
+            type="button"
+            onClick={options?.onToggle}
+            className={cn(
+              'flex w-full items-center gap-1.5 text-xs font-semibold uppercase tracking-wider transition-colors hover:opacity-70',
+              headerClass,
+            )}
+          >
+            {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            <span>{title}</span>
+            <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground">
+              · {collapsed ? t('grid.expandSection') : t('grid.collapseSection')}
+            </span>
+          </button>
+        ) : (
+          <h2 className={cn('text-xs font-semibold uppercase tracking-wider', headerClass)}>{title}</h2>
+        )}
+        {(!collapsible || !collapsed) && (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+            {items.map(renderCard)}
+          </div>
+        )}
       </section>
     )
   }
@@ -390,7 +412,12 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
     <div className="space-y-6">
       {renderSection(t('grid.sectionUrgent', { count: grouped.urgent.length }), grouped.urgent, 'text-red-600')}
       {renderSection(t('grid.sectionWarning', { count: grouped.warning.length }), grouped.warning, 'text-amber-600')}
-      {renderSection(t('grid.sectionNormal', { count: grouped.normal.length }), grouped.normal, 'text-muted-foreground')}
+      {renderSection(
+        t('grid.sectionNormal', { count: grouped.normal.length }),
+        grouped.normal,
+        'text-muted-foreground',
+        { collapsible: true, collapsed: normalCollapsed, onToggle: toggleNormal },
+      )}
 
       {taskRoom && (
         <CreateTaskDialog
@@ -405,3 +432,48 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
     </div>
   )
 }
+
+/**
+ * Dòng booking cho phòng đang có khách: "Trả 12:00 · Nguyễn Văn A" + trạng thái countdown.
+ */
+function BookingLine({
+  booking,
+  minutesToCheckout,
+  t,
+}: {
+  booking: ActiveBooking
+  minutesToCheckout: number | null
+  t: (key: string, opts?: Record<string, unknown>) => string
+}) {
+  const time = formatCheckoutTime(booking.expected_check_out_time)
+  const overdue = minutesToCheckout !== null && minutesToCheckout < 0
+  const soon = minutesToCheckout !== null && minutesToCheckout >= 0 && minutesToCheckout <= 120
+
+  const colorClass = overdue
+    ? 'text-red-600'
+    : soon
+      ? 'text-orange-600'
+      : 'text-foreground'
+
+  return (
+    <div className={cn('flex flex-col gap-0.5 font-medium', colorClass)}>
+      <div className="flex items-center gap-1">
+        <LogOut className="h-3 w-3 shrink-0" />
+        <span className="truncate">
+          {t('grid.checkoutAt', { time })} · {booking.guest_name}
+        </span>
+      </div>
+      {overdue && (
+        <span className="text-[0.95em] font-normal pl-4">
+          {t('grid.checkoutOverdue', { minutes: Math.abs(minutesToCheckout!) })}
+        </span>
+      )}
+      {!overdue && soon && (
+        <span className="text-[0.95em] font-normal pl-4">
+          {t('grid.checkoutSoon')}
+        </span>
+      )}
+    </div>
+  )
+}
+
