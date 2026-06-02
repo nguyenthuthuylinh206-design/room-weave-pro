@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { formatDistanceToNow } from 'date-fns'
@@ -12,6 +12,9 @@ import {
   Truck,
   ClipboardList,
   PackageOpen,
+  ChevronDown,
+  ChevronRight,
+  LogOut,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -26,11 +29,12 @@ import { RoomStatusSelector } from './RoomStatusSelector'
 import { CreateTaskDialog } from '@/components/housekeeping/CreateTaskDialog'
 import { useAllRoomCheckSessions } from '@/hooks/useRoomCheckSession'
 import { usePendingRoomDistributions } from '@/hooks/usePendingRoomDistributions'
+import { useActiveRoomBookings, minutesUntilCheckout, formatCheckoutTime, type ActiveBooking } from '@/hooks/useActiveRoomBookings'
 import { useUser } from '@/hooks/useUser'
 import { hasPermission } from '@/lib/permissions'
 import { canCreateHousekeepingTask } from '@/lib/userAccess'
 import { cn } from '@/lib/utils'
-import { calcRoomPriority, getMissingDisplay, type PriorityTier } from '@/lib/roomPriority'
+import { calcRoomPriority, getMissingDisplay, isOccupiedStatus, type PriorityTier } from '@/lib/roomPriority'
 import { useRoomViewDensity } from '@/hooks/useRoomViewDensity'
 import { useHotelContext } from '@/contexts/HotelContext'
 import type { RoomWithStats, RoomStatus } from '@/types/rooms.types'
