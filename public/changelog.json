@@ -1,6 +1,18 @@
 {
-  "current": "1.1.44",
+  "current": "1.1.45",
   "versions": [
+    {
+      "version": "1.1.45",
+      "date": "2026-06-02",
+      "title": "Lưới phòng: bỏ giá, số phòng luôn hiển thị, thêm điều chỉnh cỡ chữ",
+      "highlights": [
+        "Bỏ hoàn toàn giá phòng khỏi card Lưới (đồng bộ với module Buồng phòng — giá thuộc về Lễ tân)",
+        "Số phòng luôn hiển thị đầy đủ: bỏ truncate, dồn checkbox + Trạng thái ở góc phải, wrap khi chật",
+        "Thêm điều khiển 'Cỡ hiển thị' (Nhỏ / Vừa / Lớn + slider 85–140%) cho Lưới và Danh sách, lưu theo từng khách sạn",
+        "Phím tắt Ctrl/Cmd + / − / 0 để phóng to/thu nhỏ/đặt lại — tương tự Sơ đồ phòng",
+        "Cỡ chữ áp dụng đồng bộ cho số phòng, lý do ưu tiên, dòng việc cần làm và meta của card"
+      ]
+    },
     {
       "version": "1.1.44",
       "date": "2026-06-02",

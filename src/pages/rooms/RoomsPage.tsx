@@ -13,6 +13,8 @@ import { RoomTapeChart } from '@/components/rooms/RoomTapeChart'
 import { RoomFloorMapView } from '@/components/rooms/RoomFloorMapView'
 import { BulkImportRoomsDialog } from '@/components/rooms/BulkImportRoomsDialog'
 import { RoomBulkActionsBar } from '@/components/rooms/RoomBulkActionsBar'
+import { RoomViewDensityControl } from '@/components/rooms/RoomViewDensityControl'
+import { useRoomViewDensity } from '@/hooks/useRoomViewDensity'
 import { useRooms } from '@/hooks/useRooms'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useBreakpoint } from '@/lib/breakpoints'
@@ -47,6 +49,7 @@ export function RoomsPage() {
 
   const { data: rooms, isLoading } = useRooms(filters)
   const { selectedHotel } = useHotelContext()
+  const density = useRoomViewDensity(selectedHotel?.id)
 
   // Staff (HK) không cần thấy toàn bộ danh sách phòng — chuyển sang "Việc của tôi".
   useEffect(() => {
@@ -101,7 +104,16 @@ export function RoomsPage() {
           onFilterChange={(newFilters) => setFilters(prev => ({ ...prev, ...newFilters }))}
         />
 
-        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
+        <div className="flex items-center gap-2">
+          {(viewMode === 'grid' || viewMode === 'list') && (
+            <RoomViewDensityControl
+              state={density.state}
+              onPresetChange={density.setPreset}
+              onFontScaleChange={density.setFontScale}
+              onReset={density.reset}
+            />
+          )}
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
           <TabsList>
             <TabsTrigger value="grid">
               <Grid3x3 className="h-4 w-4 mr-2" />
@@ -121,6 +133,7 @@ export function RoomsPage() {
             </TabsTrigger>
           </TabsList>
         </Tabs>
+        </div>
       </div>
 
       {/* Bulk Actions Bar */}

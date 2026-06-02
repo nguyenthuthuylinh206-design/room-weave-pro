@@ -1,80 +1,88 @@
 ## Mục tiêu
 
-Lưới phòng `/rooms?view=grid` hiện đang hiển thị cho mọi vai trò giống nhau, có cả **giá phòng** và bố cục nặng — không tối ưu cho nhân viên buồng phòng (HK) vốn là người dùng chính ở màn này.
+1. **Bỏ giá phòng** ở card Grid (kể cả với Owner/Manager) — nhất quán với định hướng "Grid = vận hành buồng phòng", giá chỉ thuộc về Lễ tân/Booking.
+2. **Đảm bảo số phòng luôn hiển thị** — hiện tại `P104`, `P103`… đôi khi bị `truncate` mất trong header card vì chia chỗ với checkbox + chấm trạng thái + `RoomStatusSelector`.
+3. **Thêm control "Cỡ hiển thị"** (Nhỏ / Vừa / Lớn + slider %) cho **Lưới** và **Danh sách**, tương tự cơ chế đã có ở **Sơ đồ phòng**.
 
-Cần biến card phòng thành "thẻ tác nghiệp HK": **số phòng + trạng thái to rõ → việc cần làm → nút Kiểm tra**. Giá phòng chỉ giữ lại cho Owner/Manager/Lễ tân.
+---
 
-## A. Logic nghiệp vụ — phân nhánh theo vai trò
+## A. Logic / Kiến trúc
 
-Tạo helper `isOperationalRole(role)` = `role === 'staff' || role === 'department_manager'`
-(HK staff + Trưởng bộ phận HK đều là người tác nghiệp).
+- Tái dùng pattern của `useFloorMapCellSize` nhưng tách thành hook nhẹ hơn `useRoomViewDensity(hotelId)`:
+  - state: `{ preset: 'sm'|'md'|'lg'|'custom', fontScale: 0.85–1.4, density: 'compact'|'comfortable' }`
+  - persist trong `localStorage` theo key `rooms.viewDensity:<hotelId>`
+  - phát ra `classes` (numberStyle, bodyStyle, captionStyle, rowPadding) để Grid + List dùng chung
+  - shortcut `Ctrl/Cmd +/-/0` (giống Sơ đồ phòng)
+- Không đụng đến state machine, RLS, RPC. Đây thuần UI/preference.
 
-Card phòng có 2 chế độ render:
+## B. Schema / migration
 
-| Khu vực | Operational (HK) | Owner / Manager / Lễ tân |
-|---|---|---|
-| Số phòng | **cực to** (text-3xl) + chấm màu trạng thái | text-2xl như hiện tại |
-| Trạng thái | Badge text-sm in đậm, đặt ngay dưới số phòng | Selector ở góc phải (như cũ) |
-| Loại phòng / sức chứa / giường / m² | Gộp 1 dòng `Deluxe • 2 khách • King • 35m²` (text-xs, mute) | Grid 3 cột như cũ |
-| Đồ thiếu / giặt là / phiếu chờ | **Nổi bật**, gom thành "Việc cần làm" có icon trạng thái màu | Như cũ |
-| **Giá phòng** | ❌ **ẨN** | ✅ Hiển thị |
-| Lần kiểm cuối | "Đã kiểm 2 giờ trước" / "Chưa kiểm hôm nay" (text-xs amber nếu >12h) | Không hiển thị (giữ gọn) |
-| Footer | 1 nút duy nhất **Kiểm tra** full-width | Xem chi tiết + dropdown task + Kiểm tra (như cũ) |
-| Checkbox bulk | Vẫn giữ | Vẫn giữ |
-| Click card | Không điều hướng (staff không có quyền xem detail) | → `/rooms/:id` |
+- Không cần migration. Lưu hoàn toàn ở `localStorage` (giống Sơ đồ phòng giai đoạn đầu — sau này có thể đồng bộ remote nếu cần, không nằm trong scope này).
 
-## B. UI components
+## C. API / RPC
 
-Sửa duy nhất `src/components/rooms/RoomGrid.tsx`:
+- Không thay đổi.
 
-1. Thêm `const isOperational = isOperationalRole(role)` đầu component.
-2. Tách 1 phần JSX `RoomCardOperational` (inline, không tách file) để dễ đọc — render gọn theo bảng trên.
-3. Phần đang dùng (`canViewRoomDetail`, dropdown task, nút view detail, block giá) **chỉ render khi `!isOperational`**.
-4. Khối "Việc cần làm" cho HK:
-   - Dòng 1: nếu có session đang kiểm → `Đang kiểm bởi {tên} ({type})` (orange, Clock pulse) — ưu tiên cao nhất
-   - Dòng 2: Đồ thiếu (red) hoặc Đủ đồ (green, ngắn gọn ✓)
-   - Dòng 3: Đồ giặt (cyan) — chỉ khi >0
-   - Dòng 4: Phiếu chờ giao (amber) — chỉ khi >0
-   - Dòng 5: Lần kiểm cuối — `Đã kiểm {relative}` hoặc `Chưa kiểm hôm nay` (amber khi quá hạn)
-5. Nút Kiểm tra giữ logic disable khi session người khác đang giữ.
-6. Grid spacing chặt hơn cho operational: `gap-3` thay vì `gap-4`, có thể fit 4 cột ở `lg`.
+## D. UI changes
 
-## C. Filter / Header
+### D1. `RoomsPage.tsx` (header bar)
+- Thêm `<RoomViewDensityControl />` (Popover, icon `Type` + label cỡ hiện tại) nằm **bên trái Tabs viewMode** khi `viewMode === 'grid' || viewMode === 'list'`. Khi ở `floor`/`map` thì ẩn (vì 2 view đó có control riêng).
+- Trong Popover:
+  - 3 nút preset: Nhỏ / Vừa / Lớn
+  - Slider "Cỡ chữ" 85% – 140%
+  - Nút "Đặt lại"
 
-Không đổi `RoomsPage`. Chỉ thay đổi nội dung từng card.
+### D2. `RoomGrid.tsx`
+- **Bỏ block giá** (lines 287-291): xoá toàn bộ `{showPrice && room.base_price …}` và biến `showPrice`, `hidesPrice`, import `formatCurrency` nếu không còn dùng.
+- **Header card — đảm bảo số phòng luôn thấy**:
+  - Đổi thứ tự ưu tiên: `số phòng` (không `truncate`, `shrink-0`) → chấm trạng thái → checkbox dồn về góc phải cùng `RoomStatusSelector` ở dòng riêng (`flex-wrap` khi hẹp).
+  - Cấu trúc mới:
+    ```
+    [● P104]                     [☐] [Trạng thái▾]
+    ```
+    với `h3` room number `shrink-0` (bỏ `truncate`, bỏ `flex-1 min-w-0`), `RoomStatusSelector` cho phép xuống dòng (wrap container).
+- Áp dụng `numberStyle / bodyStyle / captionStyle` từ `useRoomViewDensity` cho:
+  - `h3` số phòng → `numberStyle`
+  - dòng lý do ưu tiên + actionable info → `bodyStyle`
+  - meta row → `captionStyle`
+- Meta row sau khi bỏ giá: chỉ còn `loại • khách • giường • m²` (1 dòng full-width).
 
-## D. i18n
+### D3. `RoomList.tsx` (table/list view)
+- Bọc bảng với inline style `fontSize: classes.bodyStyle.fontSize`, cell padding theo `density` (`py-1.5` compact / `py-3` comfortable).
+- Số phòng trong list view giữ `font-semibold` + áp `numberStyle` (cỡ vừa phải, không lớn như card).
+- Bỏ cột giá nếu hiện đang hiển thị (xác nhận lại khi build — chỉ bỏ nếu có).
 
-Bổ sung key tiếng Việt trong `src/locales/vi/rooms.json`:
+### D4. i18n (`vi/rooms.json`)
+- Thêm:
+  - `viewDensity.label`: "Cỡ hiển thị"
+  - `viewDensity.small/medium/large`: "Nhỏ"/"Vừa"/"Lớn"
+  - `viewDensity.fontSize`: "Cỡ chữ"
+  - `viewDensity.reset`: "Đặt lại"
 
-```
-grid.lastCheckedRelative: "Đã kiểm {{time}}"
-grid.notCheckedToday: "Chưa kiểm hôm nay"
-grid.summaryLine: "{{type}} • {{guests}} khách • {{bed}} • {{area}}m²"
-```
+## E. Permission / role
 
-Dùng `formatDistanceToNow` từ `date-fns` với locale `vi` cho `last_check_at`.
+- Bỏ giá áp dụng cho **tất cả role** ở Grid (kể cả Owner) → giá phòng thuộc về Lễ tân/Booking page, không lẫn vào module Buồng phòng.
+- Control cỡ chữ ai cũng dùng được (chỉ là preference UI).
 
-## E. Permission
+## F. Test cases
 
-Không cần policy mới. Dùng `role` từ `useUser()` đã có. Logic giá phòng được giấu ở **client UI** (HK staff đã không được vào trang detail/booking — không phải rò rỉ dữ liệu nhạy cảm; nếu cần chặt hơn về sau có thể loại field giá ở RPC theo role).
+1. Grid view không còn hiển thị bất kỳ số tiền nào trên card.
+2. Tất cả card đều thấy đầy đủ số phòng (`P101`…`P999`) ở mọi viewport ≥ 360px, không bị `…`.
+3. Chọn preset "Lớn" → số phòng + body text trong card grid & list tăng kích thước, persist khi reload.
+4. Shortcut `Cmd/Ctrl +`, `-`, `0` thay đổi/đặt lại cỡ chữ khi đang ở Grid/List.
+5. Sang tab Sơ đồ phòng/Lịch phòng → control "Cỡ hiển thị" ẩn, control gốc của Sơ đồ phòng vẫn hoạt động độc lập.
+6. Đổi hotel → preference cỡ chữ load đúng theo hotel mới.
 
-## F. Test cases (manual QA)
+## G. Rollout notes
 
-1. Đăng nhập role `staff` → card không thấy giá, không thấy nút "Xem chi tiết", click card không điều hướng.
-2. Đăng nhập role `owner` / `hotel_manager` → card giữ nguyên bố cục cũ (giá, dropdown task, xem chi tiết).
-3. Phòng đang có session kiểm → card hiển thị "Đang kiểm bởi ...", nút Kiểm tra disable với người khác, "Tiếp tục kiểm" với chính mình.
-4. Phòng `last_check_at = null` → hiển thị "Chưa kiểm hôm nay" (amber).
-5. Phòng có `missing_items=0`, `items_in_laundry=0`, không phiếu chờ → khối "Việc cần làm" chỉ có 1 dòng ✓ Đủ đồ + dòng lần kiểm cuối.
-6. Mobile portrait 390px → card 1 cột, số phòng vẫn đọc rõ, nút Kiểm tra full-width thumb-zone.
-
-## G. Rollout
-
-- Thay đổi thuần UI, không migration, không breaking change cho Manager/Owner.
-- Bump `APP_VERSION` + `CURRENT_VERSION` + thêm entry `changelog.json`: *"Tối ưu lưới phòng cho nhân viên buồng phòng: số phòng to rõ, làm nổi việc cần làm, ẩn giá."*
-
-## File sẽ chỉnh
-
-- `src/components/rooms/RoomGrid.tsx` (chính)
-- `src/locales/vi/rooms.json` (thêm 3 key)
-- `src/lib/app-version.ts`, `src/components/pwa/CacheBuster.tsx`, `public/changelog.json` (bump version)
+- **Version bump**: `1.1.45` + entry `public/changelog.json` + `src/lib/app-version.ts` + `CURRENT_VERSION` ở `CacheBuster.tsx`.
+- Files dự kiến chỉnh/tạo:
+  - **NEW** `src/hooks/useRoomViewDensity.ts`
+  - **NEW** `src/components/rooms/RoomViewDensityControl.tsx`
+  - `src/components/rooms/RoomGrid.tsx` (bỏ giá + restructure header + áp style từ hook)
+  - `src/components/rooms/RoomList.tsx` (áp style + density)
+  - `src/pages/rooms/RoomsPage.tsx` (gắn control)
+  - `src/i18n/locales/vi/rooms.json`
+  - `src/lib/app-version.ts`, `public/changelog.json`, `src/components/CacheBuster.tsx`
+- **Rollback**: revert đúng các file trên; vì preference nằm ở `localStorage`, không có rủi ro dữ liệu.
+- **Không** thuộc scope: áp control cỡ chữ vào Mobile Rooms Page (sẽ làm tách lượt khác để giữ phạm vi nhỏ và test kỹ).

@@ -42,6 +42,7 @@ import { useDeleteRoom } from '@/hooks/useRooms'
 import { useUser } from '@/hooks/useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useTodayPricesByHotel } from '@/hooks/usePricingDaily'
+import { useRoomViewDensity } from '@/hooks/useRoomViewDensity'
 import { canCreateHousekeepingTask } from '@/lib/userAccess'
 import { TASK_TYPE_LABELS } from '@/types/housekeeping.types'
 import type { RoomWithStats } from '@/types/rooms.types'
@@ -64,6 +65,7 @@ export function RoomTable({ rooms, isLoading, selectedIds, onSelectionChange }: 
   const dateLocale = i18n.language === 'vi' ? vi : enUS
   const { selectedHotel } = useHotelContext()
   const { data: todayPrices } = useTodayPricesByHotel(selectedHotel?.id)
+  const { styles, state: densityState } = useRoomViewDensity(selectedHotel?.id)
 
   const isAllSelected = rooms.length > 0 && selectedIds.length === rooms.length
   const isSomeSelected = selectedIds.length > 0 && selectedIds.length < rooms.length
@@ -96,8 +98,8 @@ export function RoomTable({ rooms, isLoading, selectedIds, onSelectionChange }: 
   }
   
   return (
-    <div className="rounded-md border">
-      <Table>
+    <div className="rounded-md border" style={{ fontSize: styles.bodyStyle.fontSize }}>
+      <Table data-density={densityState.preset} className={densityState.preset === 'sm' ? '[&_td]:py-1.5 [&_th]:py-2' : densityState.preset === 'lg' ? '[&_td]:py-4 [&_th]:py-3' : ''}>
         <TableHeader>
           <TableRow>
             <TableHead className="w-12">
