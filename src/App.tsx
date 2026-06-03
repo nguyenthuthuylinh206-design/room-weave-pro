@@ -507,6 +507,7 @@ const router = createBrowserRouter([
       { path: "settings/audit-log", element: <RoleGuard allowedRoles={['super_admin', 'owner', 'hotel_manager', 'department_manager']}><AuditLogPage /></RoleGuard> },
       { path: "settings/asset-group-migration", element: <RoleGuard allowedRoles={['super_admin', 'owner', 'hotel_manager']}><AssetGroupMigrationPage /></RoleGuard> },
       { path: "settings/hotel-policy", element: <RoleGuard allowedRoles={['super_admin', 'owner', 'hotel_manager']}><HotelPolicyPage /></RoleGuard> },
+      { path: "settings/einvoice", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><EInvoiceSettingsPage /></RoleGuard> },
 
       // Profile
       { path: "profile", element: <ProfilePage /> },
