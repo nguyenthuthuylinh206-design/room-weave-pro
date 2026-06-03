@@ -106,6 +106,7 @@ const GeneralSettingsPage = lazyNamed(() => import("./pages/settings/GeneralSett
 const RoomCheckSettingsPage = lazy(() => import("./pages/settings/RoomCheckSettingsPage"));
 const HotelsManagementPage = lazy(() => import("./pages/settings/HotelsManagementPage"));
 const SubscriptionPage = lazy(() => import("./pages/settings/SubscriptionPage"));
+const EInvoiceSettingsPage = lazy(() => import("./pages/settings/EInvoiceSettingsPage"));
 const SubscriptionPaymentPage = lazy(() => import("./pages/settings/SubscriptionPaymentPage"));
 const UsageDashboardPage = lazy(() => import("./pages/settings/UsageDashboardPage"));
 const NotificationSettingsPage = lazyNamed(() => import("./pages/settings/NotificationSettingsPage"), "NotificationSettingsPage");
