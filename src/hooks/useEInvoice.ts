@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useHotelContext } from '@/contexts/HotelContext';
-import { useUser } from '@/contexts/AuthContext';
+import { useTenant } from '@/hooks/useTenant';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 export type EInvoiceProvider = 'viettel_sinvoice' | 'misa' | 'vnpt' | 'easyinvoice';
