@@ -48,7 +48,7 @@ const QK_TEMPLATES = (hotelId?: string) => ['einvoice-templates', hotelId];
 
 export function useEInvoiceConfig() {
   const { selectedHotel } = useHotelContext();
-  const { tenant } = useUser();
+  const { tenant } = useTenant();
   return useQuery({
     queryKey: QK_CONFIG(selectedHotel?.id),
     enabled: !!selectedHotel?.id && !!tenant?.id,
@@ -68,7 +68,7 @@ export function useEInvoiceConfig() {
 
 export function useInvoiceTemplates() {
   const { selectedHotel } = useHotelContext();
-  const { tenant } = useUser();
+  const { tenant } = useTenant();
   return useQuery({
     queryKey: QK_TEMPLATES(selectedHotel?.id),
     enabled: !!selectedHotel?.id && !!tenant?.id,
@@ -88,7 +88,7 @@ export function useInvoiceTemplates() {
 export function useUpsertEInvoiceConfig() {
   const qc = useQueryClient();
   const { selectedHotel } = useHotelContext();
-  const { tenant, user } = useUser();
+  const { tenant } = useTenant(); const { user } = useAuth();
   return useMutation({
     mutationFn: async (input: Partial<EInvoiceConfig> & { password?: string }) => {
       if (!selectedHotel?.id || !tenant?.id) throw new Error('Chưa chọn khách sạn');
@@ -159,7 +159,7 @@ export function useFetchProviderTemplates() {
 export function useUpsertTemplate() {
   const qc = useQueryClient();
   const { selectedHotel } = useHotelContext();
-  const { tenant } = useUser();
+  const { tenant } = useTenant();
   return useMutation({
     mutationFn: async (input: { id?: string; template_code: string; invoice_series: string; template_name?: string; is_default?: boolean }) => {
       if (!selectedHotel?.id || !tenant?.id) throw new Error('Chưa chọn khách sạn');
