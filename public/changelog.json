@@ -1,19 +1,6 @@
 {
-  "current": "1.1.54",
+  "current": "1.1.53",
   "versions": [
-    {
-      "version": "1.1.54",
-      "date": "2026-06-03",
-      "title": "Hóa đơn điện tử Viettel: Phase 1 nền tảng đa nhà cung cấp",
-      "highlights": [
-        "Thêm module Cấu hình hóa đơn điện tử tại Cài đặt → Hóa đơn điện tử (chỉ Chủ khách sạn): MST, chi nhánh, tài khoản API, môi trường Sandbox/Production, hình thức ký Cloud HSM hoặc USB Token",
-        "Mật khẩu API được mã hóa và lưu trong Supabase Vault, không bao giờ hiển thị lại; chỉ Edge Function ký bằng service_role mới đọc được",
-        "Phát hành hóa đơn hoạt động bất đồng bộ: tạo bản ghi 'đang xử lý' tức thì rồi nền tự đối soát với Viettel — không treo giao diện chờ ký số",
-        "Hỗ trợ hóa đơn điều chỉnh và thay thế (parent_invoice_id), tải PDF & XML, hủy hóa đơn, đồng bộ template/ký hiệu trực tiếp từ tài khoản Viettel",
-        "Kiến trúc provider-agnostic sẵn sàng mở rộng MISA, VNPT, EasyInvoice ở Phase 4"
-      ]
-    },
-
     {
       "version": "1.1.53",
       "date": "2026-06-03",
