@@ -270,46 +270,70 @@ export function InventoryDashboardPage() {
 
 
 
+  const isOverview = tab === 'overview'
+
+  // 2 primary CTAs (Nhập / Xuất) + "Khác" dropdown — same on desktop & mobile.
+  const primaryActions = (
+    <>
+      <Button
+        size="sm"
+        variant="default"
+        className="h-10 lg:h-9 font-body"
+        onClick={() => navigate('/inventory/inbound/new')}
+      >
+        <ArrowDownToLine className="h-4 w-4 mr-1.5" />
+        Nhập kho
+      </Button>
+      <Button
+        size="sm"
+        variant="default"
+        className="h-10 lg:h-9 font-body"
+        onClick={() => navigate('/inventory/outbound/new')}
+      >
+        <ArrowUpFromLine className="h-4 w-4 mr-1.5" />
+        Xuất kho
+      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button size="sm" variant="outline" className="h-10 lg:h-9 font-body">
+            Khác
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => navigate('/inventory/transfer/new')}>
+            <GitCompare className="h-4 w-4 mr-2" /> Chuyển kho
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => navigate('/inventory/adjustments/new')}>
+            <ClipboardCheck className="h-4 w-4 mr-2" /> Kiểm kê
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => navigate('/items/new')}>
+            <Plus className="h-4 w-4 mr-2" /> Thêm tài sản
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
+  )
+
   return (
     <div className="font-body space-y-3 lg:space-y-4">
       {/* Compact topbar on laptop, classic PageHeader on smaller */}
       <div className="hidden lg:flex items-center justify-between gap-3 pb-3 border-b border-border/60">
         <div className="flex items-baseline gap-3 min-w-0">
           <h1 className="font-display text-xl font-semibold tracking-tight text-foreground">Kho</h1>
-          <span className="text-muted-foreground/40">/</span>
-          <span className="font-body text-[13px] text-muted-foreground truncate">
-            <span className="text-muted-foreground/70">{breadcrumb.group}</span>
-            <span className="mx-1.5 text-muted-foreground/40">›</span>
-            <span className="text-foreground font-medium">{breadcrumb.item}</span>
-          </span>
+          {!isOverview && (
+            <>
+              <span className="text-muted-foreground/40">/</span>
+              <span className="font-body text-[13px] text-muted-foreground truncate">
+                <span className="text-muted-foreground/70">{breadcrumb.group}</span>
+                <span className="mx-1.5 text-muted-foreground/40">›</span>
+                <span className="text-foreground font-medium">{breadcrumb.item}</span>
+              </span>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <InventoryQuickSearch ref={searchRef} />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" className="font-body">
-                <Plus className="h-4 w-4 mr-1" />
-                Thao tác
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => navigate('/inventory/inbound/new')}>
-                <ArrowDownToLine className="h-4 w-4 mr-2" /> Nhập kho
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/inventory/outbound/new')}>
-                <ArrowUpFromLine className="h-4 w-4 mr-2" /> Xuất kho
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/inventory/transfer/new')}>
-                <GitCompare className="h-4 w-4 mr-2" /> Chuyển kho
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/inventory/adjustments/new')}>
-                <ClipboardCheck className="h-4 w-4 mr-2" /> Kiểm kê
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/items/new')}>
-                <Plus className="h-4 w-4 mr-2" /> Thêm tài sản
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {primaryActions}
         </div>
       </div>
 
@@ -318,33 +342,7 @@ export function InventoryDashboardPage() {
           title="Kho & Tài sản"
           description="Trung tâm điều hành kho — tồn kho, xuất nhập, phân tích và thiết lập"
         >
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="sm">
-                  <Plus className="h-4 w-4 mr-1" />
-                  Thao tác
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => navigate('/inventory/inbound/new')}>
-                  <ArrowDownToLine className="h-4 w-4 mr-2" /> Nhập kho
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/inventory/outbound/new')}>
-                  <ArrowUpFromLine className="h-4 w-4 mr-2" /> Xuất kho
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/inventory/transfer/new')}>
-                  <GitCompare className="h-4 w-4 mr-2" /> Chuyển kho
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/inventory/adjustments/new')}>
-                  <ClipboardCheck className="h-4 w-4 mr-2" /> Kiểm kê
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/items/new')}>
-                  <Plus className="h-4 w-4 mr-2" /> Thêm tài sản
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <div className="flex items-center gap-2">{primaryActions}</div>
         </PageHeader>
       </div>
 
@@ -352,7 +350,7 @@ export function InventoryDashboardPage() {
       <div className="flex items-center gap-2 lg:hidden">
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
-            <Button variant="outline" size="sm" className="shrink-0">
+            <Button variant="outline" size="sm" className="shrink-0 h-10">
               <MenuIcon className="h-4 w-4 mr-1.5" />
               Menu
             </Button>
@@ -367,10 +365,12 @@ export function InventoryDashboardPage() {
         </div>
       </div>
 
-      {/* Breadcrumb (mobile/tablet only — laptop has it inline in topbar) */}
-      <div className="lg:hidden">
-        <InventoryHubBreadcrumb groupTitle={breadcrumb.group} itemLabel={breadcrumb.item} />
-      </div>
+      {/* Breadcrumb — hidden on overview to reduce noise */}
+      {!isOverview && (
+        <div className="lg:hidden">
+          <InventoryHubBreadcrumb groupTitle={breadcrumb.group} itemLabel={breadcrumb.item} />
+        </div>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
         <nav className="hidden lg:block lg:sticky lg:top-4 lg:self-start rounded-xl border border-border/70 bg-card overflow-hidden shadow-tile">

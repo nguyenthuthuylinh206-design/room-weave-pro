@@ -1,6 +1,18 @@
 {
-  "current": "1.1.52",
+  "current": "1.1.53",
   "versions": [
+    {
+      "version": "1.1.53",
+      "date": "2026-06-03",
+      "title": "Kho: Trung tâm điều hành lấy việc làm trọng tâm",
+      "highlights": [
+        "Thêm thẻ 'Việc cần làm hôm nay' lên đầu trang Kho — gộp phiếu xuất chờ, món sắp hết 7 ngày, đề xuất đặt hàng và phiếu kiểm kê chờ xử lý vào một danh sách hành động duy nhất",
+        "Đưa 2 nút Nhập kho và Xuất kho ra header chính, bỏ menu 'Thao tác' gộp — giảm số lần bấm cho thao tác thường ngày",
+        "Đổi nhãn KPI sang ngôn ngữ vận hành: 'Số SKU' → 'Loại hàng', 'Tồn ứ đọng ≥90d' → 'Tồn lâu (>3 tháng)', 'Sắp hết · <7 ngày' → 'Sắp hết (7 ngày)'",
+        "Gọn lại lưới KPI thành 4 ô đồng cỡ, ẩn breadcrumb dư thừa khi đang ở Tổng quan",
+        "Lazy-load phần 'Phân bổ theo khách sạn' (chỉ hiện ở chế độ chuỗi) để trang nhẹ hơn cho khách sạn đơn"
+      ]
+    },
     {
       "version": "1.1.52",
       "date": "2026-06-02",
