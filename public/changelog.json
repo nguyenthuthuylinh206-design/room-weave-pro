@@ -1,6 +1,20 @@
 {
-  "current": "1.1.60",
+  "current": "1.1.61",
   "versions": [
+    {
+      "version": "1.1.61",
+      "date": "2026-06-04",
+      "title": "Tape Chart: refresh theo Navy Trust + click phòng mở chi tiết (Batch 3 — B3)",
+      "highlights": [
+        "Bảng băng booking đổi sang palette Navy Trust: đang lưu trú = navy đậm chữ trắng (nổi bật nhất), đã cọc đủ = emerald nhạt + viền trái xanh, cọc một phần = amber nhạt, chưa cọc = orange nhạt, đã trả phòng = slate mờ, còn nợ = đỏ đậm — tạo hierarchy rõ ràng giữa hiện tại / tương lai / quá khứ",
+        "Header ngày polish: hôm nay có ring + underline navy + chữ primary, cuối tuần slate-100 nhạt, ngày lễ rose + tên rút gọn; nền sticky đổi sang slate-50/95 + backdrop-blur cho viền trong khi scroll",
+        "Cột phòng giờ là button click được — mở thẳng chi tiết phòng /rooms/:id, có icon Eye hiển thị khi hover, hover row sáng nền accent",
+        "Source badge trong bar booking dùng `bg-black/10 text-current` để hiển thị tốt cả trên bar tối (navy/đỏ) lẫn bar sáng (emerald/amber/orange), không còn bị mất chữ trên tint nhạt",
+        "Color-blind pattern overlay cập nhật theo màu nền mới (overlay tối hơn cho bar sáng, overlay sáng hơn cho bar tối)"
+      ]
+    },
+
+
     {
       "version": "1.1.60",
       "date": "2026-06-04",
