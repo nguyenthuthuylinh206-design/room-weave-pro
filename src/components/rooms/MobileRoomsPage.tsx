@@ -379,19 +379,31 @@ export const MobileRoomsPage = () => {
                   : t('checkSession.inProgress')
                 : t('checkSession.check')
 
-              const longPress = useLongPress(() => {
-                // Long-press: vào selection mode + chọn luôn phòng này
-                if (!selectionMode) {
-                  setSelectionMode(true)
-                  setSelectedIds((prev) => (prev.includes(room.id) ? prev : [...prev, room.id]))
-                  // Haptic feedback nếu hỗ trợ
-                  if ('vibrate' in navigator) navigator.vibrate?.(30)
+              const startLongPress = () => {
+                longPressTriggered.current.delete(room.id)
+                const t = window.setTimeout(() => {
+                  longPressTriggered.current.add(room.id)
+                  if (!selectionMode) {
+                    setSelectionMode(true)
+                    setSelectedIds((prev) => (prev.includes(room.id) ? prev : [...prev, room.id]))
+                    if ('vibrate' in navigator) navigator.vibrate?.(30)
+                  }
+                }, 500)
+                longPressTimers.current.set(room.id, t)
+              }
+              const cancelLongPress = () => {
+                const t = longPressTimers.current.get(room.id)
+                if (t) {
+                  window.clearTimeout(t)
+                  longPressTimers.current.delete(room.id)
                 }
-              }, { threshold: 500 })
+              }
 
               const handleCardClick = () => {
-                // Bỏ qua click giả sau long-press
-                if (longPress.wasTriggered()) return
+                if (longPressTriggered.current.has(room.id)) {
+                  longPressTriggered.current.delete(room.id)
+                  return
+                }
                 if (selectionMode) {
                   toggleSelectRoom(room.id)
                   return
@@ -416,11 +428,12 @@ export const MobileRoomsPage = () => {
                     isSelected && 'ring-2 ring-primary bg-primary/5',
                   )}
                   onClick={handleCardClick}
-                  onPointerDown={longPress.onPointerDown}
-                  onPointerUp={longPress.onPointerUp}
-                  onPointerLeave={longPress.onPointerLeave}
-                  onPointerCancel={longPress.onPointerCancel}
+                  onPointerDown={startLongPress}
+                  onPointerUp={cancelLongPress}
+                  onPointerLeave={cancelLongPress}
+                  onPointerCancel={cancelLongPress}
                 >
+
 
                   <CardContent className="p-3 space-y-2">
                     {/* Header: dot + số phòng + status text + checkbox bulk */}
