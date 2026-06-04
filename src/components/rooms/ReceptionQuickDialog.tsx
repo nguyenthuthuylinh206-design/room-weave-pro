@@ -84,7 +84,6 @@ export function ReceptionQuickDialog({ open, onOpenChange, room, onBookRoom, onO
 
   if (!room) return null
 
-  const meta = getRoomStatusMeta(room.status)
   const isOccupied = !!bk
   const r = detail?.room
   const guest = detail?.guest
