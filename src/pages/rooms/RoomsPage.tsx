@@ -26,14 +26,25 @@ type ViewMode = 'grid' | 'list' | 'floor' | 'map'
 const STORAGE_KEY = 'rooms.viewMode'
 const ALLOWED: ViewMode[] = ['grid', 'list', 'floor', 'map']
 
-function readInitialView(searchParams: URLSearchParams): ViewMode {
+/**
+ * Default view theo role khi user chưa từng chọn:
+ * - hotel_manager / owner / super_admin → 'map' (Sơ đồ – lễ tân/quản lý quan sát nhanh)
+ * - department_manager → 'grid' (HK ưu tiên xem theo priority)
+ * - khác → 'grid'
+ */
+function defaultViewByRole(role?: string | null): ViewMode {
+  if (role === 'owner' || role === 'super_admin' || role === 'hotel_manager') return 'map'
+  return 'grid'
+}
+
+function readInitialView(searchParams: URLSearchParams, role?: string | null): ViewMode {
   const fromUrl = searchParams.get('view') as ViewMode | null
   if (fromUrl && ALLOWED.includes(fromUrl)) return fromUrl
   try {
     const fromLs = localStorage.getItem(STORAGE_KEY) as ViewMode | null
     if (fromLs && ALLOWED.includes(fromLs)) return fromLs
   } catch {}
-  return 'grid'
+  return defaultViewByRole(role)
 }
 
 export function RoomsPage() {
