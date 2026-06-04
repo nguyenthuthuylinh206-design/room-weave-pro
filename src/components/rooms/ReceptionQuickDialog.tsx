@@ -18,6 +18,7 @@ import { useReceptionRoomDetail } from '@/hooks/useReceptionRoomDetail'
 import { useRoomTypePricing } from '@/hooks/useRoomTypePricing'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { RoomAuditLogDialog } from './RoomAuditLogDialog'
+import { RoomQuickHeader } from './RoomQuickHeader'
 import { ExtendBookingDialog } from '@/components/bookings/ExtendBookingDialog'
 import {
   Phone, MoreVertical, Users, Building2, BedDouble, Calendar,
