@@ -1110,7 +1110,7 @@ function Row({
                           onBookingClick(l.booking)
                         }}
                         className={cn(
-                          'absolute z-[3] flex items-center gap-1 overflow-hidden rounded-r-md pl-1.5 pr-1.5 text-left text-[11px] font-medium shadow-sm transition-all',
+                          'absolute z-[3] flex items-center gap-1 overflow-hidden rounded-md pl-1.5 pr-1.5 text-left text-[11px] font-medium shadow-sm transition-all',
                           color.bg,
                           color.border,
                           color.text,
@@ -1128,10 +1128,11 @@ function Row({
                         }}
                       >
                         {sourceBadge && (
-                          <span className="shrink-0 rounded bg-white/25 px-1 font-mono text-[9px] text-white">
+                          <span className="shrink-0 rounded bg-black/10 px-1 font-mono text-[9px] text-current">
                             {sourceBadge}
                           </span>
                         )}
+
 
 
                         <span className="truncate">{l.booking.guest_name}</span>
