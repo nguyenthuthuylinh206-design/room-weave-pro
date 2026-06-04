@@ -1,6 +1,17 @@
 {
-  "current": "1.1.59",
+  "current": "1.1.60",
   "versions": [
+    {
+      "version": "1.1.60",
+      "date": "2026-06-04",
+      "title": "Phòng mobile: thêm tab Sơ đồ Lễ tân + đồng bộ header chi tiết (Batch 3 — B5/A2)",
+      "highlights": [
+        "Mobile /rooms: thêm tab 'Sơ đồ' bên cạnh 'Lưới HK' và 'Công việc' — render trực tiếp RoomFloorMapView (KPI bucket + chấm semantic + Quick View Lễ tân) ngay trên điện thoại, không cần đổi sang tablet/desktop",
+        "Thành phần dùng chung 'RoomDetailTitleBlock' cho cả 3 trang chi tiết phòng (RoomDetailPage desktop, MobileRoomDetailPage, StaffRoomDetailPage): tiêu đề + status badge + dòng meta (loại phòng · tầng · diện tích · giường · view · giá) thống nhất 100%, có popover 'i' chứa amenities/notes",
+        "Loại bỏ 3 block duplicate header (~24 dòng) — đổi 1 field meta giờ chỉ sửa RoomMetaSubtitle"
+      ]
+    },
+
     {
       "version": "1.1.59",
       "date": "2026-06-04",

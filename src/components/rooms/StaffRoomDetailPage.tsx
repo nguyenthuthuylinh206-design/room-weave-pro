@@ -28,6 +28,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
+import { RoomDetailTitleBlock } from '@/components/rooms/detail/RoomDetailTitleBlock'
 import { RoomSupplementSheet } from '@/components/rooms/RoomSupplementSheet'
 import { CheckoutInspectionBanner } from '@/components/rooms/CheckoutInspectionBanner'
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
@@ -257,15 +258,8 @@ export function StaffRoomDetailPage() {
               <Button variant="ghost" size="icon" onClick={handleHeaderBack}>
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-lg font-bold">{t('detail.title', { number: room.room_number })}</h1>
-                  <RoomStatusBadge status={room.status as RoomStatus} />
-                </div>
-                <p className="text-xs text-muted-foreground capitalize">
-                  {t(`roomTypes.${room.room_type}`, { defaultValue: room.room_type })} • {t('detail.floorNumber', { number: room.floor })}
-                </p>
-              </div>
+              <RoomDetailTitleBlock room={room} />
+
             </div>
           </div>
         </div>

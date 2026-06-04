@@ -20,6 +20,7 @@ import { hasPermission } from '@/lib/permissions'
 import { canCreateHousekeepingTask } from '@/lib/userAccess'
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
 import { RoomQuickViewDialog, type QuickViewEntry } from './RoomQuickViewDialog'
+import { RoomFloorMapView } from './RoomFloorMapView'
 
 
 import { MobileRoomFilters } from './MobileRoomFilters'
@@ -28,7 +29,7 @@ import { StaffTasksTab } from '@/components/housekeeping/StaffTasksTab'
 import { CreateTaskDialog } from '@/components/housekeeping/CreateTaskDialog'
 import {
   Bed, CheckCircle, Plus, Search,
-  AlertTriangle, Wind, Truck, ClipboardList, PackageOpen, Clock,
+  AlertTriangle, Wind, Truck, ClipboardList, PackageOpen, Clock, LayoutGrid,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { calcRoomPriority, getMissingDisplay, isOccupiedStatus } from '@/lib/roomPriority'
@@ -45,7 +46,7 @@ export const MobileRoomsPage = () => {
   const { user } = useAuth()
   const { tenantId, role, user: appUser } = useUser()
   const { selectedHotel } = useHotelContext()
-  const [activeTab, setActiveTab] = useState<'rooms' | 'tasks'>('rooms')
+  const [activeTab, setActiveTab] = useState<'rooms' | 'map' | 'tasks'>('rooms')
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all')
   const [search, setSearch] = useState('')
 
@@ -174,18 +175,22 @@ export const MobileRoomsPage = () => {
 
       {/* Tabs: Rooms vs Tasks */}
       <div className="px-4 pt-2 pb-3">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'rooms' | 'tasks')}>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'rooms' | 'map' | 'tasks')}>
           <TabsList className="w-full">
             <TabsTrigger value="rooms" className="flex-1">
-              <Bed className="h-4 w-4 mr-2" />
-              Danh sách phòng
+              <Bed className="h-4 w-4 mr-1.5" />
+              Lưới HK
+            </TabsTrigger>
+            <TabsTrigger value="map" className="flex-1">
+              <LayoutGrid className="h-4 w-4 mr-1.5" />
+              Sơ đồ
             </TabsTrigger>
             <TabsTrigger value="tasks" className="flex-1 relative">
-              <ClipboardList className="h-4 w-4 mr-2" />
+              <ClipboardList className="h-4 w-4 mr-1.5" />
               Công việc
               {pendingTaskCount > 0 && (
-                <Badge 
-                  variant="destructive" 
+                <Badge
+                  variant="destructive"
                   className="absolute -top-1 -right-1 h-5 min-w-5 px-1 text-[10px]"
                 >
                   {pendingTaskCount > 9 ? '9+' : pendingTaskCount}
@@ -198,6 +203,15 @@ export const MobileRoomsPage = () => {
 
       {/* Tasks Tab Content */}
       {activeTab === 'tasks' && <StaffTasksTab />}
+
+      {/* Map Tab Content — Sơ đồ Lễ tân (reuse RoomFloorMapView, responsive theo cellSize) */}
+      {activeTab === 'map' && (
+        <div className="px-3 pb-3">
+          <RoomFloorMapView
+            onAddRoom={() => navigate('/rooms/new')}
+          />
+        </div>
+      )}
 
       {/* Rooms Tab Content */}
       {activeTab === 'rooms' && (
