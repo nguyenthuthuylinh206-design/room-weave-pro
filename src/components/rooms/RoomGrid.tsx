@@ -203,11 +203,11 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
           {/* Line 1: dot + số phòng + tên trạng thái (text semantic) + checkbox */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <span className={cn('inline-block h-2 w-2 rounded-full shrink-0', statusDotClass(room.status))} aria-hidden />
+              <span className={cn('inline-block h-2 w-2 rounded-full shrink-0', getRoomStatusDotClass(room.status))} aria-hidden />
               <h3 className="font-bold leading-none tracking-tight shrink-0" style={styles.numberStyle}>
                 {room.room_number}
               </h3>
-              <span className={cn('text-xs font-medium truncate', statusColorClass(room.status))}>
+              <span className={cn('text-xs font-medium truncate', getRoomStatusTextClass(room.status))}>
                 {statusLabel}
               </span>
             </div>
