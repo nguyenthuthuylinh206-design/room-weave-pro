@@ -53,7 +53,7 @@ export function RoomsPage() {
   const navigate = useNavigate()
   const { role } = useUser()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [viewMode, setViewMode] = useState<ViewMode>(() => readInitialView(searchParams))
+  const [viewMode, setViewMode] = useState<ViewMode>(() => readInitialView(searchParams, role))
   const [filters, setFilters] = useState<IRoomFilters>({})
   const [showBulkImport, setShowBulkImport] = useState(false)
   const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>([])
