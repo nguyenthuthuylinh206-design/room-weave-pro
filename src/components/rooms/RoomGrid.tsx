@@ -25,7 +25,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { RoomStatusSelector } from './RoomStatusSelector'
+import { RoomQuickViewDialog, type QuickViewEntry } from './RoomQuickViewDialog'
 import { CreateTaskDialog } from '@/components/housekeeping/CreateTaskDialog'
 import { useAllRoomCheckSessions } from '@/hooks/useRoomCheckSession'
 import { usePendingRoomDistributions } from '@/hooks/usePendingRoomDistributions'
@@ -37,7 +37,7 @@ import { cn } from '@/lib/utils'
 import { calcRoomPriority, getMissingDisplay, isOccupiedStatus, type PriorityTier } from '@/lib/roomPriority'
 import { useRoomViewDensity } from '@/hooks/useRoomViewDensity'
 import { useHotelContext } from '@/contexts/HotelContext'
-import type { RoomWithStats, RoomStatus } from '@/types/rooms.types'
+import type { RoomWithStats } from '@/types/rooms.types'
 import { TASK_TYPE_LABELS } from '@/types/housekeeping.types'
 
 type ManualTaskType = 'checkout_inspection' | 'cleaning' | 'checkin_prep' | 'amenity_request' | 'other'
@@ -81,6 +81,36 @@ function statusDotClass(status: string): string {
   }
 }
 
+function statusColorClass(status: string): string {
+  switch (status) {
+    case 'vacant_clean':
+    case 'vacant_inspected':
+    case 'vacant':
+      return 'text-green-600'
+    case 'occupied_clean':
+    case 'occupied_dirty':
+    case 'occupied':
+      return 'text-blue-600'
+    case 'vacant_dirty':
+    case 'cleaning':
+    case 'check_out':
+      return 'text-amber-600'
+    case 'dnd':
+    case 'service_refused':
+    case 'sleep_out':
+    case 'skipper':
+      return 'text-purple-600'
+    case 'out_of_order':
+    case 'out_of_service':
+    case 'maintenance':
+      return 'text-red-600'
+    case 'check_in':
+      return 'text-cyan-600'
+    default:
+      return 'text-muted-foreground'
+  }
+}
+
 function lastCheckClass(days: number | null): string {
   if (days === null) return 'text-amber-600'
   if (days > 30) return 'text-red-600 font-medium'
@@ -110,6 +140,7 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
 
   const [taskRoom, setTaskRoom] = useState<{ id: string; number: string; hotelId: string } | null>(null)
   const [taskType, setTaskType] = useState<ManualTaskType>('cleaning')
+  const [quickViewEntry, setQuickViewEntry] = useState<QuickViewEntry | null>(null)
 
   const canViewRoomDetail = hasPermission(role, 'manage_rooms') || role !== 'staff'
   const canCreateTask = canCreateHousekeepingTask(user)
@@ -231,30 +262,32 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
       <div
         key={room.id}
         className={cn(
-          'group rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md hover:border-foreground/20',
+          'group rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md hover:border-foreground/20 cursor-pointer',
           priorityRingClass(priority.tier),
           isSelected && 'ring-2 ring-primary bg-primary/5',
-          canViewRoomDetail && 'cursor-pointer',
         )}
-        onClick={() => canViewRoomDetail && navigate(`/rooms/${room.id}`)}
+        onClick={() => setQuickViewEntry({ ...entry, session: session ?? null })}
       >
         <div className={cn('space-y-2', styles.cellPadding)}>
-          {/* Line 1: room number ALWAYS visible (no truncate) + status dot + checkbox + status selector */}
-          <div className="flex items-start justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2 shrink-0">
+          {/* Line 1: dot + số phòng + tên trạng thái (text semantic) + checkbox */}
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
               <span className={cn('inline-block h-2 w-2 rounded-full shrink-0', statusDotClass(room.status))} aria-hidden />
               <h3 className="font-bold leading-none tracking-tight shrink-0" style={styles.numberStyle}>
                 {room.room_number}
               </h3>
+              <span className={cn('text-xs font-medium truncate', statusColorClass(room.status))}>
+                {statusLabel}
+              </span>
             </div>
-            <div className="flex items-center gap-2 shrink-0 ml-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
               <Checkbox
                 checked={isSelected}
                 onCheckedChange={(checked) => handleSelectRoom(room.id, !!checked)}
               />
-              <RoomStatusSelector roomId={room.id} currentStatus={room.status as RoomStatus} />
             </div>
           </div>
+
 
           {/* Line 2: priority reason */}
           {hasPriorityReason && (
@@ -429,6 +462,16 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
           defaultTaskType={taskType}
         />
       )}
+
+      <RoomQuickViewDialog
+        open={!!quickViewEntry}
+        onOpenChange={(open) => !open && setQuickViewEntry(null)}
+        entry={quickViewEntry}
+        canViewRoomDetail={canViewRoomDetail}
+        canCreateTask={canCreateTask}
+        currentUserId={user?.id}
+        onOpenCreateTask={(room) => openTaskDialog(room, 'cleaning')}
+      />
     </div>
   )
 }
