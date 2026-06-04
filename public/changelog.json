@@ -1,6 +1,16 @@
 {
-  "current": "1.1.58",
+  "current": "1.1.59",
   "versions": [
+    {
+      "version": "1.1.59",
+      "date": "2026-06-04",
+      "title": "Sơ đồ phòng: tối ưu cho khách sạn ≥200 phòng (Batch 3 — D1/B2/D2)",
+      "highlights": [
+        "Lazy render từng tầng bằng CSS `content-visibility: auto` + `contain-intrinsic-size` ước tính theo cols×height — trình duyệt tự skip render tầng ngoài viewport, scroll giữ vị trí ổn định, mượt với 200 phòng / nhiều tầng",
+        "Xoá dead code STATUS_STYLE/getStatusStyle (12 status legacy) trong RoomFloorMapView — RoomTooltip dùng chung getRoomStatusMeta + getRoomStatusTextClass với phần còn lại của app",
+        "Xác nhận useFloorPlanLive đã subscribe realtime đúng 4 bảng (rooms / room_bookings / housekeeping_tasks / maintenance_requests) với debounce 400ms — không phải polling"
+      ]
+    },
     {
       "version": "1.1.58",
       "date": "2026-06-04",
