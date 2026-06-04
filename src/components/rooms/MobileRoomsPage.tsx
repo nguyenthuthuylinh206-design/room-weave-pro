@@ -375,7 +375,19 @@ export const MobileRoomsPage = () => {
                   : t('checkSession.inProgress')
                 : t('checkSession.check')
 
+              const longPress = useLongPress(() => {
+                // Long-press: vào selection mode + chọn luôn phòng này
+                if (!selectionMode) {
+                  setSelectionMode(true)
+                  setSelectedIds((prev) => (prev.includes(room.id) ? prev : [...prev, room.id]))
+                  // Haptic feedback nếu hỗ trợ
+                  if ('vibrate' in navigator) navigator.vibrate?.(30)
+                }
+              }, { threshold: 500 })
+
               const handleCardClick = () => {
+                // Bỏ qua click giả sau long-press
+                if (longPress.wasTriggered()) return
                 if (selectionMode) {
                   toggleSelectRoom(room.id)
                   return
@@ -394,13 +406,18 @@ export const MobileRoomsPage = () => {
                 <Card
                   key={room.id}
                   className={cn(
-                    'transition-all active:scale-[0.99] cursor-pointer',
+                    'transition-all active:scale-[0.99] cursor-pointer select-none',
                     priority.tier === 'urgent' && 'border-l-[3px] border-l-red-500',
                     priority.tier === 'warning' && 'border-l-[3px] border-l-amber-500',
                     isSelected && 'ring-2 ring-primary bg-primary/5',
                   )}
                   onClick={handleCardClick}
+                  onPointerDown={longPress.onPointerDown}
+                  onPointerUp={longPress.onPointerUp}
+                  onPointerLeave={longPress.onPointerLeave}
+                  onPointerCancel={longPress.onPointerCancel}
                 >
+
                   <CardContent className="p-3 space-y-2">
                     {/* Header: dot + số phòng + status text + checkbox bulk */}
                     <div className="flex items-start justify-between gap-2">
