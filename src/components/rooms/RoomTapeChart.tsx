@@ -820,6 +820,7 @@ export function RoomTapeChart() {
                     onBookingDragStart={onBookingDragStart}
                     onCellDrop={onCellDrop}
                     onDeleteBlock={(id) => deleteBlock.mutate(id)}
+                    onRoomClick={(r) => navigate(`/rooms/${r.id}`)}
                   />
                 )
               })}
