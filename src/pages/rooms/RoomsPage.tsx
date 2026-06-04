@@ -135,7 +135,7 @@ export function RoomsPage() {
                 Danh sách
               </TabsTrigger>
               <TabsTrigger value="floor" title="Tape chart booking theo ngày — dùng cho Lễ tân & quản lý đặt phòng">
-                <Map className="h-4 w-4 mr-2" />
+                <CalendarRange className="h-4 w-4 mr-2" />
                 Lịch đặt phòng
               </TabsTrigger>
               <TabsTrigger value="map" title="Sơ đồ tổng quan tình trạng phòng — dùng cho Lễ tân tại quầy">
