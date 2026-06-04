@@ -1,6 +1,17 @@
 {
-  "current": "1.1.56",
+  "current": "1.1.57",
   "versions": [
+    {
+      "version": "1.1.57",
+      "date": "2026-06-04",
+      "title": "Phòng: Cleanup batch 1 — dedupe màu + header dùng chung + đổi tên tab",
+      "highlights": [
+        "Hai helper màu duy nhất cho mọi nơi: getRoomStatusDotClass / getRoomStatusTextClass (suy từ ROOM_STATUS_META_V2). Đổi 1 màu giờ chỉ sửa 1 chỗ",
+        "Thành phần shared 'RoomQuickHeader' dùng cho cả 2 popup phòng (Lưới HK & Sơ đồ Lễ tân) — pattern header đồng bộ 100%",
+        "Đổi tên tab cho rõ vai trò: 'Lịch phòng' → 'Lịch đặt phòng' (icon Calendar), 'Sơ đồ (Lễ tân)' → 'Sơ đồ tình trạng' (icon LayoutGrid) để tránh nhầm",
+        "Dọn dead code: xoá src/pages/Rooms.tsx (không còn route), bỏ TYPE_BORDER không dùng trong RoomFloorMapView"
+      ]
+    },
     {
       "version": "1.1.56",
       "date": "2026-06-04",
