@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { MobileDetailHeader } from '@/components/layout/MobileDetailHeader'
@@ -7,40 +7,58 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useRooms } from '@/hooks/useRooms'
 import { useAllRoomCheckSessions } from '@/hooks/useRoomCheckSession'
 import { usePendingRoomDistributions } from '@/hooks/usePendingRoomDistributions'
 import { usePendingTaskCount } from '@/hooks/useHousekeepingTasks'
+import { useActiveRoomBookings, minutesUntilCheckout } from '@/hooks/useActiveRoomBookings'
+import { useHotelContext } from '@/contexts/HotelContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUser } from '@/hooks/useUser'
+import { hasPermission } from '@/lib/permissions'
+import { canCreateHousekeepingTask } from '@/lib/userAccess'
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
-import { RoomStatusBadge } from './RoomStatusBadge'
-import { RoomStatusSelector } from './RoomStatusSelector'
+import { RoomQuickViewDialog, type QuickViewEntry } from './RoomQuickViewDialog'
 import { MobileRoomFilters } from './MobileRoomFilters'
 import { MobileRoomBulkActionsBar } from './MobileRoomBulkActionsBar'
 import { StaffTasksTab } from '@/components/housekeeping/StaffTasksTab'
-import { 
-  Bed, CheckCircle, Wrench, Plus, Search, 
-  Users, Square, LogIn, LogOut, Sparkles, XCircle,
-  Package, AlertTriangle, Loader2, Truck, ClipboardList
+import { CreateTaskDialog } from '@/components/housekeeping/CreateTaskDialog'
+import {
+  Bed, CheckCircle, Plus, Search,
+  AlertTriangle, Wind, Truck, ClipboardList, PackageOpen, Clock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { calcRoomPriority, getMissingDisplay, isOccupiedStatus } from '@/lib/roomPriority'
 import type { RoomFilters as IRoomFilters, RoomStatus, RoomType, RoomWithStats } from '@/types/rooms.types'
 
 type FilterStatus = 'all' | RoomStatus
 
-const STATUS_ICONS: Partial<Record<RoomStatus, typeof Bed>> = {
-  vacant: CheckCircle,
-  occupied: Bed,
-  check_in: LogIn,
-  check_out: LogOut,
-  cleaning: Sparkles,
-  maintenance: Wrench,
-  out_of_order: XCircle,
+const ALL_STATUSES: RoomStatus[] = ['vacant', 'occupied', 'check_in', 'check_out', 'cleaning', 'maintenance', 'out_of_order']
+
+function statusDotClass(status: string): string {
+  switch (status) {
+    case 'vacant_clean': case 'vacant_inspected': case 'vacant': return 'bg-green-500'
+    case 'occupied_clean': case 'occupied_dirty': case 'occupied': return 'bg-blue-500'
+    case 'vacant_dirty': case 'cleaning': case 'check_out': return 'bg-amber-500'
+    case 'dnd': case 'service_refused': case 'sleep_out': case 'skipper': return 'bg-purple-500'
+    case 'out_of_order': case 'out_of_service': case 'maintenance': return 'bg-red-500'
+    case 'check_in': return 'bg-cyan-500'
+    default: return 'bg-muted-foreground'
+  }
 }
 
-const ALL_STATUSES: RoomStatus[] = ['vacant', 'occupied', 'check_in', 'check_out', 'cleaning', 'maintenance', 'out_of_order']
+function statusColorClass(status: string): string {
+  switch (status) {
+    case 'vacant_clean': case 'vacant_inspected': case 'vacant': return 'text-green-600'
+    case 'occupied_clean': case 'occupied_dirty': case 'occupied': return 'text-blue-600'
+    case 'vacant_dirty': case 'cleaning': case 'check_out': return 'text-amber-600'
+    case 'dnd': case 'service_refused': case 'sleep_out': case 'skipper': return 'text-purple-600'
+    case 'out_of_order': case 'out_of_service': case 'maintenance': return 'text-red-600'
+    case 'check_in': return 'text-cyan-600'
+    default: return 'text-muted-foreground'
+  }
+}
 
 export const MobileRoomsPage = () => {
   const { t } = useTranslation(['rooms', 'common', 'distribution'])
