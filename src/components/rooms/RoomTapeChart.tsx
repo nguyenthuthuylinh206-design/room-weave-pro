@@ -923,6 +923,7 @@ function Row({
   onBookingDragStart,
   onCellDrop,
   onDeleteBlock,
+  onRoomClick,
 }: RowProps) {
   const meta = getRoomStatusMeta(room.status)
   const v2 = normalizeRoomStatus(room.status)
