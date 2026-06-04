@@ -593,6 +593,29 @@ export const MobileRoomsPage = () => {
           />
         </>
       )}
+
+      {/* Quick View popup */}
+      <RoomQuickViewDialog
+        open={!!quickViewEntry}
+        onOpenChange={(open) => !open && setQuickViewEntry(null)}
+        entry={quickViewEntry}
+        canViewRoomDetail={canViewRoomDetail}
+        canCreateTask={canCreateTask}
+        currentUserId={user?.id}
+        onOpenCreateTask={(room) => setTaskRoom({ id: room.id, number: room.room_number, hotelId: room.hotel_id })}
+      />
+
+      {/* Create Task Dialog */}
+      {taskRoom && (
+        <CreateTaskDialog
+          open={!!taskRoom}
+          onOpenChange={(open) => !open && setTaskRoom(null)}
+          roomId={taskRoom.id}
+          roomNumber={taskRoom.number}
+          hotelId={taskRoom.hotelId}
+          defaultTaskType="cleaning"
+        />
+      )}
     </div>
   )
 }
