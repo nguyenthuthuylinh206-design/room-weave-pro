@@ -79,6 +79,7 @@ function statusDotClass(status: string): string {
       return 'bg-cyan-500'
     default:
       return 'bg-muted-foreground'
+  }
 }
 
 function statusColorClass(status: string): string {
