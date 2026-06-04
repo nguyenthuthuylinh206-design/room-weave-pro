@@ -22,9 +22,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ['"Libre Baskerville"', 'ui-serif', 'Georgia', 'serif'],
-        body: ['"IBM Plex Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        sans: ['"IBM Plex Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['Sora', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        body: ['Manrope', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       gridTemplateColumns: {
         '14': 'repeat(14, minmax(0, 1fr))',
