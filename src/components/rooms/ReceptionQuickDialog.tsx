@@ -120,13 +120,14 @@ export function ReceptionQuickDialog({ open, onOpenChange, room, onBookRoom, onO
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl p-0 overflow-hidden gap-0 max-h-[90vh] flex flex-col">
-          {/* Header */}
-          <div className={`px-5 py-4 ${meta.bg} ${meta.border} border-b`}>
+          {/* Header — đồng bộ pattern với RoomQuickViewDialog: dot + số phòng + nhãn trạng thái màu semantic */}
+          <div className="px-5 py-4 border-b">
             <DialogHeader className="space-y-1">
               <DialogTitle className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl font-bold">Phòng {room.room_number}</span>
-                  <span className={`text-xs font-semibold ${meta.text}`}>{meta.label}</span>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className={cn('inline-block h-2.5 w-2.5 rounded-full shrink-0', dotFromMeta(meta.text))} />
+                  <span className="text-xl font-bold leading-none">Phòng {room.room_number}</span>
+                  <span className={cn('text-sm font-medium ml-1', meta.text)}>{meta.label}</span>
                   {guest?.vip_level && guest.vip_level !== 'normal' && (
                     <span className="text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
                       VIP {guest.vip_level}
@@ -140,6 +141,13 @@ export function ReceptionQuickDialog({ open, onOpenChange, room, onBookRoom, onO
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56 bg-popover z-50">
+                    <DropdownMenuItem onClick={() => { onOpenChange(false); navigate(`/rooms/${room.id}`) }}>
+                      <ExternalLink className="h-3.5 w-3.5 mr-2" /> Xem chi tiết phòng
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { onOpenChange(false); navigate(`/rooms/${room.id}/check`) }}>
+                      Kiểm tra phòng
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuLabel>Đổi trạng thái</DropdownMenuLabel>
                     <DropdownMenuItem onClick={() => transitionMut.mutate({ to: 'vacant_clean', reason: 'Lễ tân gỡ trạng thái' })}>
                       Gỡ về Trống sạch
@@ -167,7 +175,7 @@ export function ReceptionQuickDialog({ open, onOpenChange, room, onBookRoom, onO
                   </DropdownMenuContent>
                 </DropdownMenu>
               </DialogTitle>
-              <div className="text-xs text-muted-foreground capitalize flex items-center gap-2 flex-wrap">
+              <div className="text-xs text-muted-foreground capitalize flex items-center gap-2 flex-wrap pl-5">
                 <span>{r?.room_type || room.room_type}</span>
                 {r?.bed_type && <><span>·</span><span>{r.bed_type}</span></>}
                 {r?.floor != null && <><span>·</span><span>Tầng {r.floor}</span></>}
