@@ -20,6 +20,8 @@ import { hasPermission } from '@/lib/permissions'
 import { canCreateHousekeepingTask } from '@/lib/userAccess'
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
 import { RoomQuickViewDialog, type QuickViewEntry } from './RoomQuickViewDialog'
+import { useLongPress } from '@/hooks/useLongPress'
+
 import { MobileRoomFilters } from './MobileRoomFilters'
 import { MobileRoomBulkActionsBar } from './MobileRoomBulkActionsBar'
 import { StaffTasksTab } from '@/components/housekeeping/StaffTasksTab'
