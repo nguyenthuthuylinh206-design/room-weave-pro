@@ -475,12 +475,12 @@ export function RoomTapeChart() {
           .tape-chart-root .overflow-auto { overflow: visible !important; height: auto !important; max-height: none !important; }
           @page { size: A3 landscape; margin: 8mm; }
         }
-        /* Color-blind helper: thêm sọc chéo nhẹ vào bar booking khi bật */
-        .tape-chart-cb [data-tape-bar="paid"] { background-image: repeating-linear-gradient(45deg, transparent 0 6px, rgba(0,0,0,0.08) 6px 8px) !important; }
-        .tape-chart-cb [data-tape-bar="partial"] { background-image: repeating-linear-gradient(90deg, transparent 0 6px, rgba(0,0,0,0.10) 6px 8px) !important; }
-        .tape-chart-cb [data-tape-bar="unpaid"] { background-image: repeating-linear-gradient(135deg, transparent 0 4px, rgba(0,0,0,0.12) 4px 6px) !important; }
-        .tape-chart-cb [data-tape-bar="debt"] { background-image: repeating-linear-gradient(0deg, transparent 0 5px, rgba(220,38,38,0.18) 5px 7px) !important; }
-        .tape-chart-cb [data-tape-bar="checked_in"] { background-image: repeating-linear-gradient(30deg, transparent 0 6px, rgba(59,130,246,0.18) 6px 9px) !important; }
+        /* Color-blind helper: pattern overlay nhẹ phân biệt nhóm trạng thái khi mắt khó phân biệt màu */
+        .tape-chart-cb [data-tape-bar="paid"] { background-image: repeating-linear-gradient(45deg, transparent 0 6px, rgba(5,150,105,0.10) 6px 8px) !important; }
+        .tape-chart-cb [data-tape-bar="partial"] { background-image: repeating-linear-gradient(90deg, transparent 0 6px, rgba(217,119,6,0.10) 6px 8px) !important; }
+        .tape-chart-cb [data-tape-bar="unpaid"] { background-image: repeating-linear-gradient(135deg, transparent 0 4px, rgba(234,88,12,0.12) 4px 6px) !important; }
+        .tape-chart-cb [data-tape-bar="debt"] { background-image: repeating-linear-gradient(0deg, transparent 0 5px, rgba(255,255,255,0.18) 5px 7px) !important; }
+        .tape-chart-cb [data-tape-bar="checked_in"] { background-image: repeating-linear-gradient(30deg, transparent 0 6px, rgba(255,255,255,0.10) 6px 9px) !important; }
         .tape-chart-cb [data-tape-bar="checked_out"] { background-image: repeating-linear-gradient(60deg, transparent 0 6px, rgba(100,116,139,0.18) 6px 9px) !important; }
       `}</style>
       {/* Toolbar */}
@@ -685,12 +685,12 @@ export function RoomTapeChart() {
 
       {/* Legend */}
       <div className="flex flex-wrap gap-x-4 gap-y-1 px-1 text-[11px] text-muted-foreground">
-        <LegendDot className="border-l-emerald-700 bg-emerald-500" label="Đã cọc đủ" />
-        <LegendDot className="border-l-amber-700 bg-amber-500" label="Cọc một phần" />
-        <LegendDot className="border-l-orange-700 bg-orange-500" label="Chưa cọc" />
-        <LegendDot className="border-l-blue-700 bg-blue-500" label="Đang lưu trú" />
-        <LegendDot className="border-l-slate-600 bg-slate-400" label="Đã trả phòng" />
-        <LegendDot className="border-l-red-700 bg-red-500" label="Còn nợ" />
+        <LegendDot className="border-l-emerald-600 bg-emerald-50" label="Đã cọc đủ" />
+        <LegendDot className="border-l-amber-600 bg-amber-50" label="Cọc một phần" />
+        <LegendDot className="border-l-orange-500 bg-orange-50" label="Chưa cọc" />
+        <LegendDot className="border-l-[hsl(var(--primary))] bg-slate-900" label="Đang lưu trú" />
+        <LegendDot className="border-l-slate-400 bg-slate-100" label="Đã trả phòng" />
+        <LegendDot className="border-l-red-900 bg-red-600" label="Còn nợ" />
 
         <LegendDot className="border-l-slate-500 bg-[repeating-linear-gradient(45deg,#e2e8f0,#e2e8f0_4px,#cbd5e1_4px,#cbd5e1_6px)]" label="Phòng bị block" />
       </div>
@@ -715,11 +715,11 @@ export function RoomTapeChart() {
             >
               {/* Sticky date header (đồng bộ cuộn ngang với body) */}
               <div
-                className="sticky top-0 z-30 flex border-b bg-muted/40"
+                className="sticky top-0 z-30 flex border-b bg-slate-50/95 backdrop-blur-sm"
                 style={{ width: totalChartWidth + ROOM_COL_W, height: HEADER_H }}
               >
                 <div
-                  className="sticky left-0 z-40 flex items-center border-r bg-muted px-3 text-xs font-medium text-muted-foreground"
+                  className="sticky left-0 z-40 flex items-center border-r bg-slate-100 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-600"
                   style={{ width: ROOM_COL_W, minWidth: ROOM_COL_W }}
                 >
                   Phòng
@@ -738,16 +738,20 @@ export function RoomTapeChart() {
                       type="button"
                       onClick={() => updatePrefs({ selectedDate: dStr })}
                       className={cn(
-                        'flex flex-col items-center justify-center gap-0.5 border-r px-0.5 text-[11px] leading-tight last:border-r-0 transition-colors',
-                        today && 'bg-primary/10 font-semibold text-primary',
-                        weekend && !today && !holiday && 'bg-muted/60',
+                        'relative flex flex-col items-center justify-center gap-0.5 border-r px-0.5 text-[11px] leading-tight last:border-r-0 transition-colors',
+                        today && 'bg-[hsl(var(--primary))]/10 ring-1 ring-inset ring-[hsl(var(--primary))]/40 font-semibold text-[hsl(var(--primary))]',
+                        weekend && !today && !holiday && 'bg-slate-100/80',
                         holiday && !today && 'bg-rose-50 text-rose-700',
-                        isSelected && 'ring-1 ring-inset ring-primary bg-primary/5',
+                        isSelected && 'ring-1 ring-inset ring-[hsl(var(--primary))]/60 bg-[hsl(var(--primary))]/5',
                       )}
                       style={{ width: cellW, minWidth: cellW, height: HEADER_H }}
                       title={holiday?.name || format(date, 'EEEE, dd/MM/yyyy', { locale: vi })}
                     >
-                      <span className={cn('text-[10px] uppercase text-muted-foreground/80', holiday && 'text-rose-600/80')}>
+                      <span className={cn(
+                        'text-[10px] uppercase tracking-wide',
+                        today ? 'text-[hsl(var(--primary))]/80' : 'text-slate-500',
+                        holiday && !today && 'text-rose-600/80',
+                      )}>
                         {format(date, 'EEE', { locale: vi })}
                       </span>
                       <span className="text-sm font-semibold tabular-nums">{format(date, 'dd/MM')}</span>
@@ -755,6 +759,9 @@ export function RoomTapeChart() {
                         <span className="w-full truncate px-1 text-[9px] font-medium text-rose-700">
                           {holiday.short}
                         </span>
+                      )}
+                      {today && (
+                        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-6 rounded-full bg-[hsl(var(--primary))]" />
                       )}
                     </button>
                   )
@@ -813,6 +820,7 @@ export function RoomTapeChart() {
                     onBookingDragStart={onBookingDragStart}
                     onCellDrop={onCellDrop}
                     onDeleteBlock={(id) => deleteBlock.mutate(id)}
+                    onRoomClick={(r) => navigate(`/rooms/${r.id}`)}
                   />
                 )
               })}
@@ -895,6 +903,7 @@ interface RowProps {
   onBookingDragStart: (b: TapeChartBooking) => void
   onCellDrop: (room: TapeChartRoom, date: Date) => void
   onDeleteBlock: (id: string) => void
+  onRoomClick?: (room: TapeChartRoom) => void
 }
 
 function Row({
@@ -915,6 +924,7 @@ function Row({
   onBookingDragStart,
   onCellDrop,
   onDeleteBlock,
+  onRoomClick,
 }: RowProps) {
   const meta = getRoomStatusMeta(room.status)
   const v2 = normalizeRoomStatus(room.status)
@@ -947,22 +957,26 @@ function Row({
         transform: `translateY(${top}px)`,
       }}
     >
-      <div
-        className="sticky left-0 z-20 flex items-center gap-2 border-r bg-background px-3"
+      <button
+        type="button"
+        onClick={() => onRoomClick?.(room)}
+        className="sticky left-0 z-20 group flex items-center gap-2 border-r bg-background px-3 text-left transition-colors hover:bg-accent/60"
         style={{ width: ROOM_COL_W, minWidth: ROOM_COL_W, height }}
+        title={`Mở chi tiết phòng ${room.room_number}`}
       >
         <span
           className={cn('h-2 w-2 shrink-0 rounded-full border', meta.bg, meta.border)}
           title={meta.label}
         />
-        <div className="min-w-0 leading-tight">
+        <div className="min-w-0 flex-1 leading-tight">
           <div className="truncate text-sm font-semibold">{room.room_number}</div>
           <div className="truncate text-[10px] text-muted-foreground">
             <span className="capitalize">{room.room_type}</span>
             <span className={cn('ml-1', meta.text)}>· {meta.short}</span>
           </div>
         </div>
-      </div>
+        <Eye className="h-3 w-3 shrink-0 text-muted-foreground/0 transition-opacity group-hover:text-muted-foreground" />
+      </button>
 
       <div className="relative flex" style={{ width: days * cellW, height }}>
         {/* Background cells với drop target */}
@@ -1096,7 +1110,7 @@ function Row({
                           onBookingClick(l.booking)
                         }}
                         className={cn(
-                          'absolute z-[3] flex items-center gap-1 overflow-hidden rounded-r-md pl-1.5 pr-1.5 text-left text-[11px] font-medium shadow-sm transition-all',
+                          'absolute z-[3] flex items-center gap-1 overflow-hidden rounded-md pl-1.5 pr-1.5 text-left text-[11px] font-medium shadow-sm transition-all',
                           color.bg,
                           color.border,
                           color.text,
@@ -1114,10 +1128,11 @@ function Row({
                         }}
                       >
                         {sourceBadge && (
-                          <span className="shrink-0 rounded bg-white/25 px-1 font-mono text-[9px] text-white">
+                          <span className="shrink-0 rounded bg-black/10 px-1 font-mono text-[9px] text-current">
                             {sourceBadge}
                           </span>
                         )}
+
 
 
                         <span className="truncate">{l.booking.guest_name}</span>

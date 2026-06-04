@@ -133,60 +133,75 @@ export interface BarColor {
   ring: string
 }
 
+/**
+ * Navy Trust palette cho tape chart bars.
+ *
+ * Visual hierarchy (từ nổi → mờ):
+ *  - Đang ở (checked_in)    : navy đậm, chữ trắng  → cần chú ý nhất
+ *  - Còn nợ                 : đỏ đậm, chữ trắng    → cảnh báo
+ *  - Sắp tới (confirmed)    : tint nhạt + left border màu semantic
+ *  - Đã trả phòng           : slate xám rất mờ      → ngữ cảnh quá khứ
+ */
 export function getBarColor(b: TapeChartBooking): BarColor {
   const ps = getPaymentState(b)
-  // checked_in luôn nổi bật xanh dương
+
+  // 1. Đang lưu trú — solid navy (primary), nổi bật nhất
   if (b.status === 'checked_in') {
     return {
-      bg: 'bg-blue-500',
-      border: 'border-l-4 border-blue-700',
+      bg: 'bg-slate-900',
+      border: 'border-l-[3px] border-l-[hsl(var(--primary))]',
       text: 'text-white',
-      hover: 'hover:bg-blue-600',
-      ring: 'ring-blue-300',
+      hover: 'hover:bg-slate-800',
+      ring: 'ring-slate-400',
     }
   }
+
+  // 2. Đã trả phòng
   if (b.status === 'checked_out') {
-    return ps === 'debt_after_checkout'
-      ? {
-          bg: 'bg-red-500',
-          border: 'border-l-4 border-red-700',
-          text: 'text-white',
-          hover: 'hover:bg-red-600',
-          ring: 'ring-red-300',
-        }
-      : {
-          bg: 'bg-slate-400',
-          border: 'border-l-4 border-slate-600',
-          text: 'text-white',
-          hover: 'hover:bg-slate-500',
-          ring: 'ring-slate-300',
-        }
+    if (ps === 'debt_after_checkout') {
+      return {
+        bg: 'bg-red-600',
+        border: 'border-l-[3px] border-l-red-900',
+        text: 'text-white',
+        hover: 'hover:bg-red-700',
+        ring: 'ring-red-300',
+      }
+    }
+    return {
+      bg: 'bg-slate-100',
+      border: 'border-l-[3px] border-l-slate-400',
+      text: 'text-slate-600',
+      hover: 'hover:bg-slate-200',
+      ring: 'ring-slate-300',
+    }
   }
-  // confirmed
+
+  // 3. Confirmed — tint nhạt theo trạng thái thanh toán
   switch (ps) {
     case 'deposit_full':
+    case 'paid_full':
       return {
-        bg: 'bg-emerald-500',
-        border: 'border-l-4 border-emerald-700',
-        text: 'text-white',
-        hover: 'hover:bg-emerald-600',
-        ring: 'ring-emerald-300',
+        bg: 'bg-emerald-50',
+        border: 'border-l-[3px] border-l-emerald-600',
+        text: 'text-emerald-900',
+        hover: 'hover:bg-emerald-100',
+        ring: 'ring-emerald-400',
       }
     case 'partial_deposit':
       return {
-        bg: 'bg-amber-500',
-        border: 'border-l-4 border-amber-700',
-        text: 'text-white',
-        hover: 'hover:bg-amber-600',
-        ring: 'ring-amber-300',
+        bg: 'bg-amber-50',
+        border: 'border-l-[3px] border-l-amber-600',
+        text: 'text-amber-900',
+        hover: 'hover:bg-amber-100',
+        ring: 'ring-amber-400',
       }
     default:
       return {
-        bg: 'bg-orange-500',
-        border: 'border-l-4 border-orange-700',
-        text: 'text-white',
-        hover: 'hover:bg-orange-600',
-        ring: 'ring-orange-300',
+        bg: 'bg-orange-50',
+        border: 'border-l-[3px] border-l-orange-500',
+        text: 'text-orange-900',
+        hover: 'hover:bg-orange-100',
+        ring: 'ring-orange-400',
       }
   }
 }
