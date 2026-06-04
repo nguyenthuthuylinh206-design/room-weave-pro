@@ -72,7 +72,7 @@ export function RoomQuickViewDialog({
   const navigate = useNavigate()
 
   if (!entry) return null
-  const { room, pendingCount, priority, booking, minutesToCheckout, session } = entry
+  const { room, pendingCount, priority, booking, minutesToCheckout, session, groupSiblings } = entry
   const missing = getMissingDisplay(room)
   const roomTypeLabel = t(`roomTypes.${room.room_type}`, { defaultValue: room.room_type })
 
