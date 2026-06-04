@@ -364,11 +364,11 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
           </div>
         </div>
 
-        {/* Footer actions */}
-        <div className="flex items-center gap-2 px-3 pb-3" onClick={(e) => e.stopPropagation()}>
+        {/* Footer action — chỉ còn 1 nút Kiểm tra. Giao việc / Xem chi tiết đã gom vào Quick View. */}
+        <div className="px-3 pb-3" onClick={(e) => e.stopPropagation()}>
           <Button
             size="sm"
-            className="flex-1 h-8"
+            className="w-full h-8"
             disabled={!!session && session.user_id !== user?.id}
             onClick={() => {
               const hasSession = !!session && session.user_id === user?.id
@@ -381,23 +381,6 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
                 : t('checkSession.inProgress')
               : t('checkSession.check')}
           </Button>
-
-          {canCreateTask && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline" className="h-8 w-8 p-0" title={t('actions.createTask', { defaultValue: 'Giao việc' })}>
-                  <ClipboardList className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-background">
-                {MANUAL_TASK_TYPES.map((type) => (
-                  <DropdownMenuItem key={type} onClick={() => openTaskDialog(room, type)}>
-                    {TASK_TYPE_LABELS[type]}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
         </div>
       </div>
     )
