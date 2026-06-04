@@ -1,6 +1,18 @@
 {
-  "current": "1.1.54",
+  "current": "1.1.55",
   "versions": [
+    {
+      "version": "1.1.55",
+      "date": "2026-06-04",
+      "title": "Phòng: Đồng bộ trải nghiệm Quick View + phân vai tab + mobile gọn lại",
+      "highlights": [
+        "Ô phòng (cả desktop & mobile) giờ chỉ còn 1 nút 'Kiểm tra' — các thao tác 'Giao việc' và 'Xem chi tiết' gom hết vào popup Xem nhanh khi bấm ô phòng",
+        "Tab phân vai rõ ràng: 'Lưới (HK)' cho Buồng phòng, 'Sơ đồ (Lễ tân)' cho quầy lễ tân — thêm mô tả ngắn dưới tab",
+        "Mặc định mở 'Sơ đồ phòng' cho Quản lý/Chủ khách sạn, mở 'Lưới ưu tiên' cho Trưởng bộ phận (vẫn nhớ lựa chọn của user)",
+        "Mobile: card phòng theo cùng pattern desktop — chấm trạng thái + số phòng + nhãn semantic; bỏ pill chọn trạng thái trong header, bỏ giá phòng — tránh nhiễu",
+        "Bấm vào card mobile mở popup Xem nhanh thay vì điều hướng — thao tác nhanh hơn trên iPhone"
+      ]
+    },
     {
       "version": "1.1.54",
       "date": "2026-06-04",

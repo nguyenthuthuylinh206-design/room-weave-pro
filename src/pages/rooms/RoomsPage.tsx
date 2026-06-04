@@ -26,14 +26,25 @@ type ViewMode = 'grid' | 'list' | 'floor' | 'map'
 const STORAGE_KEY = 'rooms.viewMode'
 const ALLOWED: ViewMode[] = ['grid', 'list', 'floor', 'map']
 
-function readInitialView(searchParams: URLSearchParams): ViewMode {
+/**
+ * Default view theo role khi user chưa từng chọn:
+ * - hotel_manager / owner / super_admin → 'map' (Sơ đồ – lễ tân/quản lý quan sát nhanh)
+ * - department_manager → 'grid' (HK ưu tiên xem theo priority)
+ * - khác → 'grid'
+ */
+function defaultViewByRole(role?: string | null): ViewMode {
+  if (role === 'owner' || role === 'super_admin' || role === 'hotel_manager') return 'map'
+  return 'grid'
+}
+
+function readInitialView(searchParams: URLSearchParams, role?: string | null): ViewMode {
   const fromUrl = searchParams.get('view') as ViewMode | null
   if (fromUrl && ALLOWED.includes(fromUrl)) return fromUrl
   try {
     const fromLs = localStorage.getItem(STORAGE_KEY) as ViewMode | null
     if (fromLs && ALLOWED.includes(fromLs)) return fromLs
   } catch {}
-  return 'grid'
+  return defaultViewByRole(role)
 }
 
 export function RoomsPage() {
@@ -42,7 +53,7 @@ export function RoomsPage() {
   const navigate = useNavigate()
   const { role } = useUser()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [viewMode, setViewMode] = useState<ViewMode>(() => readInitialView(searchParams))
+  const [viewMode, setViewMode] = useState<ViewMode>(() => readInitialView(searchParams, role))
   const [filters, setFilters] = useState<IRoomFilters>({})
   const [showBulkImport, setShowBulkImport] = useState(false)
   const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>([])
@@ -114,27 +125,35 @@ export function RoomsPage() {
             />
           )}
           <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
-          <TabsList>
-            <TabsTrigger value="grid">
-              <Grid3x3 className="h-4 w-4 mr-2" />
-              {t('viewModes.grid')}
-            </TabsTrigger>
-            <TabsTrigger value="list">
-              <List className="h-4 w-4 mr-2" />
-              {t('viewModes.list')}
-            </TabsTrigger>
-            <TabsTrigger value="floor">
-              <Map className="h-4 w-4 mr-2" />
-              Lịch phòng
-            </TabsTrigger>
-            <TabsTrigger value="map">
-              <LayoutGrid className="h-4 w-4 mr-2" />
-              Sơ đồ phòng
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+            <TabsList>
+              <TabsTrigger value="grid" title="Lưới phòng theo ưu tiên — dùng cho Buồng phòng / Quản lý vận hành">
+                <Grid3x3 className="h-4 w-4 mr-2" />
+                Lưới (HK)
+              </TabsTrigger>
+              <TabsTrigger value="list" title="Danh sách bảng — dùng để lọc, sắp xếp, xuất dữ liệu">
+                <List className="h-4 w-4 mr-2" />
+                Danh sách
+              </TabsTrigger>
+              <TabsTrigger value="floor" title="Tape chart đặt phòng theo ngày — dùng cho Lễ tân & quản lý booking">
+                <Map className="h-4 w-4 mr-2" />
+                Lịch phòng
+              </TabsTrigger>
+              <TabsTrigger value="map" title="Sơ đồ tổng quan tình trạng phòng — dùng cho Lễ tân tại quầy">
+                <LayoutGrid className="h-4 w-4 mr-2" />
+                Sơ đồ (Lễ tân)
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
       </div>
+
+      {/* Subtitle: hướng dẫn nhanh vai trò */}
+      <p className="text-xs text-muted-foreground -mt-3 px-1">
+        {viewMode === 'grid' && 'Sắp xếp theo mức ưu tiên (Cần xử lý ngay / Theo dõi / Bình thường). Bấm ô phòng để xem nhanh.'}
+        {viewMode === 'list' && 'Danh sách dạng bảng để lọc, sắp xếp và xuất dữ liệu.'}
+        {viewMode === 'floor' && 'Lịch đặt phòng theo ngày — dành cho Lễ tân & quản lý booking.'}
+        {viewMode === 'map' && 'Sơ đồ phòng tổng quan trạng thái — dành cho Lễ tân tại quầy. Bấm ô phòng để xem giá / khách / countdown.'}
+      </p>
 
       {/* Bulk Actions Bar */}
       <RoomBulkActionsBar

@@ -10,7 +10,6 @@ import {
   Wind,
   Clock,
   Truck,
-  ClipboardList,
   PackageOpen,
   ChevronDown,
   ChevronRight,
@@ -19,12 +18,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { RoomQuickViewDialog, type QuickViewEntry } from './RoomQuickViewDialog'
 import { CreateTaskDialog } from '@/components/housekeeping/CreateTaskDialog'
 import { useAllRoomCheckSessions } from '@/hooks/useRoomCheckSession'
@@ -38,10 +31,8 @@ import { calcRoomPriority, getMissingDisplay, isOccupiedStatus, type PriorityTie
 import { useRoomViewDensity } from '@/hooks/useRoomViewDensity'
 import { useHotelContext } from '@/contexts/HotelContext'
 import type { RoomWithStats } from '@/types/rooms.types'
-import { TASK_TYPE_LABELS } from '@/types/housekeeping.types'
 
 type ManualTaskType = 'checkout_inspection' | 'cleaning' | 'checkin_prep' | 'amenity_request' | 'other'
-const MANUAL_TASK_TYPES: ManualTaskType[] = ['checkout_inspection', 'cleaning', 'checkin_prep', 'amenity_request']
 
 interface RoomGridProps {
   rooms: RoomWithStats[]
@@ -364,11 +355,11 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
           </div>
         </div>
 
-        {/* Footer actions */}
-        <div className="flex items-center gap-2 px-3 pb-3" onClick={(e) => e.stopPropagation()}>
+        {/* Footer action — chỉ còn 1 nút Kiểm tra. Giao việc / Xem chi tiết đã gom vào Quick View. */}
+        <div className="px-3 pb-3" onClick={(e) => e.stopPropagation()}>
           <Button
             size="sm"
-            className="flex-1 h-8"
+            className="w-full h-8"
             disabled={!!session && session.user_id !== user?.id}
             onClick={() => {
               const hasSession = !!session && session.user_id === user?.id
@@ -381,23 +372,6 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
                 : t('checkSession.inProgress')
               : t('checkSession.check')}
           </Button>
-
-          {canCreateTask && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline" className="h-8 w-8 p-0" title={t('actions.createTask', { defaultValue: 'Giao việc' })}>
-                  <ClipboardList className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-background">
-                {MANUAL_TASK_TYPES.map((type) => (
-                  <DropdownMenuItem key={type} onClick={() => openTaskDialog(room, type)}>
-                    {TASK_TYPE_LABELS[type]}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
         </div>
       </div>
     )
