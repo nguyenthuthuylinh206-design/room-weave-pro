@@ -558,7 +558,8 @@ export function RoomFloorMapView({
             // D1 — Lazy render per-floor via CSS `content-visibility: auto`.
             // Trình duyệt tự skip render khi tầng nằm ngoài viewport (≥200 phòng vẫn mượt).
             // Ước tính số dòng theo container width ~1200px và cell width (cellSize.size.width + gap 8px).
-            const approxCols = Math.max(4, Math.floor(1200 / (cellSize.size.width + 8)))
+            // Ước tính số dòng theo cols & height của preset đang dùng.
+            const approxCols = cellSize.size.cols || 12
             const approxRows = Math.ceil(rooms.length / approxCols)
             const intrinsicH = 40 /* header */ + approxRows * (cellSize.size.height + 8) + 16
             return (
