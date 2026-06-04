@@ -12,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { formatCurrency } from '@/lib/utils'
 import { format, parseISO, differenceInMinutes, differenceInCalendarDays } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { getRoomStatusMeta } from '@/lib/roomStatus'
+
 import { useToast } from '@/hooks/use-toast'
 import { useReceptionRoomDetail } from '@/hooks/useReceptionRoomDetail'
 import { useRoomTypePricing } from '@/hooks/useRoomTypePricing'
