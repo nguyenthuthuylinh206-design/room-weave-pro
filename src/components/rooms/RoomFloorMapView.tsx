@@ -554,8 +554,19 @@ export function RoomFloorMapView({
         </div>
       ) : (
         <TooltipProvider delayDuration={300}>
-          {visibleFloors.map(({ floor, rooms }) => (
-            <div key={floor} className="rounded-lg border bg-card">
+          {visibleFloors.map(({ floor, rooms }) => {
+            // D1 — Lazy render per-floor via CSS `content-visibility: auto`.
+            // Trình duyệt tự skip render khi tầng nằm ngoài viewport (≥200 phòng vẫn mượt).
+            // Ước tính số dòng theo container width ~1200px và cell width (cellSize.size.width + gap 8px).
+            const approxCols = Math.max(4, Math.floor(1200 / (cellSize.size.width + 8)))
+            const approxRows = Math.ceil(rooms.length / approxCols)
+            const intrinsicH = 40 /* header */ + approxRows * (cellSize.size.height + 8) + 16
+            return (
+            <div
+              key={floor}
+              className="rounded-lg border bg-card"
+              style={{ contentVisibility: 'auto' as any, containIntrinsicSize: `${intrinsicH}px` }}
+            >
               <div className="flex items-center justify-between border-b px-3 py-1.5">
                 <div className="text-sm font-semibold">Tầng {floor}</div>
                 <div className="text-xs text-muted-foreground">{rooms.length} phòng</div>
