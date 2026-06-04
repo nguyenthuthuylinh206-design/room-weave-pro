@@ -107,15 +107,12 @@ export function RoomQuickViewDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm p-0 gap-0">
-        <DialogHeader className="px-4 pt-4 pb-3 border-b">
-          <DialogTitle className="flex items-center gap-2">
-            <span className={cn('inline-block h-2.5 w-2.5 rounded-full', statusDotClass(room.status))} />
-            <span className="text-xl font-bold leading-none">{room.room_number}</span>
-            <span className={cn('text-sm font-medium ml-1', statusColorClass(room.status))}>
-              {statusLabel}
-            </span>
-          </DialogTitle>
-        </DialogHeader>
+        <RoomQuickHeader
+          roomNumber={room.room_number}
+          status={room.status}
+          withPrefix={false}
+        />
+
 
         <div className="px-4 py-3 space-y-3 text-sm">
           {/* Đổi trạng thái nhanh */}
