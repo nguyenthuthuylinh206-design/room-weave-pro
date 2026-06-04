@@ -79,6 +79,35 @@ function statusDotClass(status: string): string {
       return 'bg-cyan-500'
     default:
       return 'bg-muted-foreground'
+}
+
+function statusColorClass(status: string): string {
+  switch (status) {
+    case 'vacant_clean':
+    case 'vacant_inspected':
+    case 'vacant':
+      return 'text-green-600'
+    case 'occupied_clean':
+    case 'occupied_dirty':
+    case 'occupied':
+      return 'text-blue-600'
+    case 'vacant_dirty':
+    case 'cleaning':
+    case 'check_out':
+      return 'text-amber-600'
+    case 'dnd':
+    case 'service_refused':
+    case 'sleep_out':
+    case 'skipper':
+      return 'text-purple-600'
+    case 'out_of_order':
+    case 'out_of_service':
+    case 'maintenance':
+      return 'text-red-600'
+    case 'check_in':
+      return 'text-cyan-600'
+    default:
+      return 'text-muted-foreground'
   }
 }
 
