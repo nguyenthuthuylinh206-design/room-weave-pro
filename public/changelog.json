@@ -1,6 +1,18 @@
 {
-  "current": "1.1.57",
+  "current": "1.1.58",
   "versions": [
+    {
+      "version": "1.1.58",
+      "date": "2026-06-04",
+      "title": "Phòng: Multi-select shortcuts + đoàn nhiều phòng trong Quick View (Batch 2)",
+      "highlights": [
+        "Desktop /rooms: Shift+Click để chọn 1 dải phòng theo thứ tự ưu tiên, Cmd/Ctrl+Click để toggle nhanh — không cần dùng checkbox riêng",
+        "Mobile /rooms: nhấn giữ 500ms vào 1 ô phòng để bật chế độ chọn hàng loạt + tự chọn luôn phòng đó (có rung haptic), không phải bấm nút 'Chọn' trên header nữa",
+        "Quick View phòng hiển thị danh sách 'Cùng đoàn' khi booking có nhiều phòng (booking_group_id) — click chip để nhảy sang phòng anh em, dấu chấm màu đồng bộ trạng thái",
+        "useActiveRoomBookings nay select thêm booking_group_id để tính đoàn ngay client, không cần round-trip thêm"
+      ]
+    },
+
     {
       "version": "1.1.57",
       "date": "2026-06-04",
