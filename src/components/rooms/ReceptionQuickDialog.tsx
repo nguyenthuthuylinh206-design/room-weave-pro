@@ -23,6 +23,7 @@ import {
   Phone, MoreVertical, Users, Building2, BedDouble, Calendar,
   History, BadgeCheck, FileText, ExternalLink,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import type { FloorPlanRoom } from '@/hooks/useFloorPlanLive'
 
 interface Props {
