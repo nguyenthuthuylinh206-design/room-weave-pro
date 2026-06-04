@@ -72,6 +72,8 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
   const [taskRoom, setTaskRoom] = useState<{ id: string; number: string; hotelId: string } | null>(null)
   const [taskType, setTaskType] = useState<ManualTaskType>('cleaning')
   const [quickViewEntry, setQuickViewEntry] = useState<QuickViewEntry | null>(null)
+  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null)
+
 
   const canViewRoomDetail = hasPermission(role, 'manage_rooms') || role !== 'staff'
   const canCreateTask = canCreateHousekeepingTask(user)
