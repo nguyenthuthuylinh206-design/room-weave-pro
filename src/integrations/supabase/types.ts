@@ -14531,6 +14531,28 @@ export type Database = {
             }
             Returns: Json
           }
+      submit_delivery_lean: {
+        Args: {
+          _distribution_order_room_id: string
+          _items_actual?: Json
+          _notes?: string
+          _photos?: string[]
+          _room_id: string
+          _task_id?: string
+        }
+        Returns: Json
+      }
+      submit_replenish_lean: {
+        Args: {
+          _cleaning_requested?: boolean
+          _items?: Json
+          _notes?: string
+          _photos?: string[]
+          _room_id: string
+          _task_id?: string
+        }
+        Returns: Json
+      }
       submit_room_check_for_qc: {
         Args: { _room_check_id: string; _task_id: string }
         Returns: Json
