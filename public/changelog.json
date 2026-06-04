@@ -1,6 +1,17 @@
 {
-  "current": "1.1.53",
+  "current": "1.1.54",
   "versions": [
+    {
+      "version": "1.1.54",
+      "date": "2026-06-04",
+      "title": "Phòng: Card gọn hơn + Xem nhanh khi bấm vào ô phòng",
+      "highlights": [
+        "Trạng thái phòng chuyển thành nhãn chữ ngắn cạnh số phòng (vd 'P104 · Trống – chưa dọn') — bỏ pill lớn gây vỡ layout",
+        "Bấm vào ô phòng mở popup 'Xem nhanh': trạng thái, lý do cần xử lý, khách đang ở, vật tư thiếu, lần kiểm gần nhất — không cần điều hướng",
+        "Popup có 2 nút riêng biệt: 'Kiểm tra phòng' (đi tới flow kiểm tra) và 'Xem chi tiết phòng' (đi tới trang chi tiết) — giảm nhầm lẫn",
+        "Vẫn cho phép đổi trạng thái nhanh ngay trong popup mà không rời trang danh sách"
+      ]
+    },
     {
       "version": "1.1.53",
       "date": "2026-06-03",
