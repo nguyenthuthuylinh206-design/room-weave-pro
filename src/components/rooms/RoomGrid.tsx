@@ -37,7 +37,7 @@ import { cn } from '@/lib/utils'
 import { calcRoomPriority, getMissingDisplay, isOccupiedStatus, type PriorityTier } from '@/lib/roomPriority'
 import { useRoomViewDensity } from '@/hooks/useRoomViewDensity'
 import { useHotelContext } from '@/contexts/HotelContext'
-import type { RoomWithStats, RoomStatus } from '@/types/rooms.types'
+import type { RoomWithStats } from '@/types/rooms.types'
 import { TASK_TYPE_LABELS } from '@/types/housekeeping.types'
 
 type ManualTaskType = 'checkout_inspection' | 'cleaning' | 'checkin_prep' | 'amenity_request' | 'other'
