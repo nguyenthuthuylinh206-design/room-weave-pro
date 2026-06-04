@@ -46,6 +46,11 @@ const PRIORITY_COLORS: Record<string, string> = {
   urgent: 'bg-red-500', high: 'bg-orange-500', medium: 'bg-amber-500', low: 'bg-slate-400',
 }
 
+/** Lấy class dot màu (bg-*-500) từ meta.text (text-*-700) — đồng bộ với RoomQuickViewDialog */
+function dotFromMeta(textCls: string): string {
+  return textCls.replace(/^text-/, 'bg-').replace(/-\d+$/, '-500')
+}
+
 export function ReceptionQuickDialog({ open, onOpenChange, room, onBookRoom, onOpenBookingDetail }: Props) {
   const navigate = useNavigate()
   const { toast } = useToast()
