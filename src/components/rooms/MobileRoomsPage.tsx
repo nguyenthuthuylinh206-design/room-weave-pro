@@ -433,151 +433,147 @@ export const MobileRoomsPage = () => {
               </CardContent>
             </Card>
           ) : (
-            filteredRooms.map((room: any) => {
-              const checkButtonState = getCheckButtonState(room)
-              const itemStatus = getItemStatusDisplay(room)
+            filteredRooms.map((room: RoomWithStats) => {
               const session = checkSessions[room.id]
               const isSelected = selectedIds.includes(room.id)
               const pendingCount = pendingDistributions?.get(room.id) || 0
+              const booking = activeBookings?.get(room.id) || null
+              const now = new Date(nowTick)
+              const mins = booking && isOccupiedStatus(room.status)
+                ? minutesUntilCheckout(booking, now)
+                : null
+              const priority = calcRoomPriority(room, { pendingDistributions: pendingCount, minutesToCheckout: mins })
+              const missing = getMissingDisplay(room)
+              const statusLabel = t(`status.${room.status}`, { defaultValue: room.status })
+              const checkDisabled = !!session && session.user_id !== user?.id
+              const checkLabel = session
+                ? session.user_id === user?.id
+                  ? t('checkSession.continueCheck')
+                  : t('checkSession.inProgress')
+                : t('checkSession.check')
+
+              const handleCardClick = () => {
+                if (selectionMode) {
+                  toggleSelectRoom(room.id)
+                  return
+                }
+                setQuickViewEntry({
+                  room,
+                  pendingCount,
+                  priority: { tier: priority.tier, reason: priority.reason, daysSinceCheck: priority.daysSinceCheck },
+                  booking,
+                  minutesToCheckout: mins,
+                  session: session ?? null,
+                })
+              }
 
               return (
                 <Card
                   key={room.id}
                   className={cn(
-                    "hover:shadow-md transition-all",
-                    isSelected && "ring-2 ring-primary bg-primary/5"
+                    'transition-all active:scale-[0.99] cursor-pointer',
+                    priority.tier === 'urgent' && 'border-l-[3px] border-l-red-500',
+                    priority.tier === 'warning' && 'border-l-[3px] border-l-amber-500',
+                    isSelected && 'ring-2 ring-primary bg-primary/5',
                   )}
-                  onClick={() => selectionMode && toggleSelectRoom(room.id)}
+                  onClick={handleCardClick}
                 >
-                  <CardContent className="p-4">
-                    {/* Header: Checkbox + Room Number + Status Selector */}
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-start gap-3">
+                  <CardContent className="p-3 space-y-2">
+                    {/* Header: dot + số phòng + status text + checkbox bulk */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
                         {selectionMode && (
                           <Checkbox
                             checked={isSelected}
                             onCheckedChange={() => toggleSelectRoom(room.id)}
-                            className="mt-1"
+                            onClick={(e) => e.stopPropagation()}
                           />
                         )}
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-xl">{room.room_number}</span>
-                            {pendingCount > 0 && (
-                              <Badge variant="secondary" className="bg-amber-100 text-amber-700 text-xs">
-                                <Truck className="h-3 w-3 mr-1" />
-                                {pendingCount}
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {t(`roomTypes.${room.room_type}`, { defaultValue: room.room_type || 'N/A' })}
-                          </div>
-                        </div>
-                      </div>
-                      {/* Room Status Selector */}
-                      <RoomStatusSelector 
-                        roomId={room.id} 
-                        currentStatus={room.status as RoomStatus} 
-                      />
-                    </div>
-
-                    {/* Room Info Row */}
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                      {room.max_guests && (
-                        <div className="flex items-center gap-1">
-                          <Users className="h-4 w-4" />
-                          <span>{room.max_guests}</span>
-                        </div>
-                      )}
-                      {room.bed_type && (
-                        <div className="flex items-center gap-1">
-                          <Bed className="h-4 w-4" />
-                          <span>{room.bed_type}</span>
-                        </div>
-                      )}
-                      {room.area && (
-                        <div className="flex items-center gap-1">
-                          <Square className="h-4 w-4" />
-                          <span>{room.area} m²</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Item Status Display */}
-                    <div className="flex flex-wrap items-center gap-2 mb-3">
-                      <Badge 
-                        variant="outline" 
-                        className={cn("text-xs", itemStatus.color)}
-                      >
-                        {itemStatus.icon ? (
-                          <itemStatus.icon className="h-3 w-3 mr-1" />
-                        ) : (
-                          <Package className="h-3 w-3 mr-1" />
-                        )}
-                        {itemStatus.label}
-                      </Badge>
-                      {room.items_in_laundry > 0 && (
-                        <Badge variant="outline" className="text-xs bg-cyan-100 text-cyan-700">
-                          <Loader2 className="h-3 w-3 mr-1" />
-                          {t('itemStatus.inLaundry', { count: room.items_in_laundry })}
-                        </Badge>
-                      )}
-                      {pendingCount > 0 && (
-                        <Badge variant="outline" className="text-xs bg-amber-100 text-amber-700">
-                          <Truck className="h-3 w-3 mr-1" />
-                          {t('distribution:roomHistory.pendingDeliveries', { count: pendingCount })}
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Active Check Session */}
-                    {session && (
-                      <div className="flex items-center gap-2 text-sm text-amber-600 mb-3 bg-amber-50 rounded-lg px-3 py-2">
-                        <div className="animate-pulse h-2 w-2 rounded-full bg-amber-500" />
-                        <span>
-                          {t('checkSession.checking', { 
-                            name: session.user_name, 
-                            type: t(`checkTypes.${session.check_type}`)
-                          })}
+                        <span className={cn('inline-block h-2 w-2 rounded-full shrink-0', statusDotClass(room.status))} aria-hidden />
+                        <span className="font-bold text-lg leading-none shrink-0">{room.room_number}</span>
+                        <span className={cn('text-xs font-medium truncate', statusColorClass(room.status))}>
+                          {statusLabel}
                         </span>
                       </div>
-                    )}
-
-                    {/* Price */}
-                    <div className="mb-4">
-                      <div className="text-xs text-muted-foreground">{t('price.basePrice')}</div>
-                      <div className="text-lg font-semibold text-primary">
-                        {room.base_price ? formatPrice(room.base_price) : '—'}{t('price.perNight')}
-                      </div>
                     </div>
 
-                    {/* Action Buttons */}
+                    {/* Priority reason */}
+                    {priority.reason && priority.tier !== 'normal' && (
+                      <p className={cn(
+                        'text-sm font-medium',
+                        priority.tier === 'urgent' ? 'text-red-600' : 'text-amber-600',
+                      )}>
+                        {priority.reason}
+                      </p>
+                    )}
+
+                    {/* Actionable info (1 dòng) */}
+                    <div className="space-y-1 text-sm">
+                      {session ? (
+                        <div className="flex items-center gap-1.5 text-orange-600">
+                          <Clock className="h-3.5 w-3.5 animate-pulse shrink-0" />
+                          <span className="font-medium truncate">
+                            {t('checkSession.checking', {
+                              name: session.user_name,
+                              type: t(`checkTypes.${session.check_type}`, { defaultValue: session.check_type }),
+                            })}
+                          </span>
+                        </div>
+                      ) : missing.kind === 'complete' ? (
+                        <div className="flex items-center gap-1.5 text-green-600">
+                          <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                          <span>{t('grid.itemsComplete')}</span>
+                        </div>
+                      ) : missing.kind === 'after_clean' ? (
+                        <div className="flex items-center gap-1.5 text-red-600">
+                          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                          <span>{t('grid.missingAfterClean', { count: missing.count })}</span>
+                        </div>
+                      ) : missing.kind === 'restock' ? (
+                        <div className="flex items-center gap-1.5 text-amber-600">
+                          <PackageOpen className="h-3.5 w-3.5 shrink-0" />
+                          <span>{t('grid.needRestock', { count: missing.count })}</span>
+                        </div>
+                      ) : null}
+
+                      {room.items_in_laundry > 0 && (
+                        <div className="flex items-center gap-1.5 text-cyan-600">
+                          <Wind className="h-3.5 w-3.5 shrink-0" />
+                          <span>{t('grid.itemsInLaundry', { count: room.items_in_laundry })}</span>
+                        </div>
+                      )}
+
+                      {pendingCount > 0 && (
+                        <div className="flex items-center gap-1.5 text-amber-600">
+                          <Truck className="h-3.5 w-3.5 shrink-0" />
+                          <span>{t('distribution:roomHistory.pendingDeliveries', { count: pendingCount })}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Meta row */}
+                    <div className="pt-1.5 border-t text-xs text-muted-foreground truncate">
+                      {[
+                        t(`roomTypes.${room.room_type}`, { defaultValue: room.room_type }),
+                        `${room.max_guests} khách`,
+                        room.bed_type || null,
+                        room.area_sqm ? `${room.area_sqm}m²` : null,
+                      ].filter(Boolean).join(' • ')}
+                    </div>
+
+                    {/* Action: chỉ 1 nút Kiểm tra. Còn lại gom vào Quick View. */}
                     {!selectionMode && (
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            navigate(`/rooms/${room.id}`)
-                          }}
-                        >
-                          {t('actions.viewDetail')}
-                        </Button>
+                      <div className="pt-1" onClick={(e) => e.stopPropagation()}>
                         <Button
                           size="sm"
-                          className="flex-1"
-                          variant={checkButtonState.variant}
-                          disabled={checkButtonState.disabled}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            const hasSession = checkSessions[room.id] && checkSessions[room.id].user_id === user?.id
+                          className="w-full h-9"
+                          disabled={checkDisabled}
+                          onClick={() => {
+                            const hasSession = !!session && session.user_id === user?.id
                             navigate(`/rooms/${room.id}/check${hasSession ? '?resume=true' : ''}`)
                           }}
                         >
-                          {checkButtonState.label}
+                          {checkLabel}
                         </Button>
                       </div>
                     )}
