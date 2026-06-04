@@ -184,7 +184,41 @@ export function RoomQuickViewDialog({
             </div>
           )}
 
+          {/* Group siblings — đoàn nhiều phòng */}
+          {groupSiblings && groupSiblings.length > 0 && (
+            <div className="rounded-md border bg-muted/30 px-3 py-2 space-y-1.5">
+              <div className="text-xs text-muted-foreground font-medium">
+                Cùng đoàn ({groupSiblings.length + 1} phòng)
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {groupSiblings.map((s) => (
+                  <button
+                    key={s.roomId}
+                    type="button"
+                    onClick={() => {
+                      navigate(`/rooms/${s.roomId}`)
+                      onOpenChange(false)
+                    }}
+                    className="inline-flex items-center gap-1 rounded-md border bg-background px-2 py-1 text-xs font-medium hover:border-primary hover:text-primary transition-colors"
+                    title={s.guestName ?? ''}
+                  >
+                    <span
+                      className={cn(
+                        'inline-block h-1.5 w-1.5 rounded-full',
+                        s.status?.includes('occupied') ? 'bg-blue-500' :
+                          s.status?.includes('clean') ? 'bg-emerald-500' :
+                            s.status?.includes('dirty') ? 'bg-amber-500' : 'bg-muted-foreground',
+                      )}
+                    />
+                    {s.roomNumber}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Vật tư */}
+
           <div className="space-y-1.5">
             {missing.kind === 'complete' && (
               <div className="flex items-center gap-2 text-green-600">
