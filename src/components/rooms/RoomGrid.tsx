@@ -10,7 +10,6 @@ import {
   Wind,
   Clock,
   Truck,
-  ClipboardList,
   PackageOpen,
   ChevronDown,
   ChevronRight,
@@ -19,12 +18,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { RoomQuickViewDialog, type QuickViewEntry } from './RoomQuickViewDialog'
 import { CreateTaskDialog } from '@/components/housekeeping/CreateTaskDialog'
 import { useAllRoomCheckSessions } from '@/hooks/useRoomCheckSession'
@@ -38,10 +31,8 @@ import { calcRoomPriority, getMissingDisplay, isOccupiedStatus, type PriorityTie
 import { useRoomViewDensity } from '@/hooks/useRoomViewDensity'
 import { useHotelContext } from '@/contexts/HotelContext'
 import type { RoomWithStats } from '@/types/rooms.types'
-import { TASK_TYPE_LABELS } from '@/types/housekeeping.types'
 
 type ManualTaskType = 'checkout_inspection' | 'cleaning' | 'checkin_prep' | 'amenity_request' | 'other'
-const MANUAL_TASK_TYPES: ManualTaskType[] = ['checkout_inspection', 'cleaning', 'checkin_prep', 'amenity_request']
 
 interface RoomGridProps {
   rooms: RoomWithStats[]
