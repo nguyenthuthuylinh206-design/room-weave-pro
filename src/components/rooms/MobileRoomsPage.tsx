@@ -410,9 +410,9 @@ export const MobileRoomsPage = () => {
                             onClick={(e) => e.stopPropagation()}
                           />
                         )}
-                        <span className={cn('inline-block h-2 w-2 rounded-full shrink-0', statusDotClass(room.status))} aria-hidden />
+                        <span className={cn('inline-block h-2 w-2 rounded-full shrink-0', getRoomStatusDotClass(room.status))} aria-hidden />
                         <span className="font-bold text-lg leading-none shrink-0">{room.room_number}</span>
-                        <span className={cn('text-xs font-medium truncate', statusColorClass(room.status))}>
+                        <span className={cn('text-xs font-medium truncate', getRoomStatusTextClass(room.status))}>
                           {statusLabel}
                         </span>
                       </div>
