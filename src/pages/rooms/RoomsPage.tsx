@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, Grid3x3, List, Map, FileSpreadsheet, LayoutGrid } from 'lucide-react'
+import { Plus, Grid3x3, List, CalendarRange, FileSpreadsheet, LayoutGrid } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
