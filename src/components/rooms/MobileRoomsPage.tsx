@@ -57,6 +57,10 @@ export const MobileRoomsPage = () => {
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [selectionMode, setSelectionMode] = useState(false)
+  // Long-press timers per card (ref map để tránh hook-in-loop)
+  const longPressTimers = useRef<Map<string, number>>(new Map())
+  const longPressTriggered = useRef<Set<string>>(new Set())
+
 
   // Quick view + task dialog
   const [quickViewEntry, setQuickViewEntry] = useState<QuickViewEntry | null>(null)
