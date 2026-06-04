@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { RoomStatusSelector } from './RoomStatusSelector'
+import { RoomQuickHeader } from './RoomQuickHeader'
 import { cn } from '@/lib/utils'
 import { getMissingDisplay, type PriorityTier } from '@/lib/roomPriority'
 import {
@@ -51,66 +52,6 @@ interface Props {
   canCreateTask: boolean
   currentUserId?: string
   onOpenCreateTask?: (room: RoomWithStats) => void
-}
-
-function statusColorClass(status: string): string {
-  switch (status) {
-    case 'vacant_clean':
-    case 'vacant_inspected':
-    case 'vacant':
-      return 'text-green-600'
-    case 'occupied_clean':
-    case 'occupied_dirty':
-    case 'occupied':
-      return 'text-blue-600'
-    case 'vacant_dirty':
-    case 'cleaning':
-    case 'check_out':
-      return 'text-amber-600'
-    case 'dnd':
-    case 'service_refused':
-    case 'sleep_out':
-    case 'skipper':
-      return 'text-purple-600'
-    case 'out_of_order':
-    case 'out_of_service':
-    case 'maintenance':
-      return 'text-red-600'
-    case 'check_in':
-      return 'text-cyan-600'
-    default:
-      return 'text-muted-foreground'
-  }
-}
-
-function statusDotClass(status: string): string {
-  switch (status) {
-    case 'vacant_clean':
-    case 'vacant_inspected':
-    case 'vacant':
-      return 'bg-green-500'
-    case 'occupied_clean':
-    case 'occupied_dirty':
-    case 'occupied':
-      return 'bg-blue-500'
-    case 'vacant_dirty':
-    case 'cleaning':
-    case 'check_out':
-      return 'bg-amber-500'
-    case 'dnd':
-    case 'service_refused':
-    case 'sleep_out':
-    case 'skipper':
-      return 'bg-purple-500'
-    case 'out_of_order':
-    case 'out_of_service':
-    case 'maintenance':
-      return 'bg-red-500'
-    case 'check_in':
-      return 'bg-cyan-500'
-    default:
-      return 'bg-muted-foreground'
-  }
 }
 
 export function RoomQuickViewDialog({
