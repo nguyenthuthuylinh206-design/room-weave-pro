@@ -715,11 +715,11 @@ export function RoomTapeChart() {
             >
               {/* Sticky date header (đồng bộ cuộn ngang với body) */}
               <div
-                className="sticky top-0 z-30 flex border-b bg-muted/40"
+                className="sticky top-0 z-30 flex border-b bg-slate-50/95 backdrop-blur-sm"
                 style={{ width: totalChartWidth + ROOM_COL_W, height: HEADER_H }}
               >
                 <div
-                  className="sticky left-0 z-40 flex items-center border-r bg-muted px-3 text-xs font-medium text-muted-foreground"
+                  className="sticky left-0 z-40 flex items-center border-r bg-slate-100 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-600"
                   style={{ width: ROOM_COL_W, minWidth: ROOM_COL_W }}
                 >
                   Phòng
@@ -738,16 +738,20 @@ export function RoomTapeChart() {
                       type="button"
                       onClick={() => updatePrefs({ selectedDate: dStr })}
                       className={cn(
-                        'flex flex-col items-center justify-center gap-0.5 border-r px-0.5 text-[11px] leading-tight last:border-r-0 transition-colors',
-                        today && 'bg-primary/10 font-semibold text-primary',
-                        weekend && !today && !holiday && 'bg-muted/60',
+                        'relative flex flex-col items-center justify-center gap-0.5 border-r px-0.5 text-[11px] leading-tight last:border-r-0 transition-colors',
+                        today && 'bg-[hsl(var(--primary))]/10 ring-1 ring-inset ring-[hsl(var(--primary))]/40 font-semibold text-[hsl(var(--primary))]',
+                        weekend && !today && !holiday && 'bg-slate-100/80',
                         holiday && !today && 'bg-rose-50 text-rose-700',
-                        isSelected && 'ring-1 ring-inset ring-primary bg-primary/5',
+                        isSelected && 'ring-1 ring-inset ring-[hsl(var(--primary))]/60 bg-[hsl(var(--primary))]/5',
                       )}
                       style={{ width: cellW, minWidth: cellW, height: HEADER_H }}
                       title={holiday?.name || format(date, 'EEEE, dd/MM/yyyy', { locale: vi })}
                     >
-                      <span className={cn('text-[10px] uppercase text-muted-foreground/80', holiday && 'text-rose-600/80')}>
+                      <span className={cn(
+                        'text-[10px] uppercase tracking-wide',
+                        today ? 'text-[hsl(var(--primary))]/80' : 'text-slate-500',
+                        holiday && !today && 'text-rose-600/80',
+                      )}>
                         {format(date, 'EEE', { locale: vi })}
                       </span>
                       <span className="text-sm font-semibold tabular-nums">{format(date, 'dd/MM')}</span>
@@ -755,6 +759,9 @@ export function RoomTapeChart() {
                         <span className="w-full truncate px-1 text-[9px] font-medium text-rose-700">
                           {holiday.short}
                         </span>
+                      )}
+                      {today && (
+                        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-6 rounded-full bg-[hsl(var(--primary))]" />
                       )}
                     </button>
                   )
