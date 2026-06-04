@@ -40,6 +40,7 @@ import { PanelPerformance } from '@/components/rooms/detail/PanelPerformance'
 import { PanelItems } from '@/components/rooms/detail/PanelItems'
 import { PanelTimeline } from '@/components/rooms/detail/PanelTimeline'
 import { RoomMetaSubtitle } from '@/components/rooms/detail/RoomMetaSubtitle'
+import { RoomDetailTitleBlock } from '@/components/rooms/detail/RoomDetailTitleBlock'
 
 export function RoomDetailPage() {
   const { isMobile } = useBreakpoint()
@@ -85,22 +86,8 @@ export function RoomDetailPage() {
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/rooms')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold">Phòng {room.room_number}</h1>
-              <RoomStatusBadge status={room.status as import('@/types/rooms.types').RoomStatus} />
-            </div>
-            <RoomMetaSubtitle
-              roomType={room.room_type}
-              floor={room.floor}
-              areaSqm={room.area_sqm}
-              bedType={room.bed_type}
-              viewType={room.view_type}
-              basePrice={room.base_price}
-              amenities={room.amenities}
-              notes={room.notes}
-            />
-          </div>
+          <RoomDetailTitleBlock room={room} size="lg" />
+
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <Button variant="outline" size="sm" className="h-8" onClick={() => setShowAuditLog(true)}>
