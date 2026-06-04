@@ -72,6 +72,8 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
   const [taskRoom, setTaskRoom] = useState<{ id: string; number: string; hotelId: string } | null>(null)
   const [taskType, setTaskType] = useState<ManualTaskType>('cleaning')
   const [quickViewEntry, setQuickViewEntry] = useState<QuickViewEntry | null>(null)
+  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null)
+
 
   const canViewRoomDetail = hasPermission(role, 'manage_rooms') || role !== 'staff'
   const canCreateTask = canCreateHousekeepingTask(user)
@@ -122,10 +124,85 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
     }
   }, [rooms, pendingDistributions, activeBookings, nowTick])
 
+  // Flat sorted list for shift-click range select
+  const flatItems = useMemo(
+    () => [...grouped.urgent, ...grouped.warning, ...grouped.normal],
+    [grouped],
+  )
+
+  // Map room_id → list of sibling room ids cùng booking_group_id
+  const groupSiblingsMap = useMemo(() => {
+    const map = new Map<string, string[]>()
+    if (!activeBookings) return map
+    const byGroup = new Map<string, string[]>()
+    for (const [roomId, b] of activeBookings.entries()) {
+      if (!b.booking_group_id) continue
+      const arr = byGroup.get(b.booking_group_id) ?? []
+      arr.push(roomId)
+      byGroup.set(b.booking_group_id, arr)
+    }
+    for (const ids of byGroup.values()) {
+      if (ids.length < 2) continue
+      for (const id of ids) map.set(id, ids.filter((x) => x !== id))
+    }
+    return map
+  }, [activeBookings])
+
+  const buildGroupSiblings = (roomId: string) => {
+    const ids = groupSiblingsMap.get(roomId)
+    if (!ids || ids.length === 0) return undefined
+    return ids
+      .map((sid) => {
+        const r = rooms.find((rr) => rr.id === sid)
+        const b = activeBookings?.get(sid) || null
+        if (!r) return null
+        return {
+          roomId: sid,
+          roomNumber: r.room_number,
+          status: r.status,
+          guestName: b?.guest_name ?? null,
+        }
+      })
+      .filter(Boolean) as Array<{ roomId: string; roomNumber: string; status: string; guestName: string | null }>
+  }
+
   const handleSelectRoom = (roomId: string, checked: boolean) => {
     if (checked) onSelectionChange([...selectedIds, roomId])
     else onSelectionChange(selectedIds.filter((id) => id !== roomId))
+    setLastSelectedId(roomId)
   }
+
+  /**
+   * Click on card:
+   * - Shift+Click → range select từ lastSelected đến current trong danh sách flat
+   * - Cmd/Ctrl+Click → toggle select 1 phòng
+   * - Click thường → mở Quick View
+   */
+  const handleCardClick = (entry: (typeof grouped.urgent)[number], e: React.MouseEvent) => {
+    if (e.shiftKey && lastSelectedId) {
+      const ids = flatItems.map((i) => i.room.id)
+      const startIdx = ids.indexOf(lastSelectedId)
+      const endIdx = ids.indexOf(entry.room.id)
+      if (startIdx >= 0 && endIdx >= 0) {
+        const [lo, hi] = startIdx < endIdx ? [startIdx, endIdx] : [endIdx, startIdx]
+        const range = ids.slice(lo, hi + 1)
+        const next = Array.from(new Set([...selectedIds, ...range]))
+        onSelectionChange(next)
+        return
+      }
+    }
+    if (e.metaKey || e.ctrlKey) {
+      handleSelectRoom(entry.room.id, !selectedIds.includes(entry.room.id))
+      return
+    }
+    const session = checkSessions[entry.room.id]
+    setQuickViewEntry({
+      ...entry,
+      session: session ?? null,
+      groupSiblings: buildGroupSiblings(entry.room.id),
+    })
+  }
+
 
 
   const openTaskDialog = (room: RoomWithStats, type: ManualTaskType) => {
@@ -197,7 +274,7 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
           priorityRingClass(priority.tier),
           isSelected && 'ring-2 ring-primary bg-primary/5',
         )}
-        onClick={() => setQuickViewEntry({ ...entry, session: session ?? null })}
+        onClick={(e) => handleCardClick(entry, e)}
       >
         <div className={cn('space-y-2', styles.cellPadding)}>
           {/* Line 1: dot + số phòng + tên trạng thái (text semantic) + checkbox */}

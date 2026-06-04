@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { MobileDetailHeader } from '@/components/layout/MobileDetailHeader'
@@ -20,6 +20,8 @@ import { hasPermission } from '@/lib/permissions'
 import { canCreateHousekeepingTask } from '@/lib/userAccess'
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
 import { RoomQuickViewDialog, type QuickViewEntry } from './RoomQuickViewDialog'
+
+
 import { MobileRoomFilters } from './MobileRoomFilters'
 import { MobileRoomBulkActionsBar } from './MobileRoomBulkActionsBar'
 import { StaffTasksTab } from '@/components/housekeeping/StaffTasksTab'
@@ -55,6 +57,10 @@ export const MobileRoomsPage = () => {
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [selectionMode, setSelectionMode] = useState(false)
+  // Long-press timers per card (ref map để tránh hook-in-loop)
+  const longPressTimers = useRef<Map<string, number>>(new Map())
+  const longPressTriggered = useRef<Set<string>>(new Set())
+
 
   // Quick view + task dialog
   const [quickViewEntry, setQuickViewEntry] = useState<QuickViewEntry | null>(null)
@@ -373,7 +379,31 @@ export const MobileRoomsPage = () => {
                   : t('checkSession.inProgress')
                 : t('checkSession.check')
 
+              const startLongPress = () => {
+                longPressTriggered.current.delete(room.id)
+                const t = window.setTimeout(() => {
+                  longPressTriggered.current.add(room.id)
+                  if (!selectionMode) {
+                    setSelectionMode(true)
+                    setSelectedIds((prev) => (prev.includes(room.id) ? prev : [...prev, room.id]))
+                    if ('vibrate' in navigator) navigator.vibrate?.(30)
+                  }
+                }, 500)
+                longPressTimers.current.set(room.id, t)
+              }
+              const cancelLongPress = () => {
+                const t = longPressTimers.current.get(room.id)
+                if (t) {
+                  window.clearTimeout(t)
+                  longPressTimers.current.delete(room.id)
+                }
+              }
+
               const handleCardClick = () => {
+                if (longPressTriggered.current.has(room.id)) {
+                  longPressTriggered.current.delete(room.id)
+                  return
+                }
                 if (selectionMode) {
                   toggleSelectRoom(room.id)
                   return
@@ -392,13 +422,19 @@ export const MobileRoomsPage = () => {
                 <Card
                   key={room.id}
                   className={cn(
-                    'transition-all active:scale-[0.99] cursor-pointer',
+                    'transition-all active:scale-[0.99] cursor-pointer select-none',
                     priority.tier === 'urgent' && 'border-l-[3px] border-l-red-500',
                     priority.tier === 'warning' && 'border-l-[3px] border-l-amber-500',
                     isSelected && 'ring-2 ring-primary bg-primary/5',
                   )}
                   onClick={handleCardClick}
+                  onPointerDown={startLongPress}
+                  onPointerUp={cancelLongPress}
+                  onPointerLeave={cancelLongPress}
+                  onPointerCancel={cancelLongPress}
                 >
+
+
                   <CardContent className="p-3 space-y-2">
                     {/* Header: dot + số phòng + status text + checkbox bulk */}
                     <div className="flex items-start justify-between gap-2">
