@@ -30,35 +30,12 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { calcRoomPriority, getMissingDisplay, isOccupiedStatus } from '@/lib/roomPriority'
+import { getRoomStatusDotClass, getRoomStatusTextClass } from '@/lib/roomStatus'
 import type { RoomFilters as IRoomFilters, RoomStatus, RoomType, RoomWithStats } from '@/types/rooms.types'
 
 type FilterStatus = 'all' | RoomStatus
 
 const ALL_STATUSES: RoomStatus[] = ['vacant', 'occupied', 'check_in', 'check_out', 'cleaning', 'maintenance', 'out_of_order']
-
-function statusDotClass(status: string): string {
-  switch (status) {
-    case 'vacant_clean': case 'vacant_inspected': case 'vacant': return 'bg-green-500'
-    case 'occupied_clean': case 'occupied_dirty': case 'occupied': return 'bg-blue-500'
-    case 'vacant_dirty': case 'cleaning': case 'check_out': return 'bg-amber-500'
-    case 'dnd': case 'service_refused': case 'sleep_out': case 'skipper': return 'bg-purple-500'
-    case 'out_of_order': case 'out_of_service': case 'maintenance': return 'bg-red-500'
-    case 'check_in': return 'bg-cyan-500'
-    default: return 'bg-muted-foreground'
-  }
-}
-
-function statusColorClass(status: string): string {
-  switch (status) {
-    case 'vacant_clean': case 'vacant_inspected': case 'vacant': return 'text-green-600'
-    case 'occupied_clean': case 'occupied_dirty': case 'occupied': return 'text-blue-600'
-    case 'vacant_dirty': case 'cleaning': case 'check_out': return 'text-amber-600'
-    case 'dnd': case 'service_refused': case 'sleep_out': case 'skipper': return 'text-purple-600'
-    case 'out_of_order': case 'out_of_service': case 'maintenance': return 'text-red-600'
-    case 'check_in': return 'text-cyan-600'
-    default: return 'text-muted-foreground'
-  }
-}
 
 export const MobileRoomsPage = () => {
   const { t } = useTranslation(['rooms', 'common', 'distribution'])
