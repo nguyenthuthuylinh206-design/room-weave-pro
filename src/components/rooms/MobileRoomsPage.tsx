@@ -172,58 +172,6 @@ export const MobileRoomsPage = () => {
     out_of_order: rooms.filter((r: any) => r.status === 'out_of_order').length,
   }), [rooms])
 
-  const formatPrice = (price: number | null | undefined) => {
-    if (!price) return null
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-      maximumFractionDigits: 0
-    }).format(price)
-  }
-
-  // Get check button state
-  const getCheckButtonState = (room: any) => {
-    const session = checkSessions[room.id]
-    if (!session) {
-      return { label: t('checkSession.check'), variant: 'default' as const, disabled: false }
-    }
-    
-    const isOwnSession = session.user_id === user?.id
-    if (isOwnSession) {
-      return { label: t('checkSession.continueCheck'), variant: 'default' as const, disabled: false }
-    }
-    
-    return { 
-      label: t('checkSession.inProgress'), 
-      variant: 'secondary' as const, 
-      disabled: true 
-    }
-  }
-
-  // Get item status display
-  const getItemStatusDisplay = (room: RoomWithStats) => {
-    const totalItems = room.total_items || 0
-    const missingItems = room.missing_items || 0
-    const inLaundry = room.items_in_laundry || 0
-
-    if (totalItems === 0) {
-      return { label: t('itemStatus.notSetup'), color: 'bg-muted text-muted-foreground' }
-    }
-
-    if (missingItems > 0) {
-      return { 
-        label: t('itemStatus.missing', { missing: missingItems, total: totalItems }), 
-        color: 'bg-destructive/10 text-destructive',
-        icon: AlertTriangle
-      }
-    }
-
-    return { 
-      label: t('itemStatus.complete'), 
-      color: 'bg-green-100 text-green-700',
-      icon: CheckCircle
-    }
-  }
 
   return (
     <div className={cn("min-h-screen bg-background", selectedIds.length > 0 ? "pb-36" : "pb-20")}>
