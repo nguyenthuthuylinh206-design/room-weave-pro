@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -12,18 +12,19 @@ import { supabase } from '@/integrations/supabase/client'
 import { formatCurrency } from '@/lib/utils'
 import { format, parseISO, differenceInMinutes, differenceInCalendarDays } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { getRoomStatusMeta } from '@/lib/roomStatus'
+
 import { useToast } from '@/hooks/use-toast'
 import { useReceptionRoomDetail } from '@/hooks/useReceptionRoomDetail'
 import { useRoomTypePricing } from '@/hooks/useRoomTypePricing'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { RoomAuditLogDialog } from './RoomAuditLogDialog'
+import { RoomQuickHeader } from './RoomQuickHeader'
 import { ExtendBookingDialog } from '@/components/bookings/ExtendBookingDialog'
 import {
   Phone, MoreVertical, Users, Building2, BedDouble, Calendar,
   History, BadgeCheck, FileText, ExternalLink,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+
 import type { FloorPlanRoom } from '@/hooks/useFloorPlanLive'
 
 interface Props {
@@ -46,10 +47,6 @@ const PRIORITY_COLORS: Record<string, string> = {
   urgent: 'bg-red-500', high: 'bg-orange-500', medium: 'bg-amber-500', low: 'bg-slate-400',
 }
 
-/** Lấy class dot màu (bg-*-500) từ meta.text (text-*-700) — đồng bộ với RoomQuickViewDialog */
-function dotFromMeta(textCls: string): string {
-  return textCls.replace(/^text-/, 'bg-').replace(/-\d+$/, '-500')
-}
 
 export function ReceptionQuickDialog({ open, onOpenChange, room, onBookRoom, onOpenBookingDetail }: Props) {
   const navigate = useNavigate()
@@ -87,7 +84,6 @@ export function ReceptionQuickDialog({ open, onOpenChange, room, onBookRoom, onO
 
   if (!room) return null
 
-  const meta = getRoomStatusMeta(room.status)
   const isOccupied = !!bk
   const r = detail?.room
   const guest = detail?.guest
@@ -120,70 +116,70 @@ export function ReceptionQuickDialog({ open, onOpenChange, room, onBookRoom, onO
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl p-0 overflow-hidden gap-0 max-h-[90vh] flex flex-col">
-          {/* Header — đồng bộ pattern với RoomQuickViewDialog: dot + số phòng + nhãn trạng thái màu semantic */}
-          <div className="px-5 py-4 border-b">
-            <DialogHeader className="space-y-1">
-              <DialogTitle className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className={cn('inline-block h-2.5 w-2.5 rounded-full shrink-0', dotFromMeta(meta.text))} />
-                  <span className="text-xl font-bold leading-none">Phòng {room.room_number}</span>
-                  <span className={cn('text-sm font-medium ml-1', meta.text)}>{meta.label}</span>
-                  {guest?.vip_level && guest.vip_level !== 'normal' && (
-                    <span className="text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
-                      VIP {guest.vip_level}
-                    </span>
-                  )}
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 mr-6">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56 bg-popover z-50">
-                    <DropdownMenuItem onClick={() => { onOpenChange(false); navigate(`/rooms/${room.id}`) }}>
-                      <ExternalLink className="h-3.5 w-3.5 mr-2" /> Xem chi tiết phòng
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { onOpenChange(false); navigate(`/rooms/${room.id}/check`) }}>
-                      Kiểm tra phòng
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel>Đổi trạng thái</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => transitionMut.mutate({ to: 'vacant_clean', reason: 'Lễ tân gỡ trạng thái' })}>
-                      Gỡ về Trống sạch
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => transitionMut.mutate({ to: 'dnd', reason: 'Khách yêu cầu DND' })}>
-                      Đặt DND (Không làm phiền)
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => transitionMut.mutate({ to: 'out_of_service', reason: 'Tạm ngừng kinh doanh' })}>
-                      OOS (Tạm ngừng)
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => transitionMut.mutate({ to: 'out_of_order', reason: 'Phòng hỏng' })}>
-                      OOO (Hỏng)
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => { onOpenChange(false); navigate(`/maintenance/new?roomId=${room.id}`) }}>
-                      Tạo yêu cầu bảo trì
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { onOpenChange(false); navigate(`/housekeeping/tasks?roomId=${room.id}`) }}>
-                      Tạo task buồng phòng
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setAuditOpen(true)}>
-                      <History className="h-3.5 w-3.5 mr-2" /> Lịch sử phòng
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </DialogTitle>
-              <div className="text-xs text-muted-foreground capitalize flex items-center gap-2 flex-wrap pl-5">
+          {/* Header — dùng shared RoomQuickHeader, đồng bộ 100% với RoomQuickViewDialog */}
+          <RoomQuickHeader
+            roomNumber={room.room_number}
+            status={room.status}
+            trailingBadge={
+              guest?.vip_level && guest.vip_level !== 'normal' ? (
+                <span className="text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
+                  VIP {guest.vip_level}
+                </span>
+              ) : null
+            }
+            rightSlot={
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 bg-popover z-50">
+                  <DropdownMenuItem onClick={() => { onOpenChange(false); navigate(`/rooms/${room.id}`) }}>
+                    <ExternalLink className="h-3.5 w-3.5 mr-2" /> Xem chi tiết phòng
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { onOpenChange(false); navigate(`/rooms/${room.id}/check`) }}>
+                    Kiểm tra phòng
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Đổi trạng thái</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => transitionMut.mutate({ to: 'vacant_clean', reason: 'Lễ tân gỡ trạng thái' })}>
+                    Gỡ về Trống sạch
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => transitionMut.mutate({ to: 'dnd', reason: 'Khách yêu cầu DND' })}>
+                    Đặt DND (Không làm phiền)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => transitionMut.mutate({ to: 'out_of_service', reason: 'Tạm ngừng kinh doanh' })}>
+                    OOS (Tạm ngừng)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => transitionMut.mutate({ to: 'out_of_order', reason: 'Phòng hỏng' })}>
+                    OOO (Hỏng)
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => { onOpenChange(false); navigate(`/maintenance/new?roomId=${room.id}`) }}>
+                    Tạo yêu cầu bảo trì
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { onOpenChange(false); navigate(`/housekeeping/tasks?roomId=${room.id}`) }}>
+                    Tạo task buồng phòng
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setAuditOpen(true)}>
+                    <History className="h-3.5 w-3.5 mr-2" /> Lịch sử phòng
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            }
+            subline={
+              <>
                 <span>{r?.room_type || room.room_type}</span>
                 {r?.bed_type && <><span>·</span><span>{r.bed_type}</span></>}
                 {r?.floor != null && <><span>·</span><span>Tầng {r.floor}</span></>}
                 {r?.area_sqm && <><span>·</span><span>{r.area_sqm}m²</span></>}
                 {r?.view_type && <><span>·</span><span>{r.view_type}</span></>}
-              </div>
-            </DialogHeader>
-          </div>
+              </>
+            }
+          />
+
 
           {/* Tabs */}
           <Tabs value={tab} onValueChange={setTab} className="flex-1 flex flex-col overflow-hidden">

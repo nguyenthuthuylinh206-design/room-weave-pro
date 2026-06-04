@@ -111,13 +111,6 @@ const STATUS_STYLE: Record<string, { bg: string; label: string; textCls: string 
   blocked: { bg: 'bg-slate-400', label: 'Bị chặn', textCls: 'text-slate-700' },
 }
 
-const TYPE_BORDER: Record<string, string> = {
-  standard: 'border-l-blue-300',
-  deluxe: 'border-l-cyan-300',
-  superior: 'border-l-violet-300',
-  suite: 'border-l-amber-300',
-  vip: 'border-l-pink-300',
-}
 
 // Stable color per booking group (chỉ tô viền nhóm nếu có nhiều hơn 1 phòng cùng nhóm)
 const GROUP_RING_COLORS = [

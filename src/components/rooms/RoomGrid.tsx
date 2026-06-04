@@ -28,6 +28,7 @@ import { hasPermission } from '@/lib/permissions'
 import { canCreateHousekeepingTask } from '@/lib/userAccess'
 import { cn } from '@/lib/utils'
 import { calcRoomPriority, getMissingDisplay, isOccupiedStatus, type PriorityTier } from '@/lib/roomPriority'
+import { getRoomStatusDotClass, getRoomStatusTextClass } from '@/lib/roomStatus'
 import { useRoomViewDensity } from '@/hooks/useRoomViewDensity'
 import { useHotelContext } from '@/contexts/HotelContext'
 import type { RoomWithStats } from '@/types/rooms.types'
@@ -39,67 +40,6 @@ interface RoomGridProps {
   isLoading: boolean
   selectedIds: string[]
   onSelectionChange: (ids: string[]) => void
-}
-
-
-function statusDotClass(status: string): string {
-  switch (status) {
-    case 'vacant_clean':
-    case 'vacant_inspected':
-    case 'vacant':
-      return 'bg-green-500'
-    case 'occupied_clean':
-    case 'occupied_dirty':
-    case 'occupied':
-      return 'bg-blue-500'
-    case 'vacant_dirty':
-    case 'cleaning':
-    case 'check_out':
-      return 'bg-amber-500'
-    case 'dnd':
-    case 'service_refused':
-    case 'sleep_out':
-    case 'skipper':
-      return 'bg-purple-500'
-    case 'out_of_order':
-    case 'out_of_service':
-    case 'maintenance':
-      return 'bg-red-500'
-    case 'check_in':
-      return 'bg-cyan-500'
-    default:
-      return 'bg-muted-foreground'
-  }
-}
-
-function statusColorClass(status: string): string {
-  switch (status) {
-    case 'vacant_clean':
-    case 'vacant_inspected':
-    case 'vacant':
-      return 'text-green-600'
-    case 'occupied_clean':
-    case 'occupied_dirty':
-    case 'occupied':
-      return 'text-blue-600'
-    case 'vacant_dirty':
-    case 'cleaning':
-    case 'check_out':
-      return 'text-amber-600'
-    case 'dnd':
-    case 'service_refused':
-    case 'sleep_out':
-    case 'skipper':
-      return 'text-purple-600'
-    case 'out_of_order':
-    case 'out_of_service':
-    case 'maintenance':
-      return 'text-red-600'
-    case 'check_in':
-      return 'text-cyan-600'
-    default:
-      return 'text-muted-foreground'
-  }
 }
 
 function lastCheckClass(days: number | null): string {
@@ -263,11 +203,11 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
           {/* Line 1: dot + số phòng + tên trạng thái (text semantic) + checkbox */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <span className={cn('inline-block h-2 w-2 rounded-full shrink-0', statusDotClass(room.status))} aria-hidden />
+              <span className={cn('inline-block h-2 w-2 rounded-full shrink-0', getRoomStatusDotClass(room.status))} aria-hidden />
               <h3 className="font-bold leading-none tracking-tight shrink-0" style={styles.numberStyle}>
                 {room.room_number}
               </h3>
-              <span className={cn('text-xs font-medium truncate', statusColorClass(room.status))}>
+              <span className={cn('text-xs font-medium truncate', getRoomStatusTextClass(room.status))}>
                 {statusLabel}
               </span>
             </div>
