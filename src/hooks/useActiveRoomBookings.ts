@@ -11,6 +11,7 @@ export interface ActiveBooking {
   check_out_date: string // YYYY-MM-DD
   expected_check_out_time: string | null // HH:MM:SS
   actual_check_in: string | null
+  booking_group_id: string | null
 }
 
 /**
@@ -29,10 +30,11 @@ export function useActiveRoomBookings(hotelId?: string | null) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('room_bookings')
-        .select('id, room_id, guest_name, guest_count, check_out_date, expected_check_out_time, actual_check_in')
+        .select('id, room_id, guest_name, guest_count, check_out_date, expected_check_out_time, actual_check_in, booking_group_id')
         .eq('tenant_id', tenantId!)
         .eq('hotel_id', hotelId!)
         .eq('status', 'checked_in')
+
 
       if (error) throw error
       const map = new Map<string, ActiveBooking>()
