@@ -1,6 +1,16 @@
 {
-  "current": "1.1.55",
+  "current": "1.1.56",
   "versions": [
+    {
+      "version": "1.1.56",
+      "date": "2026-06-04",
+      "title": "Sơ đồ phòng (Lễ tân): đồng bộ Quick View với Lưới",
+      "highlights": [
+        "Header popup phòng trên Sơ đồ Lễ tân giờ dùng cùng pattern với Lưới HK: chấm trạng thái + 'Phòng 101' + nhãn trạng thái màu semantic — bỏ nền tinted gây nặng mắt",
+        "Bổ sung 'Xem chi tiết phòng' và 'Kiểm tra phòng' vào menu ⋯ ngay trong popup Lễ tân — không cần đi qua trang khác",
+        "Thống nhất visual giữa 2 view (Lưới HK ↔ Sơ đồ Lễ tân) trong khi vẫn giữ nội dung chuyên biệt (giá / khách / tài chính) cho lễ tân"
+      ]
+    },
     {
       "version": "1.1.55",
       "date": "2026-06-04",
