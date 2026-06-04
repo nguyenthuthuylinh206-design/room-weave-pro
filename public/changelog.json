@@ -1,6 +1,19 @@
 {
-  "current": "1.1.61",
+  "current": "1.1.62",
   "versions": [
+    {
+      "version": "1.1.62",
+      "date": "2026-06-04",
+      "title": "Lean Replenish + Delivery: nền tảng RPC (Batch 3 — C4 Phase 1)",
+      "highlights": [
+        "Thêm 2 hàm RPC atomic chuẩn Lean: submit_replenish_lean (bổ sung amenity) và submit_delivery_lean (xác nhận giao kho theo phòng) — gộp insert room_check + room_check_issues + đóng task + audit log vào 1 transaction, không còn 4 mutation rời như flow legacy",
+        "submit_delivery_lean tái dùng confirm_warehouse_delivery / confirm_delivery_from_room_check sẵn có để cộng tồn + đổi trạng thái distribution_order_rooms — không trùng logic kho",
+        "Cả 2 RPC validate tenant qua users.tenant_id, REVOKE PUBLIC + GRANT authenticated, search_path cố định public, ghi audit qua log_state_transition",
+        "Hook React Query mới: useSubmitReplenishLean và useSubmitDeliveryLean (tự invalidate rooms / room-checks / distribution-orders / housekeeping-tasks, xoá draft localStorage, toast tiếng Việt)",
+        "Phase 1 KHÔNG đụng UI hiện tại — RoomCheckPage legacy 1.619 dòng cho replenish/delivery vẫn chạy nguyên; Phase 2-3 sẽ wire 2 page mới rồi mới rollout feature flag"
+      ]
+    },
+
     {
       "version": "1.1.61",
       "date": "2026-06-04",
