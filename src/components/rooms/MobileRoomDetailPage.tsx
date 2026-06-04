@@ -37,6 +37,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
+import { RoomDetailTitleBlock } from '@/components/rooms/detail/RoomDetailTitleBlock'
 import { RoomItemsList } from '@/components/rooms/RoomItemsList'
 import { EnhancedCheckHistory } from '@/components/rooms/EnhancedCheckHistory'
 import { RoomHealthScore } from '@/components/rooms/RoomHealthScore'
