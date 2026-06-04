@@ -64,26 +64,42 @@ export const MobileRoomsPage = () => {
   const { t } = useTranslation(['rooms', 'common', 'distribution'])
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { tenantId } = useUser()
+  const { tenantId, role, user: appUser } = useUser()
+  const { selectedHotel } = useHotelContext()
   const [activeTab, setActiveTab] = useState<'rooms' | 'tasks'>('rooms')
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all')
   const [search, setSearch] = useState('')
-  
+
   // Advanced filters
   const [floorFilter, setFloorFilter] = useState<number | undefined>(undefined)
   const [roomTypeFilter, setRoomTypeFilter] = useState<RoomType | undefined>(undefined)
   const [missingItemsOnly, setMissingItemsOnly] = useState(false)
-  
+
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [selectionMode, setSelectionMode] = useState(false)
-  
+
+  // Quick view + task dialog
+  const [quickViewEntry, setQuickViewEntry] = useState<QuickViewEntry | null>(null)
+  const [taskRoom, setTaskRoom] = useState<{ id: string; number: string; hotelId: string } | null>(null)
+
   const [filters, setFilters] = useState<IRoomFilters>({})
-  
+
   const { data: rooms = [], isLoading, refetch } = useRooms(filters)
   const checkSessions = useAllRoomCheckSessions(tenantId)
   const { data: pendingDistributions } = usePendingRoomDistributions()
   const { data: pendingTaskCount = 0 } = usePendingTaskCount()
+  const { data: activeBookings } = useActiveRoomBookings(selectedHotel?.id)
+
+  const canViewRoomDetail = hasPermission(role, 'manage_rooms') || role !== 'staff'
+  const canCreateTask = canCreateHousekeepingTask(appUser)
+
+  // Tick mỗi 60s để countdown trả phòng cập nhật
+  const [nowTick, setNowTick] = useState(() => Date.now())
+  useEffect(() => {
+    const id = window.setInterval(() => setNowTick(Date.now()), 60_000)
+    return () => window.clearInterval(id)
+  }, [])
 
   // Get unique floors for filter
   const availableFloors = useMemo(() => {
