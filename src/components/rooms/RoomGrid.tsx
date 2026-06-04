@@ -263,30 +263,32 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
       <div
         key={room.id}
         className={cn(
-          'group rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md hover:border-foreground/20',
+          'group rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md hover:border-foreground/20 cursor-pointer',
           priorityRingClass(priority.tier),
           isSelected && 'ring-2 ring-primary bg-primary/5',
-          canViewRoomDetail && 'cursor-pointer',
         )}
-        onClick={() => canViewRoomDetail && navigate(`/rooms/${room.id}`)}
+        onClick={() => setQuickViewEntry(entry)}
       >
         <div className={cn('space-y-2', styles.cellPadding)}>
-          {/* Line 1: room number ALWAYS visible (no truncate) + status dot + checkbox + status selector */}
-          <div className="flex items-start justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2 shrink-0">
+          {/* Line 1: dot + số phòng + tên trạng thái (text semantic) + checkbox */}
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
               <span className={cn('inline-block h-2 w-2 rounded-full shrink-0', statusDotClass(room.status))} aria-hidden />
               <h3 className="font-bold leading-none tracking-tight shrink-0" style={styles.numberStyle}>
                 {room.room_number}
               </h3>
+              <span className={cn('text-xs font-medium truncate', statusColorClass(room.status))}>
+                {statusLabel}
+              </span>
             </div>
-            <div className="flex items-center gap-2 shrink-0 ml-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
               <Checkbox
                 checked={isSelected}
                 onCheckedChange={(checked) => handleSelectRoom(room.id, !!checked)}
               />
-              <RoomStatusSelector roomId={room.id} currentStatus={room.status as RoomStatus} />
             </div>
           </div>
+
 
           {/* Line 2: priority reason */}
           {hasPriorityReason && (
