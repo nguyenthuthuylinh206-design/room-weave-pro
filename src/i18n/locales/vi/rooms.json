@@ -22,12 +22,22 @@
   },
   "status": {
     "vacant": "Trống",
+    "vacant_clean": "Trống – đã dọn",
+    "vacant_dirty": "Trống – chưa dọn",
+    "vacant_inspected": "Trống – đã kiểm",
     "occupied": "Có khách",
-    "cleaning": "Dọn dẹp",
+    "occupied_clean": "Có khách – đã dọn",
+    "occupied_dirty": "Có khách – cần dọn",
+    "cleaning": "Đang dọn",
     "maintenance": "Bảo trì",
-    "check_in": "Check In",
-    "check_out": "Check Out",
-    "out_of_order": "Ngừng sử dụng"
+    "check_in": "Đang nhận phòng",
+    "check_out": "Đang trả phòng",
+    "out_of_order": "Ngừng sử dụng",
+    "out_of_service": "Tạm ngừng phục vụ",
+    "dnd": "Không làm phiền",
+    "service_refused": "Từ chối dọn",
+    "sleep_out": "Vắng qua đêm",
+    "skipper": "Bỏ trốn"
   },
   "roomTypes": {
     "standard": "Standard",
