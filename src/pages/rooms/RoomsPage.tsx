@@ -134,13 +134,13 @@ export function RoomsPage() {
                 <List className="h-4 w-4 mr-2" />
                 Danh sách
               </TabsTrigger>
-              <TabsTrigger value="floor" title="Tape chart đặt phòng theo ngày — dùng cho Lễ tân & quản lý booking">
+              <TabsTrigger value="floor" title="Tape chart booking theo ngày — dùng cho Lễ tân & quản lý đặt phòng">
                 <Map className="h-4 w-4 mr-2" />
-                Lịch phòng
+                Lịch đặt phòng
               </TabsTrigger>
               <TabsTrigger value="map" title="Sơ đồ tổng quan tình trạng phòng — dùng cho Lễ tân tại quầy">
                 <LayoutGrid className="h-4 w-4 mr-2" />
-                Sơ đồ (Lễ tân)
+                Sơ đồ tình trạng
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -151,8 +151,8 @@ export function RoomsPage() {
       <p className="text-xs text-muted-foreground -mt-3 px-1">
         {viewMode === 'grid' && 'Sắp xếp theo mức ưu tiên (Cần xử lý ngay / Theo dõi / Bình thường). Bấm ô phòng để xem nhanh.'}
         {viewMode === 'list' && 'Danh sách dạng bảng để lọc, sắp xếp và xuất dữ liệu.'}
-        {viewMode === 'floor' && 'Lịch đặt phòng theo ngày — dành cho Lễ tân & quản lý booking.'}
-        {viewMode === 'map' && 'Sơ đồ phòng tổng quan trạng thái — dành cho Lễ tân tại quầy. Bấm ô phòng để xem giá / khách / countdown.'}
+        {viewMode === 'floor' && 'Lịch đặt phòng theo ngày (tape chart) — dùng cho Lễ tân & quản lý booking.'}
+        {viewMode === 'map' && 'Sơ đồ phòng tổng quan trạng thái — dùng cho Lễ tân tại quầy. Bấm ô phòng để xem giá / khách / countdown.'}
       </p>
 
       {/* Bulk Actions Bar */}
