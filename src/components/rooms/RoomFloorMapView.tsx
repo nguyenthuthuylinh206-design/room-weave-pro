@@ -790,13 +790,13 @@ function RoomTooltip({
   isArriving: boolean
   isGroup: boolean
 }) {
-  const st = getStatusStyle(room.status)
+  const meta = getRoomStatusMeta(room.status)
   return (
     <div className="space-y-1 text-xs">
       <div className="font-semibold">
         Phòng {room.room_number} · {room.room_type}
       </div>
-      <div className={cn('font-medium', st.textCls)}>{st.label}</div>
+      <div className={cn('font-medium', getRoomStatusTextClass(room.status))}>{meta.label}</div>
       {(room.open_hk_tasks || room.open_maintenance) ? (
         <div className="text-red-600">
           {room.open_hk_tasks ? `${room.open_hk_tasks} buồng phòng` : ''}
