@@ -220,3 +220,22 @@ export function getRoomStatusGroup(status: string | null | undefined): RoomStatu
 
 /** Re-export cho convenience */
 export type { RoomStatus, RoomStatusV2, RoomStatusLegacy }
+
+/**
+ * Class màu chấm (bg-*-500) cho mọi status — semantic, đồng bộ giữa
+ * RoomGrid / MobileRoomsPage / RoomQuickViewDialog / ReceptionQuickDialog.
+ * Suy ra từ ROOM_STATUS_META_V2.text bằng quy ước text-X-700 → bg-X-500.
+ */
+export function getRoomStatusDotClass(status: string | null | undefined): string {
+  const txt = getRoomStatusMeta(status).text // ví dụ "text-emerald-700"
+  return txt.replace(/^text-/, 'bg-').replace(/-\d+$/, '-500')
+}
+
+/**
+ * Class màu chữ semantic (text-*-700) cho status — dùng cạnh tên/nhãn.
+ * Đồng bộ với ROOM_STATUS_META_V2 (đã chuẩn hoá theo Navy Trust).
+ */
+export function getRoomStatusTextClass(status: string | null | undefined): string {
+  return getRoomStatusMeta(status).text
+}
+
