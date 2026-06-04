@@ -196,15 +196,8 @@ export function MobileRoomDetailPage() {
             <Button variant="ghost" size="icon" onClick={() => navigate('/rooms')}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold">{t('detail.title', { number: room.room_number })}</h1>
-                <RoomStatusBadge status={room.status as RoomStatus} />
-              </div>
-              <p className="text-xs text-muted-foreground capitalize">
-                {t(`roomTypes.${room.room_type}`, { defaultValue: room.room_type })} • {t('detail.floorNumber', { number: room.floor })}
-              </p>
-            </div>
+            <RoomDetailTitleBlock room={room} />
+
           </div>
         <div className="flex items-center gap-1">
             {/* Primary action: Supplement missing items */}
