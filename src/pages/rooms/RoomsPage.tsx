@@ -125,27 +125,35 @@ export function RoomsPage() {
             />
           )}
           <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
-          <TabsList>
-            <TabsTrigger value="grid">
-              <Grid3x3 className="h-4 w-4 mr-2" />
-              {t('viewModes.grid')}
-            </TabsTrigger>
-            <TabsTrigger value="list">
-              <List className="h-4 w-4 mr-2" />
-              {t('viewModes.list')}
-            </TabsTrigger>
-            <TabsTrigger value="floor">
-              <Map className="h-4 w-4 mr-2" />
-              Lịch phòng
-            </TabsTrigger>
-            <TabsTrigger value="map">
-              <LayoutGrid className="h-4 w-4 mr-2" />
-              Sơ đồ phòng
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+            <TabsList>
+              <TabsTrigger value="grid" title="Lưới phòng theo ưu tiên — dùng cho Buồng phòng / Quản lý vận hành">
+                <Grid3x3 className="h-4 w-4 mr-2" />
+                Lưới (HK)
+              </TabsTrigger>
+              <TabsTrigger value="list" title="Danh sách bảng — dùng để lọc, sắp xếp, xuất dữ liệu">
+                <List className="h-4 w-4 mr-2" />
+                Danh sách
+              </TabsTrigger>
+              <TabsTrigger value="floor" title="Tape chart đặt phòng theo ngày — dùng cho Lễ tân & quản lý booking">
+                <Map className="h-4 w-4 mr-2" />
+                Lịch phòng
+              </TabsTrigger>
+              <TabsTrigger value="map" title="Sơ đồ tổng quan tình trạng phòng — dùng cho Lễ tân tại quầy">
+                <LayoutGrid className="h-4 w-4 mr-2" />
+                Sơ đồ (Lễ tân)
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
       </div>
+
+      {/* Subtitle: hướng dẫn nhanh vai trò */}
+      <p className="text-xs text-muted-foreground -mt-3 px-1">
+        {viewMode === 'grid' && 'Sắp xếp theo mức ưu tiên (Cần xử lý ngay / Theo dõi / Bình thường). Bấm ô phòng để xem nhanh.'}
+        {viewMode === 'list' && 'Danh sách dạng bảng để lọc, sắp xếp và xuất dữ liệu.'}
+        {viewMode === 'floor' && 'Lịch đặt phòng theo ngày — dành cho Lễ tân & quản lý booking.'}
+        {viewMode === 'map' && 'Sơ đồ phòng tổng quan trạng thái — dành cho Lễ tân tại quầy. Bấm ô phòng để xem giá / khách / countdown.'}
+      </p>
 
       {/* Bulk Actions Bar */}
       <RoomBulkActionsBar
