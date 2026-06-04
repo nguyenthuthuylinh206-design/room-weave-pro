@@ -462,6 +462,16 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
           defaultTaskType={taskType}
         />
       )}
+
+      <RoomQuickViewDialog
+        open={!!quickViewEntry}
+        onOpenChange={(open) => !open && setQuickViewEntry(null)}
+        entry={quickViewEntry}
+        canViewRoomDetail={canViewRoomDetail}
+        canCreateTask={canCreateTask}
+        currentUserId={user?.id}
+        onOpenCreateTask={(room) => openTaskDialog(room, 'cleaning')}
+      />
     </div>
   )
 }
