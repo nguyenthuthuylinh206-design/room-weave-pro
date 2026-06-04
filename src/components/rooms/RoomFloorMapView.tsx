@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn, formatCurrency } from '@/lib/utils'
+import { getRoomStatusMeta, getRoomStatusTextClass } from '@/lib/roomStatus'
 import { useFloorPlanLive, type FloorPlanRoom, type FloorPlanBooking } from '@/hooks/useFloorPlanLive'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useUser } from '@/hooks/useUser'
@@ -94,24 +95,6 @@ function getShortName(name: string | null | undefined): string {
 
 const LIFTABLE_STATUSES = new Set(['dnd', 'out_of_service', 'out_of_order'])
 
-// Status → solid colors
-const STATUS_STYLE: Record<string, { bg: string; label: string; textCls: string }> = {
-  available: { bg: 'bg-emerald-500', label: 'Còn trống', textCls: 'text-emerald-700' },
-  vacant: { bg: 'bg-emerald-500', label: 'Còn trống', textCls: 'text-emerald-700' },
-  occupied: { bg: 'bg-red-500', label: 'Đang ở', textCls: 'text-red-700' },
-  checked_in: { bg: 'bg-red-500', label: 'Đang ở', textCls: 'text-red-700' },
-  reserved: { bg: 'bg-orange-500', label: 'Đã đặt', textCls: 'text-orange-700' },
-  arriving: { bg: 'bg-orange-500', label: 'Sắp đến', textCls: 'text-orange-700' },
-  cleaning: { bg: 'bg-amber-500', label: 'Chờ dọn', textCls: 'text-amber-700' },
-  dirty: { bg: 'bg-amber-500', label: 'Chờ dọn', textCls: 'text-amber-700' },
-  inspection: { bg: 'bg-sky-500', label: 'Kiểm tra', textCls: 'text-sky-700' },
-  maintenance: { bg: 'bg-slate-500', label: 'Bảo trì', textCls: 'text-slate-700' },
-  out_of_order: { bg: 'bg-slate-500', label: 'Hỏng', textCls: 'text-slate-700' },
-  dnd: { bg: 'bg-indigo-500', label: 'DND', textCls: 'text-indigo-700' },
-  blocked: { bg: 'bg-slate-400', label: 'Bị chặn', textCls: 'text-slate-700' },
-}
-
-
 // Stable color per booking group (chỉ tô viền nhóm nếu có nhiều hơn 1 phòng cùng nhóm)
 const GROUP_RING_COLORS = [
   'ring-fuchsia-400',
@@ -126,10 +109,6 @@ function ringForGroup(id: string) {
   let h = 0
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0
   return GROUP_RING_COLORS[h % GROUP_RING_COLORS.length]
-}
-
-function getStatusStyle(status: string) {
-  return STATUS_STYLE[status] || { bg: 'bg-slate-300', label: status, textCls: 'text-slate-600' }
 }
 
 function formatStayDuration(checkIn: string | null | undefined): string {
@@ -575,8 +554,20 @@ export function RoomFloorMapView({
         </div>
       ) : (
         <TooltipProvider delayDuration={300}>
-          {visibleFloors.map(({ floor, rooms }) => (
-            <div key={floor} className="rounded-lg border bg-card">
+          {visibleFloors.map(({ floor, rooms }) => {
+            // D1 — Lazy render per-floor via CSS `content-visibility: auto`.
+            // Trình duyệt tự skip render khi tầng nằm ngoài viewport (≥200 phòng vẫn mượt).
+            // Ước tính số dòng theo container width ~1200px và cell width (cellSize.size.width + gap 8px).
+            // Ước tính số dòng theo cols & height của preset đang dùng.
+            const approxCols = cellSize.size.cols || 12
+            const approxRows = Math.ceil(rooms.length / approxCols)
+            const intrinsicH = 40 /* header */ + approxRows * (cellSize.size.height + 8) + 16
+            return (
+            <div
+              key={floor}
+              className="rounded-lg border bg-card"
+              style={{ contentVisibility: 'auto' as any, containIntrinsicSize: `${intrinsicH}px` }}
+            >
               <div className="flex items-center justify-between border-b px-3 py-1.5">
                 <div className="text-sm font-semibold">Tầng {floor}</div>
                 <div className="text-xs text-muted-foreground">{rooms.length} phòng</div>
@@ -752,7 +743,8 @@ export function RoomFloorMapView({
                 })}
               </div>
             </div>
-          ))}
+            )
+          })}
 
         </TooltipProvider>
       )}
@@ -811,13 +803,13 @@ function RoomTooltip({
   isArriving: boolean
   isGroup: boolean
 }) {
-  const st = getStatusStyle(room.status)
+  const meta = getRoomStatusMeta(room.status)
   return (
     <div className="space-y-1 text-xs">
       <div className="font-semibold">
         Phòng {room.room_number} · {room.room_type}
       </div>
-      <div className={cn('font-medium', st.textCls)}>{st.label}</div>
+      <div className={cn('font-medium', getRoomStatusTextClass(room.status))}>{meta.label}</div>
       {(room.open_hk_tasks || room.open_maintenance) ? (
         <div className="text-red-600">
           {room.open_hk_tasks ? `${room.open_hk_tasks} buồng phòng` : ''}
