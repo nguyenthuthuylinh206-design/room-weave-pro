@@ -153,12 +153,8 @@ export const MobileRoomsPage = () => {
     setSelectionMode(false)
   }
 
-  const handleLongPress = (roomId: string) => {
-    if (!selectionMode) {
-      setSelectionMode(true)
-      setSelectedIds([roomId])
-    }
-  }
+
+
 
   // Stats
   const stats = useMemo(() => ({
