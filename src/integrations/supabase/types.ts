@@ -2928,6 +2928,241 @@ export type Database = {
           },
         ]
       }
+      hotel_einvoice_configs: {
+        Row: {
+          api_base_url: string
+          api_password_secret_ref: string | null
+          api_username: string
+          auto_issue: boolean
+          branch_code: string | null
+          cached_token: string | null
+          cached_token_expires_at: string | null
+          created_at: string
+          created_by: string | null
+          default_invoice_series: string | null
+          default_template_code: string | null
+          environment: Database["public"]["Enums"]["einvoice_environment"]
+          extra_config: Json
+          hotel_id: string
+          id: string
+          is_active: boolean
+          last_test_at: string | null
+          last_test_message: string | null
+          last_test_ok: boolean | null
+          provider: Database["public"]["Enums"]["einvoice_provider"]
+          sign_type: Database["public"]["Enums"]["einvoice_sign_type"]
+          supplier_address: string | null
+          supplier_legal_name: string | null
+          tax_code: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          api_base_url?: string
+          api_password_secret_ref?: string | null
+          api_username: string
+          auto_issue?: boolean
+          branch_code?: string | null
+          cached_token?: string | null
+          cached_token_expires_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_invoice_series?: string | null
+          default_template_code?: string | null
+          environment?: Database["public"]["Enums"]["einvoice_environment"]
+          extra_config?: Json
+          hotel_id: string
+          id?: string
+          is_active?: boolean
+          last_test_at?: string | null
+          last_test_message?: string | null
+          last_test_ok?: boolean | null
+          provider?: Database["public"]["Enums"]["einvoice_provider"]
+          sign_type?: Database["public"]["Enums"]["einvoice_sign_type"]
+          supplier_address?: string | null
+          supplier_legal_name?: string | null
+          tax_code: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          api_base_url?: string
+          api_password_secret_ref?: string | null
+          api_username?: string
+          auto_issue?: boolean
+          branch_code?: string | null
+          cached_token?: string | null
+          cached_token_expires_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_invoice_series?: string | null
+          default_template_code?: string | null
+          environment?: Database["public"]["Enums"]["einvoice_environment"]
+          extra_config?: Json
+          hotel_id?: string
+          id?: string
+          is_active?: boolean
+          last_test_at?: string | null
+          last_test_message?: string | null
+          last_test_ok?: boolean | null
+          provider?: Database["public"]["Enums"]["einvoice_provider"]
+          sign_type?: Database["public"]["Enums"]["einvoice_sign_type"]
+          supplier_address?: string | null
+          supplier_legal_name?: string | null
+          tax_code?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      hotel_invoices: {
+        Row: {
+          adjustment_reason: string | null
+          adjustment_type: number | null
+          buyer: Json
+          config_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          discount_amount: number
+          error_code: string | null
+          error_message: string | null
+          exchange_rate: number
+          hotel_id: string
+          id: string
+          invoice_no: string | null
+          invoice_series: string | null
+          invoice_type: Database["public"]["Enums"]["einvoice_invoice_type"]
+          issued_at: string | null
+          last_polled_at: string | null
+          line_items: Json
+          original_invoice_no: string | null
+          original_transaction_uuid: string | null
+          parent_invoice_id: string | null
+          poll_attempts: number
+          provider: Database["public"]["Enums"]["einvoice_provider"]
+          provider_request: Json | null
+          provider_response: Json | null
+          reservation_code: string | null
+          source_id: string | null
+          source_table: string | null
+          status: Database["public"]["Enums"]["einvoice_status"]
+          subtotal: number
+          template_code: string | null
+          template_id: string | null
+          tenant_id: string
+          total_amount: number
+          transaction_uuid: string
+          updated_at: string
+          vat_amount: number
+          viettel_status: string | null
+        }
+        Insert: {
+          adjustment_reason?: string | null
+          adjustment_type?: number | null
+          buyer?: Json
+          config_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          discount_amount?: number
+          error_code?: string | null
+          error_message?: string | null
+          exchange_rate?: number
+          hotel_id: string
+          id?: string
+          invoice_no?: string | null
+          invoice_series?: string | null
+          invoice_type?: Database["public"]["Enums"]["einvoice_invoice_type"]
+          issued_at?: string | null
+          last_polled_at?: string | null
+          line_items?: Json
+          original_invoice_no?: string | null
+          original_transaction_uuid?: string | null
+          parent_invoice_id?: string | null
+          poll_attempts?: number
+          provider?: Database["public"]["Enums"]["einvoice_provider"]
+          provider_request?: Json | null
+          provider_response?: Json | null
+          reservation_code?: string | null
+          source_id?: string | null
+          source_table?: string | null
+          status?: Database["public"]["Enums"]["einvoice_status"]
+          subtotal?: number
+          template_code?: string | null
+          template_id?: string | null
+          tenant_id: string
+          total_amount?: number
+          transaction_uuid: string
+          updated_at?: string
+          vat_amount?: number
+          viettel_status?: string | null
+        }
+        Update: {
+          adjustment_reason?: string | null
+          adjustment_type?: number | null
+          buyer?: Json
+          config_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          discount_amount?: number
+          error_code?: string | null
+          error_message?: string | null
+          exchange_rate?: number
+          hotel_id?: string
+          id?: string
+          invoice_no?: string | null
+          invoice_series?: string | null
+          invoice_type?: Database["public"]["Enums"]["einvoice_invoice_type"]
+          issued_at?: string | null
+          last_polled_at?: string | null
+          line_items?: Json
+          original_invoice_no?: string | null
+          original_transaction_uuid?: string | null
+          parent_invoice_id?: string | null
+          poll_attempts?: number
+          provider?: Database["public"]["Enums"]["einvoice_provider"]
+          provider_request?: Json | null
+          provider_response?: Json | null
+          reservation_code?: string | null
+          source_id?: string | null
+          source_table?: string | null
+          status?: Database["public"]["Enums"]["einvoice_status"]
+          subtotal?: number
+          template_code?: string | null
+          template_id?: string | null
+          tenant_id?: string
+          total_amount?: number
+          transaction_uuid?: string
+          updated_at?: string
+          vat_amount?: number
+          viettel_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_invoices_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "hotel_einvoice_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hotel_invoices_parent_invoice_id_fkey"
+            columns: ["parent_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "hotel_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hotel_invoices_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hotel_policy: {
         Row: {
           created_at: string
@@ -3919,6 +4154,157 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      invoice_api_logs: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          endpoint: string
+          error_message: string | null
+          hotel_id: string | null
+          id: string
+          invoice_id: string | null
+          method: string
+          provider: Database["public"]["Enums"]["einvoice_provider"]
+          request_body: Json | null
+          response_body: Json | null
+          status_code: number | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          endpoint: string
+          error_message?: string | null
+          hotel_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          method: string
+          provider: Database["public"]["Enums"]["einvoice_provider"]
+          request_body?: Json | null
+          response_body?: Json | null
+          status_code?: number | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          endpoint?: string
+          error_message?: string | null
+          hotel_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          method?: string
+          provider?: Database["public"]["Enums"]["einvoice_provider"]
+          request_body?: Json | null
+          response_body?: Json | null
+          status_code?: number | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_api_logs_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "hotel_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_files: {
+        Row: {
+          checksum: string | null
+          created_at: string
+          file_size: number | null
+          file_type: Database["public"]["Enums"]["einvoice_file_type"]
+          hotel_id: string
+          id: string
+          invoice_id: string
+          mime_type: string | null
+          storage_bucket: string
+          storage_path: string
+          tenant_id: string
+        }
+        Insert: {
+          checksum?: string | null
+          created_at?: string
+          file_size?: number | null
+          file_type: Database["public"]["Enums"]["einvoice_file_type"]
+          hotel_id: string
+          id?: string
+          invoice_id: string
+          mime_type?: string | null
+          storage_bucket?: string
+          storage_path: string
+          tenant_id: string
+        }
+        Update: {
+          checksum?: string | null
+          created_at?: string
+          file_size?: number | null
+          file_type?: Database["public"]["Enums"]["einvoice_file_type"]
+          hotel_id?: string
+          id?: string
+          invoice_id?: string
+          mime_type?: string | null
+          storage_bucket?: string
+          storage_path?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_files_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "hotel_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_templates: {
+        Row: {
+          created_at: string
+          extra: Json
+          hotel_id: string
+          id: string
+          invoice_series: string
+          is_active: boolean
+          is_default: boolean
+          provider: Database["public"]["Enums"]["einvoice_provider"]
+          template_code: string
+          template_name: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          extra?: Json
+          hotel_id: string
+          id?: string
+          invoice_series: string
+          is_active?: boolean
+          is_default?: boolean
+          provider?: Database["public"]["Enums"]["einvoice_provider"]
+          template_code: string
+          template_name?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          extra?: Json
+          hotel_id?: string
+          id?: string
+          invoice_series?: string
+          is_active?: boolean
+          is_default?: boolean
+          provider?: Database["public"]["Enums"]["einvoice_provider"]
+          template_code?: string
+          template_name?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       invoice_vat_claims: {
         Row: {
@@ -12644,6 +13030,7 @@ export type Database = {
           source: string
         }[]
       }
+      get_einvoice_password: { Args: { _config_id: string }; Returns: string }
       get_financial_report: {
         Args: {
           p_end_date: string
@@ -14088,6 +14475,10 @@ export type Database = {
         Args: { _conversation_id: string; _muted_until: string }
         Returns: undefined
       }
+      set_einvoice_password: {
+        Args: { _config_id: string; _password: string }
+        Returns: string
+      }
       set_tenant_read_only: {
         Args: { p_reason: string; p_tenant_id: string }
         Returns: undefined
@@ -14461,6 +14852,21 @@ export type Database = {
         | "chargeable_rejected"
       conversation_member_role: "admin" | "member"
       conversation_type: "direct" | "group"
+      einvoice_environment: "sandbox" | "production"
+      einvoice_file_type: "pdf" | "xml" | "zip" | "signed_xml" | "other"
+      einvoice_invoice_type: "normal" | "adjustment" | "replacement"
+      einvoice_provider: "viettel_sinvoice" | "misa" | "vnpt" | "easyinvoice"
+      einvoice_sign_type: "cloud" | "usb_token"
+      einvoice_status:
+        | "draft"
+        | "queued"
+        | "processing"
+        | "signing"
+        | "issued"
+        | "cancelled"
+        | "adjusted"
+        | "replaced"
+        | "failed"
       hk_qc_mode: "self" | "peer" | "strict"
       issue_role: "primary_issue" | "derived_action"
       item_type: "linen" | "consumable" | "equipment" | "furniture"
@@ -14643,6 +15049,22 @@ export const Constants = {
       ],
       conversation_member_role: ["admin", "member"],
       conversation_type: ["direct", "group"],
+      einvoice_environment: ["sandbox", "production"],
+      einvoice_file_type: ["pdf", "xml", "zip", "signed_xml", "other"],
+      einvoice_invoice_type: ["normal", "adjustment", "replacement"],
+      einvoice_provider: ["viettel_sinvoice", "misa", "vnpt", "easyinvoice"],
+      einvoice_sign_type: ["cloud", "usb_token"],
+      einvoice_status: [
+        "draft",
+        "queued",
+        "processing",
+        "signing",
+        "issued",
+        "cancelled",
+        "adjusted",
+        "replaced",
+        "failed",
+      ],
       hk_qc_mode: ["self", "peer", "strict"],
       issue_role: ["primary_issue", "derived_action"],
       item_type: ["linen", "consumable", "equipment", "furniture"],
