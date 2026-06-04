@@ -26,6 +26,13 @@ import {
 } from '@/hooks/useActiveRoomBookings'
 import type { RoomWithStats, RoomStatus } from '@/types/rooms.types'
 
+export interface GroupSibling {
+  roomId: string
+  roomNumber: string
+  status: string
+  guestName: string | null
+}
+
 export interface QuickViewEntry {
   room: RoomWithStats
   pendingCount: number
@@ -37,6 +44,8 @@ export interface QuickViewEntry {
   booking: ActiveBooking | null
   minutesToCheckout: number | null
   session?: { user_id: string; user_name: string; check_type: string } | null
+  /** Các phòng cùng group booking (không bao gồm phòng hiện tại) */
+  groupSiblings?: GroupSibling[]
 }
 
 interface Props {
@@ -48,6 +57,7 @@ interface Props {
   currentUserId?: string
   onOpenCreateTask?: (room: RoomWithStats) => void
 }
+
 
 export function RoomQuickViewDialog({
   open,
