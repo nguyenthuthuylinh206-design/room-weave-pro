@@ -956,22 +956,26 @@ function Row({
         transform: `translateY(${top}px)`,
       }}
     >
-      <div
-        className="sticky left-0 z-20 flex items-center gap-2 border-r bg-background px-3"
+      <button
+        type="button"
+        onClick={() => onRoomClick?.(room)}
+        className="sticky left-0 z-20 group flex items-center gap-2 border-r bg-background px-3 text-left transition-colors hover:bg-accent/60"
         style={{ width: ROOM_COL_W, minWidth: ROOM_COL_W, height }}
+        title={`Mở chi tiết phòng ${room.room_number}`}
       >
         <span
           className={cn('h-2 w-2 shrink-0 rounded-full border', meta.bg, meta.border)}
           title={meta.label}
         />
-        <div className="min-w-0 leading-tight">
+        <div className="min-w-0 flex-1 leading-tight">
           <div className="truncate text-sm font-semibold">{room.room_number}</div>
           <div className="truncate text-[10px] text-muted-foreground">
             <span className="capitalize">{room.room_type}</span>
             <span className={cn('ml-1', meta.text)}>· {meta.short}</span>
           </div>
         </div>
-      </div>
+        <Eye className="h-3 w-3 shrink-0 text-muted-foreground/0 transition-opacity group-hover:text-muted-foreground" />
+      </button>
 
       <div className="relative flex" style={{ width: days * cellW, height }}>
         {/* Background cells với drop target */}
