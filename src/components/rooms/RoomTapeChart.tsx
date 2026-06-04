@@ -902,6 +902,7 @@ interface RowProps {
   onBookingDragStart: (b: TapeChartBooking) => void
   onCellDrop: (room: TapeChartRoom, date: Date) => void
   onDeleteBlock: (id: string) => void
+  onRoomClick?: (room: TapeChartRoom) => void
 }
 
 function Row({
