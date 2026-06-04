@@ -274,7 +274,7 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
           priorityRingClass(priority.tier),
           isSelected && 'ring-2 ring-primary bg-primary/5',
         )}
-        onClick={() => setQuickViewEntry({ ...entry, session: session ?? null })}
+        onClick={(e) => handleCardClick(entry, e)}
       >
         <div className={cn('space-y-2', styles.cellPadding)}>
           {/* Line 1: dot + số phòng + tên trạng thái (text semantic) + checkbox */}
