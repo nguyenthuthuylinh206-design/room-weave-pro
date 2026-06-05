@@ -12477,71 +12477,41 @@ export type Database = {
         Args: { _hotel_id: string; _peer_user_id: string }
         Returns: string
       }
-      create_distribution_order:
-        | {
-            Args: {
-              p_assigned_to: string
-              p_created_by: string
-              p_hotel_id: string
-              p_notes?: string
-              p_rooms: Json
-              p_tenant_id: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_assigned_to: string
-              p_auto_release?: boolean
-              p_created_by: string
-              p_hotel_id: string
-              p_notes?: string
-              p_rooms: Json
-              p_supplement_request_ids?: string[]
-              p_tenant_id: string
-            }
-            Returns: Json
-          }
+      create_distribution_order: {
+        Args: {
+          p_assigned_to: string
+          p_auto_release?: boolean
+          p_created_by: string
+          p_hotel_id: string
+          p_notes?: string
+          p_rooms: Json
+          p_supplement_request_ids?: string[]
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
       create_group_conversation: {
         Args: { _hotel_id: string; _member_ids: string[]; _name: string }
         Returns: string
       }
-      create_inbound_transaction:
-        | {
-            Args: {
-              p_created_by: string
-              p_documents?: string[]
-              p_from_location: string
-              p_hotel_id: string
-              p_items: Json
-              p_notes?: string
-              p_photos?: string[]
-              p_related_id?: string
-              p_related_type?: string
-              p_tenant_id: string
-              p_to_location: string
-              p_transaction_category: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_created_by: string
-              p_documents?: string[]
-              p_from_location: string
-              p_hotel_id: string
-              p_items: Json
-              p_notes?: string
-              p_photos?: string[]
-              p_related_id?: string
-              p_related_type?: string
-              p_tenant_id: string
-              p_to_location: string
-              p_to_warehouse_id?: string
-              p_transaction_category: string
-            }
-            Returns: Json
-          }
+      create_inbound_transaction: {
+        Args: {
+          p_created_by: string
+          p_documents?: string[]
+          p_from_location: string
+          p_hotel_id: string
+          p_items: Json
+          p_notes?: string
+          p_photos?: string[]
+          p_related_id?: string
+          p_related_type?: string
+          p_tenant_id: string
+          p_to_location: string
+          p_to_warehouse_id?: string
+          p_transaction_category: string
+        }
+        Returns: Json
+      }
       create_laundry_batch_with_items: {
         Args: {
           p_delivery_date: string
@@ -12556,60 +12526,31 @@ export type Database = {
         }
         Returns: Json
       }
-      create_laundry_loss_transaction:
-        | {
-            Args: {
-              p_batch_code: string
-              p_batch_id: string
-              p_created_by: string
-              p_hotel_id: string
-              p_item_id: string
-              p_loss_type: string
-              p_notes?: string
-              p_quantity: number
-              p_tenant_id: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_created_by: string
-              p_hotel_id: string
-              p_items: Json
-              p_loss_type: string
-              p_notes?: string
-              p_related_id?: string
-              p_tenant_id: string
-            }
-            Returns: Json
-          }
-      create_laundry_return_transaction:
-        | {
-            Args: {
-              p_batch_code: string
-              p_batch_id: string
-              p_created_by: string
-              p_hotel_id: string
-              p_item_id: string
-              p_notes?: string
-              p_quantity: number
-              p_tenant_id: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_created_by: string
-              p_from_location: string
-              p_hotel_id: string
-              p_items: Json
-              p_notes?: string
-              p_related_id?: string
-              p_tenant_id: string
-              p_to_location: string
-            }
-            Returns: Json
-          }
+      create_laundry_loss_transaction: {
+        Args: {
+          p_created_by: string
+          p_hotel_id: string
+          p_items: Json
+          p_loss_type: string
+          p_notes?: string
+          p_related_id?: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      create_laundry_return_transaction: {
+        Args: {
+          p_created_by: string
+          p_from_location: string
+          p_hotel_id: string
+          p_items: Json
+          p_notes?: string
+          p_related_id?: string
+          p_tenant_id: string
+          p_to_location: string
+        }
+        Returns: Json
+      }
       create_new_linen_batch: {
         Args: { _batch_code: string; _item_id: string; _quantity: number }
         Returns: Json
@@ -12640,46 +12581,26 @@ export type Database = {
         }
         Returns: string
       }
-      create_outbound_transaction:
-        | {
-            Args: {
-              p_created_by: string
-              p_documents?: string[]
-              p_from_location: string
-              p_hotel_id: string
-              p_items: Json
-              p_notes?: string
-              p_photos?: string[]
-              p_recipient_name?: string
-              p_recipient_signature?: string
-              p_related_id?: string
-              p_related_type?: string
-              p_tenant_id: string
-              p_to_location: string
-              p_transaction_category: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_created_by: string
-              p_documents?: string[]
-              p_from_location: string
-              p_from_warehouse_id?: string
-              p_hotel_id: string
-              p_items: Json
-              p_notes?: string
-              p_photos?: string[]
-              p_recipient_name?: string
-              p_recipient_signature?: string
-              p_related_id?: string
-              p_related_type?: string
-              p_tenant_id: string
-              p_to_location: string
-              p_transaction_category: string
-            }
-            Returns: Json
-          }
+      create_outbound_transaction: {
+        Args: {
+          p_created_by: string
+          p_documents?: string[]
+          p_from_location: string
+          p_from_warehouse_id?: string
+          p_hotel_id: string
+          p_items: Json
+          p_notes?: string
+          p_photos?: string[]
+          p_recipient_name?: string
+          p_recipient_signature?: string
+          p_related_id?: string
+          p_related_type?: string
+          p_tenant_id: string
+          p_to_location: string
+          p_transaction_category: string
+        }
+        Returns: Json
+      }
       create_room_block: {
         Args: {
           p_block_type?: string
@@ -13169,76 +13090,41 @@ export type Database = {
         }[]
       }
       get_laundry_batch_detail: { Args: { p_batch_id: string }; Returns: Json }
-      get_laundry_batches_filtered:
-        | {
-            Args: {
-              p_from_date?: string
-              p_hotel_id?: string
-              p_limit?: number
-              p_offset?: number
-              p_status?: string
-              p_tenant_id: string
-              p_to_date?: string
-              p_vendor_id?: string
-            }
-            Returns: {
-              actual_cost: number
-              actual_return_date: string
-              batch_code: string
-              created_at: string
-              delivery_date: string
-              estimated_cost: number
-              expected_return_date: string
-              id: string
-              items_damaged: number
-              items_lost: number
-              quality_rating: number
-              status: string
-              timeliness_rating: number
-              total_count: number
-              total_items: number
-              total_weight_kg: number
-              vendor_id: string
-              vendor_logo: string
-              vendor_name: string
-              vendor_rating: number
-            }[]
-          }
-        | {
-            Args: {
-              p_from_date?: string
-              p_hotel_id?: string
-              p_page?: number
-              p_page_size?: number
-              p_search?: string
-              p_status?: string
-              p_tenant_id: string
-              p_to_date?: string
-              p_vendor_id?: string
-            }
-            Returns: {
-              actual_cost: number
-              actual_return_date: string
-              batch_code: string
-              created_at: string
-              delivery_date: string
-              estimated_cost: number
-              expected_return_date: string
-              hotel_id: string
-              id: string
-              notes: string
-              status: string
-              tenant_id: string
-              total_count: number
-              total_items: number
-              total_weight_kg: number
-              updated_at: string
-              vendor_id: string
-              vendor_logo: string
-              vendor_name: string
-              vendor_rating: number
-            }[]
-          }
+      get_laundry_batches_filtered: {
+        Args: {
+          p_from_date?: string
+          p_hotel_id?: string
+          p_page?: number
+          p_page_size?: number
+          p_search?: string
+          p_status?: string
+          p_tenant_id: string
+          p_to_date?: string
+          p_vendor_id?: string
+        }
+        Returns: {
+          actual_cost: number
+          actual_return_date: string
+          batch_code: string
+          created_at: string
+          delivery_date: string
+          estimated_cost: number
+          expected_return_date: string
+          hotel_id: string
+          id: string
+          notes: string
+          status: string
+          tenant_id: string
+          total_count: number
+          total_items: number
+          total_weight_kg: number
+          updated_at: string
+          vendor_id: string
+          vendor_logo: string
+          vendor_name: string
+          vendor_rating: number
+        }[]
+      }
       get_laundry_dashboard_stats: {
         Args: { p_hotel_id?: string; p_tenant_id: string }
         Returns: Json
@@ -14380,31 +14266,20 @@ export type Database = {
         }
         Returns: Json
       }
-      setup_new_tenant:
-        | {
-            Args: {
-              p_hotel_address: string
-              p_hotel_name: string
-              p_owner_user_id: string
-              p_tenant_id: string
-              p_total_rooms: number
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_hotel_address: string
-              p_hotel_email: string
-              p_hotel_name: string
-              p_hotel_phone: string
-              p_tenant_email: string
-              p_tenant_name: string
-              p_tenant_phone: string
-              p_total_rooms: number
-              p_user_id: string
-            }
-            Returns: Json
-          }
+      setup_new_tenant: {
+        Args: {
+          p_hotel_address: string
+          p_hotel_email: string
+          p_hotel_name: string
+          p_hotel_phone: string
+          p_tenant_email: string
+          p_tenant_name: string
+          p_tenant_phone: string
+          p_total_rooms: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
       setup_room_initial: {
         Args: {
           p_reset_quantities?: boolean
