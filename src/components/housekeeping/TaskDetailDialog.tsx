@@ -154,7 +154,9 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
   }
 
   const handleDeliveryConfirm = () => {
-    setShowDeliveryModal(true)
+    if (!task) return
+    onOpenChange(false)
+    navigate(`/rooms/${task.room_id}/check?type=delivery&room_order_id=${task.distribution_order_room_id}&task_id=${task.id}&returnTo=/my-tasks`)
   }
 
   const Icon = task ? TASK_ICONS[task.task_type] : MoreHorizontal
