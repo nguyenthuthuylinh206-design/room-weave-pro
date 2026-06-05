@@ -13542,10 +13542,13 @@ export type Database = {
       get_room_items_with_standards: {
         Args: { p_room_id: string }
         Returns: {
+          asset_group: string
           category_id: string
           category_name: string
           condition: string
+          default_item_type: string
           id: string
+          is_chargeable: boolean
           item_code: string
           item_id: string
           item_name: string
@@ -13555,6 +13558,7 @@ export type Database = {
           room_id: string
           standard_quantity: number
           unit: string
+          unit_price: number
         }[]
       }
       get_room_standards: {

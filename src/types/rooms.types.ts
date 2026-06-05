@@ -173,7 +173,9 @@ export interface RoomItemWithDetails {
   item_id: string
   item_code: string
   item_name: string
+  item_type?: string
   item_thumbnail?: string
+  category_id?: string | null
   category_name?: string
   standard_quantity: number
   current_quantity: number
@@ -184,6 +186,12 @@ export interface RoomItemWithDetails {
   verified_by?: string
   room_item_id?: string | null
   has_standard: boolean
+  // Enrichment fields (Sprint 4 #33) — RPC `get_room_items_with_standards`
+  is_chargeable?: boolean
+  unit_price?: number | null
+  asset_group?: string | null
+  default_item_type?: string | null
+  unit?: string | null
 }
 
 export interface RoomCheckWithUser {

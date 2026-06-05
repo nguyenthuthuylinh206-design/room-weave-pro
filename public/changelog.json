@@ -1,6 +1,17 @@
 {
-  "current": "1.1.71",
+  "current": "1.1.72",
   "versions": [
+    {
+      "version": "1.1.72",
+      "date": "2026-06-05",
+      "title": "Sprint 4+ audit menu Phòng: perf sâu #32 + #33",
+      "highlights": [
+        "#33 RPC `get_room_items_with_standards` mở rộng trả về sẵn `is_chargeable`, `unit_price`, `asset_group`, `default_item_type` — LeanInspectionPage bỏ hẳn query `items.in(ids)` thứ 2 (tiết kiệm 1 round-trip mỗi lần mở /inspection, ~150–300ms 4G)",
+        "#33 LeanInspectionPage enrich items qua `useMemo` thay vì `useEffect+setState` async → render đồng bộ ngay từ frame đầu, không còn skeleton enrich",
+        "#32 `useRoom`: bỏ `staleTime: 0` + `refetchOnMount: 'always'` → `staleTime: 30s` + `refetchOnMount: true`. Wizard Lean (Overview → Inspection → Review → Success) trước đây refetch 4×3 query, giờ chia sẻ cache → chỉ 3 query cho cả luồng (giảm ~75% network)",
+        "Type `RoomItemWithDetails` mở rộng: thêm `item_type`, `category_id`, `is_chargeable`, `unit_price`, `asset_group`, `default_item_type`, `unit` để các trang khác dùng chung dữ liệu enriched"
+      ]
+    },
     {
       "version": "1.1.71",
       "date": "2026-06-05",

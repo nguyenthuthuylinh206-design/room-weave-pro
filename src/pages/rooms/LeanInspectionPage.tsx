@@ -4,7 +4,7 @@ import { ChevronLeft, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
-import { supabase } from '@/integrations/supabase/client'
+// supabase client không còn dùng trực tiếp ở đây (Sprint 4 #33 — enrich qua useRoom)
 import { toast } from 'sonner'
 
 import { useRoom } from '@/hooks/useRooms'
@@ -145,65 +145,33 @@ export default function LeanInspectionPage() {
 
   const { data: leanCfg } = useRoomCheckLeanConfig(hotelId)
 
-  // ────── Enrich items với item_type / category / minibar flag ──────
-  const [enriched, setEnriched] = useState<EnrichedItem[]>([])
-  const [enrichLoading, setEnrichLoading] = useState(true)
-  const [enrichError, setEnrichError] = useState<string | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    const run = async () => {
-      if (!items.length) {
-        setEnriched([])
-        setEnrichLoading(false)
-        return
+  // ────── Enrich items — Sprint 4 #33 ──────
+  // RPC `get_room_items_with_standards` đã trả về sẵn item_type/is_chargeable/
+  // unit_price/asset_group/default_item_type → derive thẳng bằng useMemo,
+  // không cần thêm 1 query `items.in(ids)` mỗi lần mở trang.
+  const enriched = useMemo<EnrichedItem[]>(() => {
+    return items.map((it) => {
+      const itemType =
+        ((it as any).item_type as ItemType) ??
+        ((it as any).default_item_type as ItemType) ??
+        'equipment'
+      const catName = it.category_name || 'Khác'
+      const isMinibar =
+        !!(it as any).is_chargeable &&
+        (itemType === 'consumable' || /minibar/i.test(catName))
+      return {
+        ...it,
+        item_type: itemType,
+        category_name: catName,
+        category_id: (it as any).category_id ?? null,
+        is_minibar: isMinibar,
+        unit_price: (it as any).unit_price ?? null,
+        asset_group: ((it as any).asset_group as AssetGroup) ?? null,
       }
-      setEnrichLoading(true)
-      setEnrichError(null)
-      try {
-        const ids = items.map((i) => i.item_id)
-        const { data, error } = await supabase
-          .from('items')
-          .select(
-            'id, item_type, is_chargeable, unit_price, asset_group, item_categories(id, name, default_item_type)',
-          )
-          .in('id', ids)
-        if (error) throw error
-        if (cancelled) return
-        const byId = new Map(data?.map((d) => [d.id, d]) ?? [])
-        const out: EnrichedItem[] = items.map((it) => {
-          const d = byId.get(it.item_id) as any
-          const cat = d?.item_categories
-          const catName: string = cat?.name || it.category_name || 'Khác'
-          const isMinibar =
-            !!d?.is_chargeable &&
-            (((d?.item_type as ItemType) ?? cat?.default_item_type) === 'consumable' ||
-              /minibar/i.test(catName))
-          return {
-            ...it,
-            item_type:
-              (d?.item_type as ItemType) ??
-              (cat?.default_item_type as ItemType) ??
-              'equipment',
-            category_name: catName,
-            category_id: cat?.id || null,
-            is_minibar: isMinibar,
-            unit_price: d?.unit_price ?? null,
-            asset_group: (d?.asset_group as AssetGroup) ?? null,
-          }
-        })
-        setEnriched(out)
-      } catch (e: any) {
-        if (!cancelled) setEnrichError(e?.message || 'enrich_failed')
-      } finally {
-        if (!cancelled) setEnrichLoading(false)
-      }
-    }
-    run()
-    return () => {
-      cancelled = true
-    }
+    })
   }, [items])
+  const enrichLoading = false
+  const enrichError: string | null = null
 
   // ────── State chính ──────
   const startedAtRef = useRef<string>(new Date().toISOString())

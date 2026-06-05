@@ -142,13 +142,16 @@ export function useRoom(roomId: string | undefined) {
         console.error('Error fetching room checks:', checksError)
       }
       
-      // Transform items data - Fix mapping: RPC returns 'quantity' and 'id', compute missing fields
+      // Transform items data — RPC trả về sẵn is_chargeable / unit_price /
+      // asset_group / default_item_type (Sprint 4 #33) nên client không cần
+      // truy vấn `items` lần 2 để enrich.
       const items = (itemsWithStandards || []).map((item: any) => ({
         item_id: item.item_id,
         item_code: item.item_code,
         item_name: item.item_name,
         item_type: item.item_type,
         item_thumbnail: item.item_thumbnail,
+        category_id: item.category_id ?? null,
         category_name: item.category_name,
         standard_quantity: item.standard_quantity || 0,
         current_quantity: item.quantity || 0,
@@ -159,6 +162,12 @@ export function useRoom(roomId: string | undefined) {
         verified_by: item.verified_by,
         room_item_id: item.id || null,
         has_standard: (item.standard_quantity || 0) > 0,
+        // Enrichment fields cho Lean (sprint 4 #33)
+        is_chargeable: !!item.is_chargeable,
+        unit_price: item.unit_price ?? null,
+        asset_group: item.asset_group ?? null,
+        default_item_type: item.default_item_type ?? null,
+        unit: item.unit ?? null,
       }))
       
       // Transform checks data
@@ -189,8 +198,11 @@ export function useRoom(roomId: string | undefined) {
       }
     },
     enabled: !!roomId,
-    refetchOnMount: 'always',
-    staleTime: 0,
+    // Sprint 4 #32: chia sẻ cache qua các bước wizard Lean (Overview → Inspection
+    // → Review → Success) thay vì refetch full 3 query mỗi lần điều hướng.
+    // Realtime channels trên rooms/room_items/room_checks vẫn invalidate khi data thay đổi.
+    staleTime: 30_000,
+    refetchOnMount: true,
   })
 }
 
