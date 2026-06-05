@@ -121,12 +121,8 @@ describe('RPC signature drift (vs _generated/db-functions.tsv)', () => {
       'create_laundry_loss_transaction',
       'create_laundry_return_transaction',
       'create_outbound_transaction',
-      'get_categories_with_stats',
-      'get_distribution_orders_filtered',
-      'get_items_filtered',
+      // 2026-06-05 Sprint B: pagination khác nhau (limit/offset vs page/page_size)
       'get_laundry_batches_filtered',
-      'get_monthly_expenses',
-      'get_recent_activities',
       'handover_batch',
       'settle_batch_compensation',
       'setup_new_tenant',
