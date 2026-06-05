@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLowStockItems } from '@/hooks/useInventoryDashboard'
 import { useDeadStockReport } from '@/hooks/useDeadStockReport'
-import { useLatestConsumptionSnapshots } from '@/hooks/useConsumptionAnalytics'
+import { useStockoutItems } from '@/hooks/useStockoutItems'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
@@ -14,14 +14,14 @@ function formatCompact(amount: number) {
 }
 
 /**
- * Gộp 2 widget cảnh báo cũ (LowStockAlert + InventoryAlertsWidget) thành 1
- * card duy nhất với 3 chỉ số tổng + danh sách item sắp hết cuộn được.
+ * Card cảnh báo tồn kho — 3 chỉ số tổng + danh sách item dưới định mức.
+ * "Sắp hết <7d" dùng helper useStockoutItems đã dedup latest-per-item.
  */
 export function CombinedStockAlerts() {
   const navigate = useNavigate()
   const { data: lowItems, isLoading: loadingLow } = useLowStockItems(50)
   const { data: deadRows, isLoading: loadingDead } = useDeadStockReport(90)
-  const { data: snapshots, isLoading: loadingSnap } = useLatestConsumptionSnapshots(500)
+  const { soonOutCount, isLoading: loadingSnap } = useStockoutItems()
 
   const summary = useMemo(() => {
     const dead_count = deadRows?.length ?? 0
@@ -29,16 +29,8 @@ export function CombinedStockAlerts() {
       (s, r) => s + Number(r.total_value || 0),
       0,
     )
-    const latest = new Map<string, typeof snapshots[number]>()
-    ;(snapshots ?? []).forEach((s) => {
-      const cur = latest.get(s.item_id)
-      if (!cur || cur.snapshot_date < s.snapshot_date) latest.set(s.item_id, s)
-    })
-    const critical = Array.from(latest.values()).filter(
-      (s) => s.stock_days_remaining != null && s.stock_days_remaining < 7,
-    ).length
-    return { dead_count, dead_value, critical }
-  }, [deadRows, snapshots])
+    return { dead_count, dead_value, critical: soonOutCount }
+  }, [deadRows, soonOutCount])
 
   const isLoading = loadingLow || loadingDead || loadingSnap
   const items = lowItems ?? []

@@ -383,8 +383,8 @@ export function MobileOutboundForm() {
             navigate('/inventory/transactions')
           }
         },
-        onError: (err) => {
-          console.error('Submit error:', err)
+        onError: () => {
+          // Lỗi đã được mutation hook hiển thị toast — không log ra console.
         },
       },
     )
