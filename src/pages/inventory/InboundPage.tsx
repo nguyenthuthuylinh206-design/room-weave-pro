@@ -52,21 +52,21 @@ export function InboundPage() {
   const { data: defaultWarehouse } = useDefaultWarehouse()
   
   const form = useForm<InboundFormData>({
-    resolver: zodResolver(inboundSchema),
-    defaultValues: {
-      transaction_category: 'purchase',
-      from_location: prefillFromAdjustment ? 'Bổ sung kiểm kê' : '',
-      to_warehouse_id: '',
-      items: prefillFromAdjustment?.items?.length 
-        ? prefillFromAdjustment.items.map(i => ({ item_id: i.item_id, quantity: i.quantity, notes: '' }))
-        : [{ item_id: '', quantity: 1, notes: '' }],
-      documents: [],
-      photos: [],
-      notes: prefillFromAdjustment?.notes || '',
-      related_type: prefillFromAdjustment ? 'stock_adjustment' : undefined,
-      related_id: prefillFromAdjustment?.adjustmentId,
-    },
+    resolver: zodResolver(inboundFormSchema),
+    defaultValues: buildInboundDefaults({
+      defaultWarehouseId: '',
+      prefill: prefillFromAdjustment
+        ? {
+            items: prefillFromAdjustment.items,
+            notes: prefillFromAdjustment.notes,
+            relatedType: 'stock_adjustment',
+            relatedId: prefillFromAdjustment.adjustmentId,
+            fromLocation: 'Bổ sung kiểm kê',
+          }
+        : undefined,
+    }),
   })
+
 
   // Set default warehouse when loaded
   useEffect(() => {
