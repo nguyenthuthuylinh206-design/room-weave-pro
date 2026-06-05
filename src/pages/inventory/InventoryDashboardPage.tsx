@@ -345,7 +345,7 @@ export function InventoryDashboardPage() {
       <div className="lg:hidden">
         <PageHeader
           title="Kho & Tài sản"
-          description="Trung tâm điều hành kho — tồn kho, xuất nhập, phân tích và thiết lập"
+          description="Nhập / xuất / phân tích kho"
         >
           <div className="flex items-center gap-2">{primaryActions}</div>
         </PageHeader>
