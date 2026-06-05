@@ -17,17 +17,24 @@ import { toast } from 'sonner'
 
 /**
  * Lean Replenish — 1 page, mobile-first.
+ *
+ * Lưu ý kiến trúc (đã xác nhận với RPC + trigger):
+ *  - `createRoomSupplement` (legacy): xuất kho thật (stock_transactions) + cập nhật
+ *    `room_items.current_quantity` + tạo `distribution_order` nội bộ nếu cần.
+ *  - `submitReplenishLean` (RPC mới): chỉ ghi `room_checks` + fan-out
+ *    `room_check_issues` (bucket `missing_replace`) để có audit + đóng task.
+ *  - Trigger `trg_room_check_issues_outbox_fanout` KHÔNG xử bucket `missing_replace`
+ *    (chỉ xử laundry/lost/damaged/consumed/replaced) → KHÔNG có double-bookkeeping.
+ *
  * Flow:
- *  1. Hiển thị danh sách "Đồ thiếu" (đã prefill số lượng = thiếu)
- *  2. Hiển thị consumables để bổ sung thêm (mặc định 0)
- *  3. Tuỳ chọn yêu cầu dọn dẹp + ghi chú
- *  4. Submit:
- *     - createRoomSupplement: xuất kho + cộng room_items (legacy, đã được sửa bug tenant_id)
- *     - submitReplenishLean: insert room_check + fan-out room_check_issues + đóng task + audit
+ *  1. Hiển thị "Đồ thiếu" (prefill = missing, clamp theo kho)
+ *  2. Hiển thị consumables (mặc định 0)
+ *  3. Yêu cầu dọn dẹp + ghi chú
+ *  4. Submit: createRoomSupplement → submitReplenishLean
  *
  * URL params:
- *  - ?task_id={id}        — task housekeeping (amenity_request) sẽ tự đóng
- *  - ?returnTo={path}     — điều hướng sau khi xong (mặc định /my-tasks)
+ *  - ?task_id={id}     — task housekeeping (amenity_request) sẽ tự đóng
+ *  - ?returnTo={path}  — chỉ accept path nội bộ '/...' (whitelist), mặc định /my-tasks
  */
 export default function RoomReplenishLeanPage() {
   const { id } = useParams<{ id: string }>()
