@@ -1,6 +1,16 @@
 {
-  "current": "1.1.69",
+  "current": "1.1.70",
   "versions": [
+    {
+      "version": "1.1.70",
+      "date": "2026-06-05",
+      "title": "Sprint 3 audit menu Phòng: hardening picker chuẩn phòng + realtime tenant filter",
+      "highlights": [
+        "#15 RoomStandardsPage picker: bỏ pageSize=1000 client-side; lift search + category lên page, đẩy xuống `useItems` filters (server-side qua RPC `get_items_filtered`). Mặc định 50 item, nút `Tải thêm (x/y)` tăng dần 50 — chịu được tenant >1000 SKU",
+        "#34 useRoomCheckSession realtime channel: filter theo `tenant_id` thay vì `room_id` (đúng chuẩn isolation 3 lớp), client-side narrow theo room_id trong handler; channel name kèm tenantId tránh leak event cross-tenant",
+        "RoomStandardItemPicker chuyển thành controlled component: parent quản search/category/pagination; loại bỏ `categoryStats` đếm client (giờ chỉ hiện tên danh mục), tránh hiển thị số đếm sai khi data đã phân trang"
+      ]
+    },
     {
       "version": "1.1.69",
       "date": "2026-06-05",
