@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import { buildRoomFormSchema, type RoomFormData } from '@/lib/rooms/roomFormSchema'
 import { ArrowLeft, Save } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useQuotaCheck } from '@/hooks/useQuotaCheck'
@@ -27,23 +27,9 @@ import { toast } from 'sonner'
 import { useRoomSubscriptionLimit } from '@/hooks/useRoomSubscriptionLimit'
 import { RoomLimitWarning } from '@/components/rooms/RoomLimitWarning'
 
-// Dynamic schema with i18n
-const createRoomSchema = (t: (key: string) => string) => z.object({
-  room_number: z.string().min(1, t('rooms:form.validation.roomNumberRequired')),
-  room_type: z.string().min(1, t('rooms:form.validation.roomTypeRequired')),
-  floor: z.number().min(1, t('rooms:form.validation.floorMin')),
-  area_sqm: z.number().min(0, t('rooms:form.validation.areaMin')).optional(),
-  max_guests: z.number().min(1, t('rooms:form.validation.maxGuestsMin')),
-  base_price: z.number().min(0, t('rooms:form.validation.basePriceMin')),
-  bed_type: z.string().optional(),
-  view_type: z.string().optional(),
-  has_window: z.boolean(),
-  has_balcony: z.boolean(),
-  smoking_allowed: z.boolean(),
-  notes: z.string().optional(),
-})
-
-type RoomFormData = z.infer<ReturnType<typeof createRoomSchema>>
+// Build i18n schema from shared base — đảm bảo desktop và mobile dùng chung 1 nguồn
+const createRoomSchema = (t: (key: string) => string) =>
+  buildRoomFormSchema((k) => t(`rooms:form.validation.${k}`))
 
 export function RoomFormPage() {
   const { id } = useParams()

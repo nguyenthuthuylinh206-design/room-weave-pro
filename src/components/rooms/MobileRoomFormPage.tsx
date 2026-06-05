@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import { roomFormSchema, type RoomFormData } from '@/lib/rooms/roomFormSchema'
 import { ArrowLeft, Check, ChevronRight, Save } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 
@@ -23,22 +23,8 @@ import { cn } from '@/lib/utils'
 import { useQuotaCheck } from '@/hooks/useQuotaCheck'
 import { QuotaExceededDialog } from '@/components/settings/usage/QuotaExceededDialog'
 
-const roomSchema = z.object({
-  room_number: z.string().min(1, 'Số phòng là bắt buộc'),
-  room_type: z.string().min(1, 'Loại phòng là bắt buộc'),
-  floor: z.number().min(1, 'Tầng phải >= 1'),
-  area_sqm: z.number().min(0, 'Diện tích phải >= 0').optional(),
-  max_guests: z.number().min(1, 'Số khách tối đa phải >= 1'),
-  base_price: z.number().min(0, 'Giá cơ bản phải >= 0'),
-  bed_type: z.string().optional(),
-  view_type: z.string().optional(),
-  has_window: z.boolean(),
-  has_balcony: z.boolean(),
-  smoking_allowed: z.boolean(),
-  notes: z.string().optional(),
-})
-
-type RoomFormData = z.infer<typeof roomSchema>
+// Schema dùng chung với desktop qua `@/lib/rooms/roomFormSchema`
+const roomSchema = roomFormSchema
 
 const STEPS = [
   { id: 1, title: 'Cơ bản', description: 'Số phòng, loại phòng' },

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Plus, Grid3x3, List, CalendarRange, FileSpreadsheet, LayoutGrid } from 'lucide-react'
@@ -9,8 +9,13 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RoomFilters } from '@/components/rooms/RoomFilters'
 import { RoomGrid } from '@/components/rooms/RoomGrid'
 import { RoomTable } from '@/components/rooms/RoomTable'
-import { RoomTapeChart } from '@/components/rooms/RoomTapeChart'
-import { RoomFloorMapView } from '@/components/rooms/RoomFloorMapView'
+// Lazy: chỉ tải khi viewMode = 'floor' / 'map' — tiết kiệm ~2k LOC ở lần render đầu
+const RoomTapeChart = lazy(() =>
+  import('@/components/rooms/RoomTapeChart').then((m) => ({ default: m.RoomTapeChart })),
+)
+const RoomFloorMapView = lazy(() =>
+  import('@/components/rooms/RoomFloorMapView').then((m) => ({ default: m.RoomFloorMapView })),
+)
 import { BulkImportRoomsDialog } from '@/components/rooms/BulkImportRoomsDialog'
 import { RoomBulkActionsBar } from '@/components/rooms/RoomBulkActionsBar'
 import { RoomViewDensityControl } from '@/components/rooms/RoomViewDensityControl'
@@ -208,12 +213,18 @@ export function RoomsPage() {
           onSelectionChange={setSelectedRoomIds}
         />
       )}
-      {viewMode === 'floor' && <RoomTapeChart />}
+      {viewMode === 'floor' && (
+        <Suspense fallback={<div className="text-sm text-muted-foreground p-4">Đang tải sơ đồ băng…</div>}>
+          <RoomTapeChart />
+        </Suspense>
+      )}
       {viewMode === 'map' && (
-        <RoomFloorMapView
-          onAddRoom={() => navigate('/rooms/new')}
-          onBulkImport={selectedHotel ? () => setShowBulkImport(true) : undefined}
-        />
+        <Suspense fallback={<div className="text-sm text-muted-foreground p-4">Đang tải sơ đồ phòng…</div>}>
+          <RoomFloorMapView
+            onAddRoom={() => navigate('/rooms/new')}
+            onBulkImport={selectedHotel ? () => setShowBulkImport(true) : undefined}
+          />
+        </Suspense>
       )}
 
       {/* Bulk Import Dialog */}

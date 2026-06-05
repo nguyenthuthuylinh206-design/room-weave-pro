@@ -1,3 +1,18 @@
+/**
+ * @deprecated Legacy wizard kiểm tra phòng (1,619 dòng).
+ *
+ * KHÔNG dùng cho luồng kiểm tra hàng ngày/định kỳ/checkin/checkout — đã chuyển
+ * sang Lean (`/rooms/:id/check-lean`, `/check-replenish`, `/check-delivery`).
+ *
+ * File này CHỈ còn được `RoomCheckRouter` gọi khi URL chứa một trong các tín hiệu:
+ *   - `?inspection=...`           (checkout-inspection cũ)
+ *   - `?distribution_order_id=`    (xuất kho từ phiếu phân phối)
+ *   - `?room_order_id=`            (đơn đặt hàng theo phòng)
+ *   - `?type=delivery|replenish` khi flag `settings.room_check.use_lean` tắt
+ *
+ * Khi 3 luồng còn lại đã có biến thể Lean, hãy XOÁ hẳn file này và nhánh
+ * `<RoomCheckPage />` trong `RoomCheckRouter.tsx`.
+ */
 import { useState, useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
