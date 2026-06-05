@@ -37,10 +37,11 @@ export function useLaundryBatches(
         p_hotel_id: hotelIdToFilter,
         p_vendor_id: filters.vendorId || null,
         p_status: filters.status || null,
+        p_search: null,
         p_from_date: filters.fromDate ? filters.fromDate.toISOString().split('T')[0] : null,
         p_to_date: filters.toDate ? filters.toDate.toISOString().split('T')[0] : null,
-        p_limit: pageSize,
-        p_offset: (page - 1) * pageSize,
+        p_page: page,
+        p_page_size: pageSize,
       })
       
       if (error) throw error

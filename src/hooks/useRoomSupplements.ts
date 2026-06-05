@@ -189,7 +189,12 @@ export function useCreateRoomSupplement() {
         p_items: rpcItems as any,
         p_related_type: 'room',
         p_related_id: data.room_id,
+        p_recipient_name: null,
+        p_recipient_signature: null,
+        p_documents: null,
+        p_photos: null,
         p_notes: data.notes || `Bổ sung đồ dùng cho phòng ${data.room_number}`,
+        p_from_warehouse_id: null,
       })
 
       if (error) throw error
