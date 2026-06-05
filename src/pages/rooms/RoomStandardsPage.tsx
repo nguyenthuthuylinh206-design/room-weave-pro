@@ -28,10 +28,24 @@ export function RoomStandardsPage() {
   const navigate = useNavigate()
   const [selectedRoomType, setSelectedRoomType] = useState<RoomType>('standard')
 
+  // Server-side picker state (lifted from RoomStandardItemPicker)
+  const [pickerSearch, setPickerSearch] = useState('')
+  const [pickerCategoryId, setPickerCategoryId] = useState<string | null>(null)
+  const [pickerPageSize, setPickerPageSize] = useState(50)
+
   const { data: standards, isLoading } = useRoomStandards(selectedRoomType)
   const { data: categories } = useCategories()
-  const { data: itemsData, isLoading: isLoadingItems } = useItems({ status: 'active' }, 1, 1000)
+  const { data: itemsData, isLoading: isLoadingItems } = useItems(
+    {
+      status: 'active',
+      search: pickerSearch || undefined,
+      categoryId: pickerCategoryId || undefined,
+    },
+    1,
+    pickerPageSize,
+  )
   const items = itemsData?.items || []
+  const totalItems = itemsData?.total || 0
   const addStandard = useAddStandard()
   const updateStandard = useUpdateStandard()
   const deleteStandard = useDeleteStandard()
