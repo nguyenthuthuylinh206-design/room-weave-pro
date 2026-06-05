@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { ArrowLeft, Plus, X } from 'lucide-react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { useTranslation } from 'react-i18next'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -26,6 +25,7 @@ import { useCreateInboundTransaction } from '@/hooks/useInventoryTransactions'
 import { useDefaultWarehouse } from '@/hooks/useWarehouses'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileInboundForm } from '@/components/inventory/MobileInboundForm'
+import { inboundFormSchema, buildInboundDefaults, type InboundFormData } from '@/lib/inventory/inboundFormSchema'
 
 // Type for prefill data from adjustment
 interface PrefillFromAdjustment {
@@ -36,23 +36,6 @@ interface PrefillFromAdjustment {
   notes: string
 }
 
-const inboundSchema = z.object({
-  transaction_category: z.enum(['purchase', 'return', 'laundry', 'other']),
-  from_location: z.string().min(1, 'Vui lòng nhập nguồn'),
-  to_warehouse_id: z.string().uuid('Vui lòng chọn kho'),
-  items: z.array(z.object({
-    item_id: z.string().uuid('Vui lòng chọn đồ dùng'),
-    quantity: z.number().min(1, 'Số lượng phải > 0'),
-    notes: z.string().optional(),
-  })).min(1, 'Phải có ít nhất 1 đồ dùng'),
-  documents: z.array(z.string()).optional(),
-  photos: z.array(z.string()).optional(),
-  notes: z.string().optional(),
-  related_type: z.string().optional(),
-  related_id: z.string().optional(),
-})
-
-type InboundFormData = z.infer<typeof inboundSchema>
 
 export function InboundPage() {
   const { t } = useTranslation(['inventory', 'common'])
