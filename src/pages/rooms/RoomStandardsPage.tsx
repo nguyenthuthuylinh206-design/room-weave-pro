@@ -269,6 +269,18 @@ export function RoomStandardsPage() {
               excludeItemIds={excludeItemIds}
               onAdd={handleAddItem}
               isLoading={isLoadingItems}
+              searchQuery={pickerSearch}
+              onSearchChange={(v) => {
+                setPickerSearch(v)
+                setPickerPageSize(50)
+              }}
+              selectedCategoryId={pickerCategoryId}
+              onCategoryChange={(id) => {
+                setPickerCategoryId(id)
+                setPickerPageSize(50)
+              }}
+              totalCount={totalItems}
+              onLoadMore={() => setPickerPageSize((n) => n + 50)}
             />
           </CardContent>
         </Card>
