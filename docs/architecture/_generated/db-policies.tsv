@@ -13,6 +13,14 @@ public	ai_settings	Only owners can update AI settings	UPDATE	{authenticated}	(EX
 public	ai_settings	Users can read AI settings of their tenant	SELECT	{authenticated}	(tenant_id IN ( SELECT users.tenant_id
    FROM users
   WHERE (users.id = auth.uid())))	
+public	announcement_dismissals	Users delete own dismissals	DELETE	{authenticated}	(auth.uid() = user_id)	
+public	announcement_dismissals	Users insert own dismissals	INSERT	{authenticated}		(auth.uid() = user_id)
+public	announcement_dismissals	Users read own dismissals	SELECT	{authenticated}	(auth.uid() = user_id)	
+public	announcements	Anyone authenticated can read active announcements	SELECT	{authenticated}	((is_active = true) AND ((starts_at IS NULL) OR (starts_at <= now())) AND ((ends_at IS NULL) OR (ends_at >= now())))	
+public	announcements	Super admin manage announcements (delete)	DELETE	{authenticated}	has_role(auth.uid(), 'super_admin'::app_role)	
+public	announcements	Super admin manage announcements (insert)	INSERT	{authenticated}		has_role(auth.uid(), 'super_admin'::app_role)
+public	announcements	Super admin manage announcements (select)	SELECT	{authenticated}	has_role(auth.uid(), 'super_admin'::app_role)	
+public	announcements	Super admin manage announcements (update)	UPDATE	{authenticated}	has_role(auth.uid(), 'super_admin'::app_role)	has_role(auth.uid(), 'super_admin'::app_role)
 public	audit_log	Owner views all tenant audit	SELECT	{authenticated}	((tenant_id IN ( SELECT users.tenant_id
    FROM users
   WHERE (users.id = auth.uid()))) AND (has_role(auth.uid(), 'super_admin'::app_role) OR has_role(auth.uid(), 'owner'::app_role) OR (actor_id = auth.uid()) OR (hotel_id IN ( SELECT user_hotels.hotel_id
@@ -26,11 +34,14 @@ public	backup_logs	Admins can insert backup logs	INSERT	{authenticated}		((tenan
 public	backup_logs	Users can view backup logs from their tenant	SELECT	{authenticated}	(tenant_id IN ( SELECT users.tenant_id
    FROM users
   WHERE (users.id = auth.uid())))	
+public	bank_payment_settings	bank_payment_settings_tenant_delete	DELETE	{authenticated}	(is_super_admin(auth.uid()) OR ((tenant_id = get_current_user_tenant_id()) AND is_tenant_owner()))	
+public	bank_payment_settings	bank_payment_settings_tenant_insert	INSERT	{authenticated}		(is_super_admin(auth.uid()) OR ((tenant_id = get_current_user_tenant_id()) AND is_tenant_owner()))
 public	bank_payment_settings	bank_payment_settings_tenant_select	SELECT	{authenticated}	((tenant_id IN ( SELECT u.tenant_id
    FROM users u
   WHERE (u.id = auth.uid()))) OR (EXISTS ( SELECT 1
    FROM users u
   WHERE ((u.id = auth.uid()) AND (u.is_super_admin = true)))))	
+public	bank_payment_settings	bank_payment_settings_tenant_update	UPDATE	{authenticated}	(is_super_admin(auth.uid()) OR ((tenant_id = get_current_user_tenant_id()) AND is_tenant_owner()))	(is_super_admin(auth.uid()) OR ((tenant_id = get_current_user_tenant_id()) AND is_tenant_owner()))
 public	batch_inventory	bi_modify_owner_manager	ALL	{authenticated}	((tenant_id IN ( SELECT u.tenant_id
    FROM users u
   WHERE (u.id = auth.uid()))) AND (has_role(auth.uid(), 'owner'::app_role) OR has_role(auth.uid(), 'hotel_manager'::app_role) OR has_role(auth.uid(), 'department_manager'::app_role) OR has_role(auth.uid(), 'super_admin'::app_role)))	(tenant_id IN ( SELECT u.tenant_id
@@ -113,6 +124,13 @@ public	consumption_snapshots	consumption_snapshots_read	SELECT	{authenticated}	(
   WHERE ((uh.user_id = auth.uid()) AND (uh.hotel_id = consumption_snapshots.hotel_id))))))	
 public	consumption_snapshots	consumption_snapshots_service_update	UPDATE	{service_role}	true	true
 public	consumption_snapshots	consumption_snapshots_service_write	INSERT	{service_role}		true
+public	conversation_members	convm_admin_delete	DELETE	{authenticated}	((user_id = auth.uid()) OR is_conversation_admin(conversation_id, auth.uid()))	
+public	conversation_members	convm_select	SELECT	{authenticated}	is_conversation_member(conversation_id, auth.uid())	
+public	conversation_members	convm_self_insert	INSERT	{authenticated}		((user_id = auth.uid()) OR is_conversation_admin(conversation_id, auth.uid()))
+public	conversation_members	convm_self_update	UPDATE	{authenticated}	((user_id = auth.uid()) OR is_conversation_admin(conversation_id, auth.uid()))	
+public	conversations	conv_insert_self	INSERT	{authenticated}		(created_by = auth.uid())
+public	conversations	conv_select_member	SELECT	{authenticated}	is_conversation_member(id, auth.uid())	
+public	conversations	conv_update_admin	UPDATE	{authenticated}	is_conversation_admin(id, auth.uid())	
 public	custom_field_values	Users manage custom field values in their tenant	ALL	{public}	(tenant_id = ( SELECT users.tenant_id
    FROM users
   WHERE (users.id = auth.uid())))	
@@ -235,22 +253,53 @@ public	email_logs	Users view email logs in their tenant	SELECT	{public}	(tenant_
 public	email_notifications	Users can view their email notifications	SELECT	{public}	((tenant_id IN ( SELECT users.tenant_id
    FROM users
   WHERE (users.id = auth.uid()))) OR (user_id = auth.uid()))	
+public	email_send_log	Service role can insert send log	INSERT	{public}		(auth.role() = 'service_role'::text)
+public	email_send_log	Service role can read send log	SELECT	{public}	(auth.role() = 'service_role'::text)	
+public	email_send_log	Service role can update send log	UPDATE	{public}	(auth.role() = 'service_role'::text)	(auth.role() = 'service_role'::text)
+public	email_send_state	Service role can manage send state	ALL	{public}	(auth.role() = 'service_role'::text)	(auth.role() = 'service_role'::text)
 public	email_templates	Admins manage email templates	ALL	{public}	((tenant_id = ( SELECT users.tenant_id
    FROM users
   WHERE (users.id = auth.uid()))) AND has_role(auth.uid(), 'owner'::app_role) AND (is_system = false))	
 public	email_templates	Users view own tenant templates	SELECT	{public}	(tenant_id = ( SELECT users.tenant_id
    FROM users
   WHERE (users.id = auth.uid())))	
+public	email_unsubscribe_tokens	Service role can insert tokens	INSERT	{public}		(auth.role() = 'service_role'::text)
+public	email_unsubscribe_tokens	Service role can mark tokens as used	UPDATE	{public}	(auth.role() = 'service_role'::text)	(auth.role() = 'service_role'::text)
+public	email_unsubscribe_tokens	Service role can read tokens	SELECT	{public}	(auth.role() = 'service_role'::text)	
+public	financial_targets	Owners and managers can manage targets	ALL	{authenticated}	(EXISTS ( SELECT 1
+   FROM users u
+  WHERE ((u.id = auth.uid()) AND (u.tenant_id = financial_targets.tenant_id) AND (u.user_level_code = ANY (ARRAY['super_admin'::text, 'tenant_owner'::text, 'manager'::text])))))	(EXISTS ( SELECT 1
+   FROM users u
+  WHERE ((u.id = auth.uid()) AND (u.tenant_id = financial_targets.tenant_id) AND (u.user_level_code = ANY (ARRAY['super_admin'::text, 'tenant_owner'::text, 'manager'::text])))))
+public	financial_targets	Tenant members can view targets	SELECT	{authenticated}	(EXISTS ( SELECT 1
+   FROM users u
+  WHERE ((u.id = auth.uid()) AND (u.tenant_id = financial_targets.tenant_id))))	
 public	guest_invoices	Tenant isolation for guest_invoices	ALL	{authenticated}	(tenant_id IN ( SELECT u.tenant_id
    FROM users u
   WHERE (u.id = auth.uid())))	(tenant_id IN ( SELECT u.tenant_id
    FROM users u
   WHERE (u.id = auth.uid())))
+public	guest_stay_registrations	stay_reg_tenant_insert	INSERT	{authenticated}		(tenant_id IN ( SELECT users.tenant_id
+   FROM users
+  WHERE (users.id = auth.uid())))
+public	guest_stay_registrations	stay_reg_tenant_select	SELECT	{authenticated}	(tenant_id IN ( SELECT users.tenant_id
+   FROM users
+  WHERE (users.id = auth.uid())))	
+public	guest_stay_registrations	stay_reg_tenant_update	UPDATE	{authenticated}	(tenant_id IN ( SELECT users.tenant_id
+   FROM users
+  WHERE (users.id = auth.uid())))	
 public	guests	Tenant isolation for guests	ALL	{authenticated}	(tenant_id IN ( SELECT u.tenant_id
    FROM users u
   WHERE (u.id = auth.uid())))	(tenant_id IN ( SELECT u.tenant_id
    FROM users u
   WHERE (u.id = auth.uid())))
+public	hotel_einvoice_configs	einvoice_configs_owner_delete	DELETE	{authenticated}	((tenant_id = get_current_user_tenant_id()) AND has_role(auth.uid(), 'owner'::app_role))	
+public	hotel_einvoice_configs	einvoice_configs_owner_insert	INSERT	{authenticated}		((tenant_id = get_current_user_tenant_id()) AND has_role(auth.uid(), 'owner'::app_role))
+public	hotel_einvoice_configs	einvoice_configs_owner_select	SELECT	{authenticated}	((tenant_id = get_current_user_tenant_id()) AND has_role(auth.uid(), 'owner'::app_role))	
+public	hotel_einvoice_configs	einvoice_configs_owner_update	UPDATE	{authenticated}	((tenant_id = get_current_user_tenant_id()) AND has_role(auth.uid(), 'owner'::app_role))	
+public	hotel_invoices	hotel_invoices_manager_update	UPDATE	{authenticated}	((tenant_id = get_current_user_tenant_id()) AND (has_role(auth.uid(), 'owner'::app_role) OR has_role(auth.uid(), 'hotel_manager'::app_role)))	
+public	hotel_invoices	hotel_invoices_staff_insert	INSERT	{authenticated}		((tenant_id = get_current_user_tenant_id()) AND (has_role(auth.uid(), 'owner'::app_role) OR has_role(auth.uid(), 'hotel_manager'::app_role) OR has_role(auth.uid(), 'department_manager'::app_role) OR has_role(auth.uid(), 'staff'::app_role)))
+public	hotel_invoices	hotel_invoices_tenant_select	SELECT	{authenticated}	(tenant_id = get_current_user_tenant_id())	
 public	hotel_policy	hp_delete	DELETE	{authenticated}	((tenant_id IN ( SELECT u.tenant_id
    FROM users u
   WHERE (u.id = auth.uid()))) AND (has_role(auth.uid(), 'owner'::app_role) OR has_role(auth.uid(), 'super_admin'::app_role)))	
@@ -335,6 +384,15 @@ public	investigation_logs	Users can create investigation logs in their tenant	IN
 public	investigation_logs	Users can view investigation logs in their tenant	SELECT	{public}	(tenant_id IN ( SELECT users.tenant_id
    FROM users
   WHERE (users.id = auth.uid())))	
+public	invoice_api_logs	invoice_api_logs_owner_select	SELECT	{authenticated}	((tenant_id = get_current_user_tenant_id()) AND has_role(auth.uid(), 'owner'::app_role))	
+public	invoice_api_logs	invoice_api_logs_service_insert	INSERT	{authenticated}		(tenant_id = get_current_user_tenant_id())
+public	invoice_files	invoice_files_manager_write	INSERT	{authenticated}		((tenant_id = get_current_user_tenant_id()) AND (has_role(auth.uid(), 'owner'::app_role) OR has_role(auth.uid(), 'hotel_manager'::app_role)))
+public	invoice_files	invoice_files_owner_delete	DELETE	{authenticated}	((tenant_id = get_current_user_tenant_id()) AND has_role(auth.uid(), 'owner'::app_role))	
+public	invoice_files	invoice_files_tenant_select	SELECT	{authenticated}	(tenant_id = get_current_user_tenant_id())	
+public	invoice_templates	invoice_templates_owner_write	ALL	{authenticated}	((tenant_id = get_current_user_tenant_id()) AND has_role(auth.uid(), 'owner'::app_role))	((tenant_id = get_current_user_tenant_id()) AND has_role(auth.uid(), 'owner'::app_role))
+public	invoice_templates	invoice_templates_tenant_select	SELECT	{authenticated}	(tenant_id = get_current_user_tenant_id())	
+public	invoice_vat_claims	tenant members can manage claims	ALL	{authenticated}	(tenant_id = get_current_user_tenant_id())	(tenant_id = get_current_user_tenant_id())
+public	invoice_vat_claims	tenant members can read claims	SELECT	{authenticated}	(tenant_id = get_current_user_tenant_id())	
 public	invoices	Tenant members can view their invoices	SELECT	{public}	(tenant_id IN ( SELECT users.tenant_id
    FROM users
   WHERE (users.id = auth.uid())))	
@@ -451,7 +509,17 @@ public	maintenance_requests	Users can view maintenance requests with hotel acces
    FROM (user_roles ur
      JOIN users u ON ((u.id = ur.user_id)))
   WHERE ((ur.user_id = auth.uid()) AND (u.tenant_id = maintenance_requests.tenant_id) AND ((ur.role = ANY (ARRAY['owner'::app_role, 'super_admin'::app_role])) OR user_has_hotel_access(auth.uid(), maintenance_requests.hotel_id)))))	
-public	marketing_campaigns	Active campaigns are viewable by authenticated users	SELECT	{public}	((status = 'active'::text) AND (starts_at <= now()) AND ((ends_at IS NULL) OR (ends_at > now())))	
+public	marketing_campaigns	Super admins manage marketing campaigns	ALL	{authenticated}	has_role(auth.uid(), 'super_admin'::app_role)	has_role(auth.uid(), 'super_admin'::app_role)
+public	message_attachments	att_insert	INSERT	{authenticated}		is_conversation_member(conversation_id, auth.uid())
+public	message_attachments	att_select	SELECT	{authenticated}	is_conversation_member(conversation_id, auth.uid())	
+public	message_reactions	react_delete	DELETE	{authenticated}	(user_id = auth.uid())	
+public	message_reactions	react_insert	INSERT	{authenticated}		((user_id = auth.uid()) AND is_conversation_member(conversation_id, auth.uid()))
+public	message_reactions	react_select	SELECT	{authenticated}	is_conversation_member(conversation_id, auth.uid())	
+public	message_reads	reads_insert	INSERT	{authenticated}		((user_id = auth.uid()) AND is_conversation_member(conversation_id, auth.uid()))
+public	message_reads	reads_select	SELECT	{authenticated}	is_conversation_member(conversation_id, auth.uid())	
+public	messages	msg_insert	INSERT	{authenticated}		((sender_id = auth.uid()) AND is_conversation_member(conversation_id, auth.uid()))
+public	messages	msg_select	SELECT	{authenticated}	is_conversation_member(conversation_id, auth.uid())	
+public	messages	msg_update_sender	UPDATE	{authenticated}	(sender_id = auth.uid())	
 public	notification_preferences	Users can create their own notification preferences	INSERT	{public}		(user_id = auth.uid())
 public	notification_preferences	Users can delete their own notification preferences	DELETE	{public}	(user_id = auth.uid())	
 public	notification_preferences	Users can update their own notification preferences	UPDATE	{public}	(user_id = auth.uid())	
@@ -468,12 +536,13 @@ public	notifications	Users can view their notifications	SELECT	{authenticated}	(
 public	password_reset_otps	Users can create OTPs for their email	INSERT	{authenticated}		(email = ( SELECT users.email
    FROM users
   WHERE (users.id = auth.uid())))
-public	password_reset_otps	Users can delete OTPs for their email	DELETE	{authenticated}	(email = ( SELECT users.email
-   FROM users
-  WHERE (users.id = auth.uid())))	
-public	password_reset_otps	Users can view OTPs by their email	SELECT	{authenticated}	(email = ( SELECT users.email
-   FROM users
-  WHERE (users.id = auth.uid())))	
+public	password_reset_otps	password_reset_otps_deny_select	SELECT	{public}	false	
+public	payment_anomalies	anomalies_select_owner	SELECT	{authenticated}	(EXISTS ( SELECT 1
+   FROM users u
+  WHERE ((u.id = auth.uid()) AND ((u.user_level_code = 'super_admin'::text) OR ((u.user_level_code = 'tenant_owner'::text) AND (u.tenant_id = payment_anomalies.tenant_id))))))	
+public	payment_anomalies	anomalies_update_owner	UPDATE	{authenticated}	(EXISTS ( SELECT 1
+   FROM users u
+  WHERE ((u.id = auth.uid()) AND ((u.user_level_code = 'super_admin'::text) OR ((u.user_level_code = 'tenant_owner'::text) AND (u.tenant_id = payment_anomalies.tenant_id))))))	
 public	payment_methods	Tenant owners can manage payment methods	ALL	{authenticated}	((tenant_id IN ( SELECT users.tenant_id
    FROM users
   WHERE (users.id = auth.uid()))) AND (has_user_level(auth.uid(), 'tenant_owner'::text) OR is_level_higher_or_equal(auth.uid(), 'tenant_owner'::text)))	
@@ -490,6 +559,7 @@ public	payment_transactions	Tenant owners can view their payment transactions	SE
    FROM users
   WHERE (users.id = auth.uid())))	
 public	payment_webhook_logs	Service role can insert webhook logs	INSERT	{service_role}		true
+public	payment_webhook_logs	Super admins read webhook logs	SELECT	{authenticated}	has_role(auth.uid(), 'super_admin'::app_role)	
 public	pending_group_links	Users can create pending links for their tenant	INSERT	{public}		(tenant_id IN ( SELECT users.tenant_id
    FROM users
   WHERE (users.id = auth.uid())))
@@ -500,7 +570,9 @@ public	pending_group_links	Users can view their tenant's pending links	SELECT	{p
    FROM users
   WHERE (users.id = auth.uid())))	
 public	permissions	Users can view all permissions	SELECT	{authenticated}	true	
-public	plan_price_history	Authenticated users can view price history	SELECT	{public}	(auth.role() = 'authenticated'::text)	
+public	plan_price_history	Super admins can view price history	SELECT	{authenticated}	is_super_admin(auth.uid())	
+public	platform_settings	Super admins manage platform settings	ALL	{authenticated}	has_role(auth.uid(), 'super_admin'::app_role)	has_role(auth.uid(), 'super_admin'::app_role)
+public	platform_settings	platform_settings_deny_non_superadmin_select	SELECT	{public}	is_super_admin(auth.uid())	
 public	positions	Owners and managers can manage positions	ALL	{public}	(tenant_id IN ( SELECT users.tenant_id
    FROM users
   WHERE ((users.id = auth.uid()) AND (users.user_level_code = ANY (ARRAY['tenant_owner'::text, 'manager'::text])))))	
@@ -513,7 +585,7 @@ public	promo_code_usage	Tenants can view their own promo usage	SELECT	{public}	(
 public	promo_code_usage	Users can insert promo usage for their tenant	INSERT	{authenticated}		(tenant_id = ( SELECT users.tenant_id
    FROM users
   WHERE (users.id = auth.uid())))
-public	promotional_codes	Authenticated users can view active promo codes	SELECT	{public}	((is_active = true) AND ((valid_until IS NULL) OR (valid_until > now())))	
+public	promotional_codes	Authenticated users can view active promo codes	SELECT	{authenticated}	((is_active = true) AND ((valid_until IS NULL) OR (valid_until > now())))	
 public	purchase_order_items	Managers can manage PO items	ALL	{authenticated}	((po_id IN ( SELECT purchase_orders.id
    FROM purchase_orders
   WHERE (purchase_orders.tenant_id IN ( SELECT users.tenant_id
@@ -546,6 +618,24 @@ public	qc_sla_settings	Tenant members read SLA	SELECT	{authenticated}	(tenant_id
    FROM users
   WHERE (users.id = auth.uid())))	
 public	rate_limit_hits	service role manages rate limit hits	ALL	{service_role}	true	true
+public	rate_plan_daily_prices	rpdp_tenant_modify	ALL	{authenticated}	(tenant_id IN ( SELECT u.tenant_id
+   FROM users u
+  WHERE (u.id = auth.uid())))	(tenant_id IN ( SELECT u.tenant_id
+   FROM users u
+  WHERE (u.id = auth.uid())))
+public	rate_plan_daily_prices	rpdp_tenant_select	SELECT	{authenticated}	(tenant_id IN ( SELECT u.tenant_id
+   FROM users u
+  WHERE (u.id = auth.uid())))	
+public	rate_plans	rp_tenant_modify	ALL	{authenticated}	(tenant_id IN ( SELECT u.tenant_id
+   FROM users u
+  WHERE (u.id = auth.uid())))	(tenant_id IN ( SELECT u.tenant_id
+   FROM users u
+  WHERE (u.id = auth.uid())))
+public	rate_plans	rp_tenant_select	SELECT	{authenticated}	(tenant_id IN ( SELECT u.tenant_id
+   FROM users u
+  WHERE (u.id = auth.uid())))	
+public	reminder_automation_rules	Super admins manage reminder rules	ALL	{authenticated}	is_super_admin(auth.uid())	is_super_admin(auth.uid())
+public	reminder_email_templates	Super admins manage reminder templates	ALL	{authenticated}	is_super_admin(auth.uid())	is_super_admin(auth.uid())
 public	renewal_reminders	Tenant owners can view their reminders	SELECT	{public}	(tenant_id IN ( SELECT users.tenant_id
    FROM users
   WHERE (users.id = auth.uid())))	
@@ -574,6 +664,10 @@ public	roles	Admins can manage roles in their tenant	ALL	{authenticated}	((tenan
 public	roles	Users can view roles from their tenant	SELECT	{authenticated}	(tenant_id IN ( SELECT users.tenant_id
    FROM users
   WHERE (users.id = auth.uid())))	
+public	room_blocks	room_blocks_delete_manager	DELETE	{authenticated}	((tenant_id = get_current_user_tenant_id()) AND (has_role(auth.uid(), 'owner'::app_role) OR has_role(auth.uid(), 'hotel_manager'::app_role) OR has_role(auth.uid(), 'department_manager'::app_role) OR has_role(auth.uid(), 'super_admin'::app_role)))	
+public	room_blocks	room_blocks_insert_manager	INSERT	{authenticated}		((tenant_id = get_current_user_tenant_id()) AND (has_role(auth.uid(), 'owner'::app_role) OR has_role(auth.uid(), 'hotel_manager'::app_role) OR has_role(auth.uid(), 'department_manager'::app_role) OR has_role(auth.uid(), 'super_admin'::app_role)))
+public	room_blocks	room_blocks_select_same_tenant	SELECT	{authenticated}	(tenant_id = get_current_user_tenant_id())	
+public	room_blocks	room_blocks_update_manager	UPDATE	{authenticated}	((tenant_id = get_current_user_tenant_id()) AND (has_role(auth.uid(), 'owner'::app_role) OR has_role(auth.uid(), 'hotel_manager'::app_role) OR has_role(auth.uid(), 'department_manager'::app_role) OR has_role(auth.uid(), 'super_admin'::app_role)))	
 public	room_bookings	Managers can delete room bookings	DELETE	{public}	((tenant_id IN ( SELECT users.tenant_id
    FROM users
   WHERE (users.id = auth.uid()))) AND (has_role(auth.uid(), 'owner'::app_role) OR has_role(auth.uid(), 'hotel_manager'::app_role)))	
@@ -624,6 +718,22 @@ public	room_pricing_rules	Users can manage pricing rules for their tenant	ALL	{p
 public	room_pricing_rules	Users can view pricing rules for their tenant	SELECT	{public}	(tenant_id IN ( SELECT users.tenant_id
    FROM users
   WHERE (users.id = auth.uid())))	
+public	room_type_availability	rta_tenant_modify	ALL	{authenticated}	(tenant_id IN ( SELECT u.tenant_id
+   FROM users u
+  WHERE (u.id = auth.uid())))	(tenant_id IN ( SELECT u.tenant_id
+   FROM users u
+  WHERE (u.id = auth.uid())))
+public	room_type_availability	rta_tenant_select	SELECT	{authenticated}	(tenant_id IN ( SELECT u.tenant_id
+   FROM users u
+  WHERE (u.id = auth.uid())))	
+public	room_type_rates	rtr_tenant_modify	ALL	{authenticated}	(tenant_id IN ( SELECT users.tenant_id
+   FROM users
+  WHERE (users.id = auth.uid())))	(tenant_id IN ( SELECT users.tenant_id
+   FROM users
+  WHERE (users.id = auth.uid())))
+public	room_type_rates	rtr_tenant_select	SELECT	{authenticated}	(tenant_id IN ( SELECT users.tenant_id
+   FROM users
+  WHERE (users.id = auth.uid())))	
 public	room_type_standards	Managers can manage room standards	ALL	{authenticated}	((tenant_id IN ( SELECT users.tenant_id
    FROM users
   WHERE (users.id = auth.uid()))) AND (has_role(auth.uid(), 'owner'::app_role) OR has_role(auth.uid(), 'hotel_manager'::app_role)))	
@@ -649,6 +759,14 @@ public	rooms	Users can view rooms with hotel access	SELECT	{authenticated}	(EXIS
      JOIN users u ON ((u.id = ur.user_id)))
      JOIN hotels h ON ((h.id = rooms.hotel_id)))
   WHERE ((ur.user_id = auth.uid()) AND ((ur.role = ANY (ARRAY['owner'::app_role, 'super_admin'::app_role])) OR user_has_hotel_access(auth.uid(), rooms.hotel_id)) AND (u.tenant_id = h.tenant_id))))	
+public	seasonal_rate_overrides	sro_tenant_modify	ALL	{authenticated}	(tenant_id IN ( SELECT users.tenant_id
+   FROM users
+  WHERE (users.id = auth.uid())))	(tenant_id IN ( SELECT users.tenant_id
+   FROM users
+  WHERE (users.id = auth.uid())))
+public	seasonal_rate_overrides	sro_tenant_select	SELECT	{authenticated}	(tenant_id IN ( SELECT users.tenant_id
+   FROM users
+  WHERE (users.id = auth.uid())))	
 public	shift_history	Managers can view all shift history in tenant	SELECT	{public}	(EXISTS ( SELECT 1
    FROM users u
   WHERE ((u.id = auth.uid()) AND (u.tenant_id = shift_history.tenant_id) AND (u.user_level_code = ANY (ARRAY['super_admin'::text, 'tenant_owner'::text, 'manager'::text])))))	
@@ -695,6 +813,7 @@ public	stock_adjustments	Users can view stock adjustments from their tenant	SELE
   WHERE (users.id = auth.uid())))	
 public	subscription_plans	Anyone can view active subscription plans	SELECT	{public}	(is_active = true)	
 public	subscription_plans	Anyone can view subscription plans	SELECT	{authenticated}	true	
+public	super_admin_activity_log	Super admins read activity log	SELECT	{authenticated}	has_role(auth.uid(), 'super_admin'::app_role)	
 public	supplement_requests	Users can create supplement requests in their tenant	INSERT	{public}		(tenant_id IN ( SELECT users.tenant_id
    FROM users
   WHERE (users.id = auth.uid())))
@@ -704,6 +823,8 @@ public	supplement_requests	Users can update supplement requests in their tenant	
 public	supplement_requests	Users can view supplement requests in their tenant	SELECT	{public}	(tenant_id IN ( SELECT users.tenant_id
    FROM users
   WHERE (users.id = auth.uid())))	
+public	suppressed_emails	Service role can insert suppressed emails	INSERT	{public}		(auth.role() = 'service_role'::text)
+public	suppressed_emails	Service role can read suppressed emails	SELECT	{public}	(auth.role() = 'service_role'::text)	
 public	telegram_connections	Users can manage own telegram connections	ALL	{public}	(auth.uid() = user_id)	
 public	telegram_connections	Users can view own telegram connections	SELECT	{public}	(auth.uid() = user_id)	
 public	telegram_connections	View telegram connections policy	SELECT	{public}	((auth.uid() = user_id) OR (EXISTS ( SELECT 1
@@ -725,6 +846,16 @@ public	telegram_groups	Users can view tenant telegram groups	SELECT	{public}	(te
 public	tenant_usage	Tenant owners can view their usage	SELECT	{public}	(tenant_id IN ( SELECT users.tenant_id
    FROM users
   WHERE (users.id = auth.uid())))	
+public	tenants	tenants_select_own	SELECT	{authenticated}	(id = ( SELECT users.tenant_id
+   FROM users
+  WHERE (users.id = auth.uid())))	
+public	tenants	tenants_select_super_admin	SELECT	{authenticated}	is_super_admin(auth.uid())	
+public	tenants	tenants_update_owner	UPDATE	{authenticated}	((id = ( SELECT users.tenant_id
+   FROM users
+  WHERE (users.id = auth.uid()))) AND has_role(auth.uid(), 'owner'::app_role))	((id = ( SELECT users.tenant_id
+   FROM users
+  WHERE (users.id = auth.uid()))) AND has_role(auth.uid(), 'owner'::app_role))
+public	tenants	tenants_update_super_admin	UPDATE	{authenticated}	is_super_admin(auth.uid())	is_super_admin(auth.uid())
 public	user_hotels	Admins manage hotel assignments	ALL	{public}	((hotel_id IN ( SELECT h.id
    FROM hotels h
   WHERE (h.tenant_id = ( SELECT users.tenant_id
@@ -753,20 +884,38 @@ public	user_permissions	Owners and managers can manage user permissions	ALL	{pub
   WHERE ((u.id = auth.uid()) AND (u.user_level_code = 'manager'::text)))) OR (EXISTS ( SELECT 1
    FROM user_roles ur
   WHERE ((ur.user_id = auth.uid()) AND (ur.role = 'owner'::app_role))))))
-public	user_permissions	Users can view their own permissions	SELECT	{authenticated}	((user_id = auth.uid()) OR (tenant_id IN ( SELECT users.tenant_id
-   FROM users
-  WHERE (users.id = auth.uid()))))	
+public	user_permissions	Users can view permissions scoped by role	SELECT	{public}	((user_id = auth.uid()) OR is_super_admin(auth.uid()) OR ((tenant_id = get_current_user_tenant_id()) AND (is_tenant_owner() OR has_user_level(auth.uid(), 'manager'::text))))	
 public	user_preferences	Users can manage their own preferences	ALL	{authenticated}	(user_id = auth.uid())	(user_id = auth.uid())
-public	user_roles	Owners can manage roles in their tenant	ALL	{public}	(has_role(auth.uid(), 'super_admin'::app_role) OR (has_role(auth.uid(), 'owner'::app_role) AND (EXISTS ( SELECT 1
+public	user_roles	Owners manage non-super-admin roles in their tenant	ALL	{authenticated}	(has_role(auth.uid(), 'owner'::app_role) AND (role <> 'super_admin'::app_role) AND (EXISTS ( SELECT 1
    FROM (users u1
      JOIN users u2 ON ((u1.tenant_id = u2.tenant_id)))
-  WHERE ((u1.id = auth.uid()) AND (u2.id = user_roles.user_id))))))	
+  WHERE ((u1.id = auth.uid()) AND (u2.id = user_roles.user_id)))))	(has_role(auth.uid(), 'owner'::app_role) AND (role <> 'super_admin'::app_role) AND (EXISTS ( SELECT 1
+   FROM (users u1
+     JOIN users u2 ON ((u1.tenant_id = u2.tenant_id)))
+  WHERE ((u1.id = auth.uid()) AND (u2.id = user_roles.user_id)))))
 public	user_roles	Super admins can view all roles	SELECT	{public}	has_role(auth.uid(), 'super_admin'::app_role)	
+public	user_roles	Super admins manage all roles	ALL	{authenticated}	has_role(auth.uid(), 'super_admin'::app_role)	has_role(auth.uid(), 'super_admin'::app_role)
 public	user_roles	Users can view their own roles	SELECT	{public}	(user_id = auth.uid())	
 public	users	users_delete_subordinates	DELETE	{authenticated}	(is_super_admin(auth.uid()) OR ((tenant_id = get_current_user_tenant_id()) AND can_manage_user(auth.uid(), id) AND (COALESCE(is_primary_owner, false) = false)))	
-public	users	users_insert_in_tenant	INSERT	{authenticated}		(is_super_admin(auth.uid()) OR (tenant_id = get_current_user_tenant_id()))
+public	users	users_insert_in_tenant	INSERT	{authenticated}		(is_super_admin(auth.uid()) OR ((tenant_id = get_current_user_tenant_id()) AND (is_tenant_owner() OR has_user_level(auth.uid(), 'manager'::text))))
 public	users	users_select_self_or_tenant	SELECT	{authenticated}	(is_super_admin(auth.uid()) OR (id = auth.uid()) OR (is_tenant_owner() AND (tenant_id = get_current_user_tenant_id())) OR ((tenant_id = get_current_user_tenant_id()) AND works_at_same_hotel(id)))	
-public	users	users_update_self_or_managed	UPDATE	{authenticated}	(is_super_admin(auth.uid()) OR (id = auth.uid()) OR ((tenant_id = get_current_user_tenant_id()) AND can_manage_user(auth.uid(), id)))	(is_super_admin(auth.uid()) OR (id = auth.uid()) OR ((tenant_id = get_current_user_tenant_id()) AND can_manage_user(auth.uid(), id)))
+public	users	users_update_self_or_managed	UPDATE	{public}	(is_super_admin(auth.uid()) OR (id = auth.uid()) OR ((tenant_id = get_current_user_tenant_id()) AND can_manage_user(auth.uid(), id)))	(is_super_admin(auth.uid()) OR ((id = auth.uid()) AND (tenant_id = ( SELECT u.tenant_id
+   FROM users u
+  WHERE (u.id = auth.uid()))) AND (user_level_code = ( SELECT u.user_level_code
+   FROM users u
+  WHERE (u.id = auth.uid()))) AND (COALESCE(role, ''::text) = COALESCE(( SELECT u.role
+   FROM users u
+  WHERE (u.id = auth.uid())), ''::text)) AND (is_super_admin = false) AND (COALESCE(is_primary_owner, false) = COALESCE(( SELECT u.is_primary_owner
+   FROM users u
+  WHERE (u.id = auth.uid())), false))) OR ((tenant_id = get_current_user_tenant_id()) AND can_manage_user(auth.uid(), id) AND (is_super_admin = false) AND (COALESCE(is_primary_owner, false) = COALESCE(( SELECT u.is_primary_owner
+   FROM users u
+  WHERE (u.id = users.id)), false)) AND (user_level_code = ( SELECT u.user_level_code
+   FROM users u
+  WHERE (u.id = users.id))) AND (COALESCE(role, ''::text) = COALESCE(( SELECT u.role
+   FROM users u
+  WHERE (u.id = users.id)), ''::text)) AND (tenant_id = ( SELECT u.tenant_id
+   FROM users u
+  WHERE (u.id = users.id)))))
 public	vendors	Managers can manage vendors	ALL	{authenticated}	((tenant_id IN ( SELECT users.tenant_id
    FROM users
   WHERE (users.id = auth.uid()))) AND (has_role(auth.uid(), 'owner'::app_role) OR has_role(auth.uid(), 'hotel_manager'::app_role)))	
