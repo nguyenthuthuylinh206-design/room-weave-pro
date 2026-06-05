@@ -26,6 +26,9 @@ export function useDistributionOrders(filters: DistributionFilters = {}, page = 
         p_hotel_id: isAllHotelsMode ? null : selectedHotel?.id,
         p_status: filters.status || null,
         p_assigned_to: filters.assigned_to || null,
+        p_floor: null,
+        p_shift_date: null,
+        p_shift_code: null,
         p_limit: pageSize,
         p_offset: (page - 1) * pageSize,
       })
