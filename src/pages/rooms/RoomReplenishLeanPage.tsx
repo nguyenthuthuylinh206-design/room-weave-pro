@@ -203,7 +203,27 @@ export default function RoomReplenishLeanPage() {
         {/* Missing items */}
         {missing.length > 0 && (
           <section className="space-y-2">
-            <h2 className="text-sm font-semibold text-red-600">Đồ thiếu cần bổ sung</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-red-600">Đồ thiếu cần bổ sung</h2>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8"
+                onClick={handleFillSuggested}
+              >
+                <CheckCheck className="h-3.5 w-3.5 mr-1" />
+                Bổ sung đủ theo gợi ý
+              </Button>
+            </div>
+            {missing.some((it) => it.quantity_in_stock <= 0) && (
+              <div className="flex items-start gap-2 p-3 border border-amber-200 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-900/40 rounded-lg">
+                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  Một số món đã hết trong kho. Vui lòng tạo yêu cầu nhập kho hoặc liên hệ quản lý.
+                </p>
+              </div>
+            )}
             <div className="border rounded-lg divide-y">
               {missing.map((it) => (
                 <ItemRow
@@ -217,6 +237,7 @@ export default function RoomReplenishLeanPage() {
             </div>
           </section>
         )}
+
 
         {/* Consumables */}
         {consumables.length > 0 && (
