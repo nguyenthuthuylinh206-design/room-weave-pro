@@ -37,6 +37,7 @@ export function useSetupRoom() {
       const { data, error } = await supabase
         .rpc('setup_room_initial', {
           p_room_id: roomId,
+          p_user_id: user?.id ?? null,
           p_reset_quantities: reset
         })
 
