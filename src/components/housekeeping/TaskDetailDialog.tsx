@@ -102,7 +102,7 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
       navigate(`/rooms/${task.room_id}/check?type=checkin&resume=true`)
     } else if (task.task_type === 'amenity_request') {
       onOpenChange(false)
-      navigate(`/rooms/${task.room_id}/check?type=replenish&resume=true`)
+      navigate(`/rooms/${task.room_id}/check?type=replenish&resume=true&task_id=${task.id}`)
     } else if (task.task_type === 'cleaning') {
       onOpenChange(false)
       navigate(`/rooms/${task.room_id}/check?type=daily&resume=true`)
@@ -142,7 +142,7 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
       navigate(`/rooms/${task.room_id}/check?type=checkin&resume=true`)
     } else if (task.task_type === 'amenity_request') {
       onOpenChange(false)
-      navigate(`/rooms/${task.room_id}/check?type=replenish&resume=true`)
+      navigate(`/rooms/${task.room_id}/check?type=replenish&resume=true&task_id=${task.id}`)
     } else if (task.task_type === 'cleaning') {
       onOpenChange(false)
       navigate(`/rooms/${task.room_id}/check?type=daily&resume=true`)
