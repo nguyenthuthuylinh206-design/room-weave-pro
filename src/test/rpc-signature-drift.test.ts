@@ -114,16 +114,9 @@ describe('RPC signature drift (vs _generated/db-functions.tsv)', () => {
     // 18 entry dưới đây là legacy overload đã tồn tại tại 2026-05-10.
     // Đã ghi nhận tại findings.md F-RPC-OVERLOAD-02 — cần audit + DROP dần.
     // Khi DROP xong từng cái, xoá khỏi danh sách này. Test sẽ chặn THÊM MỚI.
-    const ALLOWED_OVERLOADS = new Set<string>([
-      'create_distribution_order',
-      'create_inbound_transaction',
-      'create_laundry_loss_transaction',
-      'create_laundry_return_transaction',
-      'create_outbound_transaction',
-      // 2026-06-05 Sprint B: pagination khác nhau (limit/offset vs page/page_size)
-      'get_laundry_batches_filtered',
-      'setup_new_tenant',
-    ]);
+    // 2026-06-05 Sprint A1+A2+A3+B: đã DROP toàn bộ overload legacy → whitelist rỗng.
+    // Mọi RPC overload mới THÊM VÀO sau này sẽ fail test → bắt buộc audit.
+    const ALLOWED_OVERLOADS = new Set<string>([]);
     const offenders: string[] = [];
     for (const [name, sigs] of appRpcs.entries()) {
       if (sigs.length <= 1) continue;
