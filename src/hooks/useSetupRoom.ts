@@ -17,6 +17,7 @@ interface SetupRoomResult {
 export function useSetupRoom() {
   const queryClient = useQueryClient()
   const { tenantId } = useUser()
+  const { user } = useAuth()
 
   return useMutation({
     mutationFn: async ({ 
