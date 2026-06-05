@@ -12181,9 +12181,10 @@ export type Database = {
         }
         Returns: Json
       }
-      apply_room_standards:
-        | { Args: { p_room_id: string }; Returns: Json }
-        | { Args: { p_room_id: string; p_user_id?: string }; Returns: Json }
+      apply_room_standards: {
+        Args: { p_room_id: string; p_user_id?: string }
+        Returns: Json
+      }
       approve_reorder_suggestions: {
         Args: { _suggestion_ids: string[] }
         Returns: Json
@@ -13743,16 +13744,10 @@ export type Database = {
         Args: { p_transaction_id: string }
         Returns: undefined
       }
-      handover_batch:
-        | { Args: { p_actor_id?: string; p_batch_id: string }; Returns: Json }
-        | {
-            Args: {
-              p_actor_id?: string
-              p_adjustments?: Json
-              p_batch_id: string
-            }
-            Returns: Json
-          }
+      handover_batch: {
+        Args: { p_actor_id?: string; p_adjustments?: Json; p_batch_id: string }
+        Returns: Json
+      }
       handover_stop_create_next_route: {
         Args: {
           p_actor_id?: string
@@ -14377,16 +14372,14 @@ export type Database = {
         Args: { p_reason: string; p_tenant_id: string }
         Returns: undefined
       }
-      settle_batch_compensation:
-        | { Args: { _batch_id: string }; Returns: Json }
-        | {
-            Args: {
-              _batch_id: string
-              _compensation_amount: number
-              _notes?: string
-            }
-            Returns: Json
-          }
+      settle_batch_compensation: {
+        Args: {
+          _batch_id: string
+          _compensation_amount: number
+          _notes?: string
+        }
+        Returns: Json
+      }
       setup_new_tenant:
         | {
             Args: {
@@ -14412,19 +14405,14 @@ export type Database = {
             }
             Returns: Json
           }
-      setup_room_initial:
-        | {
-            Args: { p_reset_quantities?: boolean; p_room_id: string }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_reset_quantities?: boolean
-              p_room_id: string
-              p_user_id?: string
-            }
-            Returns: Json
-          }
+      setup_room_initial: {
+        Args: {
+          p_reset_quantities?: boolean
+          p_room_id: string
+          p_user_id?: string
+        }
+        Returns: Json
+      }
       submit_delivery_lean: {
         Args: {
           _distribution_order_room_id: string
@@ -14683,15 +14671,10 @@ export type Database = {
         Args: { _check_id: string; _reason?: string }
         Returns: Json
       }
-      undo_room_delivery_confirmation:
-        | { Args: { p_distribution_order_room_id: string }; Returns: Json }
-        | {
-            Args: {
-              p_distribution_order_room_id: string
-              p_performed_by: string
-            }
-            Returns: Json
-          }
+      undo_room_delivery_confirmation: {
+        Args: { p_distribution_order_room_id: string; p_performed_by: string }
+        Returns: Json
+      }
       update_booking_amount_paid: {
         Args: {
           p_amount_to_add: number
