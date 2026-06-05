@@ -79,7 +79,8 @@ export function RoomDetailPage() {
   }
 
   return (
-    <div className="flex flex-col gap-3 h-[calc(100vh-7rem)] min-h-[680px] max-w-[1600px] mx-auto">
+    <div className="flex flex-col gap-3 min-h-[calc(100dvh-7rem)] max-w-[1600px] mx-auto">
+
       {/* Header — gọn, 1 dòng */}
       <div className="flex items-center justify-between gap-3 flex-shrink-0">
         <div className="flex items-center gap-3 min-w-0">
@@ -120,8 +121,8 @@ export function RoomDetailPage() {
         </div>
       </div>
 
-      {/* Cleaning banner — chỉ khi cần */}
-      {room.status === 'cleaning' && (
+      {/* Cleaning banner — state machine v2: bất kỳ trạng thái "dirty" nào */}
+      {['cleaning', 'occupied_dirty', 'vacant_dirty'].includes(room.status as string) && (
         <div className="flex-shrink-0">
           <CleaningRequestBanner roomId={id!} roomNumber={room.room_number} hotelId={room.hotel_id} />
         </div>
@@ -182,7 +183,9 @@ export function RoomDetailPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Hủy</AlertDialogCancel>
             <AlertDialogAction
+              disabled={setupRoom.isPending}
               onClick={() => {
+                if (setupRoom.isPending) return
                 setupRoom.mutate({ roomId: id!, reset: true })
                 setShowResetDialog(false)
               }}
@@ -217,7 +220,7 @@ export function RoomDetailPage() {
 
 function RoomDetailSkeleton() {
   return (
-    <div className="flex flex-col gap-3 h-[calc(100vh-7rem)] min-h-[680px]">
+    <div className="flex flex-col gap-3 min-h-[calc(100dvh-7rem)]">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Skeleton className="h-8 w-8 rounded" />
