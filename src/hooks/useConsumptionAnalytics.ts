@@ -27,20 +27,25 @@ export function useLatestConsumptionSnapshots(limit: number = 200) {
     queryFn: async (): Promise<ConsumptionSnapshot[]> => {
       if (!tenant?.id) throw new Error('No tenant')
 
-      let q = supabase
-        .from('consumption_snapshots')
-        .select('*, item:items(id, name, item_code, unit_price)')
-        .eq('tenant_id', tenant.id)
-        .order('snapshot_date', { ascending: false })
-        .limit(limit)
-
-      if (!isAllHotelsMode && selectedHotel?.id) {
-        q = q.eq('hotel_id', selectedHotel.id)
-      }
-
-      const { data, error } = await q
+      // Server-side DISTINCT ON (item_id) — trả đúng 1 dòng latest/item.
+      // Tránh truncate khi tenant có >limit raw rows (mỗi item nhiều snapshot_date).
+      const { data, error } = await supabase.rpc('get_latest_consumption_snapshots', {
+        p_tenant_id: tenant.id,
+        p_hotel_id: !isAllHotelsMode && selectedHotel?.id ? selectedHotel.id : null,
+        p_limit: limit,
+      })
       if (error) throw error
-      return (data ?? []) as unknown as ConsumptionSnapshot[]
+
+      // Backfill `item` join (RPC trả raw snapshot row; widgets vẫn dùng item.name)
+      const rows = (data ?? []) as unknown as ConsumptionSnapshot[]
+      const itemIds = Array.from(new Set(rows.map((r: any) => r.item_id).filter(Boolean)))
+      if (itemIds.length === 0) return rows
+      const { data: items } = await supabase
+        .from('items')
+        .select('id, name, item_code:code, unit_price')
+        .in('id', itemIds)
+      const byId = new Map((items ?? []).map((i: any) => [i.id, i]))
+      return rows.map((r: any) => ({ ...r, item: byId.get(r.item_id) ?? null }))
     },
     enabled: !!tenant?.id && (isAllHotelsMode || !!selectedHotel?.id),
     staleTime: 60 * 1000,
