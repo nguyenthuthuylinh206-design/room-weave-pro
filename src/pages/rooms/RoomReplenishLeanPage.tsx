@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, Loader2, Minus, Plus, PackagePlus } from 'lucide-react'
+import { ChevronLeft, Loader2, Minus, Plus, PackagePlus, AlertCircle, CheckCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -34,7 +34,12 @@ export default function RoomReplenishLeanPage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const taskId = params.get('task_id')
-  const returnTo = params.get('returnTo') || '/my-tasks'
+  // Whitelist returnTo: chỉ chấp nhận path nội bộ bắt đầu bằng '/' và không phải '//'
+  const rawReturnTo = params.get('returnTo')
+  const returnTo =
+    rawReturnTo && rawReturnTo.startsWith('/') && !rawReturnTo.startsWith('//')
+      ? rawReturnTo
+      : '/my-tasks'
 
   const { data: roomData, isLoading: roomLoading } = useRoom(id)
   const room = roomData?.room
@@ -81,11 +86,27 @@ export default function RoomReplenishLeanPage() {
   const setOne = (itemId: string, value: number) => {
     const it = itemById[itemId]
     if (!it) return
-    const clamped = Math.max(0, Math.min(value, it.quantity_in_stock))
+    const safe = Number.isFinite(value) ? value : 0
+    const clamped = Math.max(0, Math.min(safe, it.quantity_in_stock))
     setQty((prev) => ({ ...prev, [itemId]: clamped }))
   }
 
-  const handleBack = () => navigate(-1)
+  /** Bổ sung đủ theo gợi ý cho mọi món thiếu (clamp theo kho) */
+  const handleFillSuggested = () => {
+    if (!supplements) return
+    setQty((prev) => {
+      const next = { ...prev }
+      for (const it of supplements.missing_items) {
+        next[it.item_id] = Math.min(it.missing_quantity, it.quantity_in_stock)
+      }
+      return next
+    })
+  }
+
+  const handleBack = () => {
+    if (window.history.length > 1) navigate(-1)
+    else navigate(returnTo, { replace: true })
+  }
 
   const handleSubmit = async () => {
     if (!id || !room) return
