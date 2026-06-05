@@ -427,9 +427,10 @@ export function MobileOutboundForm() {
   const selectedVendor = vendors.find(v => v.id === laundryData?.vendor_id)
   const selectedRooms = rooms.filter(r => selectedRoomIds.includes(r.id))
   
-  // Render step content
-  const renderStepContent = () => {
-    const stepKey = currentStep?.key
+  // Render content for a given step. Now invoked for every step in `steps`,
+  // so the whole form renders on a single scrollable page (no wizard hiding).
+  const renderStepContent = (stepKey: string) => {
+
     
     // Step: Category Selection & Warehouse
     if (stepKey === 'category') {
