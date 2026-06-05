@@ -1,0 +1,88 @@
+import { useMemo } from 'react'
+import {
+  useLatestConsumptionSnapshots,
+} from '@/hooks/useConsumptionAnalytics'
+import { useLowStockItems } from '@/hooks/useInventoryDashboard'
+import type { ConsumptionSnapshot } from '@/types/inventory-analytics.types'
+
+/**
+ * Centralized stockout selectors for Inventory Hub.
+ *
+ * Why: `useLatestConsumptionSnapshots` returns N rows per item (one per
+ * snapshot_date, DESC), so naive `.filter(s => s.stock_days_remaining < X)`
+ * massively inflates counts when an item has many snapshots. This helper
+ * dedups to the latest row per item ONCE and exposes the derived numbers
+ * + rows that all widgets need (TodoCard, KpiGrid, ForecastWidget,
+ * CombinedStockAlerts).
+ *
+ * Returned values are stable identity-wise via useMemo so consumers can
+ * spread them into deps without retriggering renders.
+ */
+export interface StockoutData {
+  /** Latest snapshot per item_id (deduped). */
+  latestById: Map<string, ConsumptionSnapshot>
+  /** Latest snapshots as array, sorted by stock_days_remaining ASC (nulls last). */
+  latestSorted: ConsumptionSnapshot[]
+  /** Count of items running out within 7 days (forecasted). */
+  soonOutCount: number
+  /** Count of items running out within 14 days (forecasted). */
+  forecast14dCount: number
+  /** Count of items already fully out of stock (quantity_in_stock === 0). */
+  outOfStockCount: number
+  /** Top N forecast rows for the 14-day widget (deduped, sorted). */
+  forecastTopRows: ConsumptionSnapshot[]
+  isLoading: boolean
+}
+
+export function useStockoutItems(forecastTopN: number = 8): StockoutData {
+  const { data: snapshots, isLoading: snapLoading } =
+    useLatestConsumptionSnapshots(500)
+  const { data: lowItems, isLoading: lowLoading } = useLowStockItems(200)
+
+  return useMemo<StockoutData>(() => {
+    // 1. Dedup snapshots: keep latest row per item_id by snapshot_date.
+    const latestById = new Map<string, ConsumptionSnapshot>()
+    for (const s of snapshots ?? []) {
+      const cur = latestById.get(s.item_id)
+      if (!cur || (cur.snapshot_date ?? '') < (s.snapshot_date ?? '')) {
+        latestById.set(s.item_id, s)
+      }
+    }
+
+    const latestSorted = Array.from(latestById.values()).sort((a, b) => {
+      const av = a.stock_days_remaining ?? Number.POSITIVE_INFINITY
+      const bv = b.stock_days_remaining ?? Number.POSITIVE_INFINITY
+      return av - bv
+    })
+
+    const soonOutCount = latestSorted.filter(
+      (s) =>
+        s.stock_days_remaining !== null &&
+        s.stock_days_remaining >= 0 &&
+        s.stock_days_remaining < 7,
+    ).length
+
+    const forecast14d = latestSorted.filter(
+      (s) =>
+        s.stock_days_remaining !== null &&
+        s.stock_days_remaining >= 0 &&
+        s.stock_days_remaining < 14,
+    )
+
+    // "Đã hết" — use real on-hand stock from low-stock RPC (truth of record)
+    // rather than forecasted days_remaining (which is a projection).
+    const outOfStockCount = (lowItems ?? []).filter(
+      (it: any) => Number(it.quantity_in_stock ?? 0) === 0,
+    ).length
+
+    return {
+      latestById,
+      latestSorted,
+      soonOutCount,
+      forecast14dCount: forecast14d.length,
+      outOfStockCount,
+      forecastTopRows: forecast14d.slice(0, forecastTopN),
+      isLoading: snapLoading || lowLoading,
+    }
+  }, [snapshots, lowItems, snapLoading, lowLoading, forecastTopN])
+}

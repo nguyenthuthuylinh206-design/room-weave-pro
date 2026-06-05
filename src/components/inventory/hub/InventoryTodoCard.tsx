@@ -3,7 +3,7 @@ import { ArrowRight, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useInventoryHubBadges } from '@/hooks/useInventoryHubBadges'
-import { useLatestConsumptionSnapshots } from '@/hooks/useConsumptionAnalytics'
+import { useStockoutItems } from '@/hooks/useStockoutItems'
 
 interface Props {
   onNavigate: (tab: string, sub?: string) => void
@@ -36,22 +36,12 @@ const textByTone: Record<Tone, string> = {
 
 /**
  * "Việc cần làm hôm nay" — Task-first hero for the Inventory Hub.
- * Aggregates from useInventoryHubBadges + consumption snapshots so the
- * user immediately sees what needs action instead of vanity numbers.
+ * Aggregates from useInventoryHubBadges + dedup'd consumption snapshots
+ * (via useStockoutItems) so counts are accurate (no per-day duplicates).
  */
 export function InventoryTodoCard({ onNavigate }: Props) {
   const { data: badges, isLoading: badgesLoading } = useInventoryHubBadges()
-  const { data: snapshots, isLoading: snapLoading } = useLatestConsumptionSnapshots(500)
-
-  const forecastSoonOut = useMemo(() => {
-    if (!snapshots) return 0
-    return snapshots.filter(
-      (s) =>
-        s.stock_days_remaining !== null &&
-        s.stock_days_remaining >= 0 &&
-        s.stock_days_remaining < 7,
-    ).length
-  }, [snapshots])
+  const { soonOutCount: forecastSoonOut, isLoading: snapLoading } = useStockoutItems()
 
   const items: TodoItem[] = useMemo(() => {
     const out: TodoItem[] = []

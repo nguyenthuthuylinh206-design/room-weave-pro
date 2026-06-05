@@ -1,34 +1,32 @@
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { AlertTriangle } from 'lucide-react'
 import { MobileInventoryHero } from './MobileInventoryHero'
 import { MobilePrimaryActions } from './MobilePrimaryActions'
-import { MobileInventoryFAB } from './MobileInventoryFAB'
-import { MobileLowStockSection } from './MobileLowStockSection'
 import { MobileSecondaryActions } from './MobileSecondaryActions'
 import { MobileRecentTransactions } from './MobileRecentTransactions'
-import { RestockAlertSheet } from './RestockAlertSheet'
+import { InventoryTodoCard } from './hub/InventoryTodoCard'
+import { CombinedStockAlerts } from './hub/CombinedStockAlerts'
 import { useInventoryDashboard } from '@/hooks/useInventoryDashboard'
-import { useReorderPendingCount } from '@/hooks/useReorderSuggestions'
+import { useNavigate } from 'react-router-dom'
 
 export function MobileInventoryDashboard() {
   const { isLoading } = useInventoryDashboard()
-  const [alertOpen, setAlertOpen] = useState(false)
-  const { data: pendingCount = 0 } = useReorderPendingCount()
+  const navigate = useNavigate()
+
+  // Bridge between TodoCard's onNavigate(tab, sub) signature and the
+  // mobile route layout. Same URL contract the desktop hub uses.
+  const handleNavigate = (tab: string, sub?: string) => {
+    const params = new URLSearchParams({ tab })
+    if (sub) params.set('sub', sub)
+    navigate(`/inventory?${params.toString()}`)
+  }
 
   if (isLoading) {
     return (
       <div className="space-y-4 p-4">
         <div className="h-32 bg-gradient-to-br from-primary/20 to-primary/5 animate-pulse rounded-2xl" />
+        <div className="h-40 bg-muted animate-pulse rounded-2xl" />
         <div className="grid grid-cols-2 gap-3">
           <div className="h-16 bg-muted animate-pulse rounded-2xl" />
           <div className="h-16 bg-muted animate-pulse rounded-2xl" />
-        </div>
-        <div className="grid grid-cols-4 gap-2">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-20 bg-muted animate-pulse rounded-xl" />
-          ))}
         </div>
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
@@ -43,30 +41,20 @@ export function MobileInventoryDashboard() {
     <div className="space-y-5 pb-32">
       <MobileInventoryHero />
 
+      {/* Task-first hero — đồng nhất với desktop hub */}
       <div className="px-4">
-        <Button
-          variant="outline"
-          className="w-full justify-between h-11"
-          onClick={() => setAlertOpen(true)}
-        >
-          <span className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
-            Cảnh báo tồn kho
-          </span>
-          {pendingCount > 0 && (
-            <Badge variant="destructive" className="text-[10px]">
-              {pendingCount}
-            </Badge>
-          )}
-        </Button>
+        <InventoryTodoCard onNavigate={handleNavigate} />
       </div>
 
       <MobilePrimaryActions />
       <MobileSecondaryActions />
-      <MobileLowStockSection />
-      <MobileRecentTransactions />
 
-      <RestockAlertSheet open={alertOpen} onOpenChange={setAlertOpen} />
+      {/* Cảnh báo tồn kho (gộp critical + low-stock + dead) */}
+      <div className="px-4">
+        <CombinedStockAlerts />
+      </div>
+
+      <MobileRecentTransactions />
     </div>
   )
 }

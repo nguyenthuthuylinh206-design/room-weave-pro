@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { ArrowUpRight, TrendingUp, TrendingDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useInventoryDashboard } from '@/hooks/useInventoryDashboard'
-import { useLatestConsumptionSnapshots } from '@/hooks/useConsumptionAnalytics'
+import { useStockoutItems } from '@/hooks/useStockoutItems'
 import { useDeadStockReport } from '@/hooks/useDeadStockReport'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -21,23 +21,13 @@ interface Props {
 
 /**
  * Compact 4-tile "Tình hình kho" — supporting stats only.
- * Action-oriented work has moved up to InventoryTodoCard; this grid is now
- * background context with operator-friendly labels (no "SKU", no "≥90d").
+ * Action-oriented "sắp hết 7d" đã chuyển lên TodoCard; tile thứ 3 ở đây
+ * đổi sang "Đã hết hàng" (stock=0 thực tế) để không trùng TodoCard.
  */
 export function InventoryKpiGrid({ onNavigate }: Props) {
   const { data: stats, isLoading } = useInventoryDashboard()
-  const { data: snapshots } = useLatestConsumptionSnapshots(500)
+  const { outOfStockCount } = useStockoutItems()
   const { data: deadStock } = useDeadStockReport(90)
-
-  const forecastSoonOut = useMemo(() => {
-    if (!snapshots) return 0
-    return snapshots.filter(
-      (s) =>
-        s.stock_days_remaining !== null &&
-        s.stock_days_remaining >= 0 &&
-        s.stock_days_remaining < 7,
-    ).length
-  }, [snapshots])
 
   const deadStockValue = useMemo(
     () => (deadStock ?? []).reduce((acc, r) => acc + (r.total_value || 0), 0),
@@ -90,10 +80,10 @@ export function InventoryKpiGrid({ onNavigate }: Props) {
       onClick: () => onNavigate('assets', 'items'),
     },
     {
-      label: 'Sắp hết (7 ngày)',
-      value: String(forecastSoonOut),
-      hint: 'Theo tiêu thụ 30 ngày qua',
-      tone: forecastSoonOut > 0 ? 'danger' : 'success',
+      label: 'Đã hết hàng',
+      value: String(outOfStockCount),
+      hint: outOfStockCount > 0 ? 'Tồn thực tế bằng 0' : 'Không có món nào hết',
+      tone: outOfStockCount > 0 ? 'danger' : 'success',
       onClick: () => onNavigate('analytics', 'consumption'),
     },
     {

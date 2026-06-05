@@ -1,6 +1,20 @@
 {
-  "current": "1.1.80",
+  "current": "1.1.81",
   "versions": [
+    {
+      "version": "1.1.81",
+      "date": "2026-06-05",
+      "title": "Audit /inventory Batch 1: fix số liệu sai, gỡ widget trùng, đồng bộ mobile",
+      "highlights": [
+        "**Fix logic P0** — KPI 'Sắp hết (7 ngày)' đang bị thổi phồng vì `useLatestConsumptionSnapshots(500)` trả nhiều dòng/item (mỗi ngày 1 snapshot). Tạo hook trung tâm `useStockoutItems()` dedup latest-per-item một lần, expose `soonOutCount/forecast14dCount/outOfStockCount/forecastTopRows`. Áp dụng cho `InventoryTodoCard`, `InventoryKpiGrid`, `InventoryForecastWidget`, `CombinedStockAlerts`",
+        "**Fix logic P0** — `useInventoryHubBadges.distributionsPending` đang đếm cả `in_progress` (đã ai đó nhận xử lý) → label 'phiếu xuất kho cần xử lý' sai. Đổi còn `pending + approved` thôi",
+        "**Gỡ trùng UI P1** — Tile KpiGrid 'Sắp hết (7 ngày)' đổi thành 'Đã hết hàng' (đếm món `quantity_in_stock = 0` từ `get_low_stock_items`), tránh trùng số với TodoCard và CombinedStockAlerts",
+        "**Mobile đồng bộ hub v3** — `MobileInventoryDashboard` giờ render `InventoryTodoCard` + `CombinedStockAlerts` (cùng widget với desktop). Bỏ button 'Cảnh báo tồn kho' badge sai ngữ nghĩa (đếm reorder thay vì low-stock) và `RestockAlertSheet` riêng cho mobile",
+        "**Dọn legacy** — Xóa `LowStockAlert.tsx`, `InventoryAlertsWidget.tsx`, `RestockAlertSheet.tsx`, `MobileLowStockSection.tsx` (đã bị thay bằng `CombinedStockAlerts`/`InventoryTodoCard` từ hub v2/v3)",
+        "**Code hygiene** — Bỏ `console.error('Submit error:', err)` còn sót trong `MobileOutboundForm` (lỗi đã được mutation hook hiển thị toast)"
+      ]
+    },
+    {
     {
       "version": "1.1.80",
       "date": "2026-06-05",

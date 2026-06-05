@@ -62,11 +62,14 @@ export function useInventoryHubBadges() {
         .eq('tenant_id', tenantId)
         .eq('status', 'pending')
 
+      // "Cần xử lý" chỉ tính phiếu chưa được ai thao tác:
+      // pending (chờ duyệt) + approved (đã duyệt, chờ giao).
+      // KHÔNG tính in_progress vì đang được xử lý rồi.
       const distQ = supabase
         .from('distribution_orders')
         .select('id', { count: 'exact', head: true })
         .eq('tenant_id', tenantId)
-        .in('status', ['pending', 'approved', 'in_progress'])
+        .in('status', ['pending', 'approved'])
 
       const adjQ = supabase
         .from('stock_adjustments')
