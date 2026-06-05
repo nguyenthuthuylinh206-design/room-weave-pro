@@ -258,40 +258,37 @@ export function MobileOutboundForm() {
     return () => subscription.unsubscribe()
   }, [form.watch, form.formState.isDirty])
   
-  // Validation for each step
-  const validateCurrentStep = useCallback(() => {
-    const stepKey = currentStep?.key
-    
+  // Per-step validator (now used to validate ALL steps at submit time, since
+  // the form renders single-page — no wizard gating).
+  const validateStep = useCallback((stepKey: string | undefined): { isValid: boolean; error?: string } => {
     if (stepKey === 'category') {
       if (!fromWarehouseId) return { isValid: false, error: t('inventory:mobileForm.validation.fromLocationRequired') }
-      // For disposal/other, require to_location
       if ((category === 'disposal' || category === 'other') && !to_location?.trim()) {
         return { isValid: false, error: t('inventory:mobileForm.validation.toLocationRequired') }
       }
       return { isValid: true }
     }
-    
+
     if (stepKey === 'rooms') {
       if (selectedRoomIds.length === 0) return { isValid: false, error: t('inventory:outbound.noRoomSelected') }
       return { isValid: true }
     }
-    
+
     if (stepKey === 'vendor') {
       if (!laundryData?.vendor_id) return { isValid: false, error: t('laundry:createBatch.validation.selectVendor') }
       return { isValid: true }
     }
-    
+
     if (stepKey === 'delivery') {
       const validation = validateLaundryData(laundryData)
       if (!validation.isValid) return { isValid: false, error: validation.error }
       return { isValid: true }
     }
-    
+
     if (stepKey === 'request') {
-      // Maintenance request is optional
       return { isValid: true }
     }
-    
+
     if (stepKey === 'items') {
       if (hasStockError) return { isValid: false, error: t('inventory:mobileForm.validation.exceededStock') }
       if (watchedItems.length === 0) return { isValid: false, error: t('inventory:mobileForm.validation.addAtLeastOneItem') }
@@ -300,57 +297,46 @@ export function MobileOutboundForm() {
       }
       return { isValid: true }
     }
-    
+
     return { isValid: true }
-  }, [currentStep, fromWarehouseId, to_location, category, selectedRoomIds, laundryData, hasStockError, watchedItems, t])
-  
-  const canProceed = useMemo(() => {
-    return validateCurrentStep().isValid
-  }, [validateCurrentStep])
-  
-  const handleNext = () => {
-    const validation = validateCurrentStep()
-    if (!validation.isValid) {
-      setShake(true)
-      triggerHaptic('error')
-      setTimeout(() => setShake(false), 500)
-      if (validation.error) toast.error(validation.error)
-      return
-    }
-    triggerHaptic('light')
-    setStepIndex(stepIndex + 1)
-  }
-  
+  }, [fromWarehouseId, to_location, category, selectedRoomIds, laundryData, hasStockError, watchedItems, t])
+
+  // Aggregate "can submit?" status across every step — drives the sticky submit button.
+  const allStepsValid = useMemo(() => {
+    return steps.every(s => validateStep(s.key).isValid)
+  }, [steps, validateStep])
+
   const handleBack = () => {
-    if (stepIndex === 0) {
-      if (form.formState.isDirty) {
-        setShowExitDialog(true)
-      } else {
-        navigate(-1)
-      }
+    if (form.formState.isDirty) {
+      setShowExitDialog(true)
     } else {
-      triggerHaptic('light')
-      setStepIndex(stepIndex - 1)
+      navigate(-1)
     }
   }
-  
+
   const handleSaveDraft = () => {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(form.getValues()))
     triggerHaptic('success')
     toast.success(t('inventory:mobileForm.draftSaved'))
     navigate('/inventory/transactions')
   }
-  
+
   const handleDiscard = () => {
     localStorage.removeItem(DRAFT_KEY)
     navigate(-1)
   }
-  
+
   const handleSubmit = async () => {
-    const validation = validateCurrentStep()
-    if (!validation.isValid) {
-      toast.error(validation.error || t('inventory:mobileForm.validation.checkInfo'))
-      return
+    // Validate EVERY step (single-page form: all fields visible, but validators stayed per-section).
+    for (const s of steps) {
+      const v = validateStep(s.key)
+      if (!v.isValid) {
+        triggerHaptic('error')
+        setShake(true)
+        setTimeout(() => setShake(false), 500)
+        toast.error(v.error || t('inventory:mobileForm.validation.checkInfo'))
+        return
+      }
     }
 
     if (hasStockError) {
@@ -359,6 +345,7 @@ export function MobileOutboundForm() {
     }
 
     const formData = form.getValues()
+
 
     submitOutbound(
       {
