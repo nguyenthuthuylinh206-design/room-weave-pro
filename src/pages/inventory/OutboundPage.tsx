@@ -51,7 +51,9 @@ export function OutboundPage() {
   
   const distributionForm = useDistributionForm();
   const [selectedVendor, setSelectedVendor] = useState<any>(null);
-  const outboundSchema = createOutboundSchema(t);
+  // Memo schema theo i18n.language để giữ identity ổn định cho useForm
+  const { i18n } = useTranslation();
+  const outboundSchema = useMemo(() => buildOutboundSchema(t), [t, i18n.language]);
   
   const { mutate: createOutbound, isPending: isLoading } = useCreateOutboundTransaction();
   const { mutate: createDistributionOrder, isPending: isDistributionLoading } = useCreateDistributionOrder();
