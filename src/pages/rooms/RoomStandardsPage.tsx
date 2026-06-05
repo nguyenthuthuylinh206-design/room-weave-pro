@@ -199,13 +199,19 @@ export function RoomStandardsPage() {
                             type="number"
                             min="1"
                             value={standard.quantity}
-                            onChange={(e) =>
-                              handleUpdateQuantity(
-                                standard.id,
-                                parseInt(e.target.value) || 1
-                              )
-                            }
-                            className="w-16 h-8 text-center shrink-0"
+                            onChange={(e) => {
+                              const n = parseInt(e.target.value, 10)
+                              const safe = Number.isFinite(n) && n >= 1 ? n : 1
+                              handleUpdateQuantity(standard.id, safe)
+                            }}
+                            onBlur={(e) => {
+                              const n = parseInt(e.target.value, 10)
+                              if (!Number.isFinite(n) || n < 1) {
+                                toast.warning('Số lượng tối thiểu là 1')
+                                handleUpdateQuantity(standard.id, 1)
+                              }
+                            }}
+                            className="w-16 h-9 text-center shrink-0"
                           />
                           <Button
                             variant="ghost"
