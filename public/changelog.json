@@ -1,6 +1,21 @@
 {
-  "current": "1.1.63",
+  "current": "1.1.64",
   "versions": [
+    {
+      "version": "1.1.64",
+      "date": "2026-06-05",
+      "title": "Lean Replenish UI: trang bổ sung đồ 1 màn hình (C4 Phase 2 — opt-in)",
+      "highlights": [
+        "Thêm trang mới `/rooms/:id/check-replenish` (RoomReplenishLeanPage): 1 màn hình mobile-first thay thế wizard 3 bước của RoomCheckPage legacy cho flow replenish",
+        "Tự prefill số lượng = số thiếu (clamp theo tồn kho), hiển thị 2 nhóm rõ ràng: 'Đồ thiếu' (đỏ, dùng useRoomSupplements) và 'Bổ sung thêm consumables' (xám); stepper +/− 8x8, input số đồng bộ",
+        "Submit gọi 2 mutation atomic: useCreateRoomSupplement (xuất kho + cộng room_items qua create_outbound_transaction) → useSubmitReplenishLean (insert room_check lean + fan-out room_check_issues + đóng task amenity_request + audit log)",
+        "RoomCheckRouter: thêm rẽ nhánh `?type=replenish&lean=1` → tự redirect sang `/check-replenish` (giữ task_id, returnTo, các param khác); flow legacy mặc định không đổi để rollout an toàn",
+        "Hotfix kèm: bỏ cột `tenant_id` không tồn tại khỏi `room_items` INSERT trong useCreateRoomSupplement (cùng nguyên nhân với bug delivery vừa fix ở 1.1.63) — trước đây khi item chưa từng có trong phòng thì supplement bị fail",
+        "Footer sticky: hiển thị tổng số món + badge yêu cầu dọn dẹp; nút Submit disabled khi chưa chọn món nào và chưa bật cleaning",
+        "Phase 3 (Delivery UI) + Phase 4 (rollout/cleanup) sẽ làm tiếp; legacy `/check?type=replenish` không có `lean=1` vẫn chạy wizard cũ"
+      ]
+    },
+
     {
       "version": "1.1.63",
       "date": "2026-06-05",
