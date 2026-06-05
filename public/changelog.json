@@ -1,6 +1,19 @@
 {
-  "current": "1.1.64",
+  "current": "1.1.65",
   "versions": [
+    {
+      "version": "1.1.65",
+      "date": "2026-06-05",
+      "title": "Polish Lean Replenish: bật mặc định + auto-close task (C4 Phase 2.1)",
+      "highlights": [
+        "RoomCheckRouter: `?type=replenish` giờ tự redirect sang `/check-replenish` khi flag `settings.room_check.use_lean` bật (mặc định ON) — không còn cần `&lean=1`; vẫn có thể fallback wizard cũ bằng `&lean=0` hoặc tắt flag per-hotel",
+        "Mọi entry point từ task (TaskCard, StaffTaskRow, TaskDetailDialog — cả Start lẫn Continue) giờ truyền `&task_id=${task.id}` qua URL → Lean tự đóng task `amenity_request` qua `transition_task_status` thay vì phải đợi user bấm hoàn thành tay",
+        "Smoke test RPC `submit_replenish_lean` trên dữ liệu thật (jwt-claims simulate auth user): trả `{check_id, room_id, issue_count:1}` — fan-out issue + cleaning_requested + audit chạy đúng, không leak tenant",
+        "Legacy `RoomCheckPage` wizard cho replenish vẫn còn nguyên cho rollback nhanh; sẽ gỡ ở Phase 4 sau khi đủ traffic Lean"
+      ]
+    },
+    {
+      "version": "1.1.64",
     {
       "version": "1.1.64",
       "date": "2026-06-05",
