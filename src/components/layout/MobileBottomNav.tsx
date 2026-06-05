@@ -60,6 +60,26 @@ export const MobileBottomNav = () => {
     return null
   }
 
+  // Sprint 2: Ẩn bottom nav khi vào form Nhập/Xuất/Chuyển/Kiểm kê inventory
+  // để không che nút Lưu (form sticky footer).
+  const inventoryFormRoutes = [
+    '/inventory/inbound/',
+    '/inventory/outbound/',
+    '/inventory/transfer/',
+    '/inventory/adjustments/new',
+    '/inventory/adjustments/',
+  ]
+  if (inventoryFormRoutes.some((p) => location.pathname.startsWith(p))) {
+    // Cho phép list pages dạng /inventory/adjustments (không có "/" cuối)
+    // nhưng ẩn ở /inventory/adjustments/<id> và /new
+    const isList =
+      location.pathname === '/inventory/adjustments' ||
+      location.pathname === '/inventory/inbound' ||
+      location.pathname === '/inventory/outbound' ||
+      location.pathname === '/inventory/transfer'
+    if (!isList) return null
+  }
+
   const isPrivileged = role === 'super_admin' || role === 'owner'
 
   const hasModuleAccess = (modules?: string[]): boolean => {

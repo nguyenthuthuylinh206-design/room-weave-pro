@@ -137,8 +137,12 @@ export function InventoryDashboardPage() {
 
   // Legacy redirect: ?sub=distributions → ?sub=outbound&view=list
   // Legacy redirect: ?view=from-requests → ?view=list (flow giờ inline trong banner)
+  // Sprint 2: ref guard để chỉ chạy 1 lần, tránh effect loop khi user back/forward
+  const legacyRedirected = useRef(false)
   useEffect(() => {
+    if (legacyRedirected.current) return
     if (tab === 'operations' && sub === 'distributions') {
+      legacyRedirected.current = true
       const next = new URLSearchParams(searchParams)
       next.set('sub', 'outbound')
       if (!next.get('view')) next.set('view', 'list')
@@ -146,6 +150,7 @@ export function InventoryDashboardPage() {
       return
     }
     if (tab === 'operations' && sub === 'outbound' && searchParams.get('view') === 'from-requests') {
+      legacyRedirected.current = true
       const next = new URLSearchParams(searchParams)
       next.set('view', 'list')
       setSearchParams(next, { replace: true })
@@ -340,7 +345,7 @@ export function InventoryDashboardPage() {
       <div className="lg:hidden">
         <PageHeader
           title="Kho & Tài sản"
-          description="Trung tâm điều hành kho — tồn kho, xuất nhập, phân tích và thiết lập"
+          description="Nhập / xuất / phân tích kho"
         >
           <div className="flex items-center gap-2">{primaryActions}</div>
         </PageHeader>

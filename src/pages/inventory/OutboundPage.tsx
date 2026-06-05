@@ -5,8 +5,8 @@ import { Plus, X, AlertTriangle, WashingMachine, Calendar, Scale, DollarSign } f
 
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
+import { buildOutboundSchema, type OutboundFormData } from '@/lib/inventory/outboundFormSchema';
 import { format, addDays } from 'date-fns';
 import { vi } from 'date-fns/locale';
 
@@ -37,87 +37,9 @@ import { useBreakpoint } from '@/lib/breakpoints';
 import { MobileOutboundForm } from '@/components/inventory/MobileOutboundForm';
 import { cn } from '@/lib/utils';
 
-const createOutboundSchema = (t: (key: string) => string) => z.object({
-  transaction_category: z.enum(['room_assign', 'laundry', 'maintenance', 'disposal', 'other']),
-  from_warehouse_id: z.string().optional(),
-  to_location: z.string().optional(),
-  vendor_id: z.string().uuid().optional(),
-  maintenance_request_id: z.string().uuid().optional(),
-  items: z.array(z.object({
-    item_id: z.string().refine(val => val === '' || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val), {
-      message: t('inventory:validation.itemRequired')
-    }),
-    quantity: z.number().min(1, t('inventory:validation.quantityMin')),
-    available_quantity: z.number(),
-    notes: z.string().optional()
-  })).optional(),
-  recipient_name: z.string().optional(),
-  photos: z.array(z.string()).optional(),
-  notes: z.string().optional(),
-  delivery_date: z.date().optional(),
-  expected_return_date: z.date().optional(),
-  delivery_staff_id: z.string().uuid().optional(),
-  receiver_name: z.string().optional(),
-  laundry_items: z.array(z.object({
-    item_id: z.string().refine(val => val === '' || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)),
-    quantity: z.number().min(1),
-    weight_kg: z.number().min(0),
-    available_quantity: z.number(),
-    condition_note: z.string().optional()
-  })).optional(),
-}).refine(data => {
-  // from_warehouse_id required for all except room_assign (which uses its own form state)
-  if (data.transaction_category === 'room_assign') return true;
-  return !!data.from_warehouse_id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.from_warehouse_id);
-}, {
-  message: t('inventory:validation.fromRequired'),
-  path: ['from_warehouse_id']
-}).refine(data => {
-  if (data.transaction_category === 'room_assign') return true;
-  if (data.transaction_category === 'laundry') {
-    return data.laundry_items && data.laundry_items.length > 0 && data.laundry_items.some(i => i.item_id);
-  }
-  return data.items && data.items.length > 0;
-}, {
-  message: t('inventory:validation.itemsMin'),
-  path: ['items']
-}).refine(data => {
-  if (data.transaction_category === 'room_assign') return true;
-  if (data.transaction_category === 'laundry') {
-    return data.laundry_items?.every(item => item.quantity <= item.available_quantity) ?? true;
-  }
-  return data.items?.every(item => item.quantity <= item.available_quantity) ?? true;
-}, {
-  message: t('inventory:outbound.stockError'),
-  path: ['items']
-}).refine(data => {
-  if (data.transaction_category === 'laundry') {
-    return !!data.vendor_id && !!data.delivery_date && !!data.expected_return_date && !!data.delivery_staff_id && !!data.receiver_name;
-  }
-  if (data.transaction_category === 'maintenance') return !!data.maintenance_request_id || !!data.to_location;
-  return true;
-}, {
-  message: t('inventory:validation.destinationRequired'),
-  path: ['to_location']
-});
+// Schema & type extracted to src/lib/inventory/outboundFormSchema.ts (Sprint 2)
+// Đã loại bỏ createOutboundSchema inline để tránh re-create mỗi render.
 
-
-type OutboundFormData = {
-  transaction_category: 'room_assign' | 'laundry' | 'maintenance' | 'disposal' | 'other';
-  from_warehouse_id: string;
-  to_location?: string;
-  vendor_id?: string;
-  maintenance_request_id?: string;
-  items?: Array<{ item_id: string; quantity: number; available_quantity: number; notes?: string }>;
-  recipient_name?: string;
-  photos?: string[];
-  notes?: string;
-  delivery_date?: Date;
-  expected_return_date?: Date;
-  delivery_staff_id?: string;
-  receiver_name?: string;
-  laundry_items?: Array<{ item_id: string; quantity: number; weight_kg: number; available_quantity: number; condition_note?: string }>;
-};
 
 export function OutboundPage() {
   const { t } = useTranslation(['inventory', 'common', 'distribution', 'laundry'])
@@ -129,7 +51,9 @@ export function OutboundPage() {
   
   const distributionForm = useDistributionForm();
   const [selectedVendor, setSelectedVendor] = useState<any>(null);
-  const outboundSchema = createOutboundSchema(t);
+  // Memo schema theo i18n.language để giữ identity ổn định cho useForm
+  const { i18n } = useTranslation();
+  const outboundSchema = useMemo(() => buildOutboundSchema(t), [t, i18n.language]);
   
   const { mutate: createOutbound, isPending: isLoading } = useCreateOutboundTransaction();
   const { mutate: createDistributionOrder, isPending: isDistributionLoading } = useCreateDistributionOrder();
