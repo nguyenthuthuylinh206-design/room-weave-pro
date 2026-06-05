@@ -213,12 +213,18 @@ export function RoomsPage() {
           onSelectionChange={setSelectedRoomIds}
         />
       )}
-      {viewMode === 'floor' && <RoomTapeChart />}
+      {viewMode === 'floor' && (
+        <Suspense fallback={<div className="text-sm text-muted-foreground p-4">Đang tải sơ đồ băng…</div>}>
+          <RoomTapeChart />
+        </Suspense>
+      )}
       {viewMode === 'map' && (
-        <RoomFloorMapView
-          onAddRoom={() => navigate('/rooms/new')}
-          onBulkImport={selectedHotel ? () => setShowBulkImport(true) : undefined}
-        />
+        <Suspense fallback={<div className="text-sm text-muted-foreground p-4">Đang tải sơ đồ phòng…</div>}>
+          <RoomFloorMapView
+            onAddRoom={() => navigate('/rooms/new')}
+            onBulkImport={selectedHotel ? () => setShowBulkImport(true) : undefined}
+          />
+        </Suspense>
       )}
 
       {/* Bulk Import Dialog */}
