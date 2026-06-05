@@ -1,6 +1,21 @@
 {
-  "current": "1.1.72",
+  "current": "1.1.73",
   "versions": [
+    {
+      "version": "1.1.73",
+      "date": "2026-06-05",
+      "title": "Sprint 1 audit menu Kho: form mobile single-page + Adjustment FSM",
+      "highlights": [
+        "P0 #1 Bỏ wizard 3 bước ở `MobileInboundForm` và 4 bước ở `MobileOutboundForm` — toàn bộ field render trên 1 trang dọc, 1 nút submit duy nhất, Zod validate đồng thời (tuân thủ Core rule single-page forms)",
+        "P0 #2 Hợp nhất Inbound schema giữa desktop + mobile qua `src/lib/inventory/inboundFormSchema.ts` — cả 2 platform giờ dùng `to_warehouse_id: uuid`, mobile auto-pick `defaultWarehouse` thay vì text tự do (chấm dứt rò dữ liệu không gắn kho)",
+        "P0 #5 Thêm RPC `transition_adjustment_status(_id, _to, _reason, _force)` + `fn_is_valid_adjustment_transition` cho phiếu kiểm kê — luồng draft → in_progress → completed → approved/rejected có guard quyền `manage_inventory`, log audit qua `log_state_transition`. Chưa revoke UPDATE cột `status` (sẽ làm ở Sprint 4 sau khi migrate hết hooks)",
+        "Mobile Outbound: validator per-step gộp thành `validateStep(stepKey)` chạy cho tất cả step khi bấm Xác nhận → user thấy lỗi ngay, không bị chặn ở step trước",
+        "Reset state-machine cho stock_adjustments là staged rollout — RPC sẵn sàng, hooks legacy vẫn chạy song song để không break tính năng đang dùng"
+      ]
+    },
+    {
+      "version": "1.1.72",
+
     {
       "version": "1.1.72",
       "date": "2026-06-05",
