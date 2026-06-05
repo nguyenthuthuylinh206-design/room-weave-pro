@@ -69,9 +69,6 @@ export default function RoomCheckRouter() {
     )
   }
 
-
-  // Per-hotel flag — default ON
-  const useLean = (leanCfg as any)?.use_lean ?? true
   if (!useLean) {
     return (
       <Suspense fallback={null}>
