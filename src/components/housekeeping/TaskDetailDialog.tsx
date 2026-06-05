@@ -96,7 +96,8 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
         : ''
       navigate(`/rooms/${task.room_id}/check?type=checkout&resume=true${inspectionParam}`)
     } else if (task.task_type === 'delivery_confirmation') {
-      setShowDeliveryModal(true)
+      onOpenChange(false)
+      navigate(`/rooms/${task.room_id}/check?type=delivery&room_order_id=${task.distribution_order_room_id}&task_id=${task.id}&returnTo=/my-tasks`)
     } else if (task.task_type === 'checkin_prep') {
       onOpenChange(false)
       navigate(`/rooms/${task.room_id}/check?type=checkin&resume=true`)
@@ -147,7 +148,8 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
       onOpenChange(false)
       navigate(`/rooms/${task.room_id}/check?type=daily&resume=true`)
     } else if (task.task_type === 'delivery_confirmation') {
-      setShowDeliveryModal(true)
+      onOpenChange(false)
+      navigate(`/rooms/${task.room_id}/check?type=delivery&room_order_id=${task.distribution_order_room_id}&task_id=${task.id}&returnTo=/my-tasks`)
     }
   }
 

@@ -66,7 +66,7 @@ export function StaffTaskRow({ task, onTap }: StaffTaskRowProps) {
         const ip = task.checkout_inspection_id ? `&inspection=${task.checkout_inspection_id}` : ''
         navigate(`/rooms/${task.room_id}/check?type=checkout&resume=true${ip}`)
       } else if (task.task_type === 'delivery_confirmation') {
-        setShowDeliveryModal(true)
+        navigate(`/rooms/${task.room_id}/check?type=delivery&room_order_id=${task.distribution_order_room_id}&task_id=${task.id}&returnTo=/my-tasks`)
       } else if (task.task_type === 'checkin_prep') {
         navigate(`/rooms/${task.room_id}/check?type=checkin&resume=true`)
       } else if (task.task_type === 'amenity_request') {
@@ -105,7 +105,7 @@ export function StaffTaskRow({ task, onTap }: StaffTaskRowProps) {
     } else if (task.task_type === 'cleaning') {
       navigate(`/rooms/${task.room_id}/check?type=daily&resume=true`)
     } else if (task.task_type === 'delivery_confirmation') {
-      setShowDeliveryModal(true)
+      navigate(`/rooms/${task.room_id}/check?type=delivery&room_order_id=${task.distribution_order_room_id}&task_id=${task.id}&returnTo=/my-tasks`)
     }
   }
 
