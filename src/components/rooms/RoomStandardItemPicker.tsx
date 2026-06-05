@@ -15,6 +15,13 @@ interface RoomStandardItemPickerProps {
   excludeItemIds: string[]
   onAdd: (itemId: string, quantity: number) => void
   isLoading?: boolean
+  // Controlled server-side search props
+  searchQuery: string
+  onSearchChange: (value: string) => void
+  selectedCategoryId: string | null
+  onCategoryChange: (id: string | null) => void
+  totalCount: number
+  onLoadMore: () => void
 }
 
 export function RoomStandardItemPicker({
@@ -23,55 +30,33 @@ export function RoomStandardItemPicker({
   excludeItemIds,
   onAdd,
   isLoading = false,
+  searchQuery,
+  onSearchChange,
+  selectedCategoryId,
+  onCategoryChange,
+  totalCount,
+  onLoadMore,
 }: RoomStandardItemPickerProps) {
   const { t } = useTranslation('rooms')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [quantities, setQuantities] = useState<Record<string, number>>({})
 
-  // Filter out already added items
-  const availableItems = useMemo(() => {
+  // Items returned by server already match search/category; only filter out already-added
+  const filteredItems = useMemo(() => {
     return items.filter((item) => !excludeItemIds.includes(item.id))
   }, [items, excludeItemIds])
 
-  // Filter items by search and category
-  const filteredItems = useMemo(() => {
-    return availableItems.filter((item) => {
-      const matchesSearch =
-        !searchQuery ||
-        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (item.category_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
-
-      const matchesCategory =
-        !selectedCategory || item.category_id === selectedCategory
-
-      return matchesSearch && matchesCategory
-    })
-  }, [availableItems, searchQuery, selectedCategory])
-
-  // Group items by category
+  // Group items by category for display
   const groupedItems = useMemo(() => {
     const groups: Record<string, ItemWithCategory[]> = {}
     filteredItems.forEach((item) => {
       const categoryId = item.category_id || 'uncategorized'
-      if (!groups[categoryId]) {
-        groups[categoryId] = []
-      }
+      if (!groups[categoryId]) groups[categoryId] = []
       groups[categoryId].push(item)
     })
     return groups
   }, [filteredItems])
 
-  // Get category stats (item count)
-  const categoryStats = useMemo(() => {
-    const stats: Record<string, number> = { all: availableItems.length }
-    availableItems.forEach((item) => {
-      const categoryId = item.category_id || 'uncategorized'
-      stats[categoryId] = (stats[categoryId] || 0) + 1
-    })
-    return stats
-  }, [availableItems])
+  const hasMore = items.length < totalCount
 
   const handleAdd = (itemId: string) => {
     const quantity = quantities[itemId] || 1
