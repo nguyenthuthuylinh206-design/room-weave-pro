@@ -121,10 +121,6 @@ describe('RPC signature drift (vs _generated/db-functions.tsv)', () => {
       'create_laundry_loss_transaction',
       'create_laundry_return_transaction',
       'create_outbound_transaction',
-      // 2026-06-05: legacy (p_room_order_id, p_items_confirmed, p_actor_id) còn được
-      // useRouteBatch.ts gọi. Cần migrate sang signature mới (p_stop_id, p_actor_id)
-      // rồi DROP overload cũ. Tạm whitelist để tránh chặn release.
-      'deliver_stop',
       'get_categories_with_stats',
       'get_distribution_orders_filtered',
       'get_items_filtered',
