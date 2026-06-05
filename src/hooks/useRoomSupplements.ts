@@ -225,15 +225,16 @@ export function useCreateRoomSupplement() {
             })
             .eq('id', existingRoomItem.id)
         } else {
+          // room_items has no tenant_id column (tenant enforced via room_id + RLS)
           await supabase
             .from('room_items')
             .insert({
               room_id: data.room_id,
               item_id: item.item_id,
               quantity: item.quantity,
-              tenant_id: tenantId,
             })
         }
+
       }
 
       return {
