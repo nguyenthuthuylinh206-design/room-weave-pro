@@ -1,6 +1,18 @@
 {
-  "current": "1.1.70",
+  "current": "1.1.71",
   "versions": [
+    {
+      "version": "1.1.71",
+      "date": "2026-06-05",
+      "title": "Sprint 4 audit menu Phòng: dọn dẹp + test cứng",
+      "highlights": [
+        "#31 RoomsPage lazy-load `RoomTapeChart` (1,190 dòng) và `RoomFloorMapView` (849 dòng) — chỉ tải khi viewMode = floor/map, tiết kiệm ~2k LOC ở lần render đầu",
+        "#27 Tách `src/lib/rooms/roomFormSchema.ts` — desktop (`RoomFormPage`) và mobile (`MobileRoomFormPage`) dùng chung 1 nguồn Zod (`buildRoomFormSchema(t)` + `roomFormSchema`), tránh drift validation",
+        "#5 `RoomCheckPage` (legacy 1,619 dòng): thêm header `@deprecated` ghi rõ chỉ còn dùng cho inspection/distribution_order_id/room_order_id, không xoá vì 3 luồng chưa có biến thể Lean",
+        "Test: thêm `roomFormSchema.test.ts` (8 case) + `roomCheckRouter.test.ts` (10 case bảng quyết định) — pure logic, không phụ thuộc React Router, chạy 15ms",
+        "Cleanup: tách hàm `decideRoomCheckRoute()` pure để dễ test, giữ component cũ làm wrapper"
+      ]
+    },
     {
       "version": "1.1.70",
       "date": "2026-06-05",
