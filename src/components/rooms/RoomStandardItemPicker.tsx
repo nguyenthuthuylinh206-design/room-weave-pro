@@ -97,7 +97,7 @@ export function RoomStandardItemPicker({
           <Input
             placeholder={t('standards.searchPlaceholder', 'Tìm theo tên, mã, danh mục...')}
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => onSearchChange(e.target.value)}
             className="pl-9"
           />
         </div>
@@ -107,38 +107,28 @@ export function RoomStandardItemPicker({
       <div className="p-2 border-b overflow-x-auto">
         <div className="flex gap-1.5 flex-wrap">
           <Button
-            variant={selectedCategory === null ? 'default' : 'outline'}
+            variant={selectedCategoryId === null ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setSelectedCategory(null)}
+            onClick={() => onCategoryChange(null)}
             className="text-xs h-7"
           >
             {t('standards.allCategories', 'Tất cả')}
-            <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-xs">
-              {categoryStats.all}
-            </Badge>
           </Button>
-          {categories.map((category) => {
-            const count = categoryStats[category.id] || 0
-            if (count === 0) return null
-            return (
-              <Button
-                key={category.id}
-                variant={selectedCategory === category.id ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedCategory(category.id)}
-                className="text-xs h-7"
-              >
-                <span
-                  className="w-2 h-2 rounded-full mr-1.5"
-                  style={{ backgroundColor: category.color || '#6b7280' }}
-                />
-                {category.name}
-                <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-xs">
-                  {count}
-                </Badge>
-              </Button>
-            )
-          })}
+          {categories.map((category) => (
+            <Button
+              key={category.id}
+              variant={selectedCategoryId === category.id ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => onCategoryChange(category.id)}
+              className="text-xs h-7"
+            >
+              <span
+                className="w-2 h-2 rounded-full mr-1.5"
+                style={{ backgroundColor: category.color || '#6b7280' }}
+              />
+              {category.name}
+            </Button>
+          ))}
         </div>
       </div>
 
@@ -149,7 +139,7 @@ export function RoomStandardItemPicker({
             <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p>{t('standards.noItemsFound', 'Không tìm thấy sản phẩm')}</p>
           </div>
-        ) : selectedCategory ? (
+        ) : selectedCategoryId ? (
           // Flat list when category is selected
           <div className="p-2 space-y-1">
             {filteredItems.map((item) => (
@@ -196,6 +186,25 @@ export function RoomStandardItemPicker({
                 </div>
               </div>
             ))}
+            {hasMore && (
+              <div className="pt-2 pb-3 flex flex-col items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onLoadMore}
+                  className="h-8 text-xs"
+                >
+                  {t('standards.loadMore', 'Tải thêm')} ({items.length}/{totalCount})
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+        {selectedCategoryId && hasMore && (
+          <div className="pt-1 pb-3 flex justify-center">
+            <Button variant="outline" size="sm" onClick={onLoadMore} className="h-8 text-xs">
+              {t('standards.loadMore', 'Tải thêm')} ({items.length}/{totalCount})
+            </Button>
           </div>
         )}
       </ScrollArea>
