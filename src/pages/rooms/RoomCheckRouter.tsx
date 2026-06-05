@@ -34,19 +34,15 @@ export default function RoomCheckRouter() {
   }
 
   const checkType = params.get('type') || ''
-  const hasDistribution =
-    !!params.get('distribution_order_id') ||
-    !!params.get('room_order_id') ||
-    !!params.get('inspection')
-  // Opt-in Lean cho delivery (Phase 3 chưa làm UI) khi URL có ?lean=1
+  const hasInspection = !!params.get('inspection')
+  // Opt-in/opt-out Lean
   const optInLean = params.get('lean') === '1'
+  const optOutLean = params.get('lean') === '0'
 
   // Per-hotel flag — default ON
   const useLean = (leanCfg as any)?.use_lean ?? true
 
-  // Lean replenish: redirect sang /check-replenish khi flag bật (mặc định ON).
-  // Bỏ qua khi user opt-out qua ?lean=0 để fallback wizard cũ.
-  const optOutLean = params.get('lean') === '0'
+  // Lean replenish: redirect sang /check-replenish khi flag bật (mặc định ON)
   if (checkType === 'replenish' && useLean && !optOutLean) {
     const qs = new URLSearchParams(params)
     qs.delete('type')
@@ -60,14 +56,38 @@ export default function RoomCheckRouter() {
     )
   }
 
-  // Delivery + checkout-inspection legacy: giữ wizard cũ trừ khi opt-in Lean.
-  if ((checkType === 'delivery' || checkType === 'replenish' || hasDistribution) && !optInLean) {
+  // Lean delivery: redirect sang /check-delivery khi flag bật
+  if (checkType === 'delivery' && useLean && !optOutLean) {
+    const qs = new URLSearchParams(params)
+    qs.delete('type')
+    qs.delete('lean')
+    const tail = qs.toString()
+    return (
+      <Navigate
+        to={`/rooms/${id}/check-delivery${tail ? `?${tail}` : ''}`}
+        replace
+      />
+    )
+  }
+
+  // Legacy: checkout-inspection + bất kỳ ?type=delivery/replenish nào còn lại
+  // (opt-out hoặc flag tắt) → wizard cũ.
+  if (
+    checkType === 'delivery' ||
+    checkType === 'replenish' ||
+    hasInspection ||
+    !!params.get('distribution_order_id') ||
+    !!params.get('room_order_id')
+  ) {
     return (
       <Suspense fallback={null}>
         <RoomCheckPage />
       </Suspense>
     )
   }
+
+  // Tránh "unused" cảnh báo cho optInLean (giữ cho compatibility ngoài luồng)
+  void optInLean
 
   if (!useLean) {
     return (
