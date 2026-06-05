@@ -1,92 +1,120 @@
-# Audit 17 overload RPC còn lại (F-RPC-OVERLOAD-02)
+## Audit module Kho (`/inventory`) — phát hiện & đề xuất
 
-## Bối cảnh
+Sau khi rà soát Hub, widgets, mobile dashboard và hooks chính, đây là các vấn đề **đáng sửa nhất** kèm đề xuất triển khai. Chia theo mức độ ưu tiên.
 
-Sau khi clean `complete_room_delivery`, `confirm_receive_order`, `deliver_stop`, file `src/test/rpc-signature-drift.test.ts` vẫn whitelist 17 RPC còn overload trùng tên — rủi ro PostgREST chọn nhầm. Mục tiêu: kiểm toán từng RPC, migrate caller, DROP overload thừa, xoá khỏi whitelist.
+---
 
-## Phân loại 17 RPC theo độ rủi ro
+### A. LỖI LOGIC (số liệu sai — ưu tiên P0)
 
-**Nhóm A — Phụ thêm 1 param mở rộng (an toàn, DROP narrow)**
-Cặp đôi old/new chỉ khác 1 param optional. Caller TS dùng named-args → đã ngầm gọi signature wider. DROP narrow không break runtime.
+**A1. KPI "Sắp hết (7 ngày)" bị thổi phồng**
+- `useLatestConsumptionSnapshots(500)` trả **nhiều dòng/item** (mỗi ngày 1 snapshot), sort `snapshot_date DESC`, limit 500.
+- `InventoryTodoCard.forecastSoonOut` và `InventoryKpiGrid` đếm `.filter(s => s.stock_days_remaining < 7).length` → **đếm trùng** cùng item nhiều ngày.
+- Chỉ `CombinedStockAlerts` có dedup latest-per-item (Map + so sánh `snapshot_date`).
+- **Fix**: extract helper `useStockoutItems(thresholdDays)` trả Map latest-per-item và `count`. Dùng chung cho 3 widget + `InventoryForecastWidget`.
 
+**A2. Forecast widget show duplicates**
+- `InventoryForecastWidget` slice 8 dòng đầu sau filter — nếu item A có 5 snapshot trong tuần thì 5 dòng A xuất hiện, đẩy item khác ra ngoài top 8.
+- **Fix**: dedup latest-per-item trước khi sort/slice.
 
-| RPC                                | Diff                                         |
-| ---------------------------------- | -------------------------------------------- |
-| `apply_room_standards`             | + `p_user_id`                                |
-| `create_distribution_order`        | + `p_auto_release, p_supplement_request_ids` |
-| `create_inbound_transaction`       | + `p_to_warehouse_id`                        |
-| `create_outbound_transaction`      | + `p_from_warehouse_id`                      |
-| `get_categories_with_stats`        | + `p_hotel_id`                               |
-| `get_distribution_orders_filtered` | + `p_floor, p_shift_date, p_shift_code`      |
-| `get_items_filtered`               | + `p_warehouse_id`                           |
-| `get_monthly_expenses`             | + `p_hotel_id`                               |
-| `get_recent_activities`            | + `p_hotel_id`                               |
-| `handover_batch`                   | + `p_adjustments`                            |
-| `settle_batch_compensation`        | + `_compensation_amount, _notes`             |
-| `setup_room_initial`               | + `p_user_id`                                |
-| `undo_room_delivery_confirmation`  | + `p_performed_by`                           |
+**A3. Limit 500 có thể cắt cụt**
+- Tenant nhiều item + nhiều ngày → 500 dòng có thể không phủ toàn bộ item.
+- **Fix**: hoặc thêm RPC `get_latest_consumption_snapshots()` (DISTINCT ON item_id ORDER BY snapshot_date DESC) để chỉ trả latest, hoặc tăng limit + dedup ở client. Ưu tiên RPC: giảm payload + chuẩn xác.
 
+**A4. `distributionsPending` đếm cả `in_progress`**
+- Trong `useInventoryHubBadges`, badge gồm `pending + approved + in_progress`.
+- TodoCard label: "phiếu xuất kho cần xử lý" — `in_progress` là **đang được xử lý**, không phải cần xử lý.
+- **Fix**: chỉ đếm `pending + approved` cho "cần xử lý"; tách metric riêng cho `in_progress` nếu cần hiển thị.
 
-**Nhóm B — Hai signature khác hẳn (rủi ro cao, cần audit caller kỹ)**
+---
 
+### B. UI/UX TRÙNG LẶP (ưu tiên P1)
 
-| RPC                                 | Old                                                                       | New                                                      |
-| ----------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `create_laundry_loss_transaction`   | `p_batch_id, p_batch_code, p_item_id, p_quantity, p_loss_type` (per-item) | `p_items jsonb, p_loss_type, p_related_id` (batch jsonb) |
-| `create_laundry_return_transaction` | tương tự, per-item                                                        | batch jsonb                                              |
-| `get_laundry_batches_filtered`      | `p_from_date/p_to_date, p_limit/p_offset`                                 | `p_search, p_page/p_page_size`                           |
-| `setup_new_tenant`                  | `p_tenant_id, p_hotel_name…`                                              | `p_user_id, p_tenant_name, p_tenant_email…`              |
+**B1. 3 widget cùng nói "sắp hết 7 ngày"**
+Trên Overview tab desktop:
+- TodoCard hàng "X món sắp hết trong 7 ngày"
+- KpiGrid tile "Sắp hết (7 ngày): N"
+- CombinedStockAlerts tile "Sắp hết <7d: M"
+→ 3 con số (có thể khác nhau vì bug A1) cho cùng 1 khái niệm.
+- **Fix**: giữ "sắp hết" ở **1 chỗ** (TodoCard — action-first). KpiGrid bỏ tile "Sắp hết", thay bằng KPI khác (vd. tốc độ tiêu thụ TB, số phiếu tuần qua). CombinedStockAlerts đổi tile thành "Item đã hết" (stock = 0) để bổ trợ chứ không trùng.
 
+**B2. Mobile dashboard tách rời, mất feature mới**
+- `MobileInventoryDashboard` không render `InventoryTodoCard`, `InventoryKpiGrid`, `CombinedStockAlerts`.
+- Mobile users vẫn thấy UI cũ: `MobileInventoryHero` + `RestockAlertSheet` + `MobileLowStockSection`.
+- **Fix**: tái dùng `InventoryTodoCard` ở mobile (đã responsive `min-h-[56px]`, full-width). Loại bỏ `MobileLowStockSection` + `RestockAlertSheet` riêng, dùng `CombinedStockAlerts` (đặt full-width, không grid 3 cột — đổi sang stacked trên `<md`).
 
-## Kế hoạch 4 sprint
+**B3. Label badge mobile sai ngữ nghĩa**
+- Mobile "Cảnh báo tồn kho" button: badge số dùng `useReorderPendingCount` (số đề xuất đặt hàng), không phải số item low-stock thực.
+- **Fix**: dùng `lowStock` từ `useInventoryHubBadges` cho đúng label.
 
-### Sprint A1 — Nhóm A round 1 (read-only & idempotent, low blast radius)
+---
 
-RPC: `get_categories_with_stats`, `get_monthly_expenses`, `get_recent_activities`, `get_distribution_orders_filtered`, `get_items_filtered`, `get_laundry_batches_filtered` (chỉ phần read).
+### C. DỌN LEGACY / DEAD CODE (P1)
 
-- Audit caller: xác nhận tất cả đang gọi wider signature.
-- 1 migration DROP các overload narrow.
-- Xoá 6 entry khỏi `ALLOWED_OVERLOADS`.
+**C1. Components song song chưa xóa**
+- `LowStockAlert.tsx`, `InventoryAlertsWidget.tsx`, `RestockAlertSheet.tsx` — file vẫn tồn tại; `CombinedStockAlerts.tsx` được giới thiệu là "thay 2 widget cũ".
+- `RestockAlertSheet` vẫn được mobile dùng nửa vời.
+- **Fix**: sau khi B2 chuyển mobile sang Combined, xóa hẳn `LowStockAlert.tsx`, `InventoryAlertsWidget.tsx`, `RestockAlertSheet.tsx`, `MobileLowStockSection.tsx`.
 
-### Sprint A2 — Nhóm A round 2 (mutation 1 RPC = 1 transaction)
+**C2. console.error leak**
+- `src/components/inventory/MobileOutboundForm.tsx:387` có `console.error('Submit error:', err)` — để debug nhưng vẫn còn.
+- **Fix**: thay bằng toast hoặc bỏ.
 
-RPC: `apply_room_standards`, `setup_room_initial`, `undo_room_delivery_confirmation`, `handover_batch`, `settle_batch_compensation`.
+---
 
-- Tương tự A1 nhưng có write → cần kiểm tra log/audit sau DROP.
-- 1 migration DROP narrow.
+### D. PERFORMANCE & DATA (P2)
 
-### Sprint A3 — Nhóm A round 3 (mutation lớn)
+**D1. Realtime invalidate thiếu `items`**
+- `useInventoryHubBadges` chỉ subscribe `reorder_suggestions`, `distribution_orders`, `stock_adjustments`. **Không** subscribe `items.quantity_in_stock` → KPI `lowStock` stale khi xuất/nhập trực tiếp.
+- **Fix**: thêm channel `items` filter `tenant_id=eq.X`, throttle invalidate 2s.
 
-RPC: `create_distribution_order`, `create_inbound_transaction`, `create_outbound_transaction`.
+**D2. 4 lần `useLatestConsumptionSnapshots(500)`**
+- React Query dedupe theo key, nhưng mỗi widget reimplement logic dedup → tốn render + dễ lệch nhau.
+- **Fix**: extract `useStockoutItems()` ở `/hooks` trả `{ items: Map, criticalCount, soonOutCount }` — dùng chung.
 
-- Cần đảm bảo caller truyền đủ tham số mới (vd. `p_supplement_request_ids` có thể `null`).
-- Update hooks nếu thiếu key wrapper.
+**D3. `useInventoryTransactions` dùng `p_limit/p_offset` cũ**
+- Sau Sprint A3+B, convention mới là `p_page/p_page_size/p_search` (đã làm cho `get_laundry_batches_filtered`).
+- **Fix**: optional — chuẩn hóa RPC `get_inventory_transactions_filtered` về pattern mới. Cần migration + caller update; nếu sợ phá vỡ thì hoãn.
 
-### Sprint B — Nhóm B (cần audit nghiệp vụ)
+---
 
-Mỗi RPC làm riêng 1 PR vì semantics khác:
+### E. FLOW/ROUTING (P3)
 
-1. `create_laundry_loss_transaction` + `create_laundry_return_transaction`: tìm caller per-item, migrate sang jsonb batch hoặc giữ per-item làm canonical.
-2. `get_laundry_batches_filtered`: thống nhất pagination (limit/offset hay page/page_size). Pick 1, migrate caller.
-3. `setup_new_tenant`: nhiều khả năng cũ là legacy bootstrap CLI / cũ là wizard onboarding mới. Xác định kẻ thắng.
+**E1. Phiếu trực tiếp (Inbound/Outbound/Adjustment) bypass Hub**
+- `/inventory/inbound/new`, `/outbound/new`, `/adjustments/new` mở page độc lập, không vào trong `InventoryHubPage` → mất tabs/breadcrumb context. Riêng `/distributions/new` đã redirect về Hub.
+- **Fix**: thống nhất — hoặc tất cả mở fullscreen modal-route (drawer), hoặc tất cả vào trong Hub. Hub-first đồng nhất với Hub v3 task-first.
 
-## Quy trình chung mỗi RPC
+**E2. `CombinedStockAlerts` navigate `/items?filter=low-stock`**
+- Cần verify ItemsPage hỗ trợ query param `filter=low-stock`.
 
-1. `grep -rn '<rpc>' --include='*.ts' --include='*.tsx' src/` → list caller.
-2. Kiểm tra `supabase.rpc('<rpc>', { ... })` payload xem key trùng signature nào.
-3. Nếu caller dùng wider: chỉ cần DROP narrow.
-4. Nếu caller dùng narrow: refactor sang wider trước (thêm key thiếu = `null`), test, rồi DROP.
-5. Regenerate `docs/architecture/_generated/db-functions.tsv` (`bash scripts/audit/dump-db-schema.sh`).
-6. Xoá entry khỏi `ALLOWED_OVERLOADS`.
-7. Chạy `bunx vitest run src/test/rpc-signature-drift.test.ts` → phải pass.
+---
 
-## Rollback
+### Mục tiêu deliverable đợt sửa này
 
-- Mỗi migration DROP đi kèm 1 file ghi chú phục hồi: `supabase/migrations/_rollback/<ts>_restore_<rpc>.sql` chứa `CREATE OR REPLACE FUNCTION …` của signature đã drop (lấy từ `pg_get_functiondef` trước khi drop).
-- Nếu sau release thấy 404/`PGRST202` từ client cũ → áp lại rollback file.
+Chia 2 batch để rollout an toàn:
 
-## Bắt đầu từ đâu?
+**Batch 1 (P0 + P1 chính)** — fix logic + dọn trùng widget
+1. Tạo `src/hooks/useStockoutItems.ts` — dedup latest-per-item, trả count theo threshold.
+2. Sửa `InventoryTodoCard`, `InventoryKpiGrid`, `CombinedStockAlerts`, `InventoryForecastWidget` dùng hook mới.
+3. Sửa `useInventoryHubBadges`: tách `distributionsPending` → chỉ `pending+approved`.
+4. Mobile dashboard: render `InventoryTodoCard` + `CombinedStockAlerts` (stacked). Sửa badge mobile dùng `lowStock`.
+5. Xóa `LowStockAlert`, `InventoryAlertsWidget`, `RestockAlertSheet`, `MobileLowStockSection`.
+6. Bỏ `console.error` ở `MobileOutboundForm`.
 
-**Đề xuất chạy Sprint A1 trước** trong response này (6 RPC read-only, blast radius nhỏ nhất, dễ verify). Sprint A2/A3/B làm các lượt sau.
+**Batch 2 (P2 — sau khi batch 1 ổn)**
+7. RPC `get_latest_consumption_snapshots()` để chuẩn xác và giảm payload.
+8. Realtime subscribe `items` cho badges hub.
+9. (Optional) chuẩn hóa `get_inventory_transactions_filtered` về pattern page/page_size.
 
-**Câu hỏi cho bạn:** OK chạy ngay Sprint A1 
+### Test & QA
+- Snapshot integration test cho `useStockoutItems` (mock multi-day snapshots, assert dedup đúng).
+- Manual: bật mobile viewport 390px — kiểm TodoCard + CombinedStockAlerts render OK, badge "Cảnh báo tồn kho" hiển thị đúng số low-stock.
+- Manual: tạo 1 phiếu distribution trạng thái `in_progress` → badge "phiếu cần xử lý" KHÔNG tăng (sau fix A4).
+- Bump `APP_VERSION` + changelog cho mỗi batch.
+
+### Rủi ro
+- Xóa `RestockAlertSheet` đang bind ở Mobile có thể vỡ deep-link nếu nơi khác dùng (`rg "RestockAlertSheet"` đã liệt kê chỉ 1 chỗ — an toàn).
+- Đổi `distributionsPending` business meaning cần thông báo cho team vận hành.
+
+---
+
+Bạn duyệt batch nào trước? Mặc định mình sẽ làm **Batch 1** nếu OK.
