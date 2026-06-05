@@ -12974,44 +12974,85 @@ export type Database = {
         }
         Returns: Json
       }
-      get_inventory_transactions_filtered: {
-        Args: {
-          p_category_id?: string
-          p_created_by?: string
-          p_date_from?: string
-          p_date_to?: string
-          p_hotel_id?: string
-          p_limit?: number
-          p_offset?: number
-          p_search?: string
-          p_tenant_id: string
-          p_transaction_type?: string
-        }
-        Returns: {
-          category_name: string
-          created_at: string
-          created_by: string
-          created_by_avatar: string
-          created_by_name: string
-          from_location: string
-          id: string
-          item_code: string
-          item_id: string
-          item_images: string[]
-          item_name: string
-          notes: string
-          quantity: number
-          quantity_after: number
-          quantity_before: number
-          to_location: string
-          total_count: number
-          total_value: number
-          transaction_category: string
-          transaction_code: string
-          transaction_type: string
-          unit_price: number
-        }[]
-      }
+      get_inventory_transactions_filtered:
+        | {
+            Args: {
+              p_category_id?: string
+              p_created_by?: string
+              p_date_from?: string
+              p_date_to?: string
+              p_hotel_id?: string
+              p_limit?: number
+              p_offset?: number
+              p_search?: string
+              p_tenant_id: string
+              p_transaction_type?: string
+            }
+            Returns: {
+              category_name: string
+              created_at: string
+              created_by: string
+              created_by_avatar: string
+              created_by_name: string
+              from_location: string
+              id: string
+              item_code: string
+              item_id: string
+              item_images: string[]
+              item_name: string
+              notes: string
+              quantity: number
+              quantity_after: number
+              quantity_before: number
+              to_location: string
+              total_count: number
+              total_value: number
+              transaction_category: string
+              transaction_code: string
+              transaction_type: string
+              unit_price: number
+            }[]
+          }
+        | {
+            Args: {
+              p_category_id?: string
+              p_created_by?: string
+              p_date_from?: string
+              p_date_to?: string
+              p_hotel_id?: string
+              p_limit?: number
+              p_offset?: number
+              p_page?: number
+              p_page_size?: number
+              p_search?: string
+              p_tenant_id: string
+              p_transaction_type?: string
+            }
+            Returns: {
+              category_name: string
+              created_at: string
+              created_by: string
+              created_by_avatar: string
+              created_by_name: string
+              from_location: string
+              id: string
+              item_code: string
+              item_id: string
+              item_images: string[]
+              item_name: string
+              notes: string
+              quantity: number
+              quantity_after: number
+              quantity_before: number
+              to_location: string
+              total_count: number
+              total_value: number
+              transaction_category: string
+              transaction_code: string
+              transaction_type: string
+              unit_price: number
+            }[]
+          }
       get_inventory_value_over_time: {
         Args: { p_hotel_id: string; p_months?: number; p_tenant_id: string }
         Returns: {
@@ -13088,6 +13129,29 @@ export type Database = {
           photos: string[]
           qc_status: string
         }[]
+      }
+      get_latest_consumption_snapshots: {
+        Args: { p_hotel_id?: string; p_limit?: number; p_tenant_id: string }
+        Returns: {
+          avg_daily_consumption: number
+          created_at: string
+          hotel_id: string
+          id: string
+          item_id: string
+          qty_consumed_30d: number
+          qty_consumed_7d: number
+          qty_consumed_90d: number
+          snapshot_date: string
+          stock_days_remaining: number | null
+          stock_on_date: number
+          tenant_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "consumption_snapshots"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_laundry_batch_detail: { Args: { p_batch_id: string }; Returns: Json }
       get_laundry_batches_filtered: {

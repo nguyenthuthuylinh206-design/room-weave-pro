@@ -1,6 +1,17 @@
 {
-  "current": "1.1.81",
+  "current": "1.1.82",
   "versions": [
+    {
+      "version": "1.1.82",
+      "date": "2026-06-05",
+      "title": "Audit /inventory Batch 2: dedup snapshot server-side, realtime items, chuẩn pagination",
+      "highlights": [
+        "**RPC `get_latest_consumption_snapshots(p_tenant_id, p_hotel_id, p_limit)`** — `DISTINCT ON (item_id)` server-side, trả đúng 1 dòng latest/item. Bỏ pattern client tự dedup từ 500 dòng raw (truncate khi tenant >500 item). `useLatestConsumptionSnapshots` chuyển sang gọi RPC này, `useStockoutItems` không cần dedup nữa",
+        "**Realtime `items.quantity_in_stock`** — `useInventoryHubBadges` subscribe thêm bảng `items` (UPDATE event) để KPI 'Low stock' / 'Đã hết hàng' tự refresh khi staff adjust trực tiếp, không cần F5",
+        "**Pagination chuẩn `p_page` / `p_page_size`** — `get_inventory_transactions_filtered` nhận thêm cặp tham số mới (giữ backward-compat `p_limit`/`p_offset`). `useInventoryTransactions` đổi sang gọi page-based, đồng bộ với `get_laundry_batches_filtered` đã refactor ở Sprint A3+B",
+        "**Hotfix changelog.json** — Vá lỗi cú pháp JSON dup `{` lọt qua Batch 1 (line 17-18) làm bản /changelog không parse được"
+      ]
+    },
     {
       "version": "1.1.81",
       "date": "2026-06-05",
@@ -14,7 +25,6 @@
         "**Code hygiene** — Bỏ `console.error('Submit error:', err)` còn sót trong `MobileOutboundForm` (lỗi đã được mutation hook hiển thị toast)"
       ]
     },
-    {
     {
       "version": "1.1.80",
       "date": "2026-06-05",
@@ -108,9 +118,6 @@
         "Reset state-machine cho stock_adjustments là staged rollout — RPC sẵn sàng, hooks legacy vẫn chạy song song để không break tính năng đang dùng"
       ]
     },
-    {
-      "version": "1.1.72",
-
     {
       "version": "1.1.72",
       "date": "2026-06-05",

@@ -43,6 +43,16 @@ export function useInventoryHubBadges() {
         { event: '*', schema: 'public', table: 'stock_adjustments', filter: `tenant_id=eq.${tenantId}` },
         () => qc.invalidateQueries({ queryKey: ['inventory-hub-badges', tenantId] })
       )
+      // Realtime cho ô KPI "Low stock" / "Đã hết hàng" khi staff adjust trực tiếp
+      // (RPC dashboard đọc quantity_in_stock của items).
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'items', filter: `tenant_id=eq.${tenantId}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ['inventory-hub-badges', tenantId] })
+          qc.invalidateQueries({ queryKey: ['low-stock-items'] })
+        }
+      )
       .subscribe()
     return () => {
       supabase.removeChannel(ch)

@@ -8,15 +8,9 @@ import type { ConsumptionSnapshot } from '@/types/inventory-analytics.types'
 /**
  * Centralized stockout selectors for Inventory Hub.
  *
- * Why: `useLatestConsumptionSnapshots` returns N rows per item (one per
- * snapshot_date, DESC), so naive `.filter(s => s.stock_days_remaining < X)`
- * massively inflates counts when an item has many snapshots. This helper
- * dedups to the latest row per item ONCE and exposes the derived numbers
- * + rows that all widgets need (TodoCard, KpiGrid, ForecastWidget,
- * CombinedStockAlerts).
- *
- * Returned values are stable identity-wise via useMemo so consumers can
- * spread them into deps without retriggering renders.
+ * Note (Batch 2): `useLatestConsumptionSnapshots` giờ đã DISTINCT ON server-side
+ * (RPC `get_latest_consumption_snapshots`) nên rows trả về đã 1-row/item.
+ * Hook này giữ logic dedup defensive (idempotent) phòng RPC trả trùng do bug.
  */
 export interface StockoutData {
   /** Latest snapshot per item_id (deduped). */
