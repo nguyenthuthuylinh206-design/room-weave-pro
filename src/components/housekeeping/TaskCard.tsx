@@ -114,7 +114,7 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
     } else if (task.task_type === 'cleaning') {
       navigate(`/rooms/${task.room_id}/check?type=daily&resume=true`)
     } else if (task.task_type === 'delivery_confirmation') {
-      setShowDeliveryModal(true)
+      navigate(`/rooms/${task.room_id}/check?type=delivery&room_order_id=${task.distribution_order_room_id}&task_id=${task.id}&returnTo=/my-tasks`)
     }
   }
 
