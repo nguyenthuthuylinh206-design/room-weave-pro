@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import { useUser } from '@/hooks/useUser'
 
 export type RoomCheckType = 'daily' | 'periodic' | 'checkin' | 'checkout' | 'maintenance' | 'delivery' | 'replenish'
 
@@ -30,6 +31,7 @@ export function useRoomCheckSession(roomId: string | undefined) {
   const [session, setSession] = useState<RoomCheckSession | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
+  const { tenantId } = useUser()
 
   useEffect(() => {
     if (!roomId) return
@@ -60,20 +62,28 @@ export function useRoomCheckSession(roomId: string | undefined) {
 
     fetchSession()
 
-    // Subscribe to realtime updates
+    if (!tenantId) return
+
+    // Subscribe to realtime updates — filter by tenant_id (Postgres realtime
+    // supports a single filter); narrow to this room in the handler.
     const channel = supabase
-      .channel(`room-check-session-${roomId}`)
+      .channel(`room-check-session-${tenantId}-${roomId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'room_check_sessions',
-          filter: `room_id=eq.${roomId}`
+          filter: `tenant_id=eq.${tenantId}`
         },
         (payload) => {
+          const next = payload.new as any
+          const prev = payload.old as any
+          const affectedRoom = next?.room_id ?? prev?.room_id
+          if (affectedRoom !== roomId) return
+
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            setSession(payload.new as RoomCheckSession)
+            setSession(next as RoomCheckSession)
           } else if (payload.eventType === 'DELETE') {
             setSession(null)
           }
@@ -84,7 +94,7 @@ export function useRoomCheckSession(roomId: string | undefined) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [roomId])
+  }, [roomId, tenantId])
 
   const createSession = async (
     roomId: string,
