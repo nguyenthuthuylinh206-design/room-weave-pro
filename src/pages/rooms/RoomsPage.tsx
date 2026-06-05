@@ -109,13 +109,13 @@ export function RoomsPage() {
         </div>
       </PageHeader>
 
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <RoomFilters
           filters={filters}
           onFilterChange={(newFilters) => setFilters(prev => ({ ...prev, ...newFilters }))}
         />
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {(viewMode === 'grid' || viewMode === 'list') && (
             <RoomViewDensityControl
               state={density.state}
@@ -127,20 +127,20 @@ export function RoomsPage() {
           <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
             <TabsList>
               <TabsTrigger value="grid" title="Lưới phòng theo ưu tiên — dùng cho Buồng phòng / Quản lý vận hành">
-                <Grid3x3 className="h-4 w-4 mr-2" />
-                Lưới (HK)
+                <Grid3x3 className="h-4 w-4 lg:mr-2" />
+                <span className="hidden lg:inline">Lưới (HK)</span>
               </TabsTrigger>
               <TabsTrigger value="list" title="Danh sách bảng — dùng để lọc, sắp xếp, xuất dữ liệu">
-                <List className="h-4 w-4 mr-2" />
-                Danh sách
+                <List className="h-4 w-4 lg:mr-2" />
+                <span className="hidden lg:inline">Danh sách</span>
               </TabsTrigger>
               <TabsTrigger value="floor" title="Tape chart booking theo ngày — dùng cho Lễ tân & quản lý đặt phòng">
-                <CalendarRange className="h-4 w-4 mr-2" />
-                Lịch đặt phòng
+                <CalendarRange className="h-4 w-4 lg:mr-2" />
+                <span className="hidden lg:inline">Lịch đặt phòng</span>
               </TabsTrigger>
               <TabsTrigger value="map" title="Sơ đồ tổng quan tình trạng phòng — dùng cho Lễ tân tại quầy">
-                <LayoutGrid className="h-4 w-4 mr-2" />
-                Sơ đồ tình trạng
+                <LayoutGrid className="h-4 w-4 lg:mr-2" />
+                <span className="hidden lg:inline">Sơ đồ tình trạng</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
