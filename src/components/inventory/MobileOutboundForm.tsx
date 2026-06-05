@@ -208,13 +208,13 @@ export function MobileOutboundForm() {
     }
   )
   
-  // Reset step when category changes
+  // Reset category-specific state when category changes
   useEffect(() => {
-    setStepIndex(0)
     setSelectedRoomIds([])
     setSelectedMaintenanceRequest(null)
     setLaundryData(null)
   }, [category])
+
   
   // Load draft on mount
   useEffect(() => {
