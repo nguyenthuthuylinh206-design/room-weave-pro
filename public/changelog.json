@@ -1,6 +1,18 @@
 {
-  "current": "1.1.62",
+  "current": "1.1.63",
   "versions": [
+    {
+      "version": "1.1.63",
+      "date": "2026-06-05",
+      "title": "Hotfix: RPC xác nhận giao hàng vào phòng (confirm_delivery_from_room_check)",
+      "highlights": [
+        "Sửa lỗi nghiêm trọng khiến nút 'Xác nhận đã nhận đủ hàng' (DeliveryConfirmationModal, PendingDeliveriesSection) luôn fail trên production: hàm RPC chèn cột room_items.tenant_id không tồn tại — bỏ tham chiếu cột này (room_items đã enforce tenant qua room_id + RLS)",
+        "Sửa thêm 2 vi phạm constraint phát hiện qua smoke test: transaction_category đổi từ 'room_receive' (không hợp lệ) sang 'other_in', và distribution_order_rooms.status đổi từ 'completed' (không hợp lệ) sang 'confirmed'",
+        "Smoke test happy-path: RPC trả về {success:true, items_updated:2, all_confirmed:true} — flow giao hàng cũ + flow Lean delivery (submit_delivery_lean forward sang RPC này) đều hoạt động trở lại",
+        "Không thay đổi UI, không cần redeploy frontend cho fix này — chỉ migration DB"
+      ]
+    },
+
     {
       "version": "1.1.62",
       "date": "2026-06-04",
