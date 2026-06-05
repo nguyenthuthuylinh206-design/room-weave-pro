@@ -6,7 +6,7 @@ import { Play, CheckCircle2, CornerDownRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useUpdateTaskStatus } from '@/hooks/useHousekeepingTasks'
-import { DeliveryConfirmationModal } from './DeliveryConfirmationModal'
+
 import { CleaningCompleteDialog } from '@/components/rooms/CleaningCompleteDialog'
 import { useDeliveryTaskItems } from '@/hooks/useDeliveryTaskItems'
 import type { HousekeepingTaskWithDetails, TaskType, TaskPriority } from '@/types/housekeeping.types'
@@ -36,7 +36,7 @@ interface StaffTaskRowProps {
 export function StaffTaskRow({ task, onTap }: StaffTaskRowProps) {
   const navigate = useNavigate()
   const [isUpdating, setIsUpdating] = useState(false)
-  const [showDeliveryModal, setShowDeliveryModal] = useState(false)
+  
   const [showCleaningComplete, setShowCleaningComplete] = useState(false)
   const { mutateAsync: updateStatus } = useUpdateTaskStatus()
 
@@ -66,7 +66,7 @@ export function StaffTaskRow({ task, onTap }: StaffTaskRowProps) {
         const ip = task.checkout_inspection_id ? `&inspection=${task.checkout_inspection_id}` : ''
         navigate(`/rooms/${task.room_id}/check?type=checkout&resume=true${ip}`)
       } else if (task.task_type === 'delivery_confirmation') {
-        setShowDeliveryModal(true)
+        navigate(`/rooms/${task.room_id}/check?type=delivery&room_order_id=${task.distribution_order_room_id}&task_id=${task.id}&returnTo=/my-tasks`)
       } else if (task.task_type === 'checkin_prep') {
         navigate(`/rooms/${task.room_id}/check?type=checkin&resume=true`)
       } else if (task.task_type === 'amenity_request') {
@@ -105,7 +105,7 @@ export function StaffTaskRow({ task, onTap }: StaffTaskRowProps) {
     } else if (task.task_type === 'cleaning') {
       navigate(`/rooms/${task.room_id}/check?type=daily&resume=true`)
     } else if (task.task_type === 'delivery_confirmation') {
-      setShowDeliveryModal(true)
+      navigate(`/rooms/${task.room_id}/check?type=delivery&room_order_id=${task.distribution_order_room_id}&task_id=${task.id}&returnTo=/my-tasks`)
     }
   }
 
@@ -183,17 +183,7 @@ export function StaffTaskRow({ task, onTap }: StaffTaskRowProps) {
       </div>
 
       {/* Modals */}
-      {isDeliveryTask && deliveryData && (
-        <DeliveryConfirmationModal
-          open={showDeliveryModal}
-          onOpenChange={setShowDeliveryModal}
-          taskId={task.id}
-          roomOrderId={deliveryData.roomOrderId}
-          roomNumber={roomNumber || ''}
-          orderCode={deliveryData.orderCode}
-          items={deliveryData.items}
-        />
-      )}
+
 
       {isCleaningTask && (
         <CleaningCompleteDialog

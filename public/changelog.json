@@ -1,6 +1,17 @@
 {
-  "current": "1.1.66",
+  "current": "1.1.67",
   "versions": [
+    {
+      "version": "1.1.67",
+      "date": "2026-06-05",
+      "title": "Lean Replenish/Delivery rollout cuối + cleanup task navigators (C4 Phase 4)",
+      "highlights": [
+        "TaskCard, StaffTaskRow, TaskDetailDialog: thay `DeliveryConfirmationModal` (dialog 2 bước) bằng điều hướng URL `?type=delivery&room_order_id=&task_id=&returnTo=/my-tasks` — router tự đẩy vào trang Lean `/check-delivery` cho toàn bộ flow xác nhận giao hàng từ /my-tasks và task detail",
+        "Gỡ import + state + JSX modal khỏi 3 file navigator: thân file ngắn lại, không còn 2 đường code song song cho cùng nghiệp vụ",
+        "Hoàn thành C4: Lean phủ 100% các check-type chính (daily/checkin/checkout/maintenance/replenish/delivery); legacy `RoomCheckPage` (1.619 dòng) + `DeliveryConfirmationModal` giữ lại làm fallback qua `&lean=0` hoặc per-hotel flag `use_lean=false`, sẽ gỡ ở đợt dọn dẹp sau khi có ≥2 tuần traffic Lean ổn định",
+        "Không cần migration. Smoke test 2 RPC `submit_replenish_lean` & `submit_delivery_lean` đã pass ở 1.1.65/1.1.66"
+      ]
+    },
     {
       "version": "1.1.66",
       "date": "2026-06-05",

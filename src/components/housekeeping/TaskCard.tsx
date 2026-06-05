@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useUpdateTaskStatus, useClaimTask } from '@/hooks/useHousekeepingTasks'
 import { useDeliveryTaskItems } from '@/hooks/useDeliveryTaskItems'
-import { DeliveryConfirmationModal } from './DeliveryConfirmationModal'
+
 import { CleaningCompleteDialog } from '@/components/rooms/CleaningCompleteDialog'
 import type { HousekeepingTaskWithDetails, TaskType, TaskPriority } from '@/types/housekeeping.types'
 import { TASK_TYPE_LABELS } from '@/types/housekeeping.types'
@@ -44,7 +44,7 @@ interface TaskCardProps {
 export function TaskCard({ task, showActions = true, showClaimButton = false, onClick }: TaskCardProps) {
   const navigate = useNavigate()
   const [isUpdating, setIsUpdating] = useState(false)
-  const [showDeliveryModal, setShowDeliveryModal] = useState(false)
+  
   const [showCleaningComplete, setShowCleaningComplete] = useState(false)
   const { mutateAsync: updateStatus } = useUpdateTaskStatus()
   const { mutateAsync: claimTask, isPending: isClaiming } = useClaimTask()
@@ -75,7 +75,7 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
         const ip = task.checkout_inspection_id ? `&inspection=${task.checkout_inspection_id}` : ''
         navigate(`/rooms/${task.room_id}/check?type=checkout&resume=true${ip}`)
       } else if (task.task_type === 'delivery_confirmation') {
-        setShowDeliveryModal(true)
+        navigate(`/rooms/${task.room_id}/check?type=delivery&room_order_id=${task.distribution_order_room_id}&task_id=${task.id}&returnTo=/my-tasks`)
       } else if (task.task_type === 'checkin_prep') {
         navigate(`/rooms/${task.room_id}/check?type=checkin&resume=true`)
       } else if (task.task_type === 'amenity_request') {
@@ -114,7 +114,7 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
     } else if (task.task_type === 'cleaning') {
       navigate(`/rooms/${task.room_id}/check?type=daily&resume=true`)
     } else if (task.task_type === 'delivery_confirmation') {
-      setShowDeliveryModal(true)
+      navigate(`/rooms/${task.room_id}/check?type=delivery&room_order_id=${task.distribution_order_room_id}&task_id=${task.id}&returnTo=/my-tasks`)
     }
   }
 
@@ -217,17 +217,7 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
       </div>
 
       {/* Modals */}
-      {isDeliveryTask && deliveryData && (
-        <DeliveryConfirmationModal
-          open={showDeliveryModal}
-          onOpenChange={setShowDeliveryModal}
-          taskId={task.id}
-          roomOrderId={deliveryData.roomOrderId}
-          roomNumber={roomNumber || ''}
-          orderCode={deliveryData.orderCode}
-          items={deliveryData.items}
-        />
-      )}
+
 
       {isCleaningTask && task.room && (
         <CleaningCompleteDialog
