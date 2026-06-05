@@ -291,6 +291,10 @@ export function useApproveSupplementRequest() {
             p_items: rpcItems as any,
             p_related_type: 'supplement_request',
             p_related_id: data.requestId,
+            p_recipient_name: null,
+            p_recipient_signature: null,
+            p_documents: null,
+            p_photos: null,
             p_notes: `Bổ sung đồ theo yêu cầu ${request.request_code}`,
             p_from_warehouse_id: null,
           })
