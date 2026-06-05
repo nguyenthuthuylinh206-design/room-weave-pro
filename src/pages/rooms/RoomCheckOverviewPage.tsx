@@ -240,7 +240,10 @@ export default function RoomCheckOverviewPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={() => {
+              if (window.history.length > 1) navigate(-1)
+              else navigate('/my-tasks', { replace: true })
+            }}
             aria-label="Quay lại"
             className="-ml-2"
           >
@@ -260,7 +263,9 @@ export default function RoomCheckOverviewPage() {
           </div>
         </div>
         <div className="mt-2 text-[14px] text-muted-foreground">
-          Bước 1/3 — Xem nhanh phòng
+          {allowQuickPath
+            ? 'Chọn “Phòng OK hoàn toàn” nếu không có sự cố, hoặc bắt đầu kiểm tra kỹ.'
+            : 'Bước 1/3 — Xem nhanh phòng'}
         </div>
       </header>
 
@@ -311,7 +316,7 @@ export default function RoomCheckOverviewPage() {
                   className="w-full h-14 text-[18px] font-semibold"
                   style={{ minHeight: 56 }}
                 >
-                  Phòng ổn, gửi nhanh
+                  Phòng OK hoàn toàn
                 </Button>
                 <Button
                   variant="outline"
