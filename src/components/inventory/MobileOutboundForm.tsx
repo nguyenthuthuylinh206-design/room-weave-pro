@@ -127,7 +127,7 @@ function getStepsForCategory(category: OutboundCategory, t: (key: string) => str
 export function MobileOutboundForm() {
   const { t } = useTranslation(['inventory', 'common', 'laundry', 'rooms', 'maintenance'])
   const navigate = useNavigate()
-  const [stepIndex, setStepIndex] = useState(0)
+  // wizard removed — form is single-page
   const [searchQuery, setSearchQuery] = useState('')
   const [showItemSelector, setShowItemSelector] = useState(false)
   const [showExitDialog, setShowExitDialog] = useState(false)
@@ -173,8 +173,8 @@ export function MobileOutboundForm() {
   
   const category = form.watch('transaction_category') as OutboundCategory
   const steps = useMemo(() => getStepsForCategory(category, t), [category, t])
-  const currentStep = steps[stepIndex]
-  const totalSteps = steps.length
+
+
   
   // Set default warehouse when loaded
   const fromWarehouseId = form.watch('from_warehouse_id')
@@ -208,13 +208,13 @@ export function MobileOutboundForm() {
     }
   )
   
-  // Reset step when category changes
+  // Reset category-specific state when category changes
   useEffect(() => {
-    setStepIndex(0)
     setSelectedRoomIds([])
     setSelectedMaintenanceRequest(null)
     setLaundryData(null)
   }, [category])
+
   
   // Load draft on mount
   useEffect(() => {
@@ -258,40 +258,37 @@ export function MobileOutboundForm() {
     return () => subscription.unsubscribe()
   }, [form.watch, form.formState.isDirty])
   
-  // Validation for each step
-  const validateCurrentStep = useCallback(() => {
-    const stepKey = currentStep?.key
-    
+  // Per-step validator (now used to validate ALL steps at submit time, since
+  // the form renders single-page — no wizard gating).
+  const validateStep = useCallback((stepKey: string | undefined): { isValid: boolean; error?: string } => {
     if (stepKey === 'category') {
       if (!fromWarehouseId) return { isValid: false, error: t('inventory:mobileForm.validation.fromLocationRequired') }
-      // For disposal/other, require to_location
       if ((category === 'disposal' || category === 'other') && !to_location?.trim()) {
         return { isValid: false, error: t('inventory:mobileForm.validation.toLocationRequired') }
       }
       return { isValid: true }
     }
-    
+
     if (stepKey === 'rooms') {
       if (selectedRoomIds.length === 0) return { isValid: false, error: t('inventory:outbound.noRoomSelected') }
       return { isValid: true }
     }
-    
+
     if (stepKey === 'vendor') {
       if (!laundryData?.vendor_id) return { isValid: false, error: t('laundry:createBatch.validation.selectVendor') }
       return { isValid: true }
     }
-    
+
     if (stepKey === 'delivery') {
       const validation = validateLaundryData(laundryData)
       if (!validation.isValid) return { isValid: false, error: validation.error }
       return { isValid: true }
     }
-    
+
     if (stepKey === 'request') {
-      // Maintenance request is optional
       return { isValid: true }
     }
-    
+
     if (stepKey === 'items') {
       if (hasStockError) return { isValid: false, error: t('inventory:mobileForm.validation.exceededStock') }
       if (watchedItems.length === 0) return { isValid: false, error: t('inventory:mobileForm.validation.addAtLeastOneItem') }
@@ -300,57 +297,46 @@ export function MobileOutboundForm() {
       }
       return { isValid: true }
     }
-    
+
     return { isValid: true }
-  }, [currentStep, fromWarehouseId, to_location, category, selectedRoomIds, laundryData, hasStockError, watchedItems, t])
-  
-  const canProceed = useMemo(() => {
-    return validateCurrentStep().isValid
-  }, [validateCurrentStep])
-  
-  const handleNext = () => {
-    const validation = validateCurrentStep()
-    if (!validation.isValid) {
-      setShake(true)
-      triggerHaptic('error')
-      setTimeout(() => setShake(false), 500)
-      if (validation.error) toast.error(validation.error)
-      return
-    }
-    triggerHaptic('light')
-    setStepIndex(stepIndex + 1)
-  }
-  
+  }, [fromWarehouseId, to_location, category, selectedRoomIds, laundryData, hasStockError, watchedItems, t])
+
+  // Aggregate "can submit?" status across every step — drives the sticky submit button.
+  const allStepsValid = useMemo(() => {
+    return steps.every(s => validateStep(s.key).isValid)
+  }, [steps, validateStep])
+
   const handleBack = () => {
-    if (stepIndex === 0) {
-      if (form.formState.isDirty) {
-        setShowExitDialog(true)
-      } else {
-        navigate(-1)
-      }
+    if (form.formState.isDirty) {
+      setShowExitDialog(true)
     } else {
-      triggerHaptic('light')
-      setStepIndex(stepIndex - 1)
+      navigate(-1)
     }
   }
-  
+
   const handleSaveDraft = () => {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(form.getValues()))
     triggerHaptic('success')
     toast.success(t('inventory:mobileForm.draftSaved'))
     navigate('/inventory/transactions')
   }
-  
+
   const handleDiscard = () => {
     localStorage.removeItem(DRAFT_KEY)
     navigate(-1)
   }
-  
+
   const handleSubmit = async () => {
-    const validation = validateCurrentStep()
-    if (!validation.isValid) {
-      toast.error(validation.error || t('inventory:mobileForm.validation.checkInfo'))
-      return
+    // Validate EVERY step (single-page form: all fields visible, but validators stayed per-section).
+    for (const s of steps) {
+      const v = validateStep(s.key)
+      if (!v.isValid) {
+        triggerHaptic('error')
+        setShake(true)
+        setTimeout(() => setShake(false), 500)
+        toast.error(v.error || t('inventory:mobileForm.validation.checkInfo'))
+        return
+      }
     }
 
     if (hasStockError) {
@@ -359,6 +345,7 @@ export function MobileOutboundForm() {
     }
 
     const formData = form.getValues()
+
 
     submitOutbound(
       {
@@ -440,9 +427,10 @@ export function MobileOutboundForm() {
   const selectedVendor = vendors.find(v => v.id === laundryData?.vendor_id)
   const selectedRooms = rooms.filter(r => selectedRoomIds.includes(r.id))
   
-  // Render step content
-  const renderStepContent = () => {
-    const stepKey = currentStep?.key
+  // Render content for a given step. Now invoked for every step in `steps`,
+  // so the whole form renders on a single scrollable page (no wizard hiding).
+  const renderStepContent = (stepKey: string) => {
+
     
     // Step: Category Selection & Warehouse
     if (stepKey === 'category') {
@@ -965,81 +953,40 @@ export function MobileOutboundForm() {
   
   return (
     <div className="min-h-screen bg-background pb-40">
-      {/* Progress Header with Step Icons */}
+      {/* Compact header (no wizard step indicator) */}
       <div className="sticky top-0 z-10 bg-background border-b">
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-4">
-            <TouchButton variant="ghost" size="icon" onClick={handleBack}>
-              <ArrowLeft className="h-5 w-5" />
-            </TouchButton>
-            <TouchButton variant="ghost" onClick={handleSaveDraft} disabled={isLoading}>
-              <Save className="h-4 w-4 mr-1" />
-              {t('inventory:mobileForm.saveDraft')}
-            </TouchButton>
-          </div>
-          
-          {/* Visual Step Indicator */}
-          <div className="flex items-center justify-center gap-1 overflow-x-auto">
-            {steps.map((s, i) => {
-              const isCompleted = stepIndex > i
-              const isCurrent = stepIndex === i
-              const Icon = s.icon
-              return (
-                <div key={i} className="flex items-center">
-                  <div className="flex flex-col items-center">
-                    <div className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center transition-all",
-                      isCompleted ? "bg-primary text-primary-foreground" : 
-                      isCurrent ? "bg-primary/20 text-primary border-2 border-primary" : 
-                      "bg-muted text-muted-foreground"
-                    )}>
-                      {isCompleted ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
-                    </div>
-                    <span className={cn(
-                      "text-[10px] mt-1 text-center w-16 truncate",
-                      isCurrent ? "text-primary font-medium" : "text-muted-foreground"
-                    )}>
-                      {s.label}
-                    </span>
-                  </div>
-                  {i < steps.length - 1 && (
-                    <div className={cn(
-                      "w-6 h-0.5 mb-5 mx-0.5",
-                      stepIndex > i ? "bg-primary" : "bg-muted"
-                    )} />
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-      
-      {/* Step Content */}
-      <AnimatePresence mode="wait">
-        {renderStepContent()}
-      </AnimatePresence>
-      
-      {/* Navigation Footer */}
-      <div className="fixed bottom-16 left-0 right-0 p-4 bg-background border-t space-y-2 z-40">
-        <div className="flex gap-2">
-          {stepIndex > 0 && (
-            <TouchButton variant="outline" onClick={handleBack} className="flex-1">
-              {t('inventory:mobileForm.back')}
-            </TouchButton>
-          )}
-          <TouchButton 
-            onClick={stepIndex === totalSteps - 1 ? handleSubmit : handleNext}
-            className="flex-1"
-            disabled={!canProceed || isLoading}
-          >
-            {stepIndex === totalSteps - 1 
-              ? (isLoading ? t('inventory:mobileForm.processing') : t('inventory:mobileForm.complete')) 
-              : t('inventory:mobileForm.continue')
-            }
+        <div className="flex items-center justify-between px-3 py-2.5">
+          <TouchButton variant="ghost" size="icon" onClick={handleBack}>
+            <ArrowLeft className="h-5 w-5" />
+          </TouchButton>
+          <h1 className="text-base font-semibold">{t('inventory:mobileForm.outbound.title', { defaultValue: 'Xuất kho' })}</h1>
+          <TouchButton variant="ghost" size="sm" onClick={handleSaveDraft} disabled={isLoading}>
+            <Save className="h-4 w-4 mr-1" />
+            {t('inventory:mobileForm.saveDraft')}
           </TouchButton>
         </div>
       </div>
+
+      {/* Single-page content — render every step block in order */}
+      <div className={cn(shake && 'animate-shake')}>
+        {steps.map((s) => (
+          <div key={s.key}>{renderStepContent(s.key)}</div>
+        ))}
+      </div>
+
+      {/* Sticky submit (single CTA — Zod + validateStep loop guard everything) */}
+      <div className="fixed bottom-16 left-0 right-0 p-3 bg-background border-t z-40">
+        <TouchButton
+          onClick={handleSubmit}
+          className="w-full h-12"
+          disabled={!allStepsValid || isLoading}
+        >
+          {isLoading
+            ? t('inventory:mobileForm.processing')
+            : t('inventory:mobileForm.complete', { defaultValue: 'Xác nhận xuất kho' })}
+        </TouchButton>
+      </div>
+
       
       {/* Room Selector Sheet */}
       <MobileRoomSelectSheet

@@ -12773,6 +12773,10 @@ export type Database = {
         Args: { _from: string; _to: string; _user_id: string }
         Returns: boolean
       }
+      fn_is_valid_adjustment_transition: {
+        Args: { _from: string; _to: string }
+        Returns: boolean
+      }
       fn_is_valid_room_transition: {
         Args: { _from: string; _to: string }
         Returns: boolean
@@ -14599,6 +14603,42 @@ export type Database = {
       toggle_message_reaction: {
         Args: { _emoji: string; _message_id: string }
         Returns: boolean
+      }
+      transition_adjustment_status: {
+        Args: {
+          _adjustment_id: string
+          _force?: boolean
+          _reason?: string
+          _to_status: string
+        }
+        Returns: {
+          adjustment_code: string
+          adjustment_type: string
+          approval_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          assigned_to: string[] | null
+          completed_at: string | null
+          created_at: string | null
+          created_by: string
+          hotel_id: string
+          id: string
+          notes: string | null
+          scheduled_date: string | null
+          started_at: string | null
+          status: string | null
+          tenant_id: string
+          total_discrepancies: number | null
+          total_items_checked: number | null
+          total_value_difference: number | null
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "stock_adjustments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       transition_booking_status: {
         Args: {
