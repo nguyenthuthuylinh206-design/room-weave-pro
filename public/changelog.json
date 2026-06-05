@@ -1,6 +1,18 @@
 {
-  "current": "1.1.68",
+  "current": "1.1.69",
   "versions": [
+    {
+      "version": "1.1.69",
+      "date": "2026-06-05",
+      "title": "Sprint 2 audit menu Phòng: UX mobile/desktop còn lại",
+      "highlights": [
+        "#18 RoomDetailPage cleaning banner: nhận diện đủ 3 trạng thái dirty (`cleaning`, `occupied_dirty`, `vacant_dirty`) theo state machine v2 thay vì chỉ `cleaning` hardcode",
+        "#25 RoomDetailPage: chuyển `h-[calc(100vh-7rem)] min-h-[680px]` cứng → `min-h-[calc(100dvh-7rem)]` co giãn theo nội dung; xài `dvh` cho mobile address-bar dynamic",
+        "#26 RoomsPage toolbar: thêm `flex-wrap` cho cả filter row và tab group; label tab `Lưới/Danh sách/Lịch/Sơ đồ` ẩn dưới breakpoint `lg`, chỉ giữ icon — không còn tràn ngang ở laptop 13\"/tablet",
+        "#17 Reset phòng: `AlertDialogAction` thêm `disabled={isPending}` + early return → spam Enter không trigger 2 lần",
+        "#28 RoomStandardsPage: input số lượng dùng `Number.isFinite` chống NaN, snap về 1 khi blur kèm toast cảnh báo `Số lượng tối thiểu là 1`; tăng input height 32→36px"
+      ]
+    },
     {
       "version": "1.1.68",
       "date": "2026-06-05",
