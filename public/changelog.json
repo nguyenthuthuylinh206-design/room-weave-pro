@@ -25,6 +25,7 @@
         "**Code hygiene** — Bỏ `console.error('Submit error:', err)` còn sót trong `MobileOutboundForm` (lỗi đã được mutation hook hiển thị toast)"
       ]
     },
+    {
       "version": "1.1.80",
       "date": "2026-06-05",
       "title": "Hotfix: get_laundry_batches_filtered tham chiếu cột logo_url không tồn tại",
