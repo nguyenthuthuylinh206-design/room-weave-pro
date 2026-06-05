@@ -127,7 +127,7 @@ function getStepsForCategory(category: OutboundCategory, t: (key: string) => str
 export function MobileOutboundForm() {
   const { t } = useTranslation(['inventory', 'common', 'laundry', 'rooms', 'maintenance'])
   const navigate = useNavigate()
-  const [stepIndex, setStepIndex] = useState(0)
+  // wizard removed — form is single-page
   const [searchQuery, setSearchQuery] = useState('')
   const [showItemSelector, setShowItemSelector] = useState(false)
   const [showExitDialog, setShowExitDialog] = useState(false)
