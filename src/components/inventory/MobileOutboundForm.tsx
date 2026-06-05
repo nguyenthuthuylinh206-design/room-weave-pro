@@ -953,81 +953,40 @@ export function MobileOutboundForm() {
   
   return (
     <div className="min-h-screen bg-background pb-40">
-      {/* Progress Header with Step Icons */}
+      {/* Compact header (no wizard step indicator) */}
       <div className="sticky top-0 z-10 bg-background border-b">
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-4">
-            <TouchButton variant="ghost" size="icon" onClick={handleBack}>
-              <ArrowLeft className="h-5 w-5" />
-            </TouchButton>
-            <TouchButton variant="ghost" onClick={handleSaveDraft} disabled={isLoading}>
-              <Save className="h-4 w-4 mr-1" />
-              {t('inventory:mobileForm.saveDraft')}
-            </TouchButton>
-          </div>
-          
-          {/* Visual Step Indicator */}
-          <div className="flex items-center justify-center gap-1 overflow-x-auto">
-            {steps.map((s, i) => {
-              const isCompleted = stepIndex > i
-              const isCurrent = stepIndex === i
-              const Icon = s.icon
-              return (
-                <div key={i} className="flex items-center">
-                  <div className="flex flex-col items-center">
-                    <div className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center transition-all",
-                      isCompleted ? "bg-primary text-primary-foreground" : 
-                      isCurrent ? "bg-primary/20 text-primary border-2 border-primary" : 
-                      "bg-muted text-muted-foreground"
-                    )}>
-                      {isCompleted ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
-                    </div>
-                    <span className={cn(
-                      "text-[10px] mt-1 text-center w-16 truncate",
-                      isCurrent ? "text-primary font-medium" : "text-muted-foreground"
-                    )}>
-                      {s.label}
-                    </span>
-                  </div>
-                  {i < steps.length - 1 && (
-                    <div className={cn(
-                      "w-6 h-0.5 mb-5 mx-0.5",
-                      stepIndex > i ? "bg-primary" : "bg-muted"
-                    )} />
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-      
-      {/* Step Content */}
-      <AnimatePresence mode="wait">
-        {renderStepContent()}
-      </AnimatePresence>
-      
-      {/* Navigation Footer */}
-      <div className="fixed bottom-16 left-0 right-0 p-4 bg-background border-t space-y-2 z-40">
-        <div className="flex gap-2">
-          {stepIndex > 0 && (
-            <TouchButton variant="outline" onClick={handleBack} className="flex-1">
-              {t('inventory:mobileForm.back')}
-            </TouchButton>
-          )}
-          <TouchButton 
-            onClick={stepIndex === totalSteps - 1 ? handleSubmit : handleNext}
-            className="flex-1"
-            disabled={!canProceed || isLoading}
-          >
-            {stepIndex === totalSteps - 1 
-              ? (isLoading ? t('inventory:mobileForm.processing') : t('inventory:mobileForm.complete')) 
-              : t('inventory:mobileForm.continue')
-            }
+        <div className="flex items-center justify-between px-3 py-2.5">
+          <TouchButton variant="ghost" size="icon" onClick={handleBack}>
+            <ArrowLeft className="h-5 w-5" />
+          </TouchButton>
+          <h1 className="text-base font-semibold">{t('inventory:mobileForm.outbound.title', { defaultValue: 'Xuất kho' })}</h1>
+          <TouchButton variant="ghost" size="sm" onClick={handleSaveDraft} disabled={isLoading}>
+            <Save className="h-4 w-4 mr-1" />
+            {t('inventory:mobileForm.saveDraft')}
           </TouchButton>
         </div>
       </div>
+
+      {/* Single-page content — render every step block in order */}
+      <div className={cn(shake && 'animate-shake')}>
+        {steps.map((s) => (
+          <div key={s.key}>{renderStepContent(s.key)}</div>
+        ))}
+      </div>
+
+      {/* Sticky submit (single CTA — Zod + validateStep loop guard everything) */}
+      <div className="fixed bottom-16 left-0 right-0 p-3 bg-background border-t z-40">
+        <TouchButton
+          onClick={handleSubmit}
+          className="w-full h-12"
+          disabled={!allStepsValid || isLoading}
+        >
+          {isLoading
+            ? t('inventory:mobileForm.processing')
+            : t('inventory:mobileForm.complete', { defaultValue: 'Xác nhận xuất kho' })}
+        </TouchButton>
+      </div>
+
       
       {/* Room Selector Sheet */}
       <MobileRoomSelectSheet
