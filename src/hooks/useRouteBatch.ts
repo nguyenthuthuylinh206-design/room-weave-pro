@@ -269,10 +269,11 @@ export function useDeliverStop() {
   return useMutation({
     mutationFn: async ({
       roomOrderId,
-      itemsConfirmed,
       roomInfo,
     }: {
       roomOrderId: string
+      // Deprecated: signature mới của deliver_stop không nhận items_confirmed.
+      // Số lượng được lấy từ distribution_order_items.quantity_actual (đã set ở RoomCheck).
       itemsConfirmed?: { item_id: string; quantity_confirmed: number }[]
       roomInfo?: {
         room_id: string
@@ -286,9 +287,9 @@ export function useDeliverStop() {
     }) => {
       if (!user?.id) throw new Error('User not authenticated')
 
+      // roomOrderId = distribution_order_room.id (= p_stop_id ở RPC mới)
       const { data, error } = await supabase.rpc('deliver_stop', {
-        p_room_order_id: roomOrderId,
-        p_items_confirmed: itemsConfirmed || null,
+        p_stop_id: roomOrderId,
         p_actor_id: user.id,
       })
 
