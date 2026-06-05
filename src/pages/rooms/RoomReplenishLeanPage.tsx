@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, Loader2, Minus, Plus, PackagePlus } from 'lucide-react'
+import { ChevronLeft, Loader2, Minus, Plus, PackagePlus, AlertCircle, CheckCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -17,24 +17,36 @@ import { toast } from 'sonner'
 
 /**
  * Lean Replenish — 1 page, mobile-first.
+ *
+ * Lưu ý kiến trúc (đã xác nhận với RPC + trigger):
+ *  - `createRoomSupplement` (legacy): xuất kho thật (stock_transactions) + cập nhật
+ *    `room_items.current_quantity` + tạo `distribution_order` nội bộ nếu cần.
+ *  - `submitReplenishLean` (RPC mới): chỉ ghi `room_checks` + fan-out
+ *    `room_check_issues` (bucket `missing_replace`) để có audit + đóng task.
+ *  - Trigger `trg_room_check_issues_outbox_fanout` KHÔNG xử bucket `missing_replace`
+ *    (chỉ xử laundry/lost/damaged/consumed/replaced) → KHÔNG có double-bookkeeping.
+ *
  * Flow:
- *  1. Hiển thị danh sách "Đồ thiếu" (đã prefill số lượng = thiếu)
- *  2. Hiển thị consumables để bổ sung thêm (mặc định 0)
- *  3. Tuỳ chọn yêu cầu dọn dẹp + ghi chú
- *  4. Submit:
- *     - createRoomSupplement: xuất kho + cộng room_items (legacy, đã được sửa bug tenant_id)
- *     - submitReplenishLean: insert room_check + fan-out room_check_issues + đóng task + audit
+ *  1. Hiển thị "Đồ thiếu" (prefill = missing, clamp theo kho)
+ *  2. Hiển thị consumables (mặc định 0)
+ *  3. Yêu cầu dọn dẹp + ghi chú
+ *  4. Submit: createRoomSupplement → submitReplenishLean
  *
  * URL params:
- *  - ?task_id={id}        — task housekeeping (amenity_request) sẽ tự đóng
- *  - ?returnTo={path}     — điều hướng sau khi xong (mặc định /my-tasks)
+ *  - ?task_id={id}     — task housekeeping (amenity_request) sẽ tự đóng
+ *  - ?returnTo={path}  — chỉ accept path nội bộ '/...' (whitelist), mặc định /my-tasks
  */
 export default function RoomReplenishLeanPage() {
   const { id } = useParams<{ id: string }>()
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const taskId = params.get('task_id')
-  const returnTo = params.get('returnTo') || '/my-tasks'
+  // Whitelist returnTo: chỉ chấp nhận path nội bộ bắt đầu bằng '/' và không phải '//'
+  const rawReturnTo = params.get('returnTo')
+  const returnTo =
+    rawReturnTo && rawReturnTo.startsWith('/') && !rawReturnTo.startsWith('//')
+      ? rawReturnTo
+      : '/my-tasks'
 
   const { data: roomData, isLoading: roomLoading } = useRoom(id)
   const room = roomData?.room
@@ -81,11 +93,27 @@ export default function RoomReplenishLeanPage() {
   const setOne = (itemId: string, value: number) => {
     const it = itemById[itemId]
     if (!it) return
-    const clamped = Math.max(0, Math.min(value, it.quantity_in_stock))
+    const safe = Number.isFinite(value) ? value : 0
+    const clamped = Math.max(0, Math.min(safe, it.quantity_in_stock))
     setQty((prev) => ({ ...prev, [itemId]: clamped }))
   }
 
-  const handleBack = () => navigate(-1)
+  /** Bổ sung đủ theo gợi ý cho mọi món thiếu (clamp theo kho) */
+  const handleFillSuggested = () => {
+    if (!supplements) return
+    setQty((prev) => {
+      const next = { ...prev }
+      for (const it of supplements.missing_items) {
+        next[it.item_id] = Math.min(it.missing_quantity, it.quantity_in_stock)
+      }
+      return next
+    })
+  }
+
+  const handleBack = () => {
+    if (window.history.length > 1) navigate(-1)
+    else navigate(returnTo, { replace: true })
+  }
 
   const handleSubmit = async () => {
     if (!id || !room) return
@@ -182,7 +210,27 @@ export default function RoomReplenishLeanPage() {
         {/* Missing items */}
         {missing.length > 0 && (
           <section className="space-y-2">
-            <h2 className="text-sm font-semibold text-red-600">Đồ thiếu cần bổ sung</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-red-600">Đồ thiếu cần bổ sung</h2>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8"
+                onClick={handleFillSuggested}
+              >
+                <CheckCheck className="h-3.5 w-3.5 mr-1" />
+                Bổ sung đủ theo gợi ý
+              </Button>
+            </div>
+            {missing.some((it) => it.quantity_in_stock <= 0) && (
+              <div className="flex items-start gap-2 p-3 border border-amber-200 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-900/40 rounded-lg">
+                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  Một số món đã hết trong kho. Vui lòng tạo yêu cầu nhập kho hoặc liên hệ quản lý.
+                </p>
+              </div>
+            )}
             <div className="border rounded-lg divide-y">
               {missing.map((it) => (
                 <ItemRow
@@ -196,6 +244,7 @@ export default function RoomReplenishLeanPage() {
             </div>
           </section>
         )}
+
 
         {/* Consumables */}
         {consumables.length > 0 && (
@@ -305,18 +354,21 @@ function ItemRow({ item, value, onChange, highlight }: ItemRowProps) {
           type="button"
           variant="outline"
           size="icon"
-          className="h-8 w-8"
+          className="h-11 w-11"
           onClick={() => onChange(value - 1)}
           disabled={value <= 0}
         >
-          <Minus className="h-3.5 w-3.5" />
+          <Minus className="h-4 w-4" />
         </Button>
         <Input
           type="number"
           inputMode="numeric"
           value={value}
-          onChange={(e) => onChange(parseInt(e.target.value || '0', 10))}
-          className="h-8 w-14 text-center px-1"
+          onChange={(e) => {
+            const n = parseInt(e.target.value || '0', 10)
+            onChange(Number.isFinite(n) ? n : 0)
+          }}
+          className="h-11 w-16 text-center px-1"
           min={0}
           max={max}
         />
@@ -324,11 +376,11 @@ function ItemRow({ item, value, onChange, highlight }: ItemRowProps) {
           type="button"
           variant="outline"
           size="icon"
-          className="h-8 w-8"
+          className="h-11 w-11"
           onClick={() => onChange(value + 1)}
           disabled={value >= max}
         >
-          <Plus className="h-3.5 w-3.5" />
+          <Plus className="h-4 w-4" />
         </Button>
       </div>
     </div>

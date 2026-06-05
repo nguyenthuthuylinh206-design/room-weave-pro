@@ -39,7 +39,7 @@ export type RoomStatusLegacy =
 /** Union dùng cho UI hiện tại — cho phép cả mới và cũ trong giai đoạn rollout */
 export type RoomStatus = RoomStatusV2 | RoomStatusLegacy
 
-export type CheckType = 'daily' | 'checkout' | 'checkin' | 'maintenance' | 'delivery' | 'replenish'
+export type CheckType = 'daily' | 'periodic' | 'checkout' | 'checkin' | 'maintenance' | 'delivery' | 'replenish'
 
 export interface RoomWithStats extends Omit<Room, 'hourly_price' | 'monthly_price' | 'min_hours' | 'max_hours' | 'dnd_until' | 'dnd_reason' | 'oos_until' | 'oos_reason' | 'last_deep_clean_at' | 'last_status_changed_at' | 'last_status_changed_by' | 'legacy_status'> {
   total_items: number

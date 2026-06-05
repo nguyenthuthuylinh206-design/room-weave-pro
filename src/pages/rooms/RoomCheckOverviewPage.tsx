@@ -97,7 +97,10 @@ export default function RoomCheckOverviewPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={() => {
+              if (window.history.length > 1) navigate(-1)
+              else navigate('/my-tasks', { replace: true })
+            }}
             aria-label="Quay lại"
           >
             <ChevronLeft className="h-6 w-6" />
@@ -147,9 +150,9 @@ export default function RoomCheckOverviewPage() {
   }
 
   // ───────────── Handlers ─────────────
-  /** Map LeanCheckType → RoomCheckType cho bảng session (không có 'periodic') */
-  const sessionType = (checkType === 'periodic' ? 'daily' : checkType) as
-    | 'daily' | 'checkin' | 'checkout' | 'maintenance'
+  /** check_type của room_check_sessions là text — giữ nguyên loại kiểm thật để audit chính xác */
+  const sessionType = checkType as
+    | 'daily' | 'periodic' | 'checkin' | 'checkout' | 'maintenance'
 
   const ensureSession = async (): Promise<boolean> => {
     if (!id || !user || !tenantId) return true
@@ -210,8 +213,12 @@ export default function RoomCheckOverviewPage() {
         photos: [],
       })
       setQuickOpen(false)
-      // Dọn session realtime nếu có (quick path không đi qua submit_room_check_lean)
+      // Dọn session realtime + draft autosave (quick path không đi qua submit_room_check_lean)
       try { await deleteSession(id) } catch {}
+      try {
+        const { clearLeanDraft } = await import('@/hooks/useLeanDraft')
+        clearLeanDraft(id)
+      } catch {}
       navigate(
         `/rooms/${id}/check-lean/success?type=${checkType}&issues=0&checkId=${res.check_id}&quick=1`,
         { replace: true },
@@ -233,7 +240,10 @@ export default function RoomCheckOverviewPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={() => {
+              if (window.history.length > 1) navigate(-1)
+              else navigate('/my-tasks', { replace: true })
+            }}
             aria-label="Quay lại"
             className="-ml-2"
           >
@@ -253,7 +263,9 @@ export default function RoomCheckOverviewPage() {
           </div>
         </div>
         <div className="mt-2 text-[14px] text-muted-foreground">
-          Bước 1/3 — Xem nhanh phòng
+          {allowQuickPath
+            ? 'Chọn “Phòng OK hoàn toàn” nếu không có sự cố, hoặc bắt đầu kiểm tra kỹ.'
+            : 'Bước 1/3 — Xem nhanh phòng'}
         </div>
       </header>
 
@@ -304,7 +316,7 @@ export default function RoomCheckOverviewPage() {
                   className="w-full h-14 text-[18px] font-semibold"
                   style={{ minHeight: 56 }}
                 >
-                  Phòng ổn, gửi nhanh
+                  Phòng OK hoàn toàn
                 </Button>
                 <Button
                   variant="outline"

@@ -35,7 +35,11 @@ export default function RoomDeliveryLeanPage() {
   const dorRoomId =
     params.get('distribution_order_room_id') || params.get('room_order_id') || ''
   const taskId = params.get('task_id')
-  const returnTo = params.get('returnTo') || '/my-tasks'
+  const rawReturnTo = params.get('returnTo')
+  const returnTo =
+    rawReturnTo && rawReturnTo.startsWith('/') && !rawReturnTo.startsWith('//')
+      ? rawReturnTo
+      : '/my-tasks'
 
   const { data: roomData, isLoading: roomLoading } = useRoom(id)
   const room = roomData?.room
@@ -77,7 +81,8 @@ export default function RoomDeliveryLeanPage() {
   const setOne = (itemId: string, value: number) => {
     const it = itemById[itemId]
     if (!it) return
-    const clamped = Math.max(0, Math.min(value, it.quantity))
+    const safe = Number.isFinite(value) ? value : 0
+    const clamped = Math.max(0, Math.min(safe, it.quantity))
     setQty((prev) => ({ ...prev, [itemId]: clamped }))
     if (clamped !== it.quantity) setFullMode(false)
   }
@@ -90,7 +95,10 @@ export default function RoomDeliveryLeanPage() {
     setQty(next)
   }
 
-  const handleBack = () => navigate(-1)
+  const handleBack = () => {
+    if (window.history.length > 1) navigate(-1)
+    else navigate(returnTo, { replace: true })
+  }
 
   const handleSubmit = async () => {
     if (!id || !dorRoomId || !delivery) return
@@ -275,6 +283,7 @@ interface ItemRowProps {
 }
 
 function ItemRow({ item, value, onChange, short }: ItemRowProps) {
+  const diff = item.quantity - value
   return (
     <div className="flex items-center gap-3 p-3">
       <div className="min-w-0 flex-1">
@@ -282,9 +291,17 @@ function ItemRow({ item, value, onChange, short }: ItemRowProps) {
         <p className="text-xs text-muted-foreground">
           <span className="font-mono">{item.item_code}</span>
           {' · '}
-          <span className={short ? 'text-amber-600 font-medium' : ''}>
-            Đặt {item.quantity}
+          <span>Đặt {item.quantity}</span>
+          {' · '}
+          <span className={short ? 'text-amber-600 font-medium' : 'text-green-600 font-medium'}>
+            Nhận {value}
           </span>
+          {short && diff > 0 && (
+            <>
+              {' · '}
+              <span className="text-red-600 font-medium">Thiếu {diff}</span>
+            </>
+          )}
         </p>
       </div>
       <div className="flex items-center gap-1 shrink-0">
@@ -292,18 +309,21 @@ function ItemRow({ item, value, onChange, short }: ItemRowProps) {
           type="button"
           variant="outline"
           size="icon"
-          className="h-8 w-8"
+          className="h-11 w-11"
           onClick={() => onChange(value - 1)}
           disabled={value <= 0}
         >
-          <Minus className="h-3.5 w-3.5" />
+          <Minus className="h-4 w-4" />
         </Button>
         <Input
           type="number"
           inputMode="numeric"
           value={value}
-          onChange={(e) => onChange(parseInt(e.target.value || '0', 10))}
-          className="h-8 w-14 text-center px-1"
+          onChange={(e) => {
+            const n = parseInt(e.target.value || '0', 10)
+            onChange(Number.isFinite(n) ? n : 0)
+          }}
+          className="h-11 w-16 text-center px-1"
           min={0}
           max={item.quantity}
         />
@@ -311,11 +331,11 @@ function ItemRow({ item, value, onChange, short }: ItemRowProps) {
           type="button"
           variant="outline"
           size="icon"
-          className="h-8 w-8"
+          className="h-11 w-11"
           onClick={() => onChange(value + 1)}
           disabled={value >= item.quantity}
         >
-          <Plus className="h-3.5 w-3.5" />
+          <Plus className="h-4 w-4" />
         </Button>
       </div>
     </div>
