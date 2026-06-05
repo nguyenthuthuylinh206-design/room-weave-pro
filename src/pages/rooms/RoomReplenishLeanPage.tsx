@@ -347,18 +347,21 @@ function ItemRow({ item, value, onChange, highlight }: ItemRowProps) {
           type="button"
           variant="outline"
           size="icon"
-          className="h-8 w-8"
+          className="h-11 w-11"
           onClick={() => onChange(value - 1)}
           disabled={value <= 0}
         >
-          <Minus className="h-3.5 w-3.5" />
+          <Minus className="h-4 w-4" />
         </Button>
         <Input
           type="number"
           inputMode="numeric"
           value={value}
-          onChange={(e) => onChange(parseInt(e.target.value || '0', 10))}
-          className="h-8 w-14 text-center px-1"
+          onChange={(e) => {
+            const n = parseInt(e.target.value || '0', 10)
+            onChange(Number.isFinite(n) ? n : 0)
+          }}
+          className="h-11 w-16 text-center px-1"
           min={0}
           max={max}
         />
@@ -366,11 +369,11 @@ function ItemRow({ item, value, onChange, highlight }: ItemRowProps) {
           type="button"
           variant="outline"
           size="icon"
-          className="h-8 w-8"
+          className="h-11 w-11"
           onClick={() => onChange(value + 1)}
           disabled={value >= max}
         >
-          <Plus className="h-3.5 w-3.5" />
+          <Plus className="h-4 w-4" />
         </Button>
       </div>
     </div>
