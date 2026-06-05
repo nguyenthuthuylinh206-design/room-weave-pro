@@ -430,7 +430,7 @@ const router = createBrowserRouter([
       // Rooms
       { path: "rooms", element: <PermissionRoute module="rooms"><RoomsPage /></PermissionRoute> },
       { path: "rooms/new", element: <PermissionRoute module="rooms" action="create"><RoomFormPage /></PermissionRoute> },
-      { path: "rooms/:id", element: <PermissionRoute module="rooms" action="update"><RoomDetailPage /></PermissionRoute> },
+      { path: "rooms/:id", element: <PermissionRoute module="rooms"><RoomDetailPage /></PermissionRoute> },
       { path: "rooms/:id/edit", element: <PermissionRoute module="rooms" action="update"><RoomFormPage /></PermissionRoute> },
       { path: "rooms/:id/check", element: <PermissionRoute module="rooms" action="update"><RequireShiftRouteGate><RoomCheckRouter /></RequireShiftRouteGate></PermissionRoute> },
       { path: "rooms/:id/check-lean", element: <PermissionRoute module="rooms" action="update"><RequireShiftRouteGate><RoomCheckOverviewPage /></RequireShiftRouteGate></PermissionRoute> },

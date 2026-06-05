@@ -147,9 +147,9 @@ export default function RoomCheckOverviewPage() {
   }
 
   // ───────────── Handlers ─────────────
-  /** Map LeanCheckType → RoomCheckType cho bảng session (không có 'periodic') */
-  const sessionType = (checkType === 'periodic' ? 'daily' : checkType) as
-    | 'daily' | 'checkin' | 'checkout' | 'maintenance'
+  /** check_type của room_check_sessions là text — giữ nguyên loại kiểm thật để audit chính xác */
+  const sessionType = checkType as
+    | 'daily' | 'periodic' | 'checkin' | 'checkout' | 'maintenance'
 
   const ensureSession = async (): Promise<boolean> => {
     if (!id || !user || !tenantId) return true
@@ -210,8 +210,12 @@ export default function RoomCheckOverviewPage() {
         photos: [],
       })
       setQuickOpen(false)
-      // Dọn session realtime nếu có (quick path không đi qua submit_room_check_lean)
+      // Dọn session realtime + draft autosave (quick path không đi qua submit_room_check_lean)
       try { await deleteSession(id) } catch {}
+      try {
+        const { clearLeanDraft } = await import('@/hooks/useLeanDraft')
+        clearLeanDraft(id)
+      } catch {}
       navigate(
         `/rooms/${id}/check-lean/success?type=${checkType}&issues=0&checkId=${res.check_id}&quick=1`,
         { replace: true },
