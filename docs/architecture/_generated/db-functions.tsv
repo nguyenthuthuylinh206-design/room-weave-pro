@@ -6,7 +6,6 @@ add_laundry_to_draft_batch	p_tenant_id uuid, p_hotel_id uuid, p_laundry_request_
 allocate_linen_fifo	_item_id uuid, _quantity integer	jsonb	plpgsql	t
 apply_asset_group_mapping	_tenant_id uuid, _hotel_id uuid DEFAULT NULL::uuid, _override_existing boolean DEFAULT false	jsonb	plpgsql	t
 apply_promo_code	p_tenant_id uuid, p_promo_code text, p_original_amount numeric	jsonb	plpgsql	f
-apply_room_standards	p_room_id uuid	jsonb	plpgsql	t
 apply_room_standards	p_room_id uuid, p_user_id uuid DEFAULT NULL::uuid	jsonb	plpgsql	t
 approve_reorder_suggestions	_suggestion_ids uuid[]	jsonb	plpgsql	t
 approve_task	_task_id uuid, _note text DEFAULT NULL::text	housekeeping_tasks	plpgsql	t
@@ -74,13 +73,13 @@ create_inbound_transaction	p_tenant_id uuid, p_hotel_id uuid, p_transaction_cate
 create_laundry_batch_with_items	p_tenant_id uuid, p_hotel_id uuid, p_vendor_id uuid, p_delivery_date date, p_expected_return_date date, p_delivery_staff_id uuid, p_receiver_name text, p_notes text, p_items jsonb	jsonb	plpgsql	t
 create_laundry_loss_transaction	p_tenant_id uuid, p_hotel_id uuid, p_batch_id uuid, p_batch_code text, p_item_id uuid, p_quantity integer, p_loss_type text, p_created_by uuid, p_notes text DEFAULT NULL::text	jsonb	plpgsql	t
 create_laundry_loss_transaction	p_tenant_id uuid, p_hotel_id uuid, p_created_by uuid, p_items jsonb, p_loss_type text, p_related_id uuid DEFAULT NULL::uuid, p_notes text DEFAULT NULL::text	jsonb	plpgsql	t
-create_laundry_return_transaction	p_tenant_id uuid, p_hotel_id uuid, p_batch_id uuid, p_batch_code text, p_item_id uuid, p_quantity integer, p_created_by uuid, p_notes text DEFAULT NULL::text	jsonb	plpgsql	t
 create_laundry_return_transaction	p_tenant_id uuid, p_hotel_id uuid, p_from_location text, p_to_location text, p_created_by uuid, p_items jsonb, p_related_id uuid DEFAULT NULL::uuid, p_notes text DEFAULT NULL::text	jsonb	plpgsql	t
+create_laundry_return_transaction	p_tenant_id uuid, p_hotel_id uuid, p_batch_id uuid, p_batch_code text, p_item_id uuid, p_quantity integer, p_created_by uuid, p_notes text DEFAULT NULL::text	jsonb	plpgsql	t
 create_new_linen_batch	_item_id uuid, _quantity integer, _batch_code text	jsonb	plpgsql	t
 create_notification	p_user_id uuid, p_tenant_id uuid, p_title text, p_body text, p_type text DEFAULT 'info'::text, p_action_url text DEFAULT NULL::text, p_icon text DEFAULT NULL::text, p_metadata jsonb DEFAULT NULL::jsonb	uuid	plpgsql	t
 create_notification_for_user	p_user_id uuid, p_tenant_id uuid, p_title text, p_body text, p_type text DEFAULT 'info'::text, p_action_url text DEFAULT NULL::text, p_icon text DEFAULT NULL::text, p_metadata jsonb DEFAULT NULL::jsonb	uuid	plpgsql	t
-create_outbound_transaction	p_tenant_id uuid, p_hotel_id uuid, p_transaction_category text, p_from_location text, p_to_location text, p_created_by uuid, p_items jsonb, p_related_type text DEFAULT NULL::text, p_related_id uuid DEFAULT NULL::uuid, p_recipient_name text DEFAULT NULL::text, p_recipient_signature text DEFAULT NULL::text, p_documents text[] DEFAULT NULL::text[], p_photos text[] DEFAULT NULL::text[], p_notes text DEFAULT NULL::text	jsonb	plpgsql	t
 create_outbound_transaction	p_tenant_id uuid, p_hotel_id uuid, p_transaction_category text, p_from_location text, p_to_location text, p_created_by uuid, p_items jsonb, p_related_type text DEFAULT NULL::text, p_related_id uuid DEFAULT NULL::uuid, p_recipient_name text DEFAULT NULL::text, p_recipient_signature text DEFAULT NULL::text, p_documents text[] DEFAULT NULL::text[], p_photos text[] DEFAULT NULL::text[], p_notes text DEFAULT NULL::text, p_from_warehouse_id uuid DEFAULT NULL::uuid	jsonb	plpgsql	t
+create_outbound_transaction	p_tenant_id uuid, p_hotel_id uuid, p_transaction_category text, p_from_location text, p_to_location text, p_created_by uuid, p_items jsonb, p_related_type text DEFAULT NULL::text, p_related_id uuid DEFAULT NULL::uuid, p_recipient_name text DEFAULT NULL::text, p_recipient_signature text DEFAULT NULL::text, p_documents text[] DEFAULT NULL::text[], p_photos text[] DEFAULT NULL::text[], p_notes text DEFAULT NULL::text	jsonb	plpgsql	t
 create_room_block	p_hotel_id uuid, p_room_id uuid, p_start_date date, p_end_date date, p_block_type text DEFAULT 'maintenance'::text, p_reason text DEFAULT NULL::text	jsonb	plpgsql	t
 create_staff_status_for_new_user		trigger	plpgsql	t
 create_stock_adjustment	p_tenant_id uuid, p_hotel_id uuid, p_adjustment_type text, p_scheduled_date date, p_created_by uuid, p_assigned_to uuid[], p_item_ids uuid[], p_notes text DEFAULT NULL::text	jsonb	plpgsql	t
@@ -198,7 +197,6 @@ handle_item_image_primary		trigger	plpgsql	f
 handle_new_user		trigger	plpgsql	t
 handle_successful_payment	p_transaction_id uuid	void	plpgsql	f
 handover_batch	p_batch_id uuid, p_actor_id uuid DEFAULT NULL::uuid, p_adjustments jsonb DEFAULT NULL::jsonb	jsonb	plpgsql	t
-handover_batch	p_batch_id uuid, p_actor_id uuid DEFAULT NULL::uuid	jsonb	plpgsql	t
 handover_stop_create_next_route	p_room_order_id uuid, p_next_shift_code text, p_next_assignee_id uuid DEFAULT NULL::uuid, p_actor_id uuid DEFAULT NULL::uuid	jsonb	plpgsql	t
 has_permission	_user_id uuid, _permission_code text	boolean	sql	t
 has_role	_user_id uuid, _role app_role	boolean	sql	t
@@ -299,11 +297,9 @@ set_einvoice_password	_config_id uuid, _password text	uuid	plpgsql	t
 set_financial_targets_updated_at		trigger	plpgsql	f
 set_tenant_read_only	p_tenant_id uuid, p_reason text	void	plpgsql	t
 settle_batch_compensation	_batch_id uuid, _compensation_amount numeric, _notes text DEFAULT NULL::text	jsonb	plpgsql	t
-settle_batch_compensation	_batch_id uuid	jsonb	plpgsql	t
 setup_new_tenant	p_tenant_id uuid, p_hotel_name text, p_hotel_address text, p_total_rooms integer, p_owner_user_id uuid	uuid	plpgsql	t
 setup_new_tenant	p_user_id uuid, p_tenant_name text, p_tenant_email text, p_tenant_phone text, p_hotel_name text, p_hotel_address text, p_hotel_phone text, p_hotel_email text, p_total_rooms integer	jsonb	plpgsql	t
 setup_room_initial	p_room_id uuid, p_user_id uuid DEFAULT NULL::uuid, p_reset_quantities boolean DEFAULT false	jsonb	plpgsql	t
-setup_room_initial	p_room_id uuid, p_reset_quantities boolean DEFAULT false	jsonb	plpgsql	t
 stock_adjustment_items_apply		trigger	plpgsql	f
 stock_adjustments_generate_code		trigger	plpgsql	f
 submit_delivery_lean	_room_id uuid, _distribution_order_room_id uuid, _items_actual jsonb DEFAULT NULL::jsonb, _notes text DEFAULT NULL::text, _photos text[] DEFAULT '{}'::text[], _task_id uuid DEFAULT NULL::uuid	jsonb	plpgsql	t
@@ -333,7 +329,6 @@ trigger_update_laundry_stats		trigger	plpgsql	f
 trigger_update_maintenance_stats		trigger	plpgsql	f
 undo_quick_room_check	_check_id uuid, _reason text DEFAULT NULL::text	jsonb	plpgsql	t
 undo_room_delivery_confirmation	p_distribution_order_room_id uuid, p_performed_by uuid	jsonb	plpgsql	t
-undo_room_delivery_confirmation	p_distribution_order_room_id uuid	jsonb	plpgsql	t
 update_adjustment_summary		trigger	plpgsql	f
 update_booking_amount_paid	p_booking_id uuid, p_amount_to_add numeric, p_total_amount numeric	jsonb	plpgsql	t
 update_distribution_order	p_order_id uuid, p_assigned_to uuid DEFAULT NULL::uuid, p_notes text DEFAULT NULL::text, p_rooms jsonb DEFAULT NULL::jsonb	jsonb	plpgsql	t
