@@ -97,7 +97,10 @@ export default function RoomCheckOverviewPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={() => {
+              if (window.history.length > 1) navigate(-1)
+              else navigate('/my-tasks', { replace: true })
+            }}
             aria-label="Quay lại"
           >
             <ChevronLeft className="h-6 w-6" />
