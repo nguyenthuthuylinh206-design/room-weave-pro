@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
 import { triggerWorkflow } from '@/lib/triggerWorkflow'
 import { useUser } from './useUser'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface SetupRoomResult {
   success: boolean
