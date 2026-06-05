@@ -5,8 +5,8 @@ import { Plus, X, AlertTriangle, WashingMachine, Calendar, Scale, DollarSign } f
 
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
+import { buildOutboundSchema, type OutboundFormData } from '@/lib/inventory/outboundFormSchema';
 import { format, addDays } from 'date-fns';
 import { vi } from 'date-fns/locale';
 
