@@ -30,6 +30,7 @@ const kindLabel: Record<EventKind, string> = {
 
 const checkTypeLabel: Record<CheckType, string> = {
   daily: 'Kiểm tra hằng ngày',
+  periodic: 'Kiểm tra định kỳ',
   checkin: 'Kiểm tra nhận phòng',
   checkout: 'Kiểm tra trả phòng',
   maintenance: 'Kiểm tra bảo trì',
