@@ -58,6 +58,7 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
         p_stock_status: filters.stockStatus || null,
         p_status: filters.status || 'active',
         p_search: filters.search || null,
+        p_warehouse_id: null,
         p_limit: 10000, // Export all matching items
         p_offset: 0,
       })

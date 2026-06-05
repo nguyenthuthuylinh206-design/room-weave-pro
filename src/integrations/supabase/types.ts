@@ -12837,35 +12837,20 @@ export type Database = {
         Args: { p_booking_id: string }
         Returns: number
       }
-      get_categories_with_stats:
-        | {
-            Args: { p_tenant_id: string }
-            Returns: {
-              color: string
-              description: string
-              icon: string
-              id: string
-              items_count: number
-              name: string
-              name_en: string
-              sort_order: number
-              total_value: number
-            }[]
-          }
-        | {
-            Args: { p_hotel_id?: string; p_tenant_id: string }
-            Returns: {
-              color: string
-              description: string
-              icon: string
-              id: string
-              items_count: number
-              name: string
-              name_en: string
-              sort_order: number
-              total_value: number
-            }[]
-          }
+      get_categories_with_stats: {
+        Args: { p_hotel_id?: string; p_tenant_id: string }
+        Returns: {
+          color: string
+          description: string
+          icon: string
+          id: string
+          items_count: number
+          name: string
+          name_en: string
+          sort_order: number
+          total_value: number
+        }[]
+      }
       get_consumption_trend: {
         Args: { _days?: number; _item_id: string }
         Returns: {
@@ -12957,69 +12942,41 @@ export type Database = {
         }
         Returns: number
       }
-      get_distribution_orders_filtered:
-        | {
-            Args: {
-              p_assigned_to?: string
-              p_floor?: number
-              p_hotel_id?: string
-              p_limit?: number
-              p_offset?: number
-              p_shift_code?: string
-              p_shift_date?: string
-              p_status?: string
-              p_tenant_id: string
-            }
-            Returns: {
-              assigned_to: string
-              assigned_to_name: string
-              completed_at: string
-              created_at: string
-              created_by: string
-              created_by_name: string
-              floor: number
-              hotel_id: string
-              hotel_name: string
-              id: string
-              notes: string
-              order_code: string
-              released_at: string
-              rooms_completed: number
-              shift_code: string
-              shift_date: string
-              started_at: string
-              status: string
-              total_items: number
-              total_rooms: number
-            }[]
-          }
-        | {
-            Args: {
-              p_assigned_to?: string
-              p_hotel_id?: string
-              p_limit?: number
-              p_offset?: number
-              p_status?: string
-              p_tenant_id: string
-            }
-            Returns: {
-              assigned_to: string
-              assigned_to_name: string
-              completed_at: string
-              created_at: string
-              created_by: string
-              created_by_name: string
-              id: string
-              notes: string
-              order_code: string
-              rooms_completed: number
-              started_at: string
-              status: string
-              total_count: number
-              total_items: number
-              total_rooms: number
-            }[]
-          }
+      get_distribution_orders_filtered: {
+        Args: {
+          p_assigned_to?: string
+          p_floor?: number
+          p_hotel_id?: string
+          p_limit?: number
+          p_offset?: number
+          p_shift_code?: string
+          p_shift_date?: string
+          p_status?: string
+          p_tenant_id: string
+        }
+        Returns: {
+          assigned_to: string
+          assigned_to_name: string
+          completed_at: string
+          created_at: string
+          created_by: string
+          created_by_name: string
+          floor: number
+          hotel_id: string
+          hotel_name: string
+          id: string
+          notes: string
+          order_code: string
+          released_at: string
+          rooms_completed: number
+          shift_code: string
+          shift_date: string
+          started_at: string
+          status: string
+          total_items: number
+          total_rooms: number
+        }[]
+      }
       get_effective_permissions: {
         Args: { _user_id: string }
         Returns: {
@@ -13143,89 +13100,48 @@ export type Database = {
         }[]
       }
       get_item_detail: { Args: { p_item_id: string }; Returns: Json }
-      get_items_filtered:
-        | {
-            Args: {
-              p_category_id?: string
-              p_hotel_id?: string
-              p_limit?: number
-              p_offset?: number
-              p_search?: string
-              p_status?: string
-              p_stock_status?: string
-              p_tenant_id: string
-            }
-            Returns: {
-              brand: string
-              category_color: string
-              category_id: string
-              category_name: string
-              code: string
-              created_at: string
-              description: string
-              hotel_id: string
-              id: string
-              minimum_stock: number
-              model: string
-              name: string
-              name_en: string
-              quantity_damaged: number
-              quantity_in_laundry: number
-              quantity_in_stock: number
-              quantity_in_use: number
-              quantity_lost: number
-              quantity_total: number
-              reorder_point: number
-              status: string
-              stock_status: string
-              total_count: number
-              unit: string
-              unit_price: number
-              updated_at: string
-            }[]
-          }
-        | {
-            Args: {
-              p_category_id?: string
-              p_hotel_id?: string
-              p_limit?: number
-              p_offset?: number
-              p_search?: string
-              p_status?: string
-              p_stock_status?: string
-              p_tenant_id: string
-              p_warehouse_id?: string
-            }
-            Returns: {
-              brand: string
-              category_color: string
-              category_id: string
-              category_name: string
-              code: string
-              created_at: string
-              description: string
-              hotel_id: string
-              id: string
-              minimum_stock: number
-              model: string
-              name: string
-              name_en: string
-              quantity_damaged: number
-              quantity_in_laundry: number
-              quantity_in_stock: number
-              quantity_in_use: number
-              quantity_lost: number
-              quantity_total: number
-              reorder_point: number
-              status: string
-              stock_status: string
-              total_count: number
-              unit: string
-              unit_price: number
-              updated_at: string
-              warehouse_breakdown: Json
-            }[]
-          }
+      get_items_filtered: {
+        Args: {
+          p_category_id?: string
+          p_hotel_id?: string
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_status?: string
+          p_stock_status?: string
+          p_tenant_id: string
+          p_warehouse_id?: string
+        }
+        Returns: {
+          brand: string
+          category_color: string
+          category_id: string
+          category_name: string
+          code: string
+          created_at: string
+          description: string
+          hotel_id: string
+          id: string
+          minimum_stock: number
+          model: string
+          name: string
+          name_en: string
+          quantity_damaged: number
+          quantity_in_laundry: number
+          quantity_in_stock: number
+          quantity_in_use: number
+          quantity_lost: number
+          quantity_total: number
+          reorder_point: number
+          status: string
+          stock_status: string
+          total_count: number
+          unit: string
+          unit_price: number
+          updated_at: string
+          warehouse_breakdown: Json
+        }[]
+      }
       get_labor_cost: {
         Args: {
           p_end_date: string
@@ -13408,27 +13324,16 @@ export type Database = {
           standard_qty: number
         }[]
       }
-      get_monthly_expenses:
-        | {
-            Args: { p_months?: number; p_tenant_id: string }
-            Returns: {
-              laundry: number
-              maintenance: number
-              month: string
-              purchase: number
-              total: number
-            }[]
-          }
-        | {
-            Args: { p_hotel_id?: string; p_months: number; p_tenant_id: string }
-            Returns: {
-              laundry: number
-              maintenance: number
-              month: string
-              purchase: number
-              total: number
-            }[]
-          }
+      get_monthly_expenses: {
+        Args: { p_hotel_id?: string; p_months: number; p_tenant_id: string }
+        Returns: {
+          laundry: number
+          maintenance: number
+          month: string
+          purchase: number
+          total: number
+        }[]
+      }
       get_monthly_laundry_expenses: {
         Args: { p_hotel_id?: string; p_tenant_id: string; p_year?: number }
         Returns: {
@@ -13484,31 +13389,18 @@ export type Database = {
           user_id: string
         }[]
       }
-      get_recent_activities:
-        | {
-            Args: { p_limit?: number; p_tenant_id: string }
-            Returns: {
-              created_at: string
-              description: string
-              id: string
-              metadata: Json
-              type: string
-              user_avatar: string
-              user_name: string
-            }[]
-          }
-        | {
-            Args: { p_hotel_id?: string; p_limit?: number; p_tenant_id: string }
-            Returns: {
-              created_at: string
-              description: string
-              id: string
-              metadata: Json
-              type: string
-              user_avatar: string
-              user_name: string
-            }[]
-          }
+      get_recent_activities: {
+        Args: { p_hotel_id?: string; p_limit?: number; p_tenant_id: string }
+        Returns: {
+          created_at: string
+          description: string
+          id: string
+          metadata: Json
+          type: string
+          user_avatar: string
+          user_name: string
+        }[]
+      }
       get_room_checks_report: {
         Args: {
           p_end_date?: string

@@ -1,85 +1,92 @@
+# Audit 17 overload RPC còn lại (F-RPC-OVERLOAD-02)
 
-# Sprint 2 — Audit /inventory (Hub UX + Outbound refactor)
+## Bối cảnh
 
-Tiếp nối Sprint 1 (mobile forms single-page + FSM adjustment). Sprint 2 tập trung **P1 UX của Hub** và **gọn hoá OutboundPage desktop** (đang gánh 5 business types trong 1 file).
+Sau khi clean `complete_room_delivery`, `confirm_receive_order`, `deliver_stop`, file `src/test/rpc-signature-drift.test.ts` vẫn whitelist 17 RPC còn overload trùng tên — rủi ro PostgREST chọn nhầm. Mục tiêu: kiểm toán từng RPC, migrate caller, DROP overload thừa, xoá khỏi whitelist.
 
-## A. Mục tiêu
-1. Hub `/inventory` mobile: gọn header, bỏ chồng layer (~200px trước nội dung trên iPhone SE).
-2. Sub-tabs: tách CTA `+ Nhập/Xuất` ra header thay vì lẫn vào tab navigation.
-3. Outbound desktop: tách 5 business types thành sub-components, schema dùng `useMemo` để ổn định identity.
-4. Legacy redirect Outbound: chỉ chạy 1 lần thay vì mỗi URL change.
-5. Hide bottom FAB khi đang ở các trang form Nhập/Xuất/Adjustment.
+## Phân loại 17 RPC theo độ rủi ro
 
-## B. Phạm vi thay đổi
+**Nhóm A — Phụ thêm 1 param mở rộng (an toàn, DROP narrow)**
+Cặp đôi old/new chỉ khác 1 param optional. Caller TS dùng named-args → đã ngầm gọi signature wider. DROP narrow không break runtime.
 
-### B1. Hub Mobile UX (P1)
-- `src/pages/inventory/InventoryHubPage.tsx` (hoặc tương đương): rút gọn header mobile, gộp breadcrumb + tiêu đề trong Overview tab, lazy-load `HotelBreakdown`.
-- Bỏ duplicate "+ Nhập kho / + Xuất kho" trong TabsList. Chuyển 2 CTA này ra header phải (đã có precedent Task-First v3 trong memory).
-- Đảm bảo `?tab=&sub=` vẫn sync URL.
 
-### B2. Outbound Desktop Refactor (P0/P1)
-- Hiện tại `src/pages/inventory/OutboundPage.tsx` chứa 5 business types (`room_assign | laundry | maintenance | disposal | other`) với nested `.refine` → tách:
-  - `src/components/inventory/outbound/RoomAssignFields.tsx`
-  - `src/components/inventory/outbound/LaundryFields.tsx`
-  - `src/components/inventory/outbound/MaintenanceFields.tsx`
-  - `src/components/inventory/outbound/DisposalFields.tsx`
-  - `src/components/inventory/outbound/OtherFields.tsx`
-- Schema tách sang `src/lib/inventory/outboundFormSchema.ts` với `discriminatedUnion('business_type', ...)`. Bọc `t()` bằng `useMemo(() => buildSchema(t), [i18n.language])` để tránh re-create mỗi render.
-- Đồng bộ với shared `useOutboundSubmit` (memory: Outbound Shared Sub-form v1) — giữ nguyên backend contract.
+| RPC                                | Diff                                         |
+| ---------------------------------- | -------------------------------------------- |
+| `apply_room_standards`             | + `p_user_id`                                |
+| `create_distribution_order`        | + `p_auto_release, p_supplement_request_ids` |
+| `create_inbound_transaction`       | + `p_to_warehouse_id`                        |
+| `create_outbound_transaction`      | + `p_from_warehouse_id`                      |
+| `get_categories_with_stats`        | + `p_hotel_id`                               |
+| `get_distribution_orders_filtered` | + `p_floor, p_shift_date, p_shift_code`      |
+| `get_items_filtered`               | + `p_warehouse_id`                           |
+| `get_monthly_expenses`             | + `p_hotel_id`                               |
+| `get_recent_activities`            | + `p_hotel_id`                               |
+| `handover_batch`                   | + `p_adjustments`                            |
+| `settle_batch_compensation`        | + `_compensation_amount, _notes`             |
+| `setup_room_initial`               | + `p_user_id`                                |
+| `undo_room_delivery_confirmation`  | + `p_performed_by`                           |
 
-### B3. Legacy Redirect Fix (P1)
-- `OutboundPage` đang `useEffect(() => navigate(...), [searchParams])` chạy mỗi lần URL đổi. Đổi sang ref guard:
-  ```ts
-  const redirected = useRef(false);
-  useEffect(() => {
-    if (redirected.current) return;
-    if (searchParams.get('sub') === 'distributions') {
-      redirected.current = true;
-      navigate('/inventory?tab=outbound&view=list', { replace: true });
-    }
-  }, []);
-  ```
 
-### B4. FAB Hide trong Form (P1)
-- `MobileBottomNav` FAB hiện hiển thị cả ở `/inventory/inbound`, `/inventory/outbound`. Thêm hideOnPaths matcher cho các route form để tránh che nút Lưu.
+**Nhóm B — Hai signature khác hẳn (rủi ro cao, cần audit caller kỹ)**
 
-## C. Không đổi (giữ contract)
-- Backend RPC, schema DB, edge functions: KHÔNG đụng.
-- Quick Outbound Dialog: giữ nguyên (đã làm ở Sprint 1 trước đó).
-- Sub-tab URL convention `?tab=outbound&view=list|manual|from-requests`.
 
-## D. Files dự kiến
+| RPC                                 | Old                                                                       | New                                                      |
+| ----------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `create_laundry_loss_transaction`   | `p_batch_id, p_batch_code, p_item_id, p_quantity, p_loss_type` (per-item) | `p_items jsonb, p_loss_type, p_related_id` (batch jsonb) |
+| `create_laundry_return_transaction` | tương tự, per-item                                                        | batch jsonb                                              |
+| `get_laundry_batches_filtered`      | `p_from_date/p_to_date, p_limit/p_offset`                                 | `p_search, p_page/p_page_size`                           |
+| `setup_new_tenant`                  | `p_tenant_id, p_hotel_name…`                                              | `p_user_id, p_tenant_name, p_tenant_email…`              |
 
-**Tạo mới:**
-- `src/lib/inventory/outboundFormSchema.ts`
-- `src/components/inventory/outbound/{RoomAssign,Laundry,Maintenance,Disposal,Other}Fields.tsx` (5 file)
 
-**Sửa:**
-- `src/pages/inventory/InventoryHubPage.tsx` (hub mobile gọn + CTA header)
-- `src/pages/inventory/OutboundPage.tsx` (dùng sub-components + schema mới + redirect guard)
-- `src/components/MobileBottomNav.tsx` (hideOnPaths cho form routes)
-- `src/lib/app-version.ts` (bump 1.1.74)
-- `public/changelog.json`
+## Kế hoạch 4 sprint
 
-## E. Migration / RPC
-Không có.
+### Sprint A1 — Nhóm A round 1 (read-only & idempotent, low blast radius)
 
-## F. Test cases
-- `src/lib/inventory/__tests__/outboundFormSchema.test.ts`: 5 business_type happy path + invalid discriminator → reject.
-- Manual QA checklist:
-  - iPhone SE 375×667: Hub không scroll thừa trước list.
-  - URL `?tab=outbound&sub=distributions` redirect đúng 1 lần, sau đó back/forward không loop.
-  - Form Nhập/Xuất trên mobile: FAB ẩn, nút "Lưu" không bị che.
-  - Outbound desktop 5 business type submit OK, validation message tiếng Việt.
+RPC: `get_categories_with_stats`, `get_monthly_expenses`, `get_recent_activities`, `get_distribution_orders_filtered`, `get_items_filtered`, `get_laundry_batches_filtered` (chỉ phần read).
 
-## G. Rollout
-- Không feature flag (chỉ refactor UI + schema split, giữ contract).
-- Rollback: revert commit, không có DB change.
+- Audit caller: xác nhận tất cả đang gọi wider signature.
+- 1 migration DROP các overload narrow.
+- Xoá 6 entry khỏi `ALLOWED_OVERLOADS`.
 
-## H. Risk
-- Outbound schema split: rủi ro miss field. Mitigation: type test trong Vitest + diff schema cũ/mới trước khi xoá.
-- Hub mobile layout: cần test cả 4 sub-tab (overview/inbound/outbound/transactions) để không vỡ hero tile (memory: Inventory Hub Desktop Bento v3).
+### Sprint A2 — Nhóm A round 2 (mutation 1 RPC = 1 transaction)
 
-## Câu hỏi trước khi build
-1. Outbound 5 business types — bạn muốn giữ tất cả trong 1 page (tabs nội bộ) hay tách sub-route `/inventory/outbound/laundry` v.v.? (Đề xuất: giữ 1 page + tabs nội bộ, đỡ phá routing.)
-2. Hub mobile CTA: 2 nút "Nhập / Xuất" ở header hay 1 nút FAB menu? (Đề xuất: 2 nút text gọn, nhất quán với Task-First v3.)
+RPC: `apply_room_standards`, `setup_room_initial`, `undo_room_delivery_confirmation`, `handover_batch`, `settle_batch_compensation`.
+
+- Tương tự A1 nhưng có write → cần kiểm tra log/audit sau DROP.
+- 1 migration DROP narrow.
+
+### Sprint A3 — Nhóm A round 3 (mutation lớn)
+
+RPC: `create_distribution_order`, `create_inbound_transaction`, `create_outbound_transaction`.
+
+- Cần đảm bảo caller truyền đủ tham số mới (vd. `p_supplement_request_ids` có thể `null`).
+- Update hooks nếu thiếu key wrapper.
+
+### Sprint B — Nhóm B (cần audit nghiệp vụ)
+
+Mỗi RPC làm riêng 1 PR vì semantics khác:
+
+1. `create_laundry_loss_transaction` + `create_laundry_return_transaction`: tìm caller per-item, migrate sang jsonb batch hoặc giữ per-item làm canonical.
+2. `get_laundry_batches_filtered`: thống nhất pagination (limit/offset hay page/page_size). Pick 1, migrate caller.
+3. `setup_new_tenant`: nhiều khả năng cũ là legacy bootstrap CLI / cũ là wizard onboarding mới. Xác định kẻ thắng.
+
+## Quy trình chung mỗi RPC
+
+1. `grep -rn '<rpc>' --include='*.ts' --include='*.tsx' src/` → list caller.
+2. Kiểm tra `supabase.rpc('<rpc>', { ... })` payload xem key trùng signature nào.
+3. Nếu caller dùng wider: chỉ cần DROP narrow.
+4. Nếu caller dùng narrow: refactor sang wider trước (thêm key thiếu = `null`), test, rồi DROP.
+5. Regenerate `docs/architecture/_generated/db-functions.tsv` (`bash scripts/audit/dump-db-schema.sh`).
+6. Xoá entry khỏi `ALLOWED_OVERLOADS`.
+7. Chạy `bunx vitest run src/test/rpc-signature-drift.test.ts` → phải pass.
+
+## Rollback
+
+- Mỗi migration DROP đi kèm 1 file ghi chú phục hồi: `supabase/migrations/_rollback/<ts>_restore_<rpc>.sql` chứa `CREATE OR REPLACE FUNCTION …` của signature đã drop (lấy từ `pg_get_functiondef` trước khi drop).
+- Nếu sau release thấy 404/`PGRST202` từ client cũ → áp lại rollback file.
+
+## Bắt đầu từ đâu?
+
+**Đề xuất chạy Sprint A1 trước** trong response này (6 RPC read-only, blast radius nhỏ nhất, dễ verify). Sprint A2/A3/B làm các lượt sau.
+
+**Câu hỏi cho bạn:** OK chạy ngay Sprint A1 
