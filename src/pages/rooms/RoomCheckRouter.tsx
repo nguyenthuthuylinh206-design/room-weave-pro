@@ -42,7 +42,21 @@ export default function RoomCheckRouter() {
   // Opt-in Lean cho replenish/delivery khi URL có ?lean=1 (giai đoạn pilot song song)
   const optInLean = params.get('lean') === '1'
 
-  // Lean v1 KHÔNG bao quát: delivery + replenish + checkout-inspection legacy.
+  // Lean replenish opt-in: redirect sang /check-replenish (Phase 2)
+  if (checkType === 'replenish' && optInLean) {
+    const qs = new URLSearchParams(params)
+    qs.delete('type')
+    qs.delete('lean')
+    const tail = qs.toString()
+    return (
+      <Navigate
+        to={`/rooms/${id}/check-replenish${tail ? `?${tail}` : ''}`}
+        replace
+      />
+    )
+  }
+
+  // Lean v1 KHÔNG bao quát: delivery + checkout-inspection legacy.
   // Giữ wizard cũ trừ khi user opt-in.
   if ((wizardOnlyType || hasDistribution) && !optInLean) {
     return (
@@ -51,6 +65,7 @@ export default function RoomCheckRouter() {
       </Suspense>
     )
   }
+
 
   // Per-hotel flag — default ON
   const useLean = (leanCfg as any)?.use_lean ?? true
