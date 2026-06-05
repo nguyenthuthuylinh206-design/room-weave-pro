@@ -4,7 +4,7 @@ import { ChevronLeft, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
-import { supabase } from '@/integrations/supabase/client'
+// supabase client không còn dùng trực tiếp ở đây (Sprint 4 #33 — enrich qua useRoom)
 import { toast } from 'sonner'
 
 import { useRoom } from '@/hooks/useRooms'
