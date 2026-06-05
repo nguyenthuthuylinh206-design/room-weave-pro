@@ -173,8 +173,8 @@ export function MobileOutboundForm() {
   
   const category = form.watch('transaction_category') as OutboundCategory
   const steps = useMemo(() => getStepsForCategory(category, t), [category, t])
-  const currentStep = steps[stepIndex]
-  const totalSteps = steps.length
+
+
   
   // Set default warehouse when loaded
   const fromWarehouseId = form.watch('from_warehouse_id')
