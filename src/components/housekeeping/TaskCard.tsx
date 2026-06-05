@@ -79,7 +79,7 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
       } else if (task.task_type === 'checkin_prep') {
         navigate(`/rooms/${task.room_id}/check?type=checkin&resume=true`)
       } else if (task.task_type === 'amenity_request') {
-        navigate(`/rooms/${task.room_id}/check?type=replenish&resume=true`)
+        navigate(`/rooms/${task.room_id}/check?type=replenish&resume=true&task_id=${task.id}`)
       } else if (task.task_type === 'cleaning') {
         navigate(`/rooms/${task.room_id}/check?type=daily&resume=true`)
       }
@@ -110,7 +110,7 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
     } else if (task.task_type === 'checkin_prep') {
       navigate(`/rooms/${task.room_id}/check?type=checkin&resume=true`)
     } else if (task.task_type === 'amenity_request') {
-      navigate(`/rooms/${task.room_id}/check?type=replenish&resume=true`)
+      navigate(`/rooms/${task.room_id}/check?type=replenish&resume=true&task_id=${task.id}`)
     } else if (task.task_type === 'cleaning') {
       navigate(`/rooms/${task.room_id}/check?type=daily&resume=true`)
     } else if (task.task_type === 'delivery_confirmation') {
