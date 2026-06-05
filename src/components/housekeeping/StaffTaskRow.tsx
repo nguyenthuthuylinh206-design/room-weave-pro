@@ -6,7 +6,7 @@ import { Play, CheckCircle2, CornerDownRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useUpdateTaskStatus } from '@/hooks/useHousekeepingTasks'
-import { DeliveryConfirmationModal } from './DeliveryConfirmationModal'
+
 import { CleaningCompleteDialog } from '@/components/rooms/CleaningCompleteDialog'
 import { useDeliveryTaskItems } from '@/hooks/useDeliveryTaskItems'
 import type { HousekeepingTaskWithDetails, TaskType, TaskPriority } from '@/types/housekeeping.types'
@@ -36,7 +36,7 @@ interface StaffTaskRowProps {
 export function StaffTaskRow({ task, onTap }: StaffTaskRowProps) {
   const navigate = useNavigate()
   const [isUpdating, setIsUpdating] = useState(false)
-  const [showDeliveryModal, setShowDeliveryModal] = useState(false)
+  
   const [showCleaningComplete, setShowCleaningComplete] = useState(false)
   const { mutateAsync: updateStatus } = useUpdateTaskStatus()
 
@@ -183,17 +183,7 @@ export function StaffTaskRow({ task, onTap }: StaffTaskRowProps) {
       </div>
 
       {/* Modals */}
-      {isDeliveryTask && deliveryData && (
-        <DeliveryConfirmationModal
-          open={showDeliveryModal}
-          onOpenChange={setShowDeliveryModal}
-          taskId={task.id}
-          roomOrderId={deliveryData.roomOrderId}
-          roomNumber={roomNumber || ''}
-          orderCode={deliveryData.orderCode}
-          items={deliveryData.items}
-        />
-      )}
+
 
       {isCleaningTask && (
         <CleaningCompleteDialog

@@ -28,7 +28,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { useTaskById, useUpdateTaskStatus } from '@/hooks/useHousekeepingTasks'
 import { useDeliveryTaskItems } from '@/hooks/useDeliveryTaskItems'
-import { DeliveryConfirmationModal } from './DeliveryConfirmationModal'
+
 import { CleaningCompleteDialog } from '@/components/rooms/CleaningCompleteDialog'
 import { TaskQcReviewDialog } from './TaskQcReviewDialog'
 import { useState } from 'react'
@@ -71,7 +71,7 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
   const navigate = useNavigate()
   const { data: task, isLoading } = useTaskById(taskId)
   const { mutateAsync: updateStatus, isPending: isUpdating } = useUpdateTaskStatus()
-  const [showDeliveryModal, setShowDeliveryModal] = useState(false)
+  
   const [showCleaningComplete, setShowCleaningComplete] = useState(false)
   const [showQcReview, setShowQcReview] = useState<false | 'approve' | 'reject'>(false)
 
@@ -445,18 +445,8 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
         </DialogContent>
       </Dialog>
 
-      {/* Delivery Confirmation Modal */}
-      {isDeliveryTask && task && deliveryData && (
-        <DeliveryConfirmationModal
-          open={showDeliveryModal}
-          onOpenChange={setShowDeliveryModal}
-          taskId={task.id}
-          roomOrderId={deliveryData.roomOrderId}
-          roomNumber={task.room?.room_number || ''}
-          orderCode={deliveryData.orderCode}
-          items={deliveryData.items}
-        />
-      )}
+      {/* Delivery Confirmation Modal đã chuyển sang trang Lean /check-delivery */}
+
 
       {/* Cleaning Complete Dialog */}
       {isCleaningTask && task && task.room && (
