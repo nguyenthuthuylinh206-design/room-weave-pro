@@ -59,8 +59,8 @@ export function useInventoryTransactions(
         p_date_from: filters.date_from?.toISOString().split('T')[0] || null,
         p_date_to: filters.date_to?.toISOString().split('T')[0] || null,
         p_search: filters.search || null,
-        p_limit: pageSize,
-        p_offset: (page - 1) * pageSize,
+        p_page: page,
+        p_page_size: pageSize,
       })
       
       if (error) throw error
