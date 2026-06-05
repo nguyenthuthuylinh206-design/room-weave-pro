@@ -1,7 +1,19 @@
 {
-  "current": "1.1.77",
+  "current": "1.1.78",
   "versions": [
     {
+      "version": "1.1.78",
+      "date": "2026-06-05",
+      "title": "Sprint A2 audit overload RPC: dọn 5 mutation RPC theo F-RPC-OVERLOAD-02",
+      "highlights": [
+        "DROP 5 overload legacy: `apply_room_standards(p_room_id)`, `setup_room_initial(p_room_id,p_reset_quantities)`, `undo_room_delivery_confirmation(p_distribution_order_room_id)`, `handover_batch(p_batch_id,p_actor_id)`, `settle_batch_compensation(_batch_id)` — giữ phiên bản có actor/user/adjustments",
+        "Refactor caller `useSetupRoom.ts`: thêm `p_user_id: user?.id ?? null` để khớp signature mới; 4 caller còn lại (`useBulkRoomActions`, `useRoomStandards`, `useRouteBatch`, `useRoomDistributionHistory`, `useLaundryCompensation`) đã dùng signature đầy đủ — không cần đổi",
+        "Backup rollback tại `supabase/migrations/_rollback/20260605_sprint_a2_restore_legacy_overloads.sql` (CREATE OR REPLACE FUNCTION cho 5 signature đã drop)",
+        "Cập nhật `scripts/audit/rpc-signatures.snapshot.json`: bỏ overload cũ của `apply_room_standards` và knownIssue tương ứng; whitelist `ALLOWED_OVERLOADS` còn 7 entry (giảm từ 12). Test `rpc-signature-drift.test.ts` pass 16/16"
+      ]
+    },
+    {
+
       "version": "1.1.77",
       "date": "2026-06-05",
       "title": "Sprint A1 audit overload RPC: dọn 5 read-only RPC theo F-RPC-OVERLOAD-02",

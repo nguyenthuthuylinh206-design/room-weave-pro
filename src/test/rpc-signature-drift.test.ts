@@ -115,7 +115,6 @@ describe('RPC signature drift (vs _generated/db-functions.tsv)', () => {
     // Đã ghi nhận tại findings.md F-RPC-OVERLOAD-02 — cần audit + DROP dần.
     // Khi DROP xong từng cái, xoá khỏi danh sách này. Test sẽ chặn THÊM MỚI.
     const ALLOWED_OVERLOADS = new Set<string>([
-      'apply_room_standards',
       'create_distribution_order',
       'create_inbound_transaction',
       'create_laundry_loss_transaction',
@@ -123,11 +122,7 @@ describe('RPC signature drift (vs _generated/db-functions.tsv)', () => {
       'create_outbound_transaction',
       // 2026-06-05 Sprint B: pagination khác nhau (limit/offset vs page/page_size)
       'get_laundry_batches_filtered',
-      'handover_batch',
-      'settle_batch_compensation',
       'setup_new_tenant',
-      'setup_room_initial',
-      'undo_room_delivery_confirmation',
     ]);
     const offenders: string[] = [];
     for (const [name, sigs] of appRpcs.entries()) {

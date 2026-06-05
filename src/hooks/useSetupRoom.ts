@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
 import { triggerWorkflow } from '@/lib/triggerWorkflow'
 import { useUser } from './useUser'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface SetupRoomResult {
   success: boolean
@@ -16,6 +17,7 @@ interface SetupRoomResult {
 export function useSetupRoom() {
   const queryClient = useQueryClient()
   const { tenantId } = useUser()
+  const { user } = useAuth()
 
   return useMutation({
     mutationFn: async ({ 
@@ -35,6 +37,7 @@ export function useSetupRoom() {
       const { data, error } = await supabase
         .rpc('setup_room_initial', {
           p_room_id: roomId,
+          p_user_id: user?.id ?? null,
           p_reset_quantities: reset
         })
 
