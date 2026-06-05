@@ -1,6 +1,17 @@
 {
-  "current": "1.1.75",
+  "current": "1.1.76",
   "versions": [
+    {
+      "version": "1.1.76",
+      "date": "2026-06-05",
+      "title": "Dọn overload `deliver_stop` legacy + migrate `useRouteBatch` sang signature mới",
+      "highlights": [
+        "Migrate `useDeliverStop` (src/hooks/useRouteBatch.ts) sang RPC `deliver_stop(p_stop_id, p_actor_id)`; bỏ tham số `p_items_confirmed` (signature mới đọc thẳng `distribution_order_items.quantity_actual`)",
+        "Migration DROP overload `deliver_stop(uuid, jsonb, uuid)` (legacy `p_room_order_id`) — chấm dứt rủi ro PostgREST chọn nhầm overload",
+        "Xoá `deliver_stop` khỏi `ALLOWED_OVERLOADS` trong `rpc-signature-drift.test.ts`; regenerate `docs/architecture/_generated/db-functions.tsv`; test drift pass 16/16",
+        "Giữ nguyên tham số `itemsConfirmed` ở mutation input (đánh dấu deprecated) để callers `StopCard`/`UnifiedRoomList` không phải đổi — cả 2 caller hiện không truyền field này"
+      ]
+    },
     {
       "version": "1.1.75",
       "date": "2026-06-05",

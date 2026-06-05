@@ -12729,16 +12729,10 @@ export type Database = {
         Returns: Json
       }
       delete_room_block: { Args: { p_block_id: string }; Returns: Json }
-      deliver_stop:
-        | {
-            Args: {
-              p_actor_id?: string
-              p_items_confirmed?: Json
-              p_room_order_id: string
-            }
-            Returns: Json
-          }
-        | { Args: { p_actor_id?: string; p_stop_id: string }; Returns: Json }
+      deliver_stop: {
+        Args: { p_actor_id?: string; p_stop_id: string }
+        Returns: Json
+      }
       duplicate_room_type: {
         Args: {
           p_copy_default_items?: boolean
