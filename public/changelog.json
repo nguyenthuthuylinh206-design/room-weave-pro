@@ -1,6 +1,17 @@
 {
-  "current": "1.1.76",
+  "current": "1.1.77",
   "versions": [
+    {
+      "version": "1.1.77",
+      "date": "2026-06-05",
+      "title": "Sprint A1 audit overload RPC: dọn 5 read-only RPC theo F-RPC-OVERLOAD-02",
+      "highlights": [
+        "DROP 5 overload legacy: `get_categories_with_stats(p_tenant_id)`, `get_monthly_expenses(p_tenant_id,p_months)`, `get_recent_activities(p_tenant_id,p_limit)`, `get_distribution_orders_filtered(...6 args)`, `get_items_filtered(...8 args không có p_warehouse_id)` — giữ phiên bản đầy đủ tham số",
+        "Cập nhật 2 caller dùng narrower sig: `useDistributionOrders.ts` thêm `p_floor/p_shift_date/p_shift_code: null`; `ItemFilters.tsx` (export) thêm `p_warehouse_id: null`",
+        "Backup rollback tại `supabase/migrations/_rollback/20260605_sprint_a1_restore_legacy_overloads.sql` (chứa CREATE OR REPLACE FUNCTION của 5 signature đã drop)",
+        "Whitelist `ALLOWED_OVERLOADS` còn 12 entry (giảm từ 17); test `rpc-signature-drift.test.ts` pass 16/16"
+      ]
+    },
     {
       "version": "1.1.76",
       "date": "2026-06-05",
