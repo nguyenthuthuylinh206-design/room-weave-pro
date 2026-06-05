@@ -1,27 +1,19 @@
 import { useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Plus, X, AlertTriangle, WashingMachine, Calendar, Scale, DollarSign } from 'lucide-react';
+import { WashingMachine } from 'lucide-react';
 
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 import { buildOutboundSchema, type OutboundFormData } from '@/lib/inventory/outboundFormSchema';
-import { format, addDays } from 'date-fns';
-import { vi } from 'date-fns/locale';
+import { addDays } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarUI } from '@/components/ui/calendar';
-import { ItemSelect } from '@/components/shared/ItemSelect';
 import { WarehouseSelect } from '@/components/warehouse/WarehouseSelect';
-import { ImageUpload } from '@/components/shared/ImageUpload';
 import { LaundryVendorSelect } from '@/components/shared/LaundryVendorSelect';
 import { MaintenanceRequestSelect } from '@/components/shared/MaintenanceRequestSelect';
 import { DistributionForm } from '@/components/distribution/forms/DistributionForm';
@@ -32,13 +24,16 @@ import { useCreateLaundryBatch } from '@/hooks/useLaundryBatches';
 import { useLaundryVendors } from '@/hooks/useLaundryVendors';
 import { useUsers } from '@/hooks/useUsers';
 import { useItems } from '@/hooks/useItems';
-import { useDefaultWarehouse } from '@/hooks/useWarehouses';
 import { useBreakpoint } from '@/lib/breakpoints';
 import { MobileOutboundForm } from '@/components/inventory/MobileOutboundForm';
-import { cn } from '@/lib/utils';
+import { LaundryBatchFields } from '@/components/inventory/outbound/LaundryBatchFields';
+import { StandardItemsFields } from '@/components/inventory/outbound/StandardItemsFields';
 
-// Schema & type extracted to src/lib/inventory/outboundFormSchema.ts (Sprint 2)
-// Đã loại bỏ createOutboundSchema inline để tránh re-create mỗi render.
+// Sprint 3: tách 2 sub-components LaundryBatchFields + StandardItemsFields ra file riêng
+// để OutboundPage tập trung vào orchestration (schema + submit + tab switching).
+// Schema/form contract giữ nguyên — không phá backend hợp đồng.
+
+
 
 
 export function OutboundPage() {
