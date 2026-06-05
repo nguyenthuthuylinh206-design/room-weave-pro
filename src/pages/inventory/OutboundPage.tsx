@@ -81,22 +81,13 @@ export function OutboundPage() {
     }
   });
   
-  const { fields, append, remove } = useFieldArray({ control: form.control, name: 'items' });
-  const { fields: laundryFields, append: appendLaundryItem, remove: removeLaundryItem } = useFieldArray({ control: form.control, name: 'laundry_items' });
-  
   const formItems = form.watch('items') || [];
   const laundryItems = form.watch('laundry_items') || [];
   const category = form.watch('transaction_category');
   const totalQuantity = formItems.reduce((sum, item) => sum + item.quantity, 0);
   const hasStockError = formItems.some(item => item.quantity > item.available_quantity);
-  
-  const laundryTotalItems = laundryItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
-  const laundryTotalWeight = laundryItems.reduce((sum, item) => sum + (item.weight_kg || 0), 0);
-  const laundryEstimatedCost = useMemo(() => {
-    const pricePerKg = selectedVendor?.contract_info?.price_per_kg || 20000;
-    return laundryTotalWeight * pricePerKg;
-  }, [selectedVendor, laundryTotalWeight]);
   const laundryHasStockError = laundryItems.some(item => item.quantity > item.available_quantity);
+
 
   if (isMobile) return <MobileOutboundForm />;
   
