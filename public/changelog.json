@@ -1,6 +1,17 @@
 {
-  "current": "1.1.85",
+  "current": "1.1.86",
   "versions": [
+    {
+      "version": "1.1.86",
+      "date": "2026-06-06",
+      "title": "Batch 4D: Slim RoomQuickViewDialog & tách MobileRoomsPage",
+      "highlights": [
+        "**RoomQuickViewDialog gọn lại** — Tách 4 sub-component dùng chung: `QuickViewBookingCard` (countdown trả phòng), `QuickViewGroupSiblings` (chip cùng đoàn), `QuickViewItemsStatus` (vật tư + lần kiểm cuối), `QuickViewFooter` (3 action: Kiểm tra / Chi tiết / Giao việc). File chính từ 303 → ~140 LOC, dễ tái dùng cho cả desktop QuickView & mobile bottom-sheet sau này.",
+        "**MobileRoomsPage tách 3 component** — `MobileRoomCard` (card phòng + long-press 500ms vào selection mode), `MobileRoomStatsBar` (8 thẻ stats scroll ngang), `MobileRoomStatusFilterBar` (pill filter sticky). File chính từ 597 → ~280 LOC, render từng card không kéo theo toàn bộ logic page → cuộn mượt hơn trên list dài.",
+        "**Không đổi behavior** — Giữ nguyên long-press 500ms + vibrate(30ms), selection ring primary, priority border trái 3px đỏ/amber, gate session người khác đang kiểm. Tất cả memo/hook giữ cùng vị trí để không trigger re-render thêm."
+      ]
+    },
+
     {
       "version": "1.1.85",
       "date": "2026-06-06",
