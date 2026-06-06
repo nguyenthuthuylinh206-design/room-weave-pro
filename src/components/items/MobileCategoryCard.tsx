@@ -59,7 +59,7 @@ export function MobileCategoryCard({
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => onDelete(category.id)}
+            onClick={() => setConfirmOpen(true)}
             className="h-8 w-8 p-0 text-destructive hover:text-destructive"
           >
             <Trash2 className="h-4 w-4" />
@@ -69,5 +69,25 @@ export function MobileCategoryCard({
         <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
       )}
     </div>
+    <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Xóa danh mục?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Bạn có chắc chắn muốn xóa danh mục "{category.name}"? Hành động này không thể hoàn tác.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Hủy</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => onDelete?.(category.id)}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            Xóa
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   )
 }
