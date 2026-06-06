@@ -432,8 +432,16 @@ export function useBookingForm() {
   }, [state, tenant, toast])
 
   const reset = useCallback(() => {
+    clearDraftStorage()
+    // Bỏ qua autosave lần tiếp theo để không re-save lại initialState
+    firstSaveSkipRef.current = true
     setState(initialState)
   }, [])
+
+  const discardDraft = useCallback(() => {
+    clearDraftStorage()
+  }, [])
+
 
   const submit = useCallback(async (onSuccess?: () => void): Promise<boolean> => {
     // Validation
