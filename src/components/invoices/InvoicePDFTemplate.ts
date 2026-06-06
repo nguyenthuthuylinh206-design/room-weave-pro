@@ -284,10 +284,10 @@ export function buildInvoiceHTML(
     const lineItems = invoice.line_items || []
     const remaining = invoice.total_amount - invoice.amount_paid - (invoice.deposit_amount || 0)
     return `<div id="invoice-pdf" style="width:${config.width}px;padding:${config.padding};font-family:'Segoe UI',Arial,sans-serif;font-size:${config.fontSize}px;color:#111;background:#fff;">
-      <div style="text-align:center;font-weight:700;">${hotelInfo?.name || 'KHÁCH SẠN'}</div>
-      <div style="text-align:center;border-top:1px dashed #999;border-bottom:1px dashed #999;padding:4px 0;margin:6px 0;font-weight:700;">${invoice.invoice_number}</div>
-      <div>Khách: ${invoice.guest_name}</div>
-      ${lineItems.map(i => `<div style="display:flex;justify-content:space-between;"><span>${i.description}</span><span>${formatVND(i.amount)}</span></div>`).join('')}
+      <div style="text-align:center;font-weight:700;">${esc(hotelInfo?.name || 'KHÁCH SẠN')}</div>
+      <div style="text-align:center;border-top:1px dashed #999;border-bottom:1px dashed #999;padding:4px 0;margin:6px 0;font-weight:700;">${esc(invoice.invoice_number)}</div>
+      <div>Khách: ${esc(invoice.guest_name)}</div>
+      ${lineItems.map(i => `<div style="display:flex;justify-content:space-between;"><span>${esc(i.description)}</span><span>${formatVND(i.amount)}</span></div>`).join('')}
       <div style="border-top:1px dashed #999;margin-top:4px;padding-top:4px;display:flex;justify-content:space-between;font-weight:700;"><span>TỔNG:</span><span>${formatVND(invoice.total_amount)}</span></div>
       ${remaining > 0 ? `<div style="display:flex;justify-content:space-between;"><span>Còn lại:</span><span>${formatVND(remaining)}</span></div>` : ''}
     </div>`
