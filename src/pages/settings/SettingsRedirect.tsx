@@ -1,9 +1,8 @@
 import { Navigate } from 'react-router-dom'
 import { useUser } from '@/hooks/useUser'
-import { hasPermission } from '@/lib/permissions'
 
 /**
- * Redirect /settings → trang đầu tiên trong Settings mà role có quyền.
+ * Redirect /settings → trang đầu tiên trong Settings theo role.
  * Tránh tình huống staff click "Cài đặt" rồi bị PermissionRoute chặn ở General.
  */
 export default function SettingsRedirect() {
@@ -11,11 +10,16 @@ export default function SettingsRedirect() {
 
   if (isLoading) return null
 
-  // Owner / Hotel Manager / Department Manager → General (cần manage_settings)
-  if (hasPermission(role, 'manage_settings')) {
-    return <Navigate to="/settings/general" replace />
+  // Staff chỉ thấy profile và đổi mật khẩu
+  if (role === 'staff') {
+    return <Navigate to="/settings/change-password" replace />
   }
 
-  // Staff hoặc role không có manage_settings → Đổi mật khẩu (ai cũng có)
-  return <Navigate to="/settings/change-password" replace />
+  // Department manager thấy thêm room-check settings
+  if (role === 'department_manager') {
+    return <Navigate to="/settings/room-check" replace />
+  }
+
+  // Manager, owner, super_admin vào general settings
+  return <Navigate to="/settings/general" replace />
 }
