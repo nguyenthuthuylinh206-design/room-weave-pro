@@ -424,7 +424,7 @@ export const Sidebar = () => {
           className="h-10 w-10 rounded-lg object-cover flex-shrink-0"
         />
         <div className="flex-1 overflow-hidden">
-          <p className="truncate font-semibold text-sm" title={tenant?.name || 'Hotel Management'}>
+          <p className="truncate font-bold text-[15px]" title={tenant?.name || 'Hotel Management'}>
             {tenant?.name || 'Hotel Management'}
           </p>
           <div className="flex items-center gap-1.5">
@@ -486,7 +486,7 @@ export const Sidebar = () => {
                   onPointerDown={handleParentPrefetch}
                   onFocus={handleParentPrefetch}
                   className={cn(
-                    'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                    'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] font-semibold transition-colors',
                     isExpanded
                       ? 'bg-primary text-primary-foreground'
                       : hasActiveChild
@@ -530,7 +530,7 @@ export const Sidebar = () => {
                             <Fragment key={child.titleKey}>
                               {showGroup && (
                                 <div className="pt-4 pb-1 px-3 first:pt-1">
-                                  <span className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">
+                                  <span className="text-xs font-bold text-foreground/60 tracking-wide">
                                     {child.group}
                                   </span>
                                 </div>
@@ -581,7 +581,7 @@ export const Sidebar = () => {
               onPointerDown={() => item.href && prefetchRoute(item.href)}
               onFocus={() => item.href && prefetchRoute(item.href)}
               className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] font-semibold transition-colors',
                 isActive
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
@@ -602,7 +602,7 @@ export const Sidebar = () => {
           onMouseEnter={() => prefetchRoute('/help')}
           onFocus={() => prefetchRoute('/help')}
           className={cn(
-            'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] font-semibold transition-colors',
             currentPath === '/help'
               ? 'bg-primary text-primary-foreground'
               : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
@@ -628,8 +628,8 @@ export const Sidebar = () => {
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 overflow-hidden">
-            <p className="truncate font-medium text-sm">{user?.full_name || 'User'}</p>
-            <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+            <p className="truncate font-semibold text-sm">{user?.full_name || 'User'}</p>
+            <p className="truncate text-xs text-muted-foreground mt-0.5">{user?.email}</p>
           </div>
         </Link>
       </div>

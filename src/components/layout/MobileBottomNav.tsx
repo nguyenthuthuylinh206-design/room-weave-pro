@@ -179,7 +179,7 @@ export const MobileBottomNav = () => {
                   </Badge>
                 )}
               </div>
-              <span className="text-xs font-medium">{item.label}</span>
+              <span className="text-[11px] font-semibold">{item.label}</span>
             </button>
           )
         })}
