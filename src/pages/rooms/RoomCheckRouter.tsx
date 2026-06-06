@@ -1,7 +1,15 @@
 import { Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
+import { Loader2 } from 'lucide-react'
 import { useRoom } from '@/hooks/useRooms'
 import { useRoomCheckLeanConfig } from '@/hooks/useRoomCheckLeanConfig'
+
+const RouterFallback = () => (
+  <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-muted-foreground">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    <span className="text-sm">Đang mở phòng…</span>
+  </div>
+)
 
 const RoomCheckPage = lazy(() =>
   import('@/pages/rooms/RoomCheckPage').then((m) => ({
