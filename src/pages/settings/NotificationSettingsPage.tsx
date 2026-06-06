@@ -202,6 +202,15 @@ export function NotificationSettingsPage() {
           </CardContent>
         </Card>
 
+        {/* Event-level notification types */}
+        <NotificationEventTypesCard
+          prefs={localPrefs}
+          pushSubscribed={isSubscribed}
+          onChange={(key, value) => handleChange(key, value)}
+        />
+
+
+
         {/* Admin-only settings */}
         {isAdmin && (
           <>
