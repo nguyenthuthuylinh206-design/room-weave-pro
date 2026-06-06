@@ -21,6 +21,7 @@ import { formatVNCurrency } from '@/lib/pricing';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { useUser } from '@/hooks/useUser';
+import { getFriendlyError } from '@/lib/errorMessage';
 
 export function BillingHistory() {
   const { data: transactions, isLoading: loadingTransactions, refetch: refetchTransactions } = usePaymentTransactions();
@@ -67,7 +68,7 @@ export function BillingHistory() {
     } catch (error) {
       console.error('Sync error:', error);
       toast.error('Lỗi đồng bộ giao dịch', {
-        description: error instanceof Error ? error.message : 'Vui lòng thử lại sau'
+        description: getFriendlyError(error)
       });
     } finally {
       setIsSyncing(false);
