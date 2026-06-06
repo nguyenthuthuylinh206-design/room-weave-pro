@@ -158,7 +158,7 @@ export function RoomsPage() {
 
       {/* Subtitle: hướng dẫn nhanh vai trò */}
       <p className="text-xs text-muted-foreground -mt-3 px-1">
-        {viewMode === 'grid' && 'Sắp xếp theo mức ưu tiên (Cần xử lý ngay / Theo dõi / Bình thường). Bấm ô phòng để xem nhanh.'}
+        {viewMode === 'grid' && 'Sắp xếp theo mức ưu tiên (Cần xử lý ngay / Theo dõi / Bình thường). Bấm ô phòng để xem nhanh. Giữ Shift+Click để chọn nhiều phòng.'}
         {viewMode === 'list' && 'Danh sách dạng bảng để lọc, sắp xếp và xuất dữ liệu.'}
         {viewMode === 'floor' && 'Lịch đặt phòng theo ngày (tape chart) — dùng cho Lễ tân & quản lý booking.'}
         {viewMode === 'map' && 'Sơ đồ phòng tổng quan trạng thái — dùng cho Lễ tân tại quầy. Bấm ô phòng để xem giá / khách / countdown.'}
