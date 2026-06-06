@@ -177,6 +177,15 @@ export function InventoryTodoCard({ onNavigate }: Props) {
             </button>
           ))
         )}
+        {overflow > 0 && (
+          <button
+            type="button"
+            onClick={() => onNavigate('operations', 'outbound')}
+            className="w-full px-4 py-2.5 text-left font-body text-xs text-muted-foreground hover:text-foreground hover:bg-accent/30 transition-colors"
+          >
+            Còn {overflow} mục khác — xem tất cả →
+          </button>
+        )}
       </div>
     </section>
   )
