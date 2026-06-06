@@ -8,6 +8,8 @@ import { useQueryClient } from '@tanstack/react-query'
 export interface InventoryHubBadges {
   reorderPending: number
   distributionsPending: number
+  /** Số phiếu xuất pending/released có created_at > 24h trước — báo đỏ */
+  distributionsStale: number
   lowStock: number
   adjustmentsPending: number
 }
