@@ -201,23 +201,23 @@ async function buildSheetHTML(
   return `
     <div id="invoice-pdf" style="width:${config.width}px;padding:${config.padding};font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:${config.fontSize}px;color:#111;background:#fff;">
       <div style="text-align:center;margin-bottom:8px;">
-        <div style="font-size:${config.fontSize + 5}px;font-weight:700;">${hotelInfo?.name || 'KHÁCH SẠN'}</div>
-        ${hotelInfo?.address ? `<div style="font-size:${config.fontSize - 2}px;color:#555;">${hotelInfo.address}</div>` : ''}
-        ${hotelInfo?.phone ? `<div style="font-size:${config.fontSize - 2}px;color:#555;">ĐT: ${hotelInfo.phone}</div>` : ''}
-        ${hotelInfo?.taxCode ? `<div style="font-size:${config.fontSize - 2}px;color:#555;">MST: ${hotelInfo.taxCode}</div>` : ''}
+        <div style="font-size:${config.fontSize + 5}px;font-weight:700;">${esc(hotelInfo?.name || 'KHÁCH SẠN')}</div>
+        ${hotelInfo?.address ? `<div style="font-size:${config.fontSize - 2}px;color:#555;">${esc(hotelInfo.address)}</div>` : ''}
+        ${hotelInfo?.phone ? `<div style="font-size:${config.fontSize - 2}px;color:#555;">ĐT: ${esc(hotelInfo.phone)}</div>` : ''}
+        ${hotelInfo?.taxCode ? `<div style="font-size:${config.fontSize - 2}px;color:#555;">MST: ${esc(hotelInfo.taxCode)}</div>` : ''}
       </div>
       <div style="text-align:center;margin:16px 0 12px;">
         <div style="font-size:${config.fontSize + 7}px;font-weight:700;">HÓA ĐƠN THANH TOÁN</div>
-        <div style="font-size:${config.fontSize - 1}px;color:#555;">Số: ${invoice.invoice_number} · ${new Date(invoice.issued_at || invoice.created_at).toLocaleString('vi-VN')}</div>
+        <div style="font-size:${config.fontSize - 1}px;color:#555;">Số: ${esc(invoice.invoice_number)} · ${esc(new Date(invoice.issued_at || invoice.created_at).toLocaleString('vi-VN'))}</div>
       </div>
       <div style="margin-bottom:12px;line-height:1.8;">
-        <div><b>Khách hàng:</b> ${invoice.guest_name}</div>
-        ${invoice.guest_phone ? `<div><b>SĐT:</b> ${invoice.guest_phone}</div>` : ''}
-        ${invoice.guest_address ? `<div><b>Địa chỉ:</b> ${invoice.guest_address}</div>` : ''}
-        ${invoice.guest_tax_code ? `<div><b>MST:</b> ${invoice.guest_tax_code}</div>` : ''}
-        ${invoice.company_name ? `<div><b>Công ty:</b> ${invoice.company_name}</div>` : ''}
-        ${invoice.room_number ? `<div><b>Phòng:</b> ${invoice.room_number}</div>` : ''}
-        ${invoice.check_in_date && invoice.check_out_date ? `<div><b>Thời gian:</b> ${invoice.check_in_date} → ${invoice.check_out_date}</div>` : ''}
+        <div><b>Khách hàng:</b> ${esc(invoice.guest_name)}</div>
+        ${invoice.guest_phone ? `<div><b>SĐT:</b> ${esc(invoice.guest_phone)}</div>` : ''}
+        ${invoice.guest_address ? `<div><b>Địa chỉ:</b> ${esc(invoice.guest_address)}</div>` : ''}
+        ${invoice.guest_tax_code ? `<div><b>MST:</b> ${esc(invoice.guest_tax_code)}</div>` : ''}
+        ${invoice.company_name ? `<div><b>Công ty:</b> ${esc(invoice.company_name)}</div>` : ''}
+        ${invoice.room_number ? `<div><b>Phòng:</b> ${esc(invoice.room_number)}</div>` : ''}
+        ${invoice.check_in_date && invoice.check_out_date ? `<div><b>Thời gian:</b> ${esc(invoice.check_in_date)} → ${esc(invoice.check_out_date)}</div>` : ''}
       </div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
         <thead>
@@ -233,7 +233,7 @@ async function buildSheetHTML(
           ${lineItems.map((item, i) => `
             <tr style="border-bottom:1px solid #ddd;">
               <td style="padding:5px 4px;">${i + 1}</td>
-              <td style="padding:5px 4px;">${item.description || ''}</td>
+              <td style="padding:5px 4px;">${esc(item.description || '')}</td>
               <td style="text-align:right;padding:5px 4px;">${item.quantity}</td>
               <td style="text-align:right;padding:5px 4px;font-family:monospace;">${formatVND(item.unit_price)}</td>
               <td style="text-align:right;padding:5px 4px;font-family:monospace;">${formatVND(item.amount)}</td>
@@ -251,7 +251,7 @@ async function buildSheetHTML(
           ${invoice.amount_paid > 0 ? `<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Đã thanh toán:</span><span style="font-family:monospace;">${formatVND(invoice.amount_paid)}</span></div>` : ''}
           ${remaining > 0 ? `<div style="display:flex;justify-content:space-between;padding:3px 0;color:#c00;font-weight:600;"><span>Còn lại:</span><span style="font-family:monospace;">${formatVND(remaining)}</span></div>` : ''}
           ${remaining < 0 ? `<div style="display:flex;justify-content:space-between;padding:3px 0;font-weight:600;"><span>Tiền thừa trả khách:</span><span style="font-family:monospace;">${formatVND(Math.abs(remaining))}</span></div>` : ''}
-          ${invoice.payment_method ? `<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Hình thức thanh toán:</span><span>${paymentMethodLabel(invoice.payment_method)}</span></div>` : ''}
+          ${invoice.payment_method ? `<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Hình thức thanh toán:</span><span>${esc(paymentMethodLabel(invoice.payment_method))}</span></div>` : ''}
         </div>
       </div>
       ${qrBlockA4(qr, qrLabel)}
