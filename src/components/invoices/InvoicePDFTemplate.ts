@@ -381,7 +381,7 @@ export async function printInvoice(
     <!DOCTYPE html>
     <html><head>
       <meta charset="utf-8" />
-      <title>${invoice.invoice_number}</title>
+      <title>${esc(invoice.invoice_number)}</title>
       <style>
         ${pageCSS(paperSize)}
         html, body { margin: 0; padding: 0; background: #fff; }
