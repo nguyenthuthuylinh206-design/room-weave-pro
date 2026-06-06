@@ -139,6 +139,19 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    font-size: 15px;          /* Base size tăng từ 14px lên 15px — dễ đọc hơn trên màn lớn */
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Headings dùng Sora (display font) */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
   }
 
   /* Đảm bảo background phủ kín viewport để vùng overscroll iOS PWA hiện đúng màu nền */
