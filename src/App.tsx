@@ -125,6 +125,7 @@ const AuditLogPage = lazy(() => import("./pages/settings/AuditLogPage"));
 const AssetGroupMigrationPage = lazy(() => import("./pages/settings/AssetGroupMigrationPage"));
 const HotelPolicyPage = lazy(() => import("./pages/settings/HotelPolicyPage"));
 const PricingHubPage = lazy(() => import("./pages/settings/PricingHubPage"));
+const SettingsRedirect = lazy(() => import("./pages/settings/SettingsRedirect"));
 const StayRegistrationsPage = lazy(() => import("./pages/legal/StayRegistrationsPage"));
 const StayRegistrationSettingsPage = lazy(() => import("./pages/settings/StayRegistrationSettingsPage"));
 
@@ -480,7 +481,7 @@ const router = createBrowserRouter([
       { path: "laundry/linen-batches/new", element: <PermissionRoute module="laundry" action="create"><NewLinenBatchPage /></PermissionRoute> },
 
       // Settings
-      { path: "settings", element: <Navigate to="/settings/general" replace /> },
+      { path: "settings", element: <SettingsRedirect /> },
       { path: "settings/general", element: <PermissionRoute module="settings"><GeneralSettingsPage /></PermissionRoute> },
       { path: "settings/hotels", element: <PermissionRoute module="hotels"><HotelsManagementPage /></PermissionRoute> },
       { path: "settings/categories", element: <PermissionRoute module="settings"><CategoryManagementPage /></PermissionRoute> },

@@ -16,13 +16,17 @@ import { useHotelContext } from '@/contexts/HotelContext'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { useTranslation } from 'react-i18next'
 import { isTenantOwner, isSuperAdmin, isStaff } from '@/lib/userAccess'
+import { hasPermission } from '@/lib/permissions'
 
 export default function Dashboard() {
   const { t } = useTranslation('dashboard')
-  const { user } = useUser()
+  const { user, role } = useUser()
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const { data: stats, isLoading } = useDashboardStats()
   const { isMobile } = useBreakpoint()
+
+  const canViewInventory = hasPermission(role, 'view_items')
+  const canViewLaundry = hasPermission(role, 'view_laundry')
 
   // Super Admin should use their dedicated dashboard
   if (isSuperAdmin(user)) {
@@ -87,53 +91,67 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <DashboardStatCard
-          title={t('stats.totalValue')}
-          value={new Intl.NumberFormat('vi-VN').format(stats?.total_value || 0)}
-          icon={Package}
-          change={{
-            value: stats?.total_value_change_percent || null,
-            label: t('stats.comparedToLastMonth')
-          }}
-          description="VNĐ"
-        />
-        <DashboardStatCard
-          title={t('stats.totalItems')}
-          value={new Intl.NumberFormat('vi-VN').format(stats?.total_items || 0)}
-          icon={Package}
-          description={t('stats.inStock', { count: stats?.in_stock || 0 })}
-        />
-        <DashboardStatCard
-          title={t('stats.inLaundry')}
-          value={new Intl.NumberFormat('vi-VN').format(stats?.in_laundry || 0)}
-          icon={Wind}
-          description={t('stats.batchesProcessing', { count: stats?.active_laundry_batches || 0 })}
-        />
-        <DashboardStatCard
-          title={t('stats.lowStockWarning')}
-          value={stats?.low_stock_count || 0}
-          icon={AlertTriangle}
-          description={t('stats.itemsNeedRestock')}
-        />
-      </div>
+      {/* Stats Grid — ẩn theo permission để Manager/Staff không thấy số liệu Kho/Giặt nếu không có quyền */}
+      {(canViewInventory || canViewLaundry) && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {canViewInventory && (
+            <DashboardStatCard
+              title={t('stats.totalValue')}
+              value={new Intl.NumberFormat('vi-VN').format(stats?.total_value || 0)}
+              icon={Package}
+              change={{
+                value: stats?.total_value_change_percent || null,
+                label: t('stats.comparedToLastMonth')
+              }}
+              description="VNĐ"
+            />
+          )}
+          {canViewInventory && (
+            <DashboardStatCard
+              title={t('stats.totalItems')}
+              value={new Intl.NumberFormat('vi-VN').format(stats?.total_items || 0)}
+              icon={Package}
+              description={t('stats.inStock', { count: stats?.in_stock || 0 })}
+            />
+          )}
+          {canViewLaundry && (
+            <DashboardStatCard
+              title={t('stats.inLaundry')}
+              value={new Intl.NumberFormat('vi-VN').format(stats?.in_laundry || 0)}
+              icon={Wind}
+              description={t('stats.batchesProcessing', { count: stats?.active_laundry_batches || 0 })}
+            />
+          )}
+          {canViewInventory && (
+            <DashboardStatCard
+              title={t('stats.lowStockWarning')}
+              value={stats?.low_stock_count || 0}
+              icon={AlertTriangle}
+              description={t('stats.itemsNeedRestock')}
+            />
+          )}
+        </div>
+      )}
 
       {/* Hotel Breakdown - Only show in All Hotels mode */}
-      {isAllHotelsMode && <HotelBreakdownCards />}
+      {isAllHotelsMode && canViewInventory && <HotelBreakdownCards />}
 
       {/* Quick Actions */}
       <QuickActions />
 
-      {/* Expense Chart */}
-      <ExpenseChart months={12} showBarChart={false} />
+      {/* Expense Chart — gắn quyền report/inventory */}
+      {hasPermission(role, 'view_reports') && (
+        <ExpenseChart months={12} showBarChart={false} />
+      )}
 
       {/* Top Items & Recent Activity */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <TopItemsTable />
-        </div>
-        <div className="lg:col-span-1">
+        {canViewInventory && (
+          <div className="lg:col-span-2">
+            <TopItemsTable />
+          </div>
+        )}
+        <div className={canViewInventory ? 'lg:col-span-1' : 'lg:col-span-3'}>
           <RecentActivity />
         </div>
       </div>

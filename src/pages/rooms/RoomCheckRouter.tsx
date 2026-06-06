@@ -1,7 +1,15 @@
 import { Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
+import { Loader2 } from 'lucide-react'
 import { useRoom } from '@/hooks/useRooms'
 import { useRoomCheckLeanConfig } from '@/hooks/useRoomCheckLeanConfig'
+
+const RouterFallback = () => (
+  <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-muted-foreground">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    <span className="text-sm">Đang mở phòng…</span>
+  </div>
+)
 
 const RoomCheckPage = lazy(() =>
   import('@/pages/rooms/RoomCheckPage').then((m) => ({
@@ -30,7 +38,7 @@ export default function RoomCheckRouter() {
 
   // Đợi room + cfg trước khi quyết định để tránh flash redirect sai
   if (isLoading || (hotelId && cfgLoading)) {
-    return null
+    return <RouterFallback />
   }
 
   const checkType = params.get('type') || ''
@@ -80,7 +88,7 @@ export default function RoomCheckRouter() {
     !!params.get('room_order_id')
   ) {
     return (
-      <Suspense fallback={null}>
+      <Suspense fallback={<RouterFallback />}>
         <RoomCheckPage />
       </Suspense>
     )
@@ -91,7 +99,7 @@ export default function RoomCheckRouter() {
 
   if (!useLean) {
     return (
-      <Suspense fallback={null}>
+      <Suspense fallback={<RouterFallback />}>
         <RoomCheckPage />
       </Suspense>
     )
