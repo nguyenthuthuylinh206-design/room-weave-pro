@@ -1,6 +1,17 @@
 {
-  "current": "1.1.93",
+  "current": "1.1.94",
   "versions": [
+    {
+      "version": "1.1.94",
+      "date": "2026-06-06",
+      "title": "Layout: ưu tiên 1 banner cùng lúc qua useActiveBanner",
+      "highlights": [
+        "**Hook mới `useActiveBanner`** — Chọn banner priority cao nhất theo thứ tự suspended → grace_expired → read_only → quota_warning → announcement.",
+        "**MainLayout** — Chỉ render duy nhất banner thắng priority; `ShiftStatusBanner` vẫn luôn hiện vì liên quan ca làm việc.",
+        "**Dismiss tạm thời** — `GracePeriodBanner` (grace) và `QuotaWarningBanner` nhận prop `onDismiss`, lưu vào sessionStorage để banner tiếp theo trong hàng đợi tự động hiển thị.",
+        "**Suspended không thể dismiss** — Phải gia hạn để gỡ trạng thái."
+      ]
+    },
     {
       "version": "1.1.93",
       "date": "2026-06-06",
@@ -22,7 +33,6 @@
         "**Lợi ích** — Không còn leak chi tiết schema/Postgres ra UI vận hành; thông báo nhất quán tiếng Việt cho khách sạn; vẫn giữ raw error trong console để debug."
       ]
     },
-    {
     {
       "version": "1.1.91",
       "date": "2026-06-06",

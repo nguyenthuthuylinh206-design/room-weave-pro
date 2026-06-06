@@ -6,7 +6,7 @@ import { useState } from 'react';
 
 const DISMISS_KEY = 'expiring-soon-banner-dismissed';
 
-export function GracePeriodBanner() {
+export function GracePeriodBanner({ onDismiss }: { onDismiss?: () => void } = {}) {
   const navigate = useNavigate();
   const {
     isInGracePeriod,
@@ -103,6 +103,7 @@ export function GracePeriodBanner() {
             onClick={() => {
               setExpiringSoonDismissed(true);
               sessionStorage.setItem(DISMISS_KEY, 'true');
+              onDismiss?.();
             }}
             className="h-7 w-7 p-0 text-muted-foreground hover:bg-muted">
             

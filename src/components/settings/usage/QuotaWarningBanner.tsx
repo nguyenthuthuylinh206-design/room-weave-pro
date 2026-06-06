@@ -6,7 +6,7 @@ import { useTenantSubscription } from '@/hooks/useSubscription'
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 
-export function QuotaWarningBanner() {
+export function QuotaWarningBanner({ onDismiss }: { onDismiss?: () => void } = {}) {
   const { data: usage } = useTenantUsage()
   const { data: subscription } = useTenantSubscription()
   const navigate = useNavigate()
@@ -94,7 +94,7 @@ export function QuotaWarningBanner() {
           variant="ghost"
           size="icon"
           className="h-6 w-6 shrink-0"
-          onClick={() => setDismissed(true)}
+          onClick={() => { setDismissed(true); onDismiss?.() }}
         >
           <X className="h-4 w-4" />
         </Button>
