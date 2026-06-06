@@ -248,6 +248,7 @@ const NAVIGATION_MODULE_MAP: Record<string, string> = {
   'dashboard': 'dashboard',
   'inventory': 'inventory,items',
   'rooms': 'rooms',
+  'reservations': 'rooms',
   'laundry': 'laundry',
   'maintenance': 'maintenance',
   'vendors': 'vendors,purchase_orders',
