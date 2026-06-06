@@ -115,10 +115,14 @@ export function RoomsPage() {
       </PageHeader>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <RoomFilters
-          filters={filters}
-          onFilterChange={(newFilters) => setFilters(prev => ({ ...prev, ...newFilters }))}
-        />
+        {(viewMode === 'grid' || viewMode === 'list') ? (
+          <RoomFilters
+            filters={filters}
+            onFilterChange={(newFilters) => setFilters(prev => ({ ...prev, ...newFilters }))}
+          />
+        ) : (
+          <div />
+        )}
 
         <div className="flex flex-wrap items-center gap-2">
           {(viewMode === 'grid' || viewMode === 'list') && (
