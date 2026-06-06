@@ -119,7 +119,7 @@ const CategoryManagementPage = lazy(() => import("./pages/settings/CategoryManag
 const WorkflowsPage = lazy(() => import("./pages/settings/WorkflowsPage"));
 const WarehouseListPage = lazy(() => import("./pages/settings/WarehouseListPage"));
 const ChangePasswordPage = lazy(() => import("./pages/settings/ChangePasswordPage"));
-const PricingRulesPage = lazy(() => import("./pages/settings/PricingRulesPage"));
+
 const AISettingsPage = lazy(() => import("./pages/settings/AISettingsPage"));
 const AuditLogPage = lazy(() => import("./pages/settings/AuditLogPage"));
 const AssetGroupMigrationPage = lazy(() => import("./pages/settings/AssetGroupMigrationPage"));
