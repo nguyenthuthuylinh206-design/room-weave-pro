@@ -6,7 +6,7 @@ import { useTenantSubscription } from '@/hooks/useSubscription'
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 
-export function QuotaWarningBanner() {
+export function QuotaWarningBanner({ onDismiss }: { onDismiss?: () => void } = {}) {
   const { data: usage } = useTenantUsage()
   const { data: subscription } = useTenantSubscription()
   const navigate = useNavigate()
