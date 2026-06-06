@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { addDays, addMonths, addHours, differenceInCalendarDays, format, setHours, setMinutes } from 'date-fns'
 import { useQueryClient } from '@tanstack/react-query'
+import { toast as sonnerToast } from 'sonner'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { useTenant } from '@/hooks/useTenant'
@@ -16,6 +17,42 @@ import {
   HOURLY_MIN_HOURS,
 } from '../types'
 import { AvailableRoom } from '@/hooks/useAvailableRooms'
+
+// ===== Draft autosave (localStorage, 24h TTL) =====
+const DRAFT_KEY = 'booking_wizard_draft_v1'
+const DRAFT_TTL_MS = 24 * 60 * 60 * 1000
+const DRAFT_DATE_FIELDS = ['checkInDate', 'checkOutDate', 'hourlyDate', 'monthlyStartDate'] as const
+
+function serializeDraft(state: BookingFormState): string {
+  // Strip sensitive fields trước khi lưu
+  const { guestIdImageUrl, guestIdNumber, ...rest } = state
+  return JSON.stringify({ version: 1, savedAt: Date.now(), data: rest })
+}
+
+function readDraft(): BookingFormState | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY)
+    if (!raw) return null
+    const env = JSON.parse(raw) as { version?: number; savedAt?: number; data?: any }
+    if (!env?.savedAt || Date.now() - env.savedAt > DRAFT_TTL_MS) {
+      localStorage.removeItem(DRAFT_KEY)
+      return null
+    }
+    const data = env.data || {}
+    // Revive Date fields
+    DRAFT_DATE_FIELDS.forEach((f) => {
+      if (data[f]) data[f] = new Date(data[f])
+    })
+    return data as BookingFormState
+  } catch {
+    return null
+  }
+}
+
+function clearDraftStorage(): void {
+  try { localStorage.removeItem(DRAFT_KEY) } catch {}
+}
+
 
 const initialState: BookingFormState = {
   // Booking type
