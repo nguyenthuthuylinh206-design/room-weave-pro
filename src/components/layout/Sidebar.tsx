@@ -492,7 +492,7 @@ export const Sidebar = () => {
                     isExpanded
                       ? 'bg-primary text-primary-foreground'
                       : hasActiveChild
-                        ? 'bg-accent text-accent-foreground'
+                        ? 'bg-primary text-primary-foreground'
                         : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                   )}
                 >
