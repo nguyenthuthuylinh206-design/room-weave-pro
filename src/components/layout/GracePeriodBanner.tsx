@@ -103,6 +103,7 @@ export function GracePeriodBanner({ onDismiss }: { onDismiss?: () => void } = {}
             onClick={() => {
               setExpiringSoonDismissed(true);
               sessionStorage.setItem(DISMISS_KEY, 'true');
+              onDismiss?.();
             }}
             className="h-7 w-7 p-0 text-muted-foreground hover:bg-muted">
             
