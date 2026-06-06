@@ -811,6 +811,8 @@ export function useBookingForm() {
     updateRoomPrice,
     applyPricingV2,
     reset,
+    discardDraft,
     submit,
   }
 }
+
