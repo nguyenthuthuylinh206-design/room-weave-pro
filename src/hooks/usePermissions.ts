@@ -11,13 +11,13 @@ import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
 import { toast } from '@/hooks/use-toast'
 import type {
-import { getFriendlyError } from '@/lib/errorMessage'
   Permission,
   RolePermission,
   RolePermissionInsert,
   UserPermission,
   PermissionModule,
 } from '@/types/permission.types'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 // Fetch all permissions
 export const useAllPermissions = () => {

@@ -7,12 +7,12 @@ import { toast } from 'sonner'
 import { useToast } from '@/components/ui/use-toast'
 import { triggerWorkflow, WorkflowTriggerTypes } from '@/lib/triggerWorkflow'
 import type { 
-import { getFriendlyError } from '@/lib/errorMessage'
   TransactionWithDetails, 
   InventoryFilters,
   CreateInboundData,
   CreateOutboundData
 } from '@/types/inventory.types'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 // Translate UI-friendly category keys to canonical DB values (Sprint 1)
 const INBOUND_CATEGORY_MAP: Record<string, string> = {
