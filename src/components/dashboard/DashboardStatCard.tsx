@@ -70,7 +70,7 @@ export function DashboardStatCard({
         <p className={cn("font-bold tracking-tight", isCompact ? "text-xl" : "text-2xl")}>{value}</p>
         
         {change && change.value !== null && (
-          <div className={cn("flex items-center gap-1", changeColor, "text-[10px]")}>
+          <div className={cn("flex items-center gap-1 mt-0.5", changeColor, "text-xs")}>
             {ChangeIcon && <ChangeIcon className="h-2.5 w-2.5" />}
             <span className="font-medium">
               {change.value > 0 && '+'}
