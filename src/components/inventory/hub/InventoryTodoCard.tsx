@@ -43,18 +43,22 @@ export function InventoryTodoCard({ onNavigate }: Props) {
   const { data: badges, isLoading: badgesLoading } = useInventoryHubBadges()
   const { soonOutCount: forecastSoonOut, isLoading: snapLoading } = useStockoutItems()
 
-  const items: TodoItem[] = useMemo(() => {
+  const allItems: TodoItem[] = useMemo(() => {
     const out: TodoItem[] = []
     const dist = badges?.distributionsPending ?? 0
+    const distStale = badges?.distributionsStale ?? 0
     const reorder = badges?.reorderPending ?? 0
     const adj = badges?.adjustmentsPending ?? 0
 
     if (dist > 0) {
+      const isStale = distStale > 0
       out.push({
         key: 'dist',
-        tone: 'warning',
+        tone: isStale ? 'danger' : 'warning',
         title: `${dist} phiếu xuất kho cần xử lý`,
-        hint: 'Đang chờ duyệt hoặc giao cho phòng',
+        hint: isStale
+          ? `${distStale} phiếu đã chờ quá 24h`
+          : 'Đang chờ duyệt hoặc giao cho phòng',
         ctaLabel: 'Mở',
         onClick: () => onNavigate('operations', 'outbound'),
       })
@@ -89,8 +93,16 @@ export function InventoryTodoCard({ onNavigate }: Props) {
         onClick: () => onNavigate('operations', 'adjustments'),
       })
     }
+
+    // Sort theo severity: danger > warning > info > success
+    const toneRank: Record<Tone, number> = { danger: 0, warning: 1, info: 2, success: 3 }
+    out.sort((a, b) => toneRank[a.tone] - toneRank[b.tone])
     return out
   }, [badges, forecastSoonOut, onNavigate])
+
+  const CAP = 5
+  const items = allItems.slice(0, CAP)
+  const overflow = allItems.length - items.length
 
   const isLoading = badgesLoading || snapLoading
 
