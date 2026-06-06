@@ -112,7 +112,7 @@ export function MobileItemCard({ item, onView, onEdit, onDelete }: MobileItemCar
                 </DropdownMenuItem>
               )}
               {onDelete && (
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-destructive">
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setConfirmOpen(true); }} className="text-destructive">
                   <Trash2 className="h-3.5 w-3.5 mr-2" />
                   Xóa
                 </DropdownMenuItem>
@@ -139,6 +139,26 @@ export function MobileItemCard({ item, onView, onEdit, onDelete }: MobileItemCar
           </span>
         </div>
       </div>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xóa sản phẩm?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa "{item.name}" ({item.code})? Hành động này không thể hoàn tác.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => onDelete?.()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Xóa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
