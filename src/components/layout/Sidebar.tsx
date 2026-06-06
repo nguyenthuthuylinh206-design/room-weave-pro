@@ -53,6 +53,7 @@ import {
   CalendarRange,
   ShieldCheck,
   ClipboardList,
+  Shirt,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -122,11 +123,19 @@ const navigation: NavItem[] = [
       { titleKey: 'roomsList', href: '/rooms', icon: List, group: 'Quản lý phòng' },
       { titleKey: 'roomStandards', href: '/rooms/standards', icon: Settings, minMode: 'standard', group: 'Quản lý phòng' },
       { titleKey: 'addRoom', href: '/rooms/new', icon: Plus, group: 'Quản lý phòng' },
-      { titleKey: 'bookings', href: '/bookings', icon: CalendarDays, group: 'Đặt phòng & Khách' },
-      { titleKey: 'guests', href: '/guests', icon: Users, group: 'Đặt phòng & Khách' },
-      { titleKey: 'guestInvoices', href: '/guest-invoices', icon: FileText, group: 'Đặt phòng & Khách' },
-      { titleKey: 'stayRegistrations', href: '/legal/stay-registrations', icon: ClipboardList, group: 'Đặt phòng & Khách' },
       { titleKey: 'lostFound', href: '/lost-found', icon: PackageSearch, group: 'Khác' },
+    ],
+  },
+  {
+    titleKey: 'reservations',
+    icon: CalendarDays,
+    roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
+    minMode: 'homestay',
+    children: [
+      { titleKey: 'bookings', href: '/bookings', icon: CalendarDays, group: 'Đặt phòng' },
+      { titleKey: 'guests', href: '/guests', icon: Users, group: 'Khách' },
+      { titleKey: 'guestInvoices', href: '/guest-invoices', icon: FileText, group: 'Khách' },
+      { titleKey: 'stayRegistrations', href: '/legal/stay-registrations', icon: ClipboardList, group: 'Khác' },
     ],
   },
   {
@@ -141,7 +150,7 @@ const navigation: NavItem[] = [
       { titleKey: 'laundryBatches', href: '/laundry/batches', icon: Package, group: 'Vận hành' },
       { titleKey: 'newBatch', href: '/laundry/batches/new', icon: Plus, group: 'Vận hành' },
       { titleKey: 'laundryCompensation', href: '/laundry/compensation', icon: AlertCircle, group: 'Vận hành' },
-      { titleKey: 'newLinenBatch', href: '/laundry/linen-batches/new', icon: Plus, group: 'Vận hành' },
+      { titleKey: 'newLinenBatch', href: '/laundry/linen-batches/new', icon: Shirt, group: 'Vận hành' },
       { titleKey: 'laundryVendors', href: '/laundry/vendors', icon: Building2, group: 'Nhà cung cấp' },
       { titleKey: 'addVendor', href: '/laundry/vendors/new', icon: Plus, group: 'Nhà cung cấp' },
     ],
@@ -239,6 +248,7 @@ const NAVIGATION_MODULE_MAP: Record<string, string> = {
   'dashboard': 'dashboard',
   'inventory': 'inventory,items',
   'rooms': 'rooms',
+  'reservations': 'rooms',
   'laundry': 'laundry',
   'maintenance': 'maintenance',
   'vendors': 'vendors,purchase_orders',
@@ -279,8 +289,8 @@ export const Sidebar = () => {
     return expanded
   })
 
-  // Sync expanded group with current route — auto-collapse other groups,
-  // auto-open the group containing the active child when user switches tab.
+  // Auto-open the group containing the active route, but DO NOT collapse
+  // other user-expanded groups (less aggressive UX).
   useEffect(() => {
     const matched = navigation.find(
       (item) =>
@@ -288,7 +298,11 @@ export const Sidebar = () => {
           (child) => child.href && location.pathname.startsWith(child.href)
         )
     )
-    setExpandedItems(matched ? [matched.titleKey] : [])
+    if (matched) {
+      setExpandedItems((prev) =>
+        prev.includes(matched.titleKey) ? prev : [...prev, matched.titleKey]
+      )
+    }
   }, [location.pathname])
 
   // Only block on user auth; tenant + permissions load in background to avoid full-skeleton flash.
@@ -361,7 +375,9 @@ export const Sidebar = () => {
 
   const toggleExpanded = (titleKey: string) => {
     setExpandedItems((prev) =>
-      prev.includes(titleKey) ? [] : [titleKey]
+      prev.includes(titleKey)
+        ? prev.filter((k) => k !== titleKey)
+        : [...prev, titleKey]
     )
   }
 
@@ -557,7 +573,6 @@ export const Sidebar = () => {
           }
 
           const isActive = item.href && currentPath === normalizePath(item.href)
-          const anyExpanded = expandedItems.length > 0
 
           return (
             <Link
@@ -568,11 +583,9 @@ export const Sidebar = () => {
               onFocus={() => item.href && prefetchRoute(item.href)}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                isActive && !anyExpanded
+                isActive
                   ? 'bg-primary text-primary-foreground'
-                  : isActive && anyExpanded
-                    ? 'bg-accent text-accent-foreground font-semibold'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
               )}
             >
               <Icon className="h-5 w-5 flex-shrink-0" />
