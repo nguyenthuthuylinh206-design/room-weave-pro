@@ -334,14 +334,9 @@ export function InventoryDashboardPage() {
         <div className="flex items-baseline gap-3 min-w-0">
           <h1 className="font-display text-xl font-semibold tracking-tight text-foreground">Kho</h1>
           {!isOverview && (
-            <>
-              <span className="text-muted-foreground/40">/</span>
-              <span className="font-body text-[13px] text-muted-foreground truncate">
-                <span className="text-muted-foreground/70">{breadcrumb.group}</span>
-                <span className="mx-1.5 text-muted-foreground/40">›</span>
-                <span className="text-foreground font-medium">{breadcrumb.item}</span>
-              </span>
-            </>
+            <span className="font-body text-[13px] text-muted-foreground truncate">
+              <span className="text-foreground font-medium">{breadcrumb.item}</span>
+            </span>
           )}
         </div>
         <div className="flex items-center gap-2">
