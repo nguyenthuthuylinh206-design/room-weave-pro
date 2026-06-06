@@ -119,7 +119,7 @@ function qrBlockA4(qr: string, label: string) {
       <div style="font-size:12px;line-height:1.5;">
         <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Lấy hoá đơn VAT điện tử</div>
         <div style="color:#444;">Quý khách dùng camera điện thoại quét mã QR bên trái, nhập thông tin công ty và email để nhận hoá đơn GTGT điện tử qua email.</div>
-        <div style="color:#888;font-size:11px;margin-top:4px;">${label}</div>
+        <div style="color:#888;font-size:11px;margin-top:4px;">${esc(label)}</div>
       </div>
     </div>`
 }
