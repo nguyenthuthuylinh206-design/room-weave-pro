@@ -66,7 +66,7 @@ export function DashboardStatCard({
     >
       <Icon className="h-6 w-6 text-muted-foreground shrink-0" />
       <div className="flex-1 min-w-0">
-        <p className="text-xs text-muted-foreground truncate">{title}</p>
+        <p className="text-sm font-medium text-muted-foreground truncate leading-snug">{title}</p>
         <p className={cn("font-bold", isCompact ? "text-lg" : "text-xl")}>{value}</p>
         
         {change && change.value !== null && (
