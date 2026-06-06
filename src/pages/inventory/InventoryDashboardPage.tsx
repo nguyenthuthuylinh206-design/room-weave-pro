@@ -416,7 +416,6 @@ export function InventoryDashboardPage() {
               <TabsList>
                 <TabsTrigger value="items">Danh sách tài sản</TabsTrigger>
                 <TabsTrigger value="categories">Danh mục</TabsTrigger>
-                <TabsTrigger value="new">+ Thêm tài sản</TabsTrigger>
               </TabsList>
             </ScrollableTabsList>
             <TabsContent value="items" className="mt-4">
@@ -427,11 +426,6 @@ export function InventoryDashboardPage() {
             <TabsContent value="categories" className="mt-4">
               <Suspense fallback={<TabFallback />}>
                 <CategoriesPage />
-              </Suspense>
-            </TabsContent>
-            <TabsContent value="new" className="mt-4">
-              <Suspense fallback={<TabFallback />}>
-                <ItemFormPage />
               </Suspense>
             </TabsContent>
           </Tabs>
