@@ -377,21 +377,41 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
 
         {/* Footer action — chỉ còn 1 nút Kiểm tra. Giao việc / Xem chi tiết đã gom vào Quick View. */}
         <div className="px-3 pb-3" onClick={(e) => e.stopPropagation()}>
-          <Button
-            size="sm"
-            className="w-full h-8"
-            disabled={!!session && session.user_id !== user?.id}
-            onClick={() => {
-              const hasSession = !!session && session.user_id === user?.id
-              navigate(`/rooms/${room.id}/check${hasSession ? '?resume=true' : ''}`)
-            }}
-          >
-            {session
+          {(() => {
+            const isLocked = !!session && session.user_id !== user?.id
+            const needShift = requiresShift && !isOnShift
+            const hasSession = !!session && session.user_id === user?.id
+            const label = session
               ? session.user_id === user?.id
                 ? t('checkSession.continueCheck')
                 : t('checkSession.inProgress')
-              : t('checkSession.check')}
-          </Button>
+              : t('checkSession.check')
+            const onClick = () => {
+              const go = () => navigate(`/rooms/${room.id}/check${hasSession ? '?resume=true' : ''}`)
+              guardShift(go)
+            }
+            const btn = (
+              <Button
+                size="sm"
+                className="w-full h-8"
+                disabled={isLocked}
+                onClick={onClick}
+              >
+                {label}
+              </Button>
+            )
+            if (needShift && !isLocked) {
+              return (
+                <TooltipProvider delayDuration={150}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>{btn}</TooltipTrigger>
+                    <TooltipContent>Bạn cần vào ca trước khi kiểm tra</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )
+            }
+            return btn
+          })()}
         </div>
       </div>
     )
