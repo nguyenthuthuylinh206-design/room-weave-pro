@@ -153,8 +153,17 @@ export function InventoryDashboardPage() {
       const next = new URLSearchParams(searchParams)
       next.set('view', 'list')
       setSearchParams(next, { replace: true })
+      return
     }
-  }, [tab, sub, searchParams, setSearchParams])
+    // Legacy: ?tab=assets&sub=new → mở form qua route /items/new, fallback sub=items
+    if (tab === 'assets' && sub === 'new') {
+      legacyRedirected.current = true
+      const next = new URLSearchParams(searchParams)
+      next.set('sub', 'items')
+      setSearchParams(next, { replace: true })
+      navigate('/items/new')
+    }
+  }, [tab, sub, searchParams, setSearchParams, navigate])
 
   const outboundView = (searchParams.get('view') as 'list' | 'manual' | 'from-requests') || 'list'
   const setOutboundView = (next: 'list' | 'manual' | 'from-requests') => {
