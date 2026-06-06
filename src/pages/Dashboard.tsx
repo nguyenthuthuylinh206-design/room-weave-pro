@@ -155,25 +155,6 @@ export default function Dashboard() {
           <RecentActivity />
         </div>
       </div>
-
-      {/* Hotel Breakdown - Only show in All Hotels mode */}
-      {isAllHotelsMode && <HotelBreakdownCards />}
-
-      {/* Quick Actions */}
-      <QuickActions />
-
-      {/* Expense Chart */}
-      <ExpenseChart months={12} showBarChart={false} />
-
-      {/* Top Items & Recent Activity */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <TopItemsTable />
-        </div>
-        <div className="lg:col-span-1">
-          <RecentActivity />
-        </div>
-      </div>
     </div>
   )
 }
