@@ -45,7 +45,7 @@ const WarehouseListPage = lazy(() => import('../settings/WarehouseListPage'))
 const InboundPage = lazy(() => import('./InboundPage').then(m => ({ default: m.InboundPage })))
 const OutboundPage = lazy(() => import('./OutboundPage').then(m => ({ default: m.OutboundPage })))
 const TransferPage = lazy(() => import('./TransferPage'))
-const ItemFormPage = lazy(() => import('../items/ItemFormPage').then(m => ({ default: m.ItemFormPage })))
+
 
 
 const TabFallback = () => (
