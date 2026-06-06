@@ -140,6 +140,11 @@ export default function PricingHubPage() {
                 <SeasonalRulesPage />
               </Suspense>
             </TabsContent>
+            <TabsContent value="rules" className="m-0">
+              <Suspense fallback={<Fallback />}>
+                <PricingRulesPage />
+              </Suspense>
+            </TabsContent>
           </div>
         </Tabs>
       </div>
