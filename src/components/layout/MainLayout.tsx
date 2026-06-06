@@ -55,12 +55,20 @@ const MainLayoutContent = () => {
     })
   }, [queryClient, user?.tenant_id, selectedHotel?.id, isAllHotelsMode])
 
+  const priorityBanner = (
+    <>
+      {(activeBanner === 'suspended' || activeBanner === 'grace_expired') && (
+        <GracePeriodBanner onDismiss={() => dismissBanner(activeBanner)} />
+      )}
+      {activeBanner === 'read_only' && <ReadOnlyBanner />}
+      {activeBanner === 'announcement' && <AnnouncementHost slot="top" />}
+    </>
+  )
+
   if (isMobile) {
     return (
       <div className="min-h-dvh flex flex-col bg-background overflow-x-hidden safe-area-x">
-        {showSubscriptionBanner && <GracePeriodBanner />}
-        <ReadOnlyBanner />
-        <AnnouncementHost slot="top" />
+        {priorityBanner}
         <MobileHeader />
         {isStaffUser && <ShiftStatusBanner />}
         <main className="flex-1 overflow-y-auto overflow-x-hidden pb-safe">
@@ -68,9 +76,11 @@ const MainLayoutContent = () => {
             <SuspendedOverlay />
           ) : (
             <>
-              <div className="p-4">
-                <QuotaWarningBanner />
-              </div>
+              {activeBanner === 'quota_warning' && (
+                <div className="p-4">
+                  <QuotaWarningBanner onDismiss={() => dismissBanner('quota_warning')} />
+                </div>
+              )}
               <Outlet />
             </>
           )}
