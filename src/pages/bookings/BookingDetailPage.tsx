@@ -89,25 +89,17 @@ export function BookingDetailPage({ idProp, embedded, onClose }: BookingDetailPa
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-16 w-full" />
-        <Skeleton className="h-10 w-64" />
-        <div className="grid md:grid-cols-2 gap-4">
-          <Skeleton className="h-64" />
-          <Skeleton className="h-64" />
-        </div>
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     )
   }
 
-  if (!booking) {
+  if (isError || !booking) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <p className="text-muted-foreground">Không tìm thấy booking</p>
-        <Button variant="ghost" className="mt-4" onClick={() => navigate('/bookings')}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Quay lại
-        </Button>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-muted-foreground">
+        <p className="text-sm">Không tìm thấy thông tin đặt phòng.</p>
+        <Button variant="outline" size="sm" onClick={() => navigate(-1)}>Quay lại</Button>
       </div>
     )
   }
