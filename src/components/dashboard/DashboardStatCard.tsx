@@ -81,7 +81,7 @@ export function DashboardStatCard({
         )}
         
         {description && (
-          <p className="text-[10px] text-muted-foreground truncate">{description}</p>
+          <p className="text-xs text-muted-foreground truncate mt-0.5">{description}</p>
         )}
       </div>
     </div>
