@@ -4,6 +4,7 @@ import { MobileSecondaryActions } from './MobileSecondaryActions'
 import { MobileRecentTransactions } from './MobileRecentTransactions'
 import { InventoryTodoCard } from './hub/InventoryTodoCard'
 import { CombinedStockAlerts } from './hub/CombinedStockAlerts'
+import { InventoryQuickSearch } from './hub/InventoryQuickSearch'
 import { useInventoryDashboard } from '@/hooks/useInventoryDashboard'
 import { useNavigate } from 'react-router-dom'
 
@@ -40,6 +41,11 @@ export function MobileInventoryDashboard() {
   return (
     <div className="space-y-5 pb-32">
       <MobileInventoryHero />
+
+      {/* Quick search — đồng nhất với desktop hub */}
+      <div className="px-4">
+        <InventoryQuickSearch />
+      </div>
 
       {/* Task-first hero — đồng nhất với desktop hub */}
       <div className="px-4">

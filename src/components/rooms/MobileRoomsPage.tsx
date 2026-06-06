@@ -199,6 +199,11 @@ export const MobileRoomsPage = () => {
             </TabsTrigger>
           </TabsList>
         </Tabs>
+        <p className="text-[11px] text-muted-foreground mt-2 px-1">
+          {activeTab === 'rooms' && 'Sắp theo ưu tiên. Chạm phòng để xem nhanh. Giữ lâu để chọn nhiều phòng.'}
+          {activeTab === 'map' && 'Sơ đồ trạng thái — chạm phòng để xem giá / khách / countdown.'}
+          {activeTab === 'tasks' && 'Việc kiểm tra & vệ sinh của bạn theo ca.'}
+        </p>
       </div>
 
       {/* Tasks Tab Content */}

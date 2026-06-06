@@ -95,6 +95,12 @@ export function useCreateDistributionFromSupplement() {
 
       toast.success('Đã duyệt yêu cầu và tạo phiếu giao hàng', {
         description: `Phiếu giao: ${result.orderCode}`,
+        action: {
+          label: 'Mở phiếu',
+          onClick: () => {
+            window.location.href = `/inventory/distributions/${result.orderId}`
+          },
+        },
       })
     },
     onError: (error: Error) => {

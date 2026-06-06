@@ -8,6 +8,8 @@ import { useQueryClient } from '@tanstack/react-query'
 export interface InventoryHubBadges {
   reorderPending: number
   distributionsPending: number
+  /** Số phiếu xuất pending/released có created_at > 24h trước — báo đỏ */
+  distributionsStale: number
   lowStock: number
   adjustmentsPending: number
 }
@@ -63,7 +65,13 @@ export function useInventoryHubBadges() {
     queryKey: ['inventory-hub-badges', tenantId, hotelId, isAllHotelsMode],
     queryFn: async (): Promise<InventoryHubBadges> => {
       if (!tenantId) {
-        return { reorderPending: 0, distributionsPending: 0, lowStock: 0, adjustmentsPending: 0 }
+        return {
+          reorderPending: 0,
+          distributionsPending: 0,
+          distributionsStale: 0,
+          lowStock: 0,
+          adjustmentsPending: 0,
+        }
       }
 
       const reorderQ = supabase
@@ -74,7 +82,6 @@ export function useInventoryHubBadges() {
 
       // "Cần xử lý" = phiếu chờ thao tác của manager:
       // pending (chờ duyệt) + released (đã xuất kho, chờ phòng confirm).
-      // KHÔNG tính in_progress (đang giao) / completed / cancelled.
       // Enum thực tế: pending | in_progress | released | completed | cancelled.
       const distQ = supabase
         .from('distribution_orders')
@@ -82,8 +89,16 @@ export function useInventoryHubBadges() {
         .eq('tenant_id', tenantId)
         .in('status', ['pending', 'released'])
 
+      // Phiếu xuất "quá hạn" — chờ thao tác >24h
+      const staleCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      const distStaleQ = supabase
+        .from('distribution_orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .in('status', ['pending', 'released'])
+        .lt('created_at', staleCutoff)
+
       // Phiếu kiểm kê đang xử lý = draft + in_progress + approved (chờ complete).
-      // Enum thực tế: draft | in_progress | approved | completed (KHÔNG có 'pending').
       const adjQ = supabase
         .from('stock_adjustments')
         .select('id', { count: 'exact', head: true })
@@ -93,12 +108,14 @@ export function useInventoryHubBadges() {
       if (hotelId) {
         reorderQ.eq('hotel_id', hotelId)
         distQ.eq('hotel_id', hotelId)
+        distStaleQ.eq('hotel_id', hotelId)
         adjQ.eq('hotel_id', hotelId)
       }
 
-      const [reorder, dist, adj, dash] = await Promise.all([
+      const [reorder, dist, distStale, adj, dash] = await Promise.all([
         reorderQ,
         distQ,
+        distStaleQ,
         adjQ,
         supabase.rpc('get_inventory_dashboard_stats', {
           p_tenant_id: tenantId,
@@ -111,6 +128,7 @@ export function useInventoryHubBadges() {
       return {
         reorderPending: reorder.count ?? 0,
         distributionsPending: dist.count ?? 0,
+        distributionsStale: distStale.count ?? 0,
         adjustmentsPending: adj.count ?? 0,
         lowStock,
       }

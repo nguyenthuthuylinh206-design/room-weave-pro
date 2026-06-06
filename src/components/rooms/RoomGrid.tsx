@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { RoomQuickViewDialog, type QuickViewEntry } from './RoomQuickViewDialog'
 import { CreateTaskDialog } from '@/components/housekeeping/CreateTaskDialog'
 import { useAllRoomCheckSessions } from '@/hooks/useRoomCheckSession'
@@ -31,6 +32,7 @@ import { calcRoomPriority, getMissingDisplay, isOccupiedStatus, type PriorityTie
 import { getRoomStatusDotClass, getRoomStatusTextClass } from '@/lib/roomStatus'
 import { useRoomViewDensity } from '@/hooks/useRoomViewDensity'
 import { useHotelContext } from '@/contexts/HotelContext'
+import { useRequireShift } from '@/contexts/RequireShiftContext'
 import type { RoomWithStats } from '@/types/rooms.types'
 
 type ManualTaskType = 'checkout_inspection' | 'cleaning' | 'checkin_prep' | 'amenity_request' | 'other'
@@ -78,6 +80,7 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
   const canViewRoomDetail = hasPermission(role, 'manage_rooms') || role !== 'staff'
   const canCreateTask = canCreateHousekeepingTask(user)
   const { styles } = useRoomViewDensity(selectedHotel?.id)
+  const { guard: guardShift, isOnShift, requiresShift } = useRequireShift()
 
   // Tick mỗi 60s để recompute countdown trả phòng
   const [nowTick, setNowTick] = useState(() => Date.now())
@@ -374,21 +377,41 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
 
         {/* Footer action — chỉ còn 1 nút Kiểm tra. Giao việc / Xem chi tiết đã gom vào Quick View. */}
         <div className="px-3 pb-3" onClick={(e) => e.stopPropagation()}>
-          <Button
-            size="sm"
-            className="w-full h-8"
-            disabled={!!session && session.user_id !== user?.id}
-            onClick={() => {
-              const hasSession = !!session && session.user_id === user?.id
-              navigate(`/rooms/${room.id}/check${hasSession ? '?resume=true' : ''}`)
-            }}
-          >
-            {session
+          {(() => {
+            const isLocked = !!session && session.user_id !== user?.id
+            const needShift = requiresShift && !isOnShift
+            const hasSession = !!session && session.user_id === user?.id
+            const label = session
               ? session.user_id === user?.id
                 ? t('checkSession.continueCheck')
                 : t('checkSession.inProgress')
-              : t('checkSession.check')}
-          </Button>
+              : t('checkSession.check')
+            const onClick = () => {
+              const go = () => navigate(`/rooms/${room.id}/check${hasSession ? '?resume=true' : ''}`)
+              guardShift(go)
+            }
+            const btn = (
+              <Button
+                size="sm"
+                className="w-full h-8"
+                disabled={isLocked}
+                onClick={onClick}
+              >
+                {label}
+              </Button>
+            )
+            if (needShift && !isLocked) {
+              return (
+                <TooltipProvider delayDuration={150}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>{btn}</TooltipTrigger>
+                    <TooltipContent>Bạn cần vào ca trước khi kiểm tra</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )
+            }
+            return btn
+          })()}
         </div>
       </div>
     )
@@ -432,15 +455,79 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
     )
   }
 
+  // Split "Normal" into 3 subgroups: Sẵn sàng / Đang ở / Khác
+  const normalSubgroups = useMemo(() => {
+    const ready: typeof grouped.normal = []
+    const occupied: typeof grouped.normal = []
+    const other: typeof grouped.normal = []
+    for (const it of grouped.normal) {
+      const s = it.room.status
+      if (s === 'clean' || s === 'available') ready.push(it)
+      else if (isOccupiedStatus(s)) occupied.push(it)
+      else other.push(it)
+    }
+    return { ready, occupied, other }
+  }, [grouped.normal])
+
+  const renderNormalContent = () => (
+    <div className="space-y-4">
+      {normalSubgroups.ready.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-green-700 dark:text-green-400">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-500" />
+            Sẵn sàng · {normalSubgroups.ready.length}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+            {normalSubgroups.ready.map(renderCard)}
+          </div>
+        </div>
+      )}
+      {normalSubgroups.occupied.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-sky-700 dark:text-sky-400">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-sky-500" />
+            Đang có khách · {normalSubgroups.occupied.length}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+            {normalSubgroups.occupied.map(renderCard)}
+          </div>
+        </div>
+      )}
+      {normalSubgroups.other.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
+            Khác · {normalSubgroups.other.length}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+            {normalSubgroups.other.map(renderCard)}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+
   return (
     <div className="space-y-6">
       {renderSection(t('grid.sectionUrgent', { count: grouped.urgent.length }), grouped.urgent, 'text-red-600')}
       {renderSection(t('grid.sectionWarning', { count: grouped.warning.length }), grouped.warning, 'text-amber-600')}
-      {renderSection(
-        t('grid.sectionNormal', { count: grouped.normal.length }),
-        grouped.normal,
-        'text-muted-foreground',
-        { collapsible: true, collapsed: normalCollapsed, onToggle: toggleNormal },
+      {grouped.normal.length > 0 && (
+        <section className="space-y-3">
+          <button
+            type="button"
+            onClick={toggleNormal}
+            className={cn(
+              'flex w-full items-center gap-1.5 text-xs font-semibold uppercase tracking-wider transition-colors hover:opacity-70 text-muted-foreground',
+            )}
+          >
+            {normalCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            <span>{t('grid.sectionNormal', { count: grouped.normal.length })}</span>
+            <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground">
+              · {normalCollapsed ? t('grid.expandSection') : t('grid.collapseSection')}
+            </span>
+          </button>
+          {!normalCollapsed && renderNormalContent()}
+        </section>
       )}
 
       {taskRoom && (

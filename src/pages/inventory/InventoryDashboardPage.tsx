@@ -45,7 +45,7 @@ const WarehouseListPage = lazy(() => import('../settings/WarehouseListPage'))
 const InboundPage = lazy(() => import('./InboundPage').then(m => ({ default: m.InboundPage })))
 const OutboundPage = lazy(() => import('./OutboundPage').then(m => ({ default: m.OutboundPage })))
 const TransferPage = lazy(() => import('./TransferPage'))
-const ItemFormPage = lazy(() => import('../items/ItemFormPage').then(m => ({ default: m.ItemFormPage })))
+
 
 
 const TabFallback = () => (
@@ -57,7 +57,7 @@ const TabFallback = () => (
 
 type MainTab = 'overview' | 'assets' | 'operations' | 'analytics' | 'settings'
 type OpSub = 'transactions' | 'inbound' | 'outbound' | 'transfer' | 'adjustments' | 'distributions' | 'reorder'
-type AssetsSub = 'items' | 'categories' | 'new'
+type AssetsSub = 'items' | 'categories'
 type AnalyticsSub = 'consumption' | 'dead-stock'
 type SettingsSub = 'supplements' | 'warehouses'
 
@@ -74,20 +74,19 @@ const inventoryMenuGroups: Array<{ title: string; items: InventoryMenuItem[] }> 
     title: 'Tổng quan',
     items: [
       { label: 'Bảng điều khiển', tab: 'overview' },
-      { label: 'Giao dịch kho', tab: 'operations', sub: 'transactions' },
     ],
   },
   {
-    title: 'Sản phẩm',
+    title: 'Tài sản',
     items: [
       { label: 'Danh sách tài sản', tab: 'assets', sub: 'items' },
       { label: 'Danh mục', tab: 'assets', sub: 'categories' },
-      { label: 'Thêm tài sản mới', tab: 'assets', sub: 'new' },
     ],
   },
   {
     title: 'Xuất nhập kho',
     items: [
+      { label: 'Giao dịch kho', tab: 'operations', sub: 'transactions' },
       { label: 'Nhập kho', tab: 'operations', sub: 'inbound' },
       { label: 'Xuất kho', tab: 'operations', sub: 'outbound', badgeKey: 'distributionsPending' },
       { label: 'Chuyển kho', tab: 'operations', sub: 'transfer' },
@@ -154,8 +153,17 @@ export function InventoryDashboardPage() {
       const next = new URLSearchParams(searchParams)
       next.set('view', 'list')
       setSearchParams(next, { replace: true })
+      return
     }
-  }, [tab, sub, searchParams, setSearchParams])
+    // Legacy: ?tab=assets&sub=new → mở form qua route /items/new, fallback sub=items
+    if (tab === 'assets' && sub === 'new') {
+      legacyRedirected.current = true
+      const next = new URLSearchParams(searchParams)
+      next.set('sub', 'items')
+      setSearchParams(next, { replace: true })
+      navigate('/items/new')
+    }
+  }, [tab, sub, searchParams, setSearchParams, navigate])
 
   const outboundView = (searchParams.get('view') as 'list' | 'manual' | 'from-requests') || 'list'
   const setOutboundView = (next: 'list' | 'manual' | 'from-requests') => {
@@ -291,7 +299,7 @@ export function InventoryDashboardPage() {
       </Button>
       <Button
         size="sm"
-        variant="default"
+        variant="outline"
         className="h-10 lg:h-9 font-body"
         onClick={() => navigate('/inventory/outbound/new')}
       >
@@ -326,14 +334,9 @@ export function InventoryDashboardPage() {
         <div className="flex items-baseline gap-3 min-w-0">
           <h1 className="font-display text-xl font-semibold tracking-tight text-foreground">Kho</h1>
           {!isOverview && (
-            <>
-              <span className="text-muted-foreground/40">/</span>
-              <span className="font-body text-[13px] text-muted-foreground truncate">
-                <span className="text-muted-foreground/70">{breadcrumb.group}</span>
-                <span className="mx-1.5 text-muted-foreground/40">›</span>
-                <span className="text-foreground font-medium">{breadcrumb.item}</span>
-              </span>
-            </>
+            <span className="font-body text-[13px] text-muted-foreground truncate">
+              <span className="text-foreground font-medium">{breadcrumb.item}</span>
+            </span>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -413,7 +416,6 @@ export function InventoryDashboardPage() {
               <TabsList>
                 <TabsTrigger value="items">Danh sách tài sản</TabsTrigger>
                 <TabsTrigger value="categories">Danh mục</TabsTrigger>
-                <TabsTrigger value="new">+ Thêm tài sản</TabsTrigger>
               </TabsList>
             </ScrollableTabsList>
             <TabsContent value="items" className="mt-4">
@@ -424,11 +426,6 @@ export function InventoryDashboardPage() {
             <TabsContent value="categories" className="mt-4">
               <Suspense fallback={<TabFallback />}>
                 <CategoriesPage />
-              </Suspense>
-            </TabsContent>
-            <TabsContent value="new" className="mt-4">
-              <Suspense fallback={<TabFallback />}>
-                <ItemFormPage />
               </Suspense>
             </TabsContent>
           </Tabs>
