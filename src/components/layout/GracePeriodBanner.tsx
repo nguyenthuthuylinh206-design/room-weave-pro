@@ -6,7 +6,7 @@ import { useState } from 'react';
 
 const DISMISS_KEY = 'expiring-soon-banner-dismissed';
 
-export function GracePeriodBanner() {
+export function GracePeriodBanner({ onDismiss }: { onDismiss?: () => void } = {}) {
   const navigate = useNavigate();
   const {
     isInGracePeriod,
