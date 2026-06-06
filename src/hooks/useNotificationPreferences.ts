@@ -26,9 +26,11 @@ export interface NotificationPreferences {
   inapp_realtime: boolean;
   inapp_low_stock: boolean;
   inapp_laundry_completed: boolean;
+  inapp_laundry_delayed: boolean;
   inapp_maintenance_new: boolean;
   inapp_task_assigned: boolean;
   inapp_approval_request: boolean;
+  inapp_booking_events: boolean;
   
   // Thresholds
   low_stock_threshold: number;
