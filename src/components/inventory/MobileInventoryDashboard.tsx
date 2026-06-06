@@ -4,6 +4,7 @@ import { MobileSecondaryActions } from './MobileSecondaryActions'
 import { MobileRecentTransactions } from './MobileRecentTransactions'
 import { InventoryTodoCard } from './hub/InventoryTodoCard'
 import { CombinedStockAlerts } from './hub/CombinedStockAlerts'
+import { InventoryQuickSearch } from './hub/InventoryQuickSearch'
 import { useInventoryDashboard } from '@/hooks/useInventoryDashboard'
 import { useNavigate } from 'react-router-dom'
 
