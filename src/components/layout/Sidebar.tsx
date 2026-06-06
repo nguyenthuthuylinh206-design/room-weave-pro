@@ -219,10 +219,8 @@ const navigation: NavItem[] = [
       { titleKey: 'hotelPolicy', href: '/settings/hotel-policy', icon: ScrollText, minMode: 'standard', group: 'Khách sạn' },
       { titleKey: 'businessConfig', href: '/settings/business', icon: Briefcase, minMode: 'standard', group: 'Khách sạn' },
 
-      // Bảng giá & Phụ thu
-      { titleKey: 'pricingV2', href: '/settings/pricing', icon: DollarSign, minMode: 'standard', group: 'Bảng giá & Phụ thu' },
-      { titleKey: 'seasonalRules', href: '/settings/pricing/seasonal', icon: CalendarRange, minMode: 'standard', group: 'Bảng giá & Phụ thu' },
-      { titleKey: 'pricingRules', href: '/settings/pricing-rules', icon: DollarSign, minMode: 'standard', group: 'Bảng giá & Phụ thu' },
+      // Bảng giá & Phụ thu — gộp 3 trang vào 1 hub có tabs
+      { titleKey: 'pricingHub', href: '/settings/pricing', icon: DollarSign, minMode: 'standard', group: 'Bảng giá & Phụ thu' },
 
       // Vận hành
       { titleKey: 'roomCheckSettings', href: '/settings/room-check', icon: ClipboardCheck, group: 'Vận hành' },
