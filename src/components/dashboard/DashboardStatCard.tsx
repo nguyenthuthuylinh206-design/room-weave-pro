@@ -31,7 +31,7 @@ export function DashboardStatCard({
   if (isLoading) {
     return (
       <div className="flex items-center gap-3 p-3 border rounded-lg">
-        <Skeleton className="h-5 w-5 rounded" />
+        <Skeleton className="h-6 w-6 rounded" />
         <div className="flex-1">
           <Skeleton className="h-3 w-16 mb-1" />
           <Skeleton className="h-5 w-12" />
@@ -59,18 +59,18 @@ export function DashboardStatCard({
   return (
     <div 
       className={cn(
-        "flex items-center gap-3 p-3 border rounded-lg transition-colors",
+        "flex items-center gap-4 p-4 border rounded-lg transition-colors",
         onClick && "cursor-pointer hover:bg-muted/50 hover:border-primary"
       )}
       onClick={onClick}
     >
-      <Icon className="h-5 w-5 text-muted-foreground shrink-0" />
+      <Icon className="h-6 w-6 text-muted-foreground shrink-0" />
       <div className="flex-1 min-w-0">
-        <p className="text-xs text-muted-foreground truncate">{title}</p>
-        <p className={cn("font-bold", isCompact ? "text-lg" : "text-xl")}>{value}</p>
+        <p className="text-sm font-medium text-muted-foreground truncate leading-snug">{title}</p>
+        <p className={cn("font-bold tracking-tight", isCompact ? "text-xl" : "text-2xl")}>{value}</p>
         
         {change && change.value !== null && (
-          <div className={cn("flex items-center gap-1", changeColor, "text-[10px]")}>
+          <div className={cn("flex items-center gap-1 mt-0.5", changeColor, "text-xs")}>
             {ChangeIcon && <ChangeIcon className="h-2.5 w-2.5" />}
             <span className="font-medium">
               {change.value > 0 && '+'}
@@ -81,7 +81,7 @@ export function DashboardStatCard({
         )}
         
         {description && (
-          <p className="text-[10px] text-muted-foreground truncate">{description}</p>
+          <p className="text-xs text-muted-foreground truncate mt-0.5">{description}</p>
         )}
       </div>
     </div>
