@@ -59,7 +59,7 @@ export function DashboardStatCard({
   return (
     <div 
       className={cn(
-        "flex items-center gap-3 p-3 border rounded-lg transition-colors",
+        "flex items-center gap-4 p-4 border rounded-lg transition-colors",
         onClick && "cursor-pointer hover:bg-muted/50 hover:border-primary"
       )}
       onClick={onClick}
