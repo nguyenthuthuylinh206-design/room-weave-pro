@@ -127,7 +127,7 @@ const navigation: NavItem[] = [
     ],
   },
   {
-    titleKey: 'reservations',
+    titleKey: 'bookings',
     icon: CalendarDays,
     roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
     minMode: 'homestay',
@@ -136,6 +136,7 @@ const navigation: NavItem[] = [
       { titleKey: 'guests', href: '/guests', icon: Users, group: 'Khách' },
       { titleKey: 'guestInvoices', href: '/guest-invoices', icon: FileText, group: 'Khách' },
       { titleKey: 'stayRegistrations', href: '/legal/stay-registrations', icon: ClipboardList, group: 'Khác' },
+      { titleKey: 'pendingCharges', href: '/reception/pending-charges', icon: DollarSign, group: 'Khác' },
     ],
   },
   {
@@ -248,7 +249,7 @@ const NAVIGATION_MODULE_MAP: Record<string, string> = {
   'dashboard': 'dashboard',
   'inventory': 'inventory,items',
   'rooms': 'rooms',
-  'reservations': 'rooms',
+  'bookings': 'bookings',
   'laundry': 'laundry',
   'maintenance': 'maintenance',
   'vendors': 'vendors,purchase_orders',
