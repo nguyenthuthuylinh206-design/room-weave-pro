@@ -105,13 +105,18 @@ const loaders: Record<string, () => Promise<unknown>> = {
   // Help
   '/help': () => import('@/pages/HelpPage'),
 
-  // Super Admin
-  '/admin/dashboard': () => import('@/pages/admin/SuperAdminDashboard'),
-  '/admin/tenants': () => import('@/pages/admin/TenantsPage'),
-  '/admin/promo-codes': () => import('@/pages/admin/PromoCodesPage'),
-  '/admin/campaigns': () => import('@/pages/admin/MarketingCampaignsPage'),
-  '/admin/reminders': () => import('@/pages/admin/RenewalRemindersPage'),
-  '/admin/pricing': () => import('@/pages/admin/PricingPlansPage'),
+  // Super Admin (canonical: /super-admin/*)
+  '/super-admin': () => import('@/pages/admin/SuperAdminDashboard'),
+  '/super-admin/tenants': () => import('@/pages/admin/TenantsPage'),
+  '/super-admin/approval': () => import('@/pages/admin/TenantApprovalPage'),
+  '/super-admin/promo-codes': () => import('@/pages/admin/PromoCodesPage'),
+  '/super-admin/campaigns': () => import('@/pages/admin/MarketingCampaignsPage'),
+  '/super-admin/reminders': () => import('@/pages/admin/RenewalRemindersPage'),
+  '/super-admin/pricing': () => import('@/pages/admin/PricingPlansPage'),
+  '/super-admin/payments': () => import('@/pages/admin/PaymentSettingsPage'),
+  '/super-admin/analytics': () => import('@/pages/admin/AnalyticsPage'),
+  '/super-admin/settings': () => import('@/pages/admin/SuperAdminSettingsPage'),
+  '/super-admin/announcements': () => import('@/pages/admin/AnnouncementsPage'),
 }
 
 const prefetched = new Set<string>()

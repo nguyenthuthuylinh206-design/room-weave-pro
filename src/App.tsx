@@ -312,12 +312,14 @@ const router = createBrowserRouter([
     errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: <SuperAdminDashboard /> },
+      { path: "dashboard", element: <Navigate to="/super-admin" replace /> },
       { path: "tenants", element: <TenantsPage /> },
       { path: "approval", element: <TenantApprovalPage /> },
       { path: "promo-codes", element: <PromoCodesPage /> },
       { path: "campaigns", element: <MarketingCampaignsPage /> },
       { path: "reminders", element: <RenewalRemindersPage /> },
       { path: "pricing", element: <PricingPlansPage /> },
+      { path: "payments", element: <PaymentSettingsPage /> },
       { path: "analytics", element: <AnalyticsPage /> },
       { path: "settings", element: <SuperAdminSettingsPage /> },
       { path: "announcements", element: <AnnouncementsAdminPage /> },
@@ -342,63 +344,20 @@ const router = createBrowserRouter([
       { path: "chat", element: <ChatPage /> },
       { path: "chat/:conversationId", element: <ChatPage /> },
       
-      // Super Admin Dashboard
-      {
-        path: "admin/dashboard",
-        element: (
-          <RoleGuard allowedRoles={['super_admin']}>
-            <SuperAdminDashboard />
-          </RoleGuard>
-        ),
-      },
-      {
-        path: "admin/tenants",
-        element: (
-          <RoleGuard allowedRoles={['super_admin']}>
-            <TenantsPage />
-          </RoleGuard>
-        ),
-      },
-      {
-        path: "admin/promo-codes",
-        element: (
-          <RoleGuard allowedRoles={['super_admin']}>
-            <PromoCodesPage />
-          </RoleGuard>
-        ),
-      },
-      {
-        path: "admin/campaigns",
-        element: (
-          <RoleGuard allowedRoles={['super_admin']}>
-            <MarketingCampaignsPage />
-          </RoleGuard>
-        ),
-      },
-      {
-        path: "admin/reminders",
-        element: (
-          <RoleGuard allowedRoles={['super_admin']}>
-            <RenewalRemindersPage />
-          </RoleGuard>
-        ),
-      },
-      {
-        path: "admin/payments",
-        element: (
-          <RoleGuard allowedRoles={['super_admin']}>
-            <PaymentSettingsPage />
-          </RoleGuard>
-        ),
-      },
-      {
-        path: "admin/pricing",
-        element: (
-          <RoleGuard allowedRoles={['super_admin']}>
-            <PricingPlansPage />
-          </RoleGuard>
-        ),
-      },
+      // Legacy /admin/* routes — redirect to canonical /super-admin/*
+      { path: "admin", element: <Navigate to="/super-admin" replace /> },
+      { path: "admin/dashboard", element: <Navigate to="/super-admin" replace /> },
+      { path: "admin/tenants", element: <Navigate to="/super-admin/tenants" replace /> },
+      { path: "admin/approval", element: <Navigate to="/super-admin/approval" replace /> },
+      { path: "admin/promo-codes", element: <Navigate to="/super-admin/promo-codes" replace /> },
+      { path: "admin/campaigns", element: <Navigate to="/super-admin/campaigns" replace /> },
+      { path: "admin/reminders", element: <Navigate to="/super-admin/reminders" replace /> },
+      { path: "admin/payments", element: <Navigate to="/super-admin/payments" replace /> },
+      { path: "admin/pricing", element: <Navigate to="/super-admin/pricing" replace /> },
+      { path: "admin/analytics", element: <Navigate to="/super-admin/analytics" replace /> },
+      { path: "admin/settings", element: <Navigate to="/super-admin/settings" replace /> },
+      { path: "admin/announcements", element: <Navigate to="/super-admin/announcements" replace /> },
+      { path: "admin/*", element: <Navigate to="/super-admin" replace /> },
       
       // Inventory - Permission Based
       { path: "inventory", element: <PermissionRoute module="inventory"><InventoryDashboardPage /></PermissionRoute> },
