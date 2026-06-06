@@ -59,22 +59,20 @@ export function BookingDetailPage({ idProp, embedded, onClose }: BookingDetailPa
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showPayDialog, setShowPayDialog] = useState(false)
 
-  const { data: booking, isLoading } = useQuery({
+  const { data: booking, isLoading, isError } = useQuery({
     queryKey: ['booking-detail', id],
     queryFn: async () => {
-      if (!id) return null
+      if (!id) throw new Error('No booking ID')
       const { data, error } = await supabase
         .from('room_bookings')
         .select(`*, room:rooms(room_number, room_type, floor, hotel_id)`)
         .eq('id', id)
         .single()
-      if (error) {
-        console.error('Error fetching booking:', error)
-        return null
-      }
+      if (error) throw error
       return data
     },
     enabled: !!id,
+    retry: 1,
   })
 
   // Lookup invoice cho booking này
