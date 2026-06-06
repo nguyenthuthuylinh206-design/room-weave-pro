@@ -289,8 +289,8 @@ export const Sidebar = () => {
     return expanded
   })
 
-  // Sync expanded group with current route — auto-collapse other groups,
-  // auto-open the group containing the active child when user switches tab.
+  // Auto-open the group containing the active route, but DO NOT collapse
+  // other user-expanded groups (less aggressive UX).
   useEffect(() => {
     const matched = navigation.find(
       (item) =>
@@ -298,7 +298,11 @@ export const Sidebar = () => {
           (child) => child.href && location.pathname.startsWith(child.href)
         )
     )
-    setExpandedItems(matched ? [matched.titleKey] : [])
+    if (matched) {
+      setExpandedItems((prev) =>
+        prev.includes(matched.titleKey) ? prev : [...prev, matched.titleKey]
+      )
+    }
   }, [location.pathname])
 
   // Only block on user auth; tenant + permissions load in background to avoid full-skeleton flash.
