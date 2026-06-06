@@ -6106,7 +6106,9 @@ export type Database = {
           email_weekly_report: boolean | null
           id: string
           inapp_approval_request: boolean | null
+          inapp_booking_events: boolean
           inapp_laundry_completed: boolean | null
+          inapp_laundry_delayed: boolean
           inapp_low_stock: boolean | null
           inapp_maintenance_new: boolean | null
           inapp_realtime: boolean | null
@@ -6137,7 +6139,9 @@ export type Database = {
           email_weekly_report?: boolean | null
           id?: string
           inapp_approval_request?: boolean | null
+          inapp_booking_events?: boolean
           inapp_laundry_completed?: boolean | null
+          inapp_laundry_delayed?: boolean
           inapp_low_stock?: boolean | null
           inapp_maintenance_new?: boolean | null
           inapp_realtime?: boolean | null
@@ -6168,7 +6172,9 @@ export type Database = {
           email_weekly_report?: boolean | null
           id?: string
           inapp_approval_request?: boolean | null
+          inapp_booking_events?: boolean
           inapp_laundry_completed?: boolean | null
+          inapp_laundry_delayed?: boolean
           inapp_low_stock?: boolean | null
           inapp_maintenance_new?: boolean | null
           inapp_realtime?: boolean | null
