@@ -19,6 +19,21 @@ function formatVND(amount: number): string {
 }
 
 /**
+ * Escape user-controlled strings before embedding into HTML templates that
+ * are later rendered via dangerouslySetInnerHTML / document.write. Prevents
+ * stored XSS via guest data, line item descriptions, hotel info, etc.
+ */
+function esc(value: unknown): string {
+  if (value === null || value === undefined) return ''
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+/**
  * Chuẩn hoá thuế suất hiển thị về số phần trăm nguyên.
  * - Quy ước mới: lưu integer % (8, 10, 5).
  * - Tương thích ngược: dữ liệu cũ lưu decimal (0.08, 0.1) — nếu < 1 thì × 100.
