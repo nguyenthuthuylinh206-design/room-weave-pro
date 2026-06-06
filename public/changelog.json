@@ -1,6 +1,18 @@
 {
-  "current": "1.1.87",
+  "current": "1.1.88",
   "versions": [
+    {
+      "version": "1.1.88",
+      "date": "2026-06-06",
+      "title": "Batch 5B: Sidebar UX — tách Đặt phòng & Khách, giảm auto-collapse, fix active state",
+      "highlights": [
+        "**Tách nhóm 'Đặt phòng & Khách' khỏi 'Phòng'** — Sidebar có thêm 1st-level menu `reservations` (icon `CalendarDays`) gồm: Đặt phòng, Khách hàng, Hóa đơn khách, Khai báo lưu trú. Nhóm 'Phòng' giờ chỉ còn Housekeeping / Danh sách phòng / Tiêu chuẩn / Thêm phòng / Lost & Found — gọn và đúng nghiệp vụ hơn.",
+        "**Bớt auto-collapse khi đổi route (#8)** — Trước: mỗi lần đổi tab, mọi group khác bị đóng (`setExpandedItems([matched])`). Giờ: chỉ tự MỞ group chứa route active, KHÔNG đóng các group user tự bung. `toggleExpanded` cũng cho phép mở/đóng độc lập, không ép chế độ accordion 1-group.",
+        "**Fix active state khi `anyExpanded` (#7)** — Trước: link top-level đang active sẽ chuyển sang `bg-accent` mờ khi có bất kỳ group nào đang mở, gây nhầm lẫn 'mình đang ở đâu'. Giờ: route active luôn `bg-primary text-primary-foreground`, bất kể group khác có mở hay không.",
+        "**Đổi icon 'Tạo phiếu Linen' (#13)** — `newLinenBatch` đổi từ `Plus` (trùng 'Tạo phiếu mới') sang `Shirt` để phân biệt nhanh trong submenu Giặt là.",
+        "**Module map cập nhật** — Thêm `'reservations': 'rooms'` vào `NAVIGATION_MODULE_MAP` để permission gate hoạt động đúng với nhóm mới."
+      ]
+    },
     {
       "version": "1.1.87",
       "date": "2026-06-06",
