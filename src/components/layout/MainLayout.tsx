@@ -37,7 +37,7 @@ const MainLayoutContent = () => {
   const location = useLocation()
   const { isGracePeriodExpired } = useGracePeriod()
   const isStaffUser = isStaff(user)
-  const showSubscriptionBanner = isTenantOwner(user) || isManager(user)
+  const { active: activeBanner, dismiss: dismissBanner } = useActiveBanner()
   const isSuspended = isGracePeriodExpired && !location.pathname.startsWith('/settings/subscription')
 
   // Idle-prefetch các route phổ biến theo permission để chuyển trang gần như tức thì.
