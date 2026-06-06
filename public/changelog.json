@@ -1,6 +1,16 @@
 {
-  "current": "1.1.94",
+  "current": "1.1.95",
   "versions": [
+    {
+      "version": "1.1.95",
+      "date": "2026-06-06",
+      "title": "Bảng giá: gộp 3 trang thành 1 hub có tabs",
+      "highlights": [
+        "**Sidebar** — Thay 3 mục `pricingV2` / `seasonalRules` / `pricingRules` bằng 1 mục `Bảng giá` duy nhất → `/settings/pricing`.",
+        "**PricingHubPage** — Thêm tab `Quy tắc phụ thu` (PricingRulesPage) cạnh `Lịch giá theo ngày` / `Giá mặc định` / `Quy tắc mùa`.",
+        "**Backward-compat redirect** — `/settings/pricing-rules` → `/settings/pricing?tab=rules`; `/settings/pricing/seasonal` → `/settings/pricing?tab=seasonal`."
+      ]
+    },
     {
       "version": "1.1.94",
       "date": "2026-06-06",

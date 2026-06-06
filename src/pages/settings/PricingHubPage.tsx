@@ -11,6 +11,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 const PricingDailyPage = lazy(() => import("./PricingDailyPage"));
 const PricingV2Page = lazy(() => import("./PricingV2Page"));
 const SeasonalRulesPage = lazy(() => import("./SeasonalRulesPage"));
+const PricingRulesPage = lazy(() => import("./PricingRulesPage"));
 
 const Fallback = () => (
   <div className="p-4 space-y-3">
@@ -114,6 +115,12 @@ export default function PricingHubPage() {
               >
                 Quy tắc mùa
               </TabsTrigger>
+              <TabsTrigger
+                value="rules"
+                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                Quy tắc phụ thu
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -131,6 +138,11 @@ export default function PricingHubPage() {
             <TabsContent value="seasonal" className="m-0">
               <Suspense fallback={<Fallback />}>
                 <SeasonalRulesPage />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="rules" className="m-0">
+              <Suspense fallback={<Fallback />}>
+                <PricingRulesPage />
               </Suspense>
             </TabsContent>
           </div>
