@@ -102,7 +102,7 @@ export default function ReconciliationPage() {
       setActive(null)
       setNote('')
     },
-    onError: (e: Error) => toast({ title: 'Lỗi', description: e.message, variant: 'destructive' }),
+    onError: (e: Error) => toast({ title: 'Lỗi', description: getFriendlyError(e), variant: 'destructive' }),
   })
 
   const triggerSync = async () => {
