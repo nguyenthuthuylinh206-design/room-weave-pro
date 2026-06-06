@@ -68,7 +68,7 @@ export function BillingHistory() {
     } catch (error) {
       console.error('Sync error:', error);
       toast.error('Lỗi đồng bộ giao dịch', {
-        description: error instanceof Error ? error.message : 'Vui lòng thử lại sau'
+        description: getFriendlyError(error)
       });
     } finally {
       setIsSyncing(false);
