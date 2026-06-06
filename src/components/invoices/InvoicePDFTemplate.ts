@@ -107,7 +107,7 @@ function qrBlockReceipt(qr: string, label: string, size: number) {
     <div style="text-align:center;margin-top:10px;padding-top:8px;border-top:1px dashed #999;">
       <div style="font-weight:700;margin-bottom:4px;">QUÉT MÃ LẤY HOÁ ĐƠN VAT</div>
       <img src="${qr}" alt="QR" style="width:${size}px;height:${size}px;display:block;margin:0 auto;" />
-      <div style="font-size:10px;color:#555;margin-top:4px;line-height:1.3;">${label}</div>
+      <div style="font-size:10px;color:#555;margin-top:4px;line-height:1.3;">${esc(label)}</div>
     </div>`
 }
 
