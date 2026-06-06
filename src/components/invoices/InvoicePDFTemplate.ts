@@ -409,7 +409,7 @@ export async function printVatQrSlip(
   if (!printWindow) return
   printWindow.document.write(`
     <!DOCTYPE html>
-    <html><head><meta charset="utf-8" /><title>QR VAT ${invoice.invoice_number}</title>
+    <html><head><meta charset="utf-8" /><title>QR VAT ${esc(invoice.invoice_number)}</title>
     <style>
       @page { size: 80mm auto; margin: 3mm; }
       html, body { margin: 0; padding: 0; font-family: Arial, sans-serif; background: #fff; }
@@ -421,9 +421,9 @@ export async function printVatQrSlip(
       .hint { font-size: 11px; color: #333; margin-top: 6px; line-height: 1.4; }
     </style></head>
     <body><div class="wrap">
-      <div class="hotel">${hotelInfo?.name || ''}</div>
+      <div class="hotel">${esc(hotelInfo?.name || '')}</div>
       <div class="title">LẤY HOÁ ĐƠN VAT</div>
-      <div class="num">${invoice.invoice_number}</div>
+      <div class="num">${esc(invoice.invoice_number)}</div>
       <img src="${qr}" alt="QR" />
       <div class="hint">Quét mã bằng camera điện thoại, nhập thông tin công ty & email để nhận hoá đơn GTGT điện tử.</div>
     </div></body></html>
