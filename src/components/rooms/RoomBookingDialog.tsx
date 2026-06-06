@@ -57,6 +57,7 @@ import {
 import { triggerRoomCheckoutNotification, triggerRoomCheckinNotification, triggerNewBookingNotification } from '@/hooks/useNotificationTriggers'
 import type { RoomBooking } from '@/hooks/useRoomBooking'
 import { createInvoiceAfterCheckout } from '@/lib/invoiceHelpers'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 // Time options for check-in/check-out
 const TIME_OPTIONS = [
@@ -342,7 +343,7 @@ export function RoomBookingDialog({
       toast({
         variant: 'destructive',
         title: t('booking.saveError'),
-        description: error.message,
+        description: getFriendlyError(error),
       })
     } finally {
       setIsSubmitting(false)
@@ -500,7 +501,7 @@ export function RoomBookingDialog({
       toast({
         variant: 'destructive',
         title: t('booking.checkInError'),
-        description: error.message,
+        description: getFriendlyError(error),
       })
     } finally {
       setIsSubmitting(false)
@@ -674,7 +675,7 @@ export function RoomBookingDialog({
       toast({
         variant: 'destructive',
         title: t('booking.checkOutError'),
-        description: error.message,
+        description: getFriendlyError(error),
       })
     } finally {
       setIsSubmitting(false)
@@ -782,7 +783,7 @@ export function RoomBookingDialog({
       toast({
         variant: 'destructive',
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
       })
     } finally {
       setIsSubmitting(false)
@@ -1415,7 +1416,7 @@ export function RoomBookingDialog({
               setCheckoutDamageItems(damageItems)
               setShowCheckoutSummary(true)
             } catch (error: any) {
-              toast({ variant: 'destructive', title: 'Lỗi tính toán', description: error.message })
+              toast({ variant: 'destructive', title: 'Lỗi tính toán', description: getFriendlyError(error) })
             }
           }}
           onTransferRoom={() => {

@@ -5,6 +5,7 @@ import { useHotelContext } from '@/contexts/HotelContext'
 
 import { useToast } from '@/hooks/use-toast'
 import type { HotelService, HotelServiceFormData } from '@/types/services.types'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export function useHotelServices(activeOnly = false) {
   const { tenant } = useTenant()
@@ -73,7 +74,7 @@ export function useCreateService() {
       toast({ title: 'Đã thêm dịch vụ' })
     },
     onError: (error: any) => {
-      toast({ variant: 'destructive', title: 'Lỗi', description: error.message })
+      toast({ variant: 'destructive', title: 'Lỗi', description: getFriendlyError(error) })
     },
   })
 }
@@ -109,7 +110,7 @@ export function useUpdateService() {
       toast({ title: 'Đã cập nhật dịch vụ' })
     },
     onError: (error: any) => {
-      toast({ variant: 'destructive', title: 'Lỗi', description: error.message })
+      toast({ variant: 'destructive', title: 'Lỗi', description: getFriendlyError(error) })
     },
   })
 }
@@ -132,7 +133,7 @@ export function useDeleteService() {
       toast({ title: 'Đã xóa dịch vụ' })
     },
     onError: (error: any) => {
-      toast({ variant: 'destructive', title: 'Lỗi', description: error.message })
+      toast({ variant: 'destructive', title: 'Lỗi', description: getFriendlyError(error) })
     },
   })
 }

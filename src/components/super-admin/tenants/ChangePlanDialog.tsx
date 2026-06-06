@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { Info, Loader2, Building2 } from 'lucide-react';
 import {
+import { getFriendlyError } from '@/lib/errorMessage'
   PRICE_PER_ROOM_DAILY,
   DURATION_OPTIONS,
   calculateSubscriptionPrice,
@@ -163,7 +164,7 @@ export function ChangePlanDialog({
     } catch (error: any) {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       });
     } finally {

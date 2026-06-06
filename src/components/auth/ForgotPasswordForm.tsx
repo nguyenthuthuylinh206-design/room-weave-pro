@@ -25,6 +25,7 @@ import {
 import { forgotPasswordSchema, ForgotPasswordData, resetPasswordSchema, ResetPasswordData } from '@/lib/validations/auth.schemas'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 type Step = 'email' | 'otp' | 'password' | 'success'
 
@@ -125,7 +126,7 @@ export function ForgotPasswordForm() {
       } else {
         toast({
           title: t('common:messages.error'),
-          description: error.message || t('common:messages.errorOccurred'),
+          description: getFriendlyError(error) || t('common:messages.errorOccurred'),
           variant: 'destructive',
         })
       }
@@ -183,7 +184,7 @@ export function ForgotPasswordForm() {
     } catch (error: any) {
       toast({
         title: t('common:messages.error'),
-        description: error.message || t('common:messages.errorOccurred'),
+        description: getFriendlyError(error) || t('common:messages.errorOccurred'),
         variant: 'destructive',
       })
     }
@@ -206,7 +207,7 @@ export function ForgotPasswordForm() {
     } catch (error: any) {
       toast({
         title: t('common:messages.error'),
-        description: error.message || t('common:messages.errorOccurred'),
+        description: getFriendlyError(error) || t('common:messages.errorOccurred'),
         variant: 'destructive',
       })
     } finally {

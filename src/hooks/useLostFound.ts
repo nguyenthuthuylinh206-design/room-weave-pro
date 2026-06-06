@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useTenant } from '@/hooks/useTenant'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useToast } from '@/hooks/use-toast'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export interface LostFoundItem {
   id: string
@@ -99,7 +100,7 @@ export function useCreateLostFoundItem() {
       toast({ title: 'Đã đăng ký đồ thất lạc' })
     },
     onError: (error: any) => {
-      toast({ variant: 'destructive', title: 'Lỗi', description: error.message })
+      toast({ variant: 'destructive', title: 'Lỗi', description: getFriendlyError(error) })
     },
   })
 }
@@ -125,7 +126,7 @@ export function useUpdateLostFoundItem() {
       toast({ title: 'Đã cập nhật' })
     },
     onError: (error: any) => {
-      toast({ variant: 'destructive', title: 'Lỗi', description: error.message })
+      toast({ variant: 'destructive', title: 'Lỗi', description: getFriendlyError(error) })
     },
   })
 }
@@ -161,7 +162,7 @@ export function useClaimLostFoundItem() {
       toast({ title: 'Đã trả đồ cho người nhận' })
     },
     onError: (error: any) => {
-      toast({ variant: 'destructive', title: 'Lỗi', description: error.message })
+      toast({ variant: 'destructive', title: 'Lỗi', description: getFriendlyError(error) })
     },
   })
 }

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useTenant } from './useTenant'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from '@/hooks/use-toast'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export interface StaffStatistics {
   id: string
@@ -95,7 +96,7 @@ export function useCalculateStaffStatistics() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },

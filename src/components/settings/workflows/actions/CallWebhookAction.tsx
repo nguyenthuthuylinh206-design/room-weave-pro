@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Plus, X, Loader2, Zap, AlertCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 interface CallWebhookActionConfig {
   url: string
@@ -101,7 +102,7 @@ export const CallWebhookAction = ({ config, onChange }: CallWebhookActionProps) 
     } catch (error: any) {
       toast({ 
         title: 'Webhook test failed', 
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive'
       })
       setTestResult({ error: error.message })

@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
 import { toast } from '@/hooks/use-toast'
 import type {
+import { getFriendlyError } from '@/lib/errorMessage'
   Permission,
   RolePermission,
   RolePermissionInsert,
@@ -233,7 +234,7 @@ export const useAssignPermissionsToRole = () => {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -279,7 +280,7 @@ export const useAddPermissionToRole = () => {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -317,7 +318,7 @@ export const useRemovePermissionFromRole = () => {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },

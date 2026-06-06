@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
 import { mapDbError } from '@/lib/dbErrors'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export type QuickCheckType = 'daily' | 'checkin' | 'checkout' | 'periodic' | 'maintenance'
 
@@ -92,7 +93,7 @@ export function useQuickRoomCheck() {
     onError: (err: Error) => {
       toast({
         title: 'Không thể xác nhận nhanh',
-        description: err.message,
+        description: getFriendlyError(err),
         variant: 'destructive',
       })
     },

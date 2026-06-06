@@ -6,6 +6,7 @@ import { useHotelContext } from '@/contexts/HotelContext'
 import { isAdminUser } from '@/lib/userAccess'
 import { triggerWorkflow, WorkflowTriggerTypes } from '@/lib/triggerWorkflow'
 import { useShiftGuardedMutation } from './useGuardedMutation'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export interface MaintenanceRequest {
   id: string
@@ -249,7 +250,7 @@ export function useCreateMaintenanceRequest() {
     onError: (error: any) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -283,7 +284,7 @@ export function useUpdateMaintenanceRequest() {
     onError: (error: any) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -362,7 +363,7 @@ export function useAcceptRequest() {
     onError: (error: any) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -402,7 +403,7 @@ export function useStartRequest() {
     onError: (error: any) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -461,7 +462,7 @@ export function useCompleteRequest() {
     onError: (error: any) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -500,7 +501,7 @@ export function useCancelRequest() {
     onError: (error: any) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },

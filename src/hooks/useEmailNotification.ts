@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
 import type { EmailNotificationType } from '@/types/notification.types'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 interface SendEmailParams {
   notification_type: EmailNotificationType
@@ -24,7 +25,7 @@ export function useSendEmailNotification() {
       console.error('Failed to send email notification:', error)
       toast({
         title: 'Lỗi gửi email',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },

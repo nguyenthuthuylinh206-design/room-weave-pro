@@ -12,6 +12,7 @@ import { useUser } from '@/hooks/useUser'
 import { useHotelPhotoMode } from '@/hooks/useHotelPhotoMode'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from '@/hooks/use-toast'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export type IssueAction =
   | { type: 'laundry'; quantity: number; photos?: string[] }
@@ -102,7 +103,7 @@ export function ReportIssueSheet({
       const uploaded = await uploadImage(file, tenantId)
       if (uploaded?.url) setPhotos(p => [...p, uploaded.url])
     } catch (err: any) {
-      toast({ title: 'Tải ảnh thất bại', description: err.message, variant: 'destructive' })
+      toast({ title: 'Tải ảnh thất bại', description: getFriendlyError(err), variant: 'destructive' })
     } finally {
       e.target.value = ''
     }

@@ -15,6 +15,7 @@ import type {
   CheckAdjustmentItemData
 } from '@/types/inventory.types'
 import type {
+import { getFriendlyError } from '@/lib/errorMessage'
   StartInvestigationDto,
   ResolveInvestigationDto,
   ApproveItemDto,
@@ -192,7 +193,7 @@ export function useCreateStockAdjustment() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -294,7 +295,7 @@ export function useUpdateAdjustmentStatus() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -336,7 +337,7 @@ export function useCheckAdjustmentItem() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -468,7 +469,7 @@ export function useApproveAdjustment() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -541,7 +542,7 @@ export function useRejectAdjustment() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -658,7 +659,7 @@ export function useApproveItem() {
       toast({ title: 'Đã duyệt item' })
     },
     onError: (error: Error) => {
-      toast({ title: 'Lỗi', description: error.message, variant: 'destructive' })
+      toast({ title: 'Lỗi', description: getFriendlyError(error), variant: 'destructive' })
     },
   })
 }
@@ -762,7 +763,7 @@ export function useStartInvestigation() {
       toast({ title: 'Đã bắt đầu điều tra' })
     },
     onError: (error: Error) => {
-      toast({ title: 'Lỗi', description: error.message, variant: 'destructive' })
+      toast({ title: 'Lỗi', description: getFriendlyError(error), variant: 'destructive' })
     },
   })
 }
@@ -927,7 +928,7 @@ export function useResolveInvestigation() {
       })
     },
     onError: (error: Error) => {
-      toast({ title: 'Lỗi', description: error.message, variant: 'destructive' })
+      toast({ title: 'Lỗi', description: getFriendlyError(error), variant: 'destructive' })
     },
   })
 }
@@ -1046,7 +1047,7 @@ export function useBulkApproveItems() {
       })
     },
     onError: (error: Error) => {
-      toast({ title: 'Lỗi', description: error.message, variant: 'destructive' })
+      toast({ title: 'Lỗi', description: getFriendlyError(error), variant: 'destructive' })
     },
   })
 }

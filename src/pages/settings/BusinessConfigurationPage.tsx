@@ -19,6 +19,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2 } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 const businessConfigSchema = z.object({
   inventory: z.object({
@@ -129,7 +130,7 @@ export function BusinessConfigurationPage() {
     } catch (error: any) {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     } finally {

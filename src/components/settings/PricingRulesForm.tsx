@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2, Save, RotateCcw } from 'lucide-react'
 import { DEFAULT_PRICING_RULES } from '@/lib/bookingCalculations'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 interface PricingRulesFormProps {
   hotelId: string
@@ -114,7 +115,7 @@ export function PricingRulesForm({ hotelId }: PricingRulesFormProps) {
       toast({
         variant: 'destructive',
         title: 'Lỗi lưu cấu hình',
-        description: error.message,
+        description: getFriendlyError(error),
       })
     },
   })

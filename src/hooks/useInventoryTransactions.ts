@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { useToast } from '@/components/ui/use-toast'
 import { triggerWorkflow, WorkflowTriggerTypes } from '@/lib/triggerWorkflow'
 import type { 
+import { getFriendlyError } from '@/lib/errorMessage'
   TransactionWithDetails, 
   InventoryFilters,
   CreateInboundData,
@@ -171,7 +172,7 @@ export function useCreateInboundTransaction() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -264,7 +265,7 @@ export function useCreateOutboundTransaction() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -308,7 +309,7 @@ export function useDeleteTransaction() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },

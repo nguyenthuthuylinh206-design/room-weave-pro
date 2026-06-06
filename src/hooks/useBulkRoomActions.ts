@@ -4,6 +4,7 @@ import { toast } from '@/hooks/use-toast'
 import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers'
 import { useUser } from '@/hooks/useUser'
 import type { RoomStatus } from '@/types/rooms.types'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export function useBulkApplyStandards() {
   const queryClient = useQueryClient()
@@ -72,7 +73,7 @@ export function useBulkApplyStandards() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi áp dụng tiêu chuẩn',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -126,7 +127,7 @@ export function useBulkDeleteRooms() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi xóa phòng',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -220,7 +221,7 @@ export function useBulkUpdateRoomStatus() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi cập nhật',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },

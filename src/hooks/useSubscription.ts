@@ -11,6 +11,7 @@ import type {
   InvoiceWithRelations,
 } from '@/types/subscription.types'
 import {
+import { getFriendlyError } from '@/lib/errorMessage'
   calculateSubscriptionPrice,
   calculateEndDate,
 } from '@/lib/pricing'
@@ -137,7 +138,7 @@ export const useCreatePayment = () => {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -176,7 +177,7 @@ export const useCreateInvoice = () => {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -289,7 +290,7 @@ export const useUpdateTenantSubscription = () => {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },

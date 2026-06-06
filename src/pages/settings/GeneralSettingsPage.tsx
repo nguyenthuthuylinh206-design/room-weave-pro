@@ -25,6 +25,7 @@ import { Switch } from '@/components/ui/switch'
 import { UsageModeSelector } from '@/components/settings/UsageModeSelector'
 import { HotelQcModeSettings } from '@/components/settings/HotelQcModeSettings'
 import { HotelPhotoEvidenceSettings } from '@/components/settings/HotelPhotoEvidenceSettings'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 const createGeneralSettingsSchema = (t: (key: string) => string) => z.object({
   name: z.string().min(2, t('settings:general.validation.companyNameMin')),
@@ -135,7 +136,7 @@ export function GeneralSettingsPage() {
     } catch (error: any) {
       toast({
         title: t('settings:general.error'),
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     } finally {

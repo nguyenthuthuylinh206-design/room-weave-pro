@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useSendEmailNotification } from '@/hooks/useEmailNotification'
 import { toast } from '@/hooks/use-toast'
 import { Send } from 'lucide-react'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export function TestEmailNotifications() {
   const [email, setEmail] = useState('')
@@ -76,7 +77,7 @@ export function TestEmailNotifications() {
     } catch (error: any) {
       toast({
         title: 'Lỗi',
-        description: error.message || 'Không thể gửi email',
+        description: getFriendlyError(error) || 'Không thể gửi email',
         variant: 'destructive',
       })
     }

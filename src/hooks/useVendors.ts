@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Vendor, VendorFilters, VendorStats } from '@/types/vendor.types';
 import { useToast } from './use-toast';
 import { useUser } from './useUser';
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export function useVendors(filters?: VendorFilters) {
   const { tenantId } = useUser();
@@ -235,7 +236,7 @@ export function useDeleteVendor() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },

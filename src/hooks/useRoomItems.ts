@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export function useToggleItemVerification() {
   const queryClient = useQueryClient();
@@ -36,7 +37,7 @@ export function useToggleItemVerification() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       });
     },
@@ -93,7 +94,7 @@ export function useUpdateRoomItemQuantity() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi cập nhật số lượng',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       });
     },

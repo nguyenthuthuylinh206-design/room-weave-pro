@@ -59,6 +59,7 @@ import {
 } from '@/components/ui/popover'
 import { cn, formatCurrency } from '@/lib/utils'
 import type { ItemWithCategory } from '@/types/items.types'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 interface ItemTableProps {
   items: ItemWithCategory[]
@@ -334,7 +335,7 @@ function ItemActions({ item }: { item: ItemWithCategory }) {
     } catch (error: any) {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     }
@@ -361,7 +362,7 @@ function ItemActions({ item }: { item: ItemWithCategory }) {
     } catch (error: any) {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     }
@@ -374,7 +375,7 @@ function ItemActions({ item }: { item: ItemWithCategory }) {
     } catch (error: any) {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     }

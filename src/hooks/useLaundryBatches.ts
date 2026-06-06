@@ -8,6 +8,7 @@ import { isAdminUser } from '@/lib/userAccess'
 import { triggerWorkflow, WorkflowTriggerTypes } from '@/lib/triggerWorkflow'
 import { useShiftGuardedMutation } from './useGuardedMutation'
 import type { 
+import { getFriendlyError } from '@/lib/errorMessage'
   LaundryBatchWithVendor, 
   LaundryBatchFilters,
   CreateBatchStep1Data,
@@ -158,7 +159,7 @@ export function useCreateLaundryBatch() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -279,7 +280,7 @@ export function useReceiveLaundryBatch() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -366,7 +367,7 @@ export function useUpdateBatchStatus() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -414,7 +415,7 @@ export function useUpdateBatchCost() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     }
@@ -592,7 +593,7 @@ export function useStockInFromLaundry() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi nhập kho',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     }

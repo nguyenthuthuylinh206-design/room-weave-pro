@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useTenant } from '@/hooks/useTenant'
 import { useToast } from '@/hooks/use-toast'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export interface Guest {
   id: string
@@ -146,7 +147,7 @@ export function useCreateGuest() {
       toast({ title: 'Đã thêm khách hàng mới' })
     },
     onError: (error: any) => {
-      toast({ variant: 'destructive', title: 'Lỗi', description: error.message })
+      toast({ variant: 'destructive', title: 'Lỗi', description: getFriendlyError(error) })
     },
   })
 }
@@ -173,7 +174,7 @@ export function useUpdateGuest() {
       toast({ title: 'Đã cập nhật thông tin khách' })
     },
     onError: (error: any) => {
-      toast({ variant: 'destructive', title: 'Lỗi', description: error.message })
+      toast({ variant: 'destructive', title: 'Lỗi', description: getFriendlyError(error) })
     },
   })
 }

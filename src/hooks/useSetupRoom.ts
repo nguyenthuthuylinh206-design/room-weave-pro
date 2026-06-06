@@ -4,6 +4,7 @@ import { toast } from '@/hooks/use-toast'
 import { triggerWorkflow } from '@/lib/triggerWorkflow'
 import { useUser } from './useUser'
 import { useAuth } from '@/contexts/AuthContext'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 interface SetupRoomResult {
   success: boolean
@@ -85,7 +86,7 @@ export function useSetupRoom() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi setup phòng',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },

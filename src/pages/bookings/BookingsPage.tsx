@@ -97,6 +97,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { MoreVertical, PhoneCall, CalendarClock, UserX } from 'lucide-react'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 type BookingStatus = 'all' | 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show' | 'conflict' | 'overdue' | 'overdue_checkin'
 
@@ -651,7 +652,7 @@ export function BookingsPage() {
       toast({
         variant: 'destructive',
         title: 'Lỗi check-in',
-        description: error.message,
+        description: getFriendlyError(error),
       })
     } finally {
       setIsActionLoading(false)
@@ -797,7 +798,7 @@ export function BookingsPage() {
       toast({
         variant: 'destructive',
         title: 'Lỗi tính toán',
-        description: error.message,
+        description: getFriendlyError(error),
       })
       setActionBooking(null)
     } finally {
@@ -908,7 +909,7 @@ export function BookingsPage() {
       toast({
         variant: 'destructive',
         title: 'Lỗi check-out',
-        description: error.message,
+        description: getFriendlyError(error),
       })
     } finally {
       setIsActionLoading(false)
@@ -1022,7 +1023,7 @@ export function BookingsPage() {
       toast({
         variant: 'destructive',
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
       })
     } finally {
       setIsActionLoading(false)
@@ -1410,7 +1411,7 @@ export function BookingsPage() {
                 setCheckoutCostBreakdown(costBreakdown)
                 setShowCheckoutSummary(true)
               } catch (error: any) {
-                toast({ variant: 'destructive', title: 'Lỗi tính toán', description: error.message })
+                toast({ variant: 'destructive', title: 'Lỗi tính toán', description: getFriendlyError(error) })
                 setActionBooking(null)
               } finally {
                 setIsActionLoading(false)
@@ -2095,7 +2096,7 @@ export function BookingsPage() {
               setCheckoutCostBreakdown(costBreakdown)
               setShowCheckoutSummary(true)
             } catch (error: any) {
-              toast({ variant: 'destructive', title: 'Lỗi tính toán', description: error.message })
+              toast({ variant: 'destructive', title: 'Lỗi tính toán', description: getFriendlyError(error) })
               setActionBooking(null)
             } finally {
               setIsActionLoading(false)

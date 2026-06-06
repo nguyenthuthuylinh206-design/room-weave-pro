@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
 import { ROOM_STATUS_META_V2 } from '@/lib/roomStatus'
 import type { RoomStatusV2 } from '@/types/rooms.types'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export interface RoomTransitionInput {
   roomId: string
@@ -80,7 +81,7 @@ export function useRoomTransition() {
     onError: (error) => {
       toast({
         title: 'Không cập nhật được trạng thái',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },

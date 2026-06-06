@@ -22,6 +22,7 @@ import { useSuperAdminBankPaymentSettings } from '@/hooks/useBankPaymentSettings
 import { PRICE_PER_ROOM_DAILY, formatVNCurrency } from '@/lib/pricing';
 import { BankTransferPaymentDialog } from '@/components/payment/BankTransferPaymentDialog';
 import { supabase } from '@/integrations/supabase/client';
+import { getFriendlyError } from '@/lib/errorMessage'
 
 interface AddRoomsDialogProps {
   open: boolean;
@@ -91,7 +92,7 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
       });
       onOpenChange(false);
     } catch (error: any) {
-      toast({ title: 'Lỗi', description: error.message, variant: 'destructive' });
+      toast({ title: 'Lỗi', description: getFriendlyError(error), variant: 'destructive' });
     } finally {
       setIsAddingFreeRooms(false);
     }

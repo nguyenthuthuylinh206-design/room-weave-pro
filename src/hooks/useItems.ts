@@ -5,6 +5,7 @@ import { useUser } from './useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from './use-toast'
 import type { ItemWithCategory, ItemFilters } from '@/types/items.types'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export function useItems(
   filters: ItemFilters = {},
@@ -300,7 +301,7 @@ export function useCreateItem() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -355,7 +356,7 @@ export function useUpdateItem() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -397,7 +398,7 @@ export function useDeleteItems() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },

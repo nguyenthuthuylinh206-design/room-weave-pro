@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
 import { toast } from '@/hooks/use-toast'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export interface Position {
   id: string
@@ -76,7 +77,7 @@ export function useCreatePosition() {
       toast({
         variant: 'destructive',
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
       })
     },
   })
@@ -108,7 +109,7 @@ export function useUpdatePosition() {
       toast({
         variant: 'destructive',
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
       })
     },
   })
@@ -137,7 +138,7 @@ export function useDeletePosition() {
       toast({
         variant: 'destructive',
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
       })
     },
   })
