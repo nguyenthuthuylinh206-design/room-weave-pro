@@ -64,7 +64,7 @@ export function DashboardStatCard({
       )}
       onClick={onClick}
     >
-      <Icon className="h-5 w-5 text-muted-foreground shrink-0" />
+      <Icon className="h-6 w-6 text-muted-foreground shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="text-xs text-muted-foreground truncate">{title}</p>
         <p className={cn("font-bold", isCompact ? "text-lg" : "text-xl")}>{value}</p>
