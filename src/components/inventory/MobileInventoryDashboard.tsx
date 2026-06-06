@@ -42,6 +42,11 @@ export function MobileInventoryDashboard() {
     <div className="space-y-5 pb-32">
       <MobileInventoryHero />
 
+      {/* Quick search — đồng nhất với desktop hub */}
+      <div className="px-4">
+        <InventoryQuickSearch />
+      </div>
+
       {/* Task-first hero — đồng nhất với desktop hub */}
       <div className="px-4">
         <InventoryTodoCard onNavigate={handleNavigate} />
