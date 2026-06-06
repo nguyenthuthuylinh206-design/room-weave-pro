@@ -9,9 +9,11 @@ import { MobileDashboard } from '@/components/dashboard/MobileDashboard'
 import { HotelBreakdownCards } from '@/components/dashboard/HotelBreakdownCards'
 import { OwnerDashboard } from '@/components/dashboard/owner'
 import { ShiftCheckInCard } from '@/components/staff/ShiftCheckInCard'
+import { StaffTasksTab } from '@/components/housekeeping/StaffTasksTab'
 import { Package, Wind, AlertTriangle, BarChart3 } from 'lucide-react'
 import { useUser } from '@/hooks/useUser'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
+import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { useTranslation } from 'react-i18next'
@@ -23,10 +25,16 @@ export default function Dashboard() {
   const { user, role } = useUser()
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const { data: stats, isLoading } = useDashboardStats()
+  const { data: modulePerms } = useUserModulePermissions()
   const { isMobile } = useBreakpoint()
 
   const canViewInventory = hasPermission(role, 'view_items')
   const canViewLaundry = hasPermission(role, 'view_laundry')
+
+  // RPC-based — chính xác hơn role check khi staff bị thu hồi quyền inventory
+  const hasInventoryModuleAccess = (modulePerms ?? []).some(
+    (p) => (p.module === 'items' || p.module === 'inventory') && p.can_view,
+  )
 
   // Super Admin should use their dedicated dashboard
   if (isSuperAdmin(user)) {
@@ -35,18 +43,45 @@ export default function Dashboard() {
 
   // Check if user is owner (tenant_owner) - show executive dashboard
   const isOwner = isTenantOwner(user)
-  
+
   // Check if user is staff - show shift check-in card
   const isStaffUser = isStaff(user)
+
+  // Department-based routing — housekeeping staff trên mobile vào thẳng dashboard chuyên dụng
+  const department = (user as any)?.position?.department as string | undefined
 
   // Owner view - Financial focus
   if (isOwner) {
     return <OwnerDashboard />
   }
 
-  // Mobile view for managers/staff
+  // Housekeeping staff trên mobile → dashboard chuyên dụng
+  if (isMobile && department === 'housekeeping') {
+    return <Navigate to="/staff/housekeeping" replace />
+  }
+
+  // Mobile view for managers/staff (MobileDashboard đã ưu tiên ShiftCheckInCard ở đầu)
   if (isMobile) {
     return <MobileDashboard />
+  }
+
+  // Desktop: staff không có quyền inventory → ẩn stat cards, focus ca trực + task hôm nay
+  if (isStaffUser && !hasInventoryModuleAccess && !canViewInventory && !canViewLaundry) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title={t('welcome', { name: user?.full_name || 'User' })}
+          description={t('overview')}
+        />
+        <ShiftCheckInCard />
+        <div className="rounded-lg border bg-card">
+          <div className="border-b px-4 py-3">
+            <h2 className="text-sm font-semibold">Công việc hôm nay</h2>
+          </div>
+          <StaffTasksTab />
+        </div>
+      </div>
+    )
   }
 
   if (isLoading) {
