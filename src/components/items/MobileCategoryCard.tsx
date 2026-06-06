@@ -1,5 +1,10 @@
+import { useState } from 'react'
 import { ChevronRight, Edit2, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import type { CategoryWithStats } from '@/types/items.types'
 
 interface MobileCategoryCardProps {
@@ -17,7 +22,9 @@ export function MobileCategoryCard({
   onDelete,
   showActions = false 
 }: MobileCategoryCardProps) {
+  const [confirmOpen, setConfirmOpen] = useState(false)
   return (
+    <>
     <div 
       className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
       onClick={onClick}
