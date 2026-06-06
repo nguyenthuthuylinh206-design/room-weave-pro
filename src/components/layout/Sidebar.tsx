@@ -123,11 +123,19 @@ const navigation: NavItem[] = [
       { titleKey: 'roomsList', href: '/rooms', icon: List, group: 'Quản lý phòng' },
       { titleKey: 'roomStandards', href: '/rooms/standards', icon: Settings, minMode: 'standard', group: 'Quản lý phòng' },
       { titleKey: 'addRoom', href: '/rooms/new', icon: Plus, group: 'Quản lý phòng' },
-      { titleKey: 'bookings', href: '/bookings', icon: CalendarDays, group: 'Đặt phòng & Khách' },
-      { titleKey: 'guests', href: '/guests', icon: Users, group: 'Đặt phòng & Khách' },
-      { titleKey: 'guestInvoices', href: '/guest-invoices', icon: FileText, group: 'Đặt phòng & Khách' },
-      { titleKey: 'stayRegistrations', href: '/legal/stay-registrations', icon: ClipboardList, group: 'Đặt phòng & Khách' },
       { titleKey: 'lostFound', href: '/lost-found', icon: PackageSearch, group: 'Khác' },
+    ],
+  },
+  {
+    titleKey: 'reservations',
+    icon: CalendarDays,
+    roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
+    minMode: 'homestay',
+    children: [
+      { titleKey: 'bookings', href: '/bookings', icon: CalendarDays, group: 'Đặt phòng' },
+      { titleKey: 'guests', href: '/guests', icon: Users, group: 'Khách' },
+      { titleKey: 'guestInvoices', href: '/guest-invoices', icon: FileText, group: 'Khách' },
+      { titleKey: 'stayRegistrations', href: '/legal/stay-registrations', icon: ClipboardList, group: 'Khác' },
     ],
   },
   {
