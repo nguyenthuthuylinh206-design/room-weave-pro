@@ -22,7 +22,7 @@ export function SuperAdminQuickActions() {
       icon: Plus,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
-      onClick: () => navigate('/admin/promo-codes'),
+      onClick: () => navigate('/super-admin/promo-codes'),
     },
     {
       title: 'Khởi chạy chiến dịch',
@@ -30,7 +30,7 @@ export function SuperAdminQuickActions() {
       icon: TrendingUp,
       color: 'text-green-600',
       bgColor: 'bg-green-50',
-      onClick: () => navigate('/admin/campaigns'),
+      onClick: () => navigate('/super-admin/campaigns'),
     },
     {
       title: 'Lên lịch nhắc nhở',
@@ -47,7 +47,7 @@ export function SuperAdminQuickActions() {
       icon: Send,
       color: 'text-orange-600',
       bgColor: 'bg-orange-50',
-      onClick: () => navigate('/admin/reminders'),
+      onClick: () => navigate('/super-admin/reminders'),
     },
   ];
 
