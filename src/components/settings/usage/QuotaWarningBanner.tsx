@@ -94,7 +94,7 @@ export function QuotaWarningBanner({ onDismiss }: { onDismiss?: () => void } = {
           variant="ghost"
           size="icon"
           className="h-6 w-6 shrink-0"
-          onClick={() => setDismissed(true)}
+          onClick={() => { setDismissed(true); onDismiss?.() }}
         >
           <X className="h-4 w-4" />
         </Button>
