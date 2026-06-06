@@ -79,6 +79,7 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
   const canViewRoomDetail = hasPermission(role, 'manage_rooms') || role !== 'staff'
   const canCreateTask = canCreateHousekeepingTask(user)
   const { styles } = useRoomViewDensity(selectedHotel?.id)
+  const { guard: guardShift, isOnShift, requiresShift } = useRequireShift()
 
   // Tick mỗi 60s để recompute countdown trả phòng
   const [nowTick, setNowTick] = useState(() => Date.now())
