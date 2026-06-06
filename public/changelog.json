@@ -1,6 +1,18 @@
 {
-  "current": "1.1.82",
+  "current": "1.1.83",
   "versions": [
+    {
+      "version": "1.1.83",
+      "date": "2026-06-06",
+      "title": "Bảo mật: gỡ password plaintext, vá XSS hoá đơn, khoá AI scan & sửa lương",
+      "highlights": [
+        "**Gỡ lưu password plaintext (P0)** — `credential-manager` không còn ghi `{email,password}` XOR vào localStorage. Auto-login PWA dùng refresh token Supabase + PasswordCredential API; legacy key `app_saved_credential_v1` được purge ngay lần gọi đầu",
+        "**Vá XSS hoá đơn (P0)** — Thêm helper `esc()` HTML-escape mọi field do khách nhập (tên, SĐT, địa chỉ, MST, công ty, mô tả line-item, tên/MST khách sạn, số hoá đơn, label QR) trong cả template biên lai K58/K80, A4/A5, sync legacy và cửa sổ in/QR slip",
+        "**Khoá AI scan giấy tờ (P1)** — `scan-guest-document` edge function bắt buộc Bearer JWT, verify qua `auth.getUser`, lấy `tenant_id` từ bảng `users` (bỏ tham số `tenantId` do client gửi). Request ẩn danh → 401 'Yêu cầu đăng nhập'",
+        "**Email nội bộ chỉ người nhận đọc (P1)** — RLS `email_notifications` siết về `user_id = auth.uid()` cho nhân viên; tenant_owner/manager/super_admin vẫn xem được toàn bộ tenant",
+        "**Chặn tự sửa lương (P0)** — Trigger `prevent_unauthorized_salary_change` trên `users` raise `SALARY_CHANGE_NOT_ALLOWED` / `WAGE_CHANGE_NOT_ALLOWED` khi không phải tenant_owner/super_admin sửa `monthly_salary_vnd`/`hourly_wage_vnd`"
+      ]
+    },
     {
       "version": "1.1.82",
       "date": "2026-06-05",

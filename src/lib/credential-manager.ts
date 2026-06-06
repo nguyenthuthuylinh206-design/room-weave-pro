@@ -5,61 +5,46 @@ declare global {
   }
 }
 
-const STORAGE_KEY = 'app_saved_credential_v1';
+const LEGACY_STORAGE_KEY = 'app_saved_credential_v1';
 const LOGGED_OUT_FLAG = 'app_user_logged_out_v1';
 
 /**
- * Simple XOR-based obfuscation. NOT cryptographically secure — just prevents
- * casual reading of localStorage. For true security, use the browser's native
- * password manager (which we also try via PasswordCredential API).
+ * SECURITY: We no longer persist plaintext passwords (even XOR-obfuscated) in
+ * localStorage. Auto-login for PWA relies on the Supabase refresh token that
+ * supabase-js already keeps in storage, plus the browser's native
+ * PasswordCredential API (Chrome/Edge desktop) when available.
+ *
+ * Any legacy payload left over from older builds is purged on first call.
  */
-const OBFUSCATION_KEY = 'rwp-2026-keychain-fallback-key';
-
-function obfuscate(text: string): string {
-  const result: number[] = [];
-  for (let i = 0; i < text.length; i++) {
-    result.push(text.charCodeAt(i) ^ OBFUSCATION_KEY.charCodeAt(i % OBFUSCATION_KEY.length));
-  }
-  // Convert to base64 for safe storage
-  return btoa(String.fromCharCode(...result));
-}
-
-function deobfuscate(encoded: string): string {
+function purgeLegacy(): void {
   try {
-    const decoded = atob(encoded);
-    const result: string[] = [];
-    for (let i = 0; i < decoded.length; i++) {
-      result.push(String.fromCharCode(decoded.charCodeAt(i) ^ OBFUSCATION_KEY.charCodeAt(i % OBFUSCATION_KEY.length)));
-    }
-    return result.join('');
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
   } catch {
-    return '';
+    // ignore
   }
 }
 
 /**
- * Store credentials to:
- * 1. Browser PasswordCredential API (Chrome/Edge desktop)
- * 2. Local encrypted storage (mobile/PWA fallback — works on all platforms)
+ * Save credential.
+ *   - Never persists the raw password to localStorage.
+ *   - Hands password to the browser's native PasswordCredential API when
+ *     supported (so the OS/browser password manager can resume sessions).
+ *   - Clears the "explicitly logged out" flag so PWA auto-login can resume.
  */
 export async function storeCredential(email: string, password: string): Promise<boolean> {
-  // Always save to local storage (works on every platform including iOS PWA)
+  purgeLegacy();
+
   try {
-    const payload = JSON.stringify({ email, password, savedAt: Date.now() });
-    localStorage.setItem(STORAGE_KEY, obfuscate(payload));
-    // User vừa đăng nhập thành công → xoá cờ logged-out để auto-login PWA hoạt động
     localStorage.removeItem(LOGGED_OUT_FLAG);
-    console.log('[Credential] Saved to local storage');
-  } catch (error) {
-    console.warn('[Credential] Failed to save to local storage:', error);
+  } catch {
+    // ignore
   }
 
-  // Also try native PasswordCredential API (Chrome/Edge desktop)
-  if ('PasswordCredential' in window) {
+  if (typeof window !== 'undefined' && 'PasswordCredential' in window) {
     try {
       const credential = new window.PasswordCredential({
         id: email,
-        password: password,
+        password,
         name: email,
       });
       await navigator.credentials.store(credential);
@@ -73,31 +58,22 @@ export async function storeCredential(email: string, password: string): Promise<
 }
 
 /**
- * Get locally stored credential (works on all platforms — mobile included).
+ * Legacy API kept for backwards compatibility.
+ * We no longer persist plaintext passwords, so this always returns null.
+ * Callers should rely on supabase.auth.getSession() / refreshSession() for
+ * resuming sessions, and getStoredCredential() for native browser autofill.
  */
 export function getLocalCredential(): { email: string; password: string } | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const decoded = deobfuscate(raw);
-    if (!decoded) return null;
-    const parsed = JSON.parse(decoded);
-    if (parsed.email && parsed.password) {
-      return { email: parsed.email, password: parsed.password };
-    }
-  } catch (error) {
-    console.warn('[Credential] Failed to read local credential:', error);
-  }
+  purgeLegacy();
   return null;
 }
 
 /**
- * Clear locally stored credential.
+ * Clear any locally cached credential state and mark explicit logout.
  */
 export function clearLocalCredential(): void {
   try {
-    localStorage.removeItem(STORAGE_KEY);
-    // Đánh dấu user đã logout chủ động → PWA không auto-login lại
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
     localStorage.setItem(LOGGED_OUT_FLAG, '1');
   } catch {
     // ignore
@@ -105,8 +81,7 @@ export function clearLocalCredential(): void {
 }
 
 /**
- * User đã chủ động đăng xuất trong lần dùng app gần nhất?
- * Dùng để chặn auto-login PWA cho đến khi đăng nhập tay 1 lần nữa.
+ * User explicitly logged out in last session?
  */
 export function wasExplicitlyLoggedOut(): boolean {
   try {
@@ -121,7 +96,7 @@ export function wasExplicitlyLoggedOut(): boolean {
  * Returns null if no credentials found or user cancels.
  */
 export async function getStoredCredential(): Promise<{ email: string; password: string } | null> {
-  if (!('credentials' in navigator)) {
+  if (typeof navigator === 'undefined' || !('credentials' in navigator)) {
     return null;
   }
 

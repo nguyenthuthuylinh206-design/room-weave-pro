@@ -19,6 +19,21 @@ function formatVND(amount: number): string {
 }
 
 /**
+ * Escape user-controlled strings before embedding into HTML templates that
+ * are later rendered via dangerouslySetInnerHTML / document.write. Prevents
+ * stored XSS via guest data, line item descriptions, hotel info, etc.
+ */
+function esc(value: unknown): string {
+  if (value === null || value === undefined) return ''
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+/**
  * Chuẩn hoá thuế suất hiển thị về số phần trăm nguyên.
  * - Quy ước mới: lưu integer % (8, 10, 5).
  * - Tương thích ngược: dữ liệu cũ lưu decimal (0.08, 0.1) — nếu < 1 thì × 100.
@@ -92,7 +107,7 @@ function qrBlockReceipt(qr: string, label: string, size: number) {
     <div style="text-align:center;margin-top:10px;padding-top:8px;border-top:1px dashed #999;">
       <div style="font-weight:700;margin-bottom:4px;">QUÉT MÃ LẤY HOÁ ĐƠN VAT</div>
       <img src="${qr}" alt="QR" style="width:${size}px;height:${size}px;display:block;margin:0 auto;" />
-      <div style="font-size:10px;color:#555;margin-top:4px;line-height:1.3;">${label}</div>
+      <div style="font-size:10px;color:#555;margin-top:4px;line-height:1.3;">${esc(label)}</div>
     </div>`
 }
 
@@ -104,7 +119,7 @@ function qrBlockA4(qr: string, label: string) {
       <div style="font-size:12px;line-height:1.5;">
         <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Lấy hoá đơn VAT điện tử</div>
         <div style="color:#444;">Quý khách dùng camera điện thoại quét mã QR bên trái, nhập thông tin công ty và email để nhận hoá đơn GTGT điện tử qua email.</div>
-        <div style="color:#888;font-size:11px;margin-top:4px;">${label}</div>
+        <div style="color:#888;font-size:11px;margin-top:4px;">${esc(label)}</div>
       </div>
     </div>`
 }
@@ -125,24 +140,24 @@ async function buildReceiptHTML(
   return `
     <div id="invoice-pdf" style="width:${config.width}px;padding:${config.padding};font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:${config.fontSize}px;color:#111;background:#fff;line-height:1.4;word-wrap:break-word;">
       <div style="text-align:center;margin-bottom:4px;">
-        <div style="font-size:${config.fontSize + 2}px;font-weight:700;">${hotelInfo?.name || 'KHÁCH SẠN'}</div>
-        ${hotelInfo?.address ? `<div style="font-size:${config.fontSize - 1}px;color:#555;">${hotelInfo.address}</div>` : ''}
-        ${hotelInfo?.phone ? `<div style="font-size:${config.fontSize - 1}px;color:#555;">ĐT: ${hotelInfo.phone}</div>` : ''}
-        ${hotelInfo?.taxCode ? `<div style="font-size:${config.fontSize - 1}px;color:#555;">MST: ${hotelInfo.taxCode}</div>` : ''}
+        <div style="font-size:${config.fontSize + 2}px;font-weight:700;">${esc(hotelInfo?.name || 'KHÁCH SẠN')}</div>
+        ${hotelInfo?.address ? `<div style="font-size:${config.fontSize - 1}px;color:#555;">${esc(hotelInfo.address)}</div>` : ''}
+        ${hotelInfo?.phone ? `<div style="font-size:${config.fontSize - 1}px;color:#555;">ĐT: ${esc(hotelInfo.phone)}</div>` : ''}
+        ${hotelInfo?.taxCode ? `<div style="font-size:${config.fontSize - 1}px;color:#555;">MST: ${esc(hotelInfo.taxCode)}</div>` : ''}
       </div>
       <div style="text-align:center;margin:8px 0 6px;border-top:1px dashed #999;border-bottom:1px dashed #999;padding:4px 0;">
         <div style="font-size:${config.fontSize + 3}px;font-weight:700;">PHIẾU THANH TOÁN</div>
-        <div style="font-size:${config.fontSize - 1}px;color:#555;">${invoice.invoice_number}</div>
-        <div style="font-size:${config.fontSize - 1}px;color:#555;">${new Date(invoice.issued_at || invoice.created_at).toLocaleString('vi-VN')}</div>
+        <div style="font-size:${config.fontSize - 1}px;color:#555;">${esc(invoice.invoice_number)}</div>
+        <div style="font-size:${config.fontSize - 1}px;color:#555;">${esc(new Date(invoice.issued_at || invoice.created_at).toLocaleString('vi-VN'))}</div>
       </div>
       <div style="margin-bottom:6px;line-height:1.5;">
-        <div>Khách: ${invoice.guest_name}</div>
-        ${invoice.room_number ? `<div>Phòng: ${invoice.room_number}</div>` : ''}
+        <div>Khách: ${esc(invoice.guest_name)}</div>
+        ${invoice.room_number ? `<div>Phòng: ${esc(invoice.room_number)}</div>` : ''}
       </div>
       <div style="border-top:1px dashed #999;border-bottom:1px dashed #999;padding:4px 0;margin-bottom:4px;">
         ${lineItems.map(item => `
           <div style="padding:2px 0;">
-            <div style="word-break:break-word;">${item.description || ''}</div>
+            <div style="word-break:break-word;">${esc(item.description || '')}</div>
             <div style="display:flex;justify-content:space-between;">
               <span style="color:#555;">${item.quantity} × ${formatVND(item.unit_price)}</span>
               <span style="font-weight:600;">${formatVND(item.amount)}</span>
@@ -161,7 +176,7 @@ async function buildReceiptHTML(
         ${invoice.amount_paid > 0 ? `<div style="display:flex;justify-content:space-between;"><span>Đã TT:</span><span>${formatVND(invoice.amount_paid)}</span></div>` : ''}
         ${remaining > 0 ? `<div style="display:flex;justify-content:space-between;font-weight:600;"><span>Còn lại:</span><span>${formatVND(remaining)}</span></div>` : ''}
         ${remaining < 0 ? `<div style="display:flex;justify-content:space-between;font-weight:600;"><span>Tiền thừa trả khách:</span><span>${formatVND(Math.abs(remaining))}</span></div>` : ''}
-        ${invoice.payment_method ? `<div style="display:flex;justify-content:space-between;margin-top:2px;"><span>Hình thức:</span><span>${paymentMethodLabel(invoice.payment_method)}</span></div>` : ''}
+        ${invoice.payment_method ? `<div style="display:flex;justify-content:space-between;margin-top:2px;"><span>Hình thức:</span><span>${esc(paymentMethodLabel(invoice.payment_method))}</span></div>` : ''}
       </div>
       ${qrBlockReceipt(qr, qrLabel, qrSize)}
       <div style="text-align:center;margin-top:8px;font-size:${config.fontSize - 1}px;color:#888;line-height:1.5;">
@@ -186,23 +201,23 @@ async function buildSheetHTML(
   return `
     <div id="invoice-pdf" style="width:${config.width}px;padding:${config.padding};font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:${config.fontSize}px;color:#111;background:#fff;">
       <div style="text-align:center;margin-bottom:8px;">
-        <div style="font-size:${config.fontSize + 5}px;font-weight:700;">${hotelInfo?.name || 'KHÁCH SẠN'}</div>
-        ${hotelInfo?.address ? `<div style="font-size:${config.fontSize - 2}px;color:#555;">${hotelInfo.address}</div>` : ''}
-        ${hotelInfo?.phone ? `<div style="font-size:${config.fontSize - 2}px;color:#555;">ĐT: ${hotelInfo.phone}</div>` : ''}
-        ${hotelInfo?.taxCode ? `<div style="font-size:${config.fontSize - 2}px;color:#555;">MST: ${hotelInfo.taxCode}</div>` : ''}
+        <div style="font-size:${config.fontSize + 5}px;font-weight:700;">${esc(hotelInfo?.name || 'KHÁCH SẠN')}</div>
+        ${hotelInfo?.address ? `<div style="font-size:${config.fontSize - 2}px;color:#555;">${esc(hotelInfo.address)}</div>` : ''}
+        ${hotelInfo?.phone ? `<div style="font-size:${config.fontSize - 2}px;color:#555;">ĐT: ${esc(hotelInfo.phone)}</div>` : ''}
+        ${hotelInfo?.taxCode ? `<div style="font-size:${config.fontSize - 2}px;color:#555;">MST: ${esc(hotelInfo.taxCode)}</div>` : ''}
       </div>
       <div style="text-align:center;margin:16px 0 12px;">
         <div style="font-size:${config.fontSize + 7}px;font-weight:700;">HÓA ĐƠN THANH TOÁN</div>
-        <div style="font-size:${config.fontSize - 1}px;color:#555;">Số: ${invoice.invoice_number} · ${new Date(invoice.issued_at || invoice.created_at).toLocaleString('vi-VN')}</div>
+        <div style="font-size:${config.fontSize - 1}px;color:#555;">Số: ${esc(invoice.invoice_number)} · ${esc(new Date(invoice.issued_at || invoice.created_at).toLocaleString('vi-VN'))}</div>
       </div>
       <div style="margin-bottom:12px;line-height:1.8;">
-        <div><b>Khách hàng:</b> ${invoice.guest_name}</div>
-        ${invoice.guest_phone ? `<div><b>SĐT:</b> ${invoice.guest_phone}</div>` : ''}
-        ${invoice.guest_address ? `<div><b>Địa chỉ:</b> ${invoice.guest_address}</div>` : ''}
-        ${invoice.guest_tax_code ? `<div><b>MST:</b> ${invoice.guest_tax_code}</div>` : ''}
-        ${invoice.company_name ? `<div><b>Công ty:</b> ${invoice.company_name}</div>` : ''}
-        ${invoice.room_number ? `<div><b>Phòng:</b> ${invoice.room_number}</div>` : ''}
-        ${invoice.check_in_date && invoice.check_out_date ? `<div><b>Thời gian:</b> ${invoice.check_in_date} → ${invoice.check_out_date}</div>` : ''}
+        <div><b>Khách hàng:</b> ${esc(invoice.guest_name)}</div>
+        ${invoice.guest_phone ? `<div><b>SĐT:</b> ${esc(invoice.guest_phone)}</div>` : ''}
+        ${invoice.guest_address ? `<div><b>Địa chỉ:</b> ${esc(invoice.guest_address)}</div>` : ''}
+        ${invoice.guest_tax_code ? `<div><b>MST:</b> ${esc(invoice.guest_tax_code)}</div>` : ''}
+        ${invoice.company_name ? `<div><b>Công ty:</b> ${esc(invoice.company_name)}</div>` : ''}
+        ${invoice.room_number ? `<div><b>Phòng:</b> ${esc(invoice.room_number)}</div>` : ''}
+        ${invoice.check_in_date && invoice.check_out_date ? `<div><b>Thời gian:</b> ${esc(invoice.check_in_date)} → ${esc(invoice.check_out_date)}</div>` : ''}
       </div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
         <thead>
@@ -218,7 +233,7 @@ async function buildSheetHTML(
           ${lineItems.map((item, i) => `
             <tr style="border-bottom:1px solid #ddd;">
               <td style="padding:5px 4px;">${i + 1}</td>
-              <td style="padding:5px 4px;">${item.description || ''}</td>
+              <td style="padding:5px 4px;">${esc(item.description || '')}</td>
               <td style="text-align:right;padding:5px 4px;">${item.quantity}</td>
               <td style="text-align:right;padding:5px 4px;font-family:monospace;">${formatVND(item.unit_price)}</td>
               <td style="text-align:right;padding:5px 4px;font-family:monospace;">${formatVND(item.amount)}</td>
@@ -236,7 +251,7 @@ async function buildSheetHTML(
           ${invoice.amount_paid > 0 ? `<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Đã thanh toán:</span><span style="font-family:monospace;">${formatVND(invoice.amount_paid)}</span></div>` : ''}
           ${remaining > 0 ? `<div style="display:flex;justify-content:space-between;padding:3px 0;color:#c00;font-weight:600;"><span>Còn lại:</span><span style="font-family:monospace;">${formatVND(remaining)}</span></div>` : ''}
           ${remaining < 0 ? `<div style="display:flex;justify-content:space-between;padding:3px 0;font-weight:600;"><span>Tiền thừa trả khách:</span><span style="font-family:monospace;">${formatVND(Math.abs(remaining))}</span></div>` : ''}
-          ${invoice.payment_method ? `<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Hình thức thanh toán:</span><span>${paymentMethodLabel(invoice.payment_method)}</span></div>` : ''}
+          ${invoice.payment_method ? `<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Hình thức thanh toán:</span><span>${esc(paymentMethodLabel(invoice.payment_method))}</span></div>` : ''}
         </div>
       </div>
       ${qrBlockA4(qr, qrLabel)}
@@ -269,10 +284,10 @@ export function buildInvoiceHTML(
     const lineItems = invoice.line_items || []
     const remaining = invoice.total_amount - invoice.amount_paid - (invoice.deposit_amount || 0)
     return `<div id="invoice-pdf" style="width:${config.width}px;padding:${config.padding};font-family:'Segoe UI',Arial,sans-serif;font-size:${config.fontSize}px;color:#111;background:#fff;">
-      <div style="text-align:center;font-weight:700;">${hotelInfo?.name || 'KHÁCH SẠN'}</div>
-      <div style="text-align:center;border-top:1px dashed #999;border-bottom:1px dashed #999;padding:4px 0;margin:6px 0;font-weight:700;">${invoice.invoice_number}</div>
-      <div>Khách: ${invoice.guest_name}</div>
-      ${lineItems.map(i => `<div style="display:flex;justify-content:space-between;"><span>${i.description}</span><span>${formatVND(i.amount)}</span></div>`).join('')}
+      <div style="text-align:center;font-weight:700;">${esc(hotelInfo?.name || 'KHÁCH SẠN')}</div>
+      <div style="text-align:center;border-top:1px dashed #999;border-bottom:1px dashed #999;padding:4px 0;margin:6px 0;font-weight:700;">${esc(invoice.invoice_number)}</div>
+      <div>Khách: ${esc(invoice.guest_name)}</div>
+      ${lineItems.map(i => `<div style="display:flex;justify-content:space-between;"><span>${esc(i.description)}</span><span>${formatVND(i.amount)}</span></div>`).join('')}
       <div style="border-top:1px dashed #999;margin-top:4px;padding-top:4px;display:flex;justify-content:space-between;font-weight:700;"><span>TỔNG:</span><span>${formatVND(invoice.total_amount)}</span></div>
       ${remaining > 0 ? `<div style="display:flex;justify-content:space-between;"><span>Còn lại:</span><span>${formatVND(remaining)}</span></div>` : ''}
     </div>`
@@ -366,7 +381,7 @@ export async function printInvoice(
     <!DOCTYPE html>
     <html><head>
       <meta charset="utf-8" />
-      <title>${invoice.invoice_number}</title>
+      <title>${esc(invoice.invoice_number)}</title>
       <style>
         ${pageCSS(paperSize)}
         html, body { margin: 0; padding: 0; background: #fff; }
@@ -394,7 +409,7 @@ export async function printVatQrSlip(
   if (!printWindow) return
   printWindow.document.write(`
     <!DOCTYPE html>
-    <html><head><meta charset="utf-8" /><title>QR VAT ${invoice.invoice_number}</title>
+    <html><head><meta charset="utf-8" /><title>QR VAT ${esc(invoice.invoice_number)}</title>
     <style>
       @page { size: 80mm auto; margin: 3mm; }
       html, body { margin: 0; padding: 0; font-family: Arial, sans-serif; background: #fff; }
@@ -406,9 +421,9 @@ export async function printVatQrSlip(
       .hint { font-size: 11px; color: #333; margin-top: 6px; line-height: 1.4; }
     </style></head>
     <body><div class="wrap">
-      <div class="hotel">${hotelInfo?.name || ''}</div>
+      <div class="hotel">${esc(hotelInfo?.name || '')}</div>
       <div class="title">LẤY HOÁ ĐƠN VAT</div>
-      <div class="num">${invoice.invoice_number}</div>
+      <div class="num">${esc(invoice.invoice_number)}</div>
       <img src="${qr}" alt="QR" />
       <div class="hint">Quét mã bằng camera điện thoại, nhập thông tin công ty & email để nhận hoá đơn GTGT điện tử.</div>
     </div></body></html>
