@@ -31,6 +31,7 @@ import { calcRoomPriority, getMissingDisplay, isOccupiedStatus, type PriorityTie
 import { getRoomStatusDotClass, getRoomStatusTextClass } from '@/lib/roomStatus'
 import { useRoomViewDensity } from '@/hooks/useRoomViewDensity'
 import { useHotelContext } from '@/contexts/HotelContext'
+import { useRequireShift } from '@/contexts/RequireShiftContext'
 import type { RoomWithStats } from '@/types/rooms.types'
 
 type ManualTaskType = 'checkout_inspection' | 'cleaning' | 'checkin_prep' | 'amenity_request' | 'other'
