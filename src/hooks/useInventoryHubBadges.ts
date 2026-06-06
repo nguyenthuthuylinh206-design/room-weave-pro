@@ -72,20 +72,23 @@ export function useInventoryHubBadges() {
         .eq('tenant_id', tenantId)
         .eq('status', 'pending')
 
-      // "Cần xử lý" chỉ tính phiếu chưa được ai thao tác:
-      // pending (chờ duyệt) + approved (đã duyệt, chờ giao).
-      // KHÔNG tính in_progress vì đang được xử lý rồi.
+      // "Cần xử lý" = phiếu chờ thao tác của manager:
+      // pending (chờ duyệt) + released (đã xuất kho, chờ phòng confirm).
+      // KHÔNG tính in_progress (đang giao) / completed / cancelled.
+      // Enum thực tế: pending | in_progress | released | completed | cancelled.
       const distQ = supabase
         .from('distribution_orders')
         .select('id', { count: 'exact', head: true })
         .eq('tenant_id', tenantId)
-        .in('status', ['pending', 'approved'])
+        .in('status', ['pending', 'released'])
 
+      // Phiếu kiểm kê đang xử lý = draft + in_progress + approved (chờ complete).
+      // Enum thực tế: draft | in_progress | approved | completed (KHÔNG có 'pending').
       const adjQ = supabase
         .from('stock_adjustments')
         .select('id', { count: 'exact', head: true })
         .eq('tenant_id', tenantId)
-        .eq('status', 'pending')
+        .in('status', ['draft', 'in_progress', 'approved'])
 
       if (hotelId) {
         reorderQ.eq('hotel_id', hotelId)

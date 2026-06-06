@@ -46,7 +46,7 @@ export function CombinedStockAlerts() {
       <div className="grid grid-cols-3 divide-x border-b">
         <button
           type="button"
-          onClick={() => navigate('/inventory?tab=analytics&sub=consumption')}
+          onClick={() => navigate('/inventory?tab=operations&sub=reorder')}
           className="px-3 py-2 text-left hover:bg-muted/40 transition-colors"
         >
           <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Sắp hết &lt;7d</div>

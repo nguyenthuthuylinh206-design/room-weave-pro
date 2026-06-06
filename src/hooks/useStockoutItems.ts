@@ -3,14 +3,18 @@ import {
   useLatestConsumptionSnapshots,
 } from '@/hooks/useConsumptionAnalytics'
 import { useLowStockItems } from '@/hooks/useInventoryDashboard'
+import { useOutOfStockCount } from '@/hooks/useOutOfStockCount'
 import type { ConsumptionSnapshot } from '@/types/inventory-analytics.types'
 
 /**
  * Centralized stockout selectors for Inventory Hub.
  *
- * Note (Batch 2): `useLatestConsumptionSnapshots` giờ đã DISTINCT ON server-side
- * (RPC `get_latest_consumption_snapshots`) nên rows trả về đã 1-row/item.
- * Hook này giữ logic dedup defensive (idempotent) phòng RPC trả trùng do bug.
+ * Notes:
+ * - `useLatestConsumptionSnapshots` đã DISTINCT ON server-side (RPC
+ *   `get_latest_consumption_snapshots`) nên rows trả về đã 1-row/item.
+ *   Vẫn dedup defensive phòng RPC bug.
+ * - `outOfStockCount` ưu tiên `useOutOfStockCount` (head-only count, không
+ *   bị giới hạn 200 dòng như `useLowStockItems`).
  */
 export interface StockoutData {
   /** Latest snapshot per item_id (deduped). */
@@ -32,6 +36,8 @@ export function useStockoutItems(forecastTopN: number = 8): StockoutData {
   const { data: snapshots, isLoading: snapLoading } =
     useLatestConsumptionSnapshots(500)
   const { data: lowItems, isLoading: lowLoading } = useLowStockItems(200)
+  const { data: outOfStockCountAccurate, isLoading: ooLoading } =
+    useOutOfStockCount()
 
   return useMemo<StockoutData>(() => {
     // 1. Dedup snapshots: keep latest row per item_id by snapshot_date.
@@ -63,11 +69,14 @@ export function useStockoutItems(forecastTopN: number = 8): StockoutData {
         s.stock_days_remaining < 14,
     )
 
-    // "Đã hết" — use real on-hand stock from low-stock RPC (truth of record)
-    // rather than forecasted days_remaining (which is a projection).
-    const outOfStockCount = (lowItems ?? []).filter(
+    // "Đã hết" — ưu tiên count chuẩn từ DB; fallback về lowItems nếu chưa load.
+    const fallbackOutOfStock = (lowItems ?? []).filter(
       (it: any) => Number(it.quantity_in_stock ?? 0) === 0,
     ).length
+    const outOfStockCount =
+      typeof outOfStockCountAccurate === 'number'
+        ? outOfStockCountAccurate
+        : fallbackOutOfStock
 
     return {
       latestById,
@@ -76,7 +85,8 @@ export function useStockoutItems(forecastTopN: number = 8): StockoutData {
       forecast14dCount: forecast14d.length,
       outOfStockCount,
       forecastTopRows: forecast14d.slice(0, forecastTopN),
-      isLoading: snapLoading || lowLoading,
+      isLoading: snapLoading || lowLoading || ooLoading,
     }
-  }, [snapshots, lowItems, snapLoading, lowLoading, forecastTopN])
+  }, [snapshots, lowItems, outOfStockCountAccurate, snapLoading, lowLoading, ooLoading, forecastTopN])
 }
+
