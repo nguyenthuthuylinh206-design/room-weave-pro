@@ -299,7 +299,7 @@ export function InventoryDashboardPage() {
       </Button>
       <Button
         size="sm"
-        variant="default"
+        variant="outline"
         className="h-10 lg:h-9 font-body"
         onClick={() => navigate('/inventory/outbound/new')}
       >
