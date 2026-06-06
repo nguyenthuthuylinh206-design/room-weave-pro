@@ -115,6 +115,12 @@ export default function PricingHubPage() {
               >
                 Quy tắc mùa
               </TabsTrigger>
+              <TabsTrigger
+                value="rules"
+                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                Quy tắc phụ thu
+              </TabsTrigger>
             </TabsList>
           </div>
 
