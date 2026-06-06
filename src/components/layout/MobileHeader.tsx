@@ -28,7 +28,7 @@ export const MobileHeader = ({
   const headerLabel = (
     <div className="min-w-0 flex-1">
       <div className="flex items-center gap-1 min-w-0">
-        <p className="font-semibold text-sm truncate">
+        <p className="font-bold text-base truncate">
           {isAllHotelsMode
             ? 'Tất cả khách sạn'
             : selectedHotel?.name ?? 'RoomQc'}
