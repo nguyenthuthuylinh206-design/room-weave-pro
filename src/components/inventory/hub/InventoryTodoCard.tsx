@@ -120,7 +120,7 @@ export function InventoryTodoCard({ onNavigate }: Props) {
         </h2>
         {!isLoading && (
           <span className="font-body text-[11px] text-muted-foreground tabular-nums">
-            {items.length > 0 ? `${items.length} mục` : 'Tất cả đã ổn'}
+            {allItems.length > 0 ? `${allItems.length} mục` : 'Tất cả đã ổn'}
           </span>
         )}
       </header>
