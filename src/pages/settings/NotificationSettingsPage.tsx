@@ -16,6 +16,7 @@ import { useUser } from '@/hooks/useUser'
 import { toast } from '@/hooks/use-toast'
 import { useIsMobile } from '@/hooks/use-mobile'
 import MobileNotificationSettingsPage from '@/pages/mobile/MobileNotificationSettingsPage'
+import { NotificationEventTypesCard } from '@/components/settings/notifications/NotificationEventTypesCard'
 
 export function NotificationSettingsPage() {
   const { t } = useTranslation(['settings', 'common'])
@@ -200,6 +201,15 @@ export function NotificationSettingsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Event-level notification types */}
+        <NotificationEventTypesCard
+          prefs={localPrefs}
+          pushSubscribed={isSubscribed}
+          onChange={(key, value) => handleChange(key, value)}
+        />
+
+
 
         {/* Admin-only settings */}
         {isAdmin && (

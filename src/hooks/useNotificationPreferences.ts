@@ -26,9 +26,11 @@ export interface NotificationPreferences {
   inapp_realtime: boolean;
   inapp_low_stock: boolean;
   inapp_laundry_completed: boolean;
+  inapp_laundry_delayed: boolean;
   inapp_maintenance_new: boolean;
   inapp_task_assigned: boolean;
   inapp_approval_request: boolean;
+  inapp_booking_events: boolean;
   
   // Thresholds
   low_stock_threshold: number;
@@ -60,9 +62,11 @@ const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id' | 'tena
   inapp_realtime: true,
   inapp_low_stock: true,
   inapp_laundry_completed: true,
+  inapp_laundry_delayed: true,
   inapp_maintenance_new: true,
   inapp_task_assigned: true,
   inapp_approval_request: true,
+  inapp_booking_events: true,
   low_stock_threshold: 20,
   critical_stock_threshold: 5,
   overdue_maintenance_days: 3,

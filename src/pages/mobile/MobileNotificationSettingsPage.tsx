@@ -31,6 +31,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { triggerNotification } from '@/hooks/useNotificationTriggers'
 import { useUser } from '@/hooks/useUser'
 import { toast } from '@/hooks/use-toast'
+import { NotificationEventTypesCard } from '@/components/settings/notifications/NotificationEventTypesCard'
 
 export default function MobileNotificationSettingsPage() {
   const navigate = useNavigate()
@@ -238,6 +239,15 @@ export default function MobileNotificationSettingsPage() {
             </div>
           </CollapsibleContent>
         </Collapsible>
+
+        {/* Event-level notification types */}
+        <NotificationEventTypesCard
+          prefs={localPrefs}
+          pushSubscribed={isSubscribed}
+          onChange={(key, value) => handleChange(key as string, value)}
+        />
+
+
 
         {/* Admin-only settings */}
         {isAdmin && (
