@@ -573,7 +573,6 @@ export const Sidebar = () => {
           }
 
           const isActive = item.href && currentPath === normalizePath(item.href)
-          const anyExpanded = expandedItems.length > 0
 
           return (
             <Link
@@ -584,11 +583,9 @@ export const Sidebar = () => {
               onFocus={() => item.href && prefetchRoute(item.href)}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                isActive && !anyExpanded
+                isActive
                   ? 'bg-primary text-primary-foreground'
-                  : isActive && anyExpanded
-                    ? 'bg-accent text-accent-foreground font-semibold'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
               )}
             >
               <Icon className="h-5 w-5 flex-shrink-0" />
