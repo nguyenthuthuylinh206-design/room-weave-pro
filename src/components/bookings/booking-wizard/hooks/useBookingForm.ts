@@ -782,8 +782,11 @@ export function useBookingForm() {
       
       queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
       queryClient.invalidateQueries({ queryKey: ['available-rooms'] })
+      // Submit thành công → xoá draft
+      clearDraftStorage()
       onSuccess?.()
       return true
+
     } catch (error: any) {
       console.error('Error saving booking:', error)
       toast({
