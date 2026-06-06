@@ -106,18 +106,50 @@ serve(async (req) => {
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    // SECURITY: require an authenticated caller. This function consumes paid AI
+    // OCR quota, so we reject anonymous traffic outright.
+    const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
+    const token = authHeader?.toLowerCase().startsWith("bearer ")
+      ? authHeader.slice(7).trim()
+      : "";
+    if (!token) {
+      return jsonResponse({ error: "Yêu cầu đăng nhập" }, 401);
+    }
+
+    const authClient = createClient(SUPABASE_URL, ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data: userResp, error: userErr } = await authClient.auth.getUser(token);
+    if (userErr || !userResp?.user) {
+      return jsonResponse({ error: "Phiên đăng nhập không hợp lệ" }, 401);
+    }
+    const authUserId = userResp.user.id;
+
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-    const { imageBase64, documentType, tenantId } = await req.json();
+    // Resolve caller's tenant from the users table; ignore client-supplied tenantId.
+    const { data: profile, error: profileErr } = await supabase
+      .from("users")
+      .select("tenant_id")
+      .eq("id", authUserId)
+      .maybeSingle();
+    if (profileErr || !profile?.tenant_id) {
+      return jsonResponse({ error: "Không xác định được tenant của người dùng" }, 403);
+    }
+    const tenantId = profile.tenant_id as string;
+
+    const { imageBase64, documentType } = await req.json();
 
     if (!imageBase64 || !documentType) {
-      return new Response(
-        JSON.stringify({ error: "imageBase64 and documentType are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      return jsonResponse(
+        { error: "imageBase64 and documentType are required" },
+        400,
       );
     }
 
-    const settings = await getAiSettings(supabase, tenantId || null);
+    const settings = await getAiSettings(supabase, tenantId);
     const models = buildModelChain(settings);
 
     const validationRule = `VALIDATION RULE: Set is_valid_document=true if the image shows ANY identity-style document (ID card, citizen card, passport page, visa, driver license) — even if blurry, partially visible, angled, or low quality. As long as you can see SOME text/fields/photo that look like a document, treat it as valid and extract whatever you can read (leave unknown fields empty). ONLY set is_valid_document=false if the image is clearly a pure selfie with no document, a landscape, food, screenshot of an app, or completely unrelated content.`;
