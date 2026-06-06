@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Edit, Eye, MoreVertical, Trash2, Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
 
 interface MobileItemCardProps {
@@ -34,6 +38,7 @@ interface MobileItemCardProps {
 }
 
 export function MobileItemCard({ item, onView, onEdit, onDelete }: MobileItemCardProps) {
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const { t } = useTranslation(['items', 'common'])
 
   const quantity = item.quantity_in_stock ?? item.quantity_total ?? item.quantity ?? 0
