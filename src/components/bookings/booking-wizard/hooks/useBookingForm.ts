@@ -113,6 +113,12 @@ export function useBookingForm() {
   const [state, setState] = useState<BookingFormState>(initialState)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Skip side-effects (clear-rooms + OTA defaults) ngay sau khi restore draft,
+  // tránh việc effect dep [bookingType, dates...] xoá selectedRooms vừa khôi phục.
+  const skipResetsRef = useRef(0)
+  const restoreOfferedRef = useRef(false)
+  const firstSaveSkipRef = useRef(true)
+
   // Check if OTA source
   const isOtaSource = useMemo(() => 
     OTA_SOURCES.includes(state.bookingSource), 
@@ -121,6 +127,10 @@ export function useBookingForm() {
 
   // Auto-fill OTA commission rate when booking source changes
   useEffect(() => {
+    if (skipResetsRef.current > 0) {
+      skipResetsRef.current--
+      return
+    }
     if (isOtaSource) {
       const defaultRate = OTA_DEFAULT_COMMISSION[state.bookingSource] || 15
       setState(prev => ({
@@ -141,12 +151,63 @@ export function useBookingForm() {
 
   // Clear room selection when dates/type change
   useEffect(() => {
+    if (skipResetsRef.current > 0) {
+      skipResetsRef.current--
+      return
+    }
     setState(prev => ({
       ...prev,
       selectedRooms: [],
       depositAmount: 0,
     }))
   }, [state.bookingType, state.checkInDate, state.checkOutDate, state.hourlyDate, state.monthlyStartDate, state.bookingMonths])
+
+  // === Mount: offer draft restore (one-shot) ===
+  useEffect(() => {
+    if (restoreOfferedRef.current) return
+    restoreOfferedRef.current = true
+    const draft = readDraft()
+    if (!draft) return
+    sonnerToast('Bạn có bản nháp đặt phòng chưa hoàn thành', {
+      description: 'Khôi phục để tiếp tục, hoặc bỏ qua để bắt đầu lại.',
+      duration: 12000,
+      action: {
+        label: 'Tiếp tục',
+        onClick: () => {
+          // Skip 2 reset effects (OTA + clear-rooms) sẽ chạy ngay sau setState
+          skipResetsRef.current = 2
+          // Bỏ qua autosave lần này (state thay đổi sẽ trigger save lại đúng nội dung)
+          firstSaveSkipRef.current = true
+          setState(draft)
+          sonnerToast.success('Đã khôi phục bản nháp')
+        },
+      },
+      cancel: {
+        label: 'Bỏ qua',
+        onClick: () => {
+          clearDraftStorage()
+        },
+      },
+    })
+  }, [])
+
+  // === Autosave draft (debounced 1000ms) ===
+  useEffect(() => {
+    if (firstSaveSkipRef.current) {
+      firstSaveSkipRef.current = false
+      return
+    }
+    const handle = window.setTimeout(() => {
+      try {
+        localStorage.setItem(DRAFT_KEY, serializeDraft(state))
+      } catch {
+        // ignore quota / serialization errors
+      }
+    }, 1000)
+    return () => window.clearTimeout(handle)
+  }, [state])
+
+
 
   // Computed values
   const computed: BookingFormComputed = useMemo(() => {
