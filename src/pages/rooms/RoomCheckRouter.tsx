@@ -38,7 +38,7 @@ export default function RoomCheckRouter() {
 
   // Đợi room + cfg trước khi quyết định để tránh flash redirect sai
   if (isLoading || (hotelId && cfgLoading)) {
-    return null
+    return <RouterFallback />
   }
 
   const checkType = params.get('type') || ''
@@ -88,7 +88,7 @@ export default function RoomCheckRouter() {
     !!params.get('room_order_id')
   ) {
     return (
-      <Suspense fallback={null}>
+      <Suspense fallback={<RouterFallback />}>
         <RoomCheckPage />
       </Suspense>
     )
@@ -99,7 +99,7 @@ export default function RoomCheckRouter() {
 
   if (!useLean) {
     return (
-      <Suspense fallback={null}>
+      <Suspense fallback={<RouterFallback />}>
         <RoomCheckPage />
       </Suspense>
     )
