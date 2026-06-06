@@ -95,9 +95,7 @@ const MainLayoutContent = () => {
     <div className="min-h-dvh flex bg-background">
       <Sidebar />
       <div className="flex-1 flex flex-col">
-        {showSubscriptionBanner && <GracePeriodBanner />}
-        <ReadOnlyBanner />
-        <AnnouncementHost slot="top" />
+        {priorityBanner}
         <Header onMenuClick={() => {}} />
         {isStaffUser && <ShiftStatusBanner />}
         <main className="flex-1 overflow-auto">
@@ -105,9 +103,11 @@ const MainLayoutContent = () => {
             <SuspendedOverlay />
           ) : (
             <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
-              <div className="mb-4">
-                <QuotaWarningBanner />
-              </div>
+              {activeBanner === 'quota_warning' && (
+                <div className="mb-4">
+                  <QuotaWarningBanner onDismiss={() => dismissBanner('quota_warning')} />
+                </div>
+              )}
               <Outlet />
             </div>
           )}
