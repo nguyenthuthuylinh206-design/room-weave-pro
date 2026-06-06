@@ -140,24 +140,24 @@ async function buildReceiptHTML(
   return `
     <div id="invoice-pdf" style="width:${config.width}px;padding:${config.padding};font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:${config.fontSize}px;color:#111;background:#fff;line-height:1.4;word-wrap:break-word;">
       <div style="text-align:center;margin-bottom:4px;">
-        <div style="font-size:${config.fontSize + 2}px;font-weight:700;">${hotelInfo?.name || 'KHÁCH SẠN'}</div>
-        ${hotelInfo?.address ? `<div style="font-size:${config.fontSize - 1}px;color:#555;">${hotelInfo.address}</div>` : ''}
-        ${hotelInfo?.phone ? `<div style="font-size:${config.fontSize - 1}px;color:#555;">ĐT: ${hotelInfo.phone}</div>` : ''}
-        ${hotelInfo?.taxCode ? `<div style="font-size:${config.fontSize - 1}px;color:#555;">MST: ${hotelInfo.taxCode}</div>` : ''}
+        <div style="font-size:${config.fontSize + 2}px;font-weight:700;">${esc(hotelInfo?.name || 'KHÁCH SẠN')}</div>
+        ${hotelInfo?.address ? `<div style="font-size:${config.fontSize - 1}px;color:#555;">${esc(hotelInfo.address)}</div>` : ''}
+        ${hotelInfo?.phone ? `<div style="font-size:${config.fontSize - 1}px;color:#555;">ĐT: ${esc(hotelInfo.phone)}</div>` : ''}
+        ${hotelInfo?.taxCode ? `<div style="font-size:${config.fontSize - 1}px;color:#555;">MST: ${esc(hotelInfo.taxCode)}</div>` : ''}
       </div>
       <div style="text-align:center;margin:8px 0 6px;border-top:1px dashed #999;border-bottom:1px dashed #999;padding:4px 0;">
         <div style="font-size:${config.fontSize + 3}px;font-weight:700;">PHIẾU THANH TOÁN</div>
-        <div style="font-size:${config.fontSize - 1}px;color:#555;">${invoice.invoice_number}</div>
-        <div style="font-size:${config.fontSize - 1}px;color:#555;">${new Date(invoice.issued_at || invoice.created_at).toLocaleString('vi-VN')}</div>
+        <div style="font-size:${config.fontSize - 1}px;color:#555;">${esc(invoice.invoice_number)}</div>
+        <div style="font-size:${config.fontSize - 1}px;color:#555;">${esc(new Date(invoice.issued_at || invoice.created_at).toLocaleString('vi-VN'))}</div>
       </div>
       <div style="margin-bottom:6px;line-height:1.5;">
-        <div>Khách: ${invoice.guest_name}</div>
-        ${invoice.room_number ? `<div>Phòng: ${invoice.room_number}</div>` : ''}
+        <div>Khách: ${esc(invoice.guest_name)}</div>
+        ${invoice.room_number ? `<div>Phòng: ${esc(invoice.room_number)}</div>` : ''}
       </div>
       <div style="border-top:1px dashed #999;border-bottom:1px dashed #999;padding:4px 0;margin-bottom:4px;">
         ${lineItems.map(item => `
           <div style="padding:2px 0;">
-            <div style="word-break:break-word;">${item.description || ''}</div>
+            <div style="word-break:break-word;">${esc(item.description || '')}</div>
             <div style="display:flex;justify-content:space-between;">
               <span style="color:#555;">${item.quantity} × ${formatVND(item.unit_price)}</span>
               <span style="font-weight:600;">${formatVND(item.amount)}</span>
@@ -176,7 +176,7 @@ async function buildReceiptHTML(
         ${invoice.amount_paid > 0 ? `<div style="display:flex;justify-content:space-between;"><span>Đã TT:</span><span>${formatVND(invoice.amount_paid)}</span></div>` : ''}
         ${remaining > 0 ? `<div style="display:flex;justify-content:space-between;font-weight:600;"><span>Còn lại:</span><span>${formatVND(remaining)}</span></div>` : ''}
         ${remaining < 0 ? `<div style="display:flex;justify-content:space-between;font-weight:600;"><span>Tiền thừa trả khách:</span><span>${formatVND(Math.abs(remaining))}</span></div>` : ''}
-        ${invoice.payment_method ? `<div style="display:flex;justify-content:space-between;margin-top:2px;"><span>Hình thức:</span><span>${paymentMethodLabel(invoice.payment_method)}</span></div>` : ''}
+        ${invoice.payment_method ? `<div style="display:flex;justify-content:space-between;margin-top:2px;"><span>Hình thức:</span><span>${esc(paymentMethodLabel(invoice.payment_method))}</span></div>` : ''}
       </div>
       ${qrBlockReceipt(qr, qrLabel, qrSize)}
       <div style="text-align:center;margin-top:8px;font-size:${config.fontSize - 1}px;color:#888;line-height:1.5;">
