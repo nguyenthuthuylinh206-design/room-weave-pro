@@ -1,6 +1,19 @@
 {
-  "current": "1.1.88",
+  "current": "1.1.89",
   "versions": [
+    {
+      "version": "1.1.89",
+      "date": "2026-06-06",
+      "title": "Hợp nhất /admin/* và /super-admin/* — một router duy nhất cho Super Admin",
+      "highlights": [
+        "**Canonical path = `/super-admin/*`** — Toàn bộ trang Super Admin (Dashboard, Tenants, Approval, Promo Codes, Campaigns, Reminders, Pricing, Payments, Analytics, Settings, Announcements) chỉ còn một bộ route duy nhất gắn `SuperAdminLayout` + `SuperAdminErrorBoundary`. Trước đây cùng các trang đó còn được mount lần 2 dưới `/admin/*` trong `RootRoute` (sidebar app thường), gây lệch UI giữa Sidebar (`/admin/*`) và SuperAdminLayout (`/super-admin/*`).",
+        "**Legacy `/admin/*` → 301-style Navigate redirect** — Mọi path `/admin`, `/admin/dashboard`, `/admin/tenants`, `/admin/approval`, `/admin/promo-codes`, `/admin/campaigns`, `/admin/reminders`, `/admin/payments`, `/admin/pricing`, `/admin/analytics`, `/admin/settings`, `/admin/announcements` đều `Navigate replace` sang `/super-admin/...` tương ứng. Bookmark cũ / link Telegram / email cũ vẫn hoạt động và đáp vào đúng SuperAdminLayout.",
+        "**Bổ sung `/super-admin/payments`** — Trang `PaymentSettingsPage` trước chỉ có ở nhánh `/admin/payments`, nay được thêm chính thức vào `SuperAdminLayout` children để đồng bộ với nav của layout.",
+        "**Sidebar trỏ về canonical** — Mục `superAdmin` trong `Sidebar.tsx` cập nhật toàn bộ href sang `/super-admin/*` (adminDashboard → `/super-admin`). Khi super_admin bấm sidebar sẽ chuyển hẳn sang shell SuperAdminLayout, không còn render trong sidebar app thường.",
+        "**`SuperAdminQuickActions` + `route-prefetch` đồng bộ** — Các nút Tạo mã KM / Khởi chạy chiến dịch / Gửi thông báo điều hướng sang `/super-admin/*`. `loaders` trong `route-prefetch.ts` thay key `/admin/*` bằng `/super-admin/*` + thêm `/super-admin/payments`, `/approval`, `/analytics`, `/settings`, `/announcements` để prefetch hoạt động đúng.",
+        "**Dọn dụng cụ trùng** — Bỏ 7 block `RoleGuard` wrap thủ công trong RootRoute (giờ guard nằm ở SuperAdminLayout). Không còn rủi ro 2 route render khác layout cho cùng 1 trang."
+      ]
+    },
     {
       "version": "1.1.88",
       "date": "2026-06-06",
