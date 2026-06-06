@@ -11,6 +11,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 const PricingDailyPage = lazy(() => import("./PricingDailyPage"));
 const PricingV2Page = lazy(() => import("./PricingV2Page"));
 const SeasonalRulesPage = lazy(() => import("./SeasonalRulesPage"));
+const PricingRulesPage = lazy(() => import("./PricingRulesPage"));
 
 const Fallback = () => (
   <div className="p-4 space-y-3">
