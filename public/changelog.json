@@ -1,6 +1,17 @@
 {
-  "current": "1.1.92",
+  "current": "1.1.93",
   "versions": [
+    {
+      "version": "1.1.93",
+      "date": "2026-06-06",
+      "title": "Cài đặt thông báo: thêm card 'Loại thông báo' theo sự kiện",
+      "highlights": [
+        "**Card mới `NotificationEventTypesCard`** — Hiển thị 5 sự kiện (Đặt phòng/Check-in/Check-out, Bảo trì mới, Tồn kho thấp, Giặt là sắp trễ, Việc giao cho tôi) với toggle riêng và badge kênh Push/Telegram/Email.",
+        "**Schema** — Bảng `notification_preferences` thêm `inapp_booking_events` và `inapp_laundry_delayed` (mặc định bật).",
+        "**Cảnh báo tổng** — Khi push bị tắt và toàn bộ sự kiện đều off, hiển thị warning 'Bạn đang tắt toàn bộ thông báo. Bạn có thể bỏ lỡ các công việc được giao.'",
+        "**Áp dụng cả desktop & mobile** — `NotificationSettingsPage.tsx` và `MobileNotificationSettingsPage.tsx` cùng dùng chung component."
+      ]
+    },
     {
       "version": "1.1.92",
       "date": "2026-06-06",
