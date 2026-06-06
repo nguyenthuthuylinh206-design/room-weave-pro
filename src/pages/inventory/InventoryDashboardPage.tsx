@@ -57,7 +57,7 @@ const TabFallback = () => (
 
 type MainTab = 'overview' | 'assets' | 'operations' | 'analytics' | 'settings'
 type OpSub = 'transactions' | 'inbound' | 'outbound' | 'transfer' | 'adjustments' | 'distributions' | 'reorder'
-type AssetsSub = 'items' | 'categories' | 'new'
+type AssetsSub = 'items' | 'categories'
 type AnalyticsSub = 'consumption' | 'dead-stock'
 type SettingsSub = 'supplements' | 'warehouses'
 
@@ -74,20 +74,19 @@ const inventoryMenuGroups: Array<{ title: string; items: InventoryMenuItem[] }> 
     title: 'Tổng quan',
     items: [
       { label: 'Bảng điều khiển', tab: 'overview' },
-      { label: 'Giao dịch kho', tab: 'operations', sub: 'transactions' },
     ],
   },
   {
-    title: 'Sản phẩm',
+    title: 'Tài sản',
     items: [
       { label: 'Danh sách tài sản', tab: 'assets', sub: 'items' },
       { label: 'Danh mục', tab: 'assets', sub: 'categories' },
-      { label: 'Thêm tài sản mới', tab: 'assets', sub: 'new' },
     ],
   },
   {
     title: 'Xuất nhập kho',
     items: [
+      { label: 'Giao dịch kho', tab: 'operations', sub: 'transactions' },
       { label: 'Nhập kho', tab: 'operations', sub: 'inbound' },
       { label: 'Xuất kho', tab: 'operations', sub: 'outbound', badgeKey: 'distributionsPending' },
       { label: 'Chuyển kho', tab: 'operations', sub: 'transfer' },
