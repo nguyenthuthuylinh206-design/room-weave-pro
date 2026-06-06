@@ -178,7 +178,7 @@ const navigation: NavItem[] = [
     minMode: 'standard',
     children: [
       { titleKey: 'staffList', href: '/staff', icon: Users, roles: ['owner', 'hotel_manager', 'department_manager'] },
-      { titleKey: 'shiftHandoverReport', href: '/staff/shift-handover', icon: FileText },
+      { titleKey: 'shiftHandoverReport', href: '/staff/shift-handover', icon: FileText, roles: ['owner', 'hotel_manager', 'department_manager'] },
     ],
   },
   {
