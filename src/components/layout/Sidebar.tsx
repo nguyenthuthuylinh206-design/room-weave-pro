@@ -375,7 +375,9 @@ export const Sidebar = () => {
 
   const toggleExpanded = (titleKey: string) => {
     setExpandedItems((prev) =>
-      prev.includes(titleKey) ? [] : [titleKey]
+      prev.includes(titleKey)
+        ? prev.filter((k) => k !== titleKey)
+        : [...prev, titleKey]
     )
   }
 
