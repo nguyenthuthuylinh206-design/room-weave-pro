@@ -14,6 +14,7 @@ import { format, parseISO, differenceInMinutes, differenceInCalendarDays } from 
 import { vi } from 'date-fns/locale'
 
 import { useToast } from '@/hooks/use-toast'
+import { getFriendlyError } from '@/lib/errorMessage'
 import { useReceptionRoomDetail } from '@/hooks/useReceptionRoomDetail'
 import { useRoomTypePricing } from '@/hooks/useRoomTypePricing'
 import { useHotelContext } from '@/contexts/HotelContext'
@@ -79,7 +80,7 @@ export function ReceptionQuickDialog({ open, onOpenChange, room, onBookRoom, onO
       toast({ title: 'Đã đổi trạng thái phòng' })
       onOpenChange(false)
     },
-    onError: (e: any) => toast({ variant: 'destructive', title: 'Lỗi', description: e.message }),
+    onError: (e: any) => toast({ variant: 'destructive', title: 'Lỗi', description: getFriendlyError(e) }),
   })
 
   if (!room) return null

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCurrency } from '@/lib/utils'
+import { getFriendlyError } from '@/lib/errorMessage'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { RefreshCw, Check, Eye } from 'lucide-react'
@@ -102,7 +103,7 @@ export default function ReconciliationPage() {
       setActive(null)
       setNote('')
     },
-    onError: (e: Error) => toast({ title: 'Lỗi', description: e.message, variant: 'destructive' }),
+    onError: (e: Error) => toast({ title: 'Lỗi', description: getFriendlyError(e), variant: 'destructive' }),
   })
 
   const triggerSync = async () => {
