@@ -16,6 +16,7 @@ import type {
   ReceiveBatchData,
   BatchStatus,
 } from '@/types/laundry.types'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export function useLaundryBatches(
   filters: LaundryBatchFilters = {},
@@ -158,7 +159,7 @@ export function useCreateLaundryBatch() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -279,7 +280,7 @@ export function useReceiveLaundryBatch() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -366,7 +367,7 @@ export function useUpdateBatchStatus() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -414,7 +415,7 @@ export function useUpdateBatchCost() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     }
@@ -592,7 +593,7 @@ export function useStockInFromLaundry() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi nhập kho',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     }

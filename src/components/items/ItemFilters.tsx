@@ -22,6 +22,7 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { useQueryClient } from '@tanstack/react-query'
 import { useSyncCategories } from '@/hooks/useSyncCategories'
 import { WarehouseSelect } from '@/components/warehouse/WarehouseSelect'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 interface ItemFiltersProps {
   filters: IItemFilters
@@ -82,7 +83,7 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
     } catch (error: any) {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     } finally {

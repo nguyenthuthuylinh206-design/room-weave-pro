@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { getFriendlyError } from '@/lib/errorMessage'
 export function GoogleAuthButton() {
   const {
     toast
@@ -25,7 +26,7 @@ export function GoogleAuthButton() {
       console.error('Google login error:', error);
       toast({
         title: 'Lỗi đăng nhập',
-        description: error.message || 'Không thể đăng nhập với Google',
+        description: getFriendlyError(error) || 'Không thể đăng nhập với Google',
         variant: 'destructive'
       });
     }

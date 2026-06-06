@@ -17,6 +17,7 @@ import type {
   UserPermission,
   PermissionModule,
 } from '@/types/permission.types'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 // Fetch all permissions
 export const useAllPermissions = () => {
@@ -233,7 +234,7 @@ export const useAssignPermissionsToRole = () => {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -279,7 +280,7 @@ export const useAddPermissionToRole = () => {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -317,7 +318,7 @@ export const useRemovePermissionFromRole = () => {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
 import { useToast } from '@/hooks/use-toast'
 import type { RoomType } from '@/types/rooms.types'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export function useRoomStandards(roomType: RoomType) {
   const { hotelId } = useUser()
@@ -65,7 +66,7 @@ export function useAddStandard() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -107,7 +108,7 @@ export function useUpdateStandard() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -144,7 +145,7 @@ export function useDeleteStandard() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -213,7 +214,7 @@ export function useCloneStandards() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -248,7 +249,7 @@ export function useApplyStandards() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },

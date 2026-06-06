@@ -17,6 +17,7 @@ import {
   HOURLY_MIN_HOURS,
 } from '../types'
 import { AvailableRoom } from '@/hooks/useAvailableRooms'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 // ===== Draft autosave (localStorage, 24h TTL) =====
 const DRAFT_KEY = 'booking_wizard_draft_v1'
@@ -565,7 +566,7 @@ export function useBookingForm() {
         })
 
         if (error) {
-          toast({ variant: 'destructive', title: 'Lỗi kiểm tra lịch đặt', description: error.message })
+          toast({ variant: 'destructive', title: 'Lỗi kiểm tra lịch đặt', description: getFriendlyError(error) })
           return false
         }
 
@@ -792,7 +793,7 @@ export function useBookingForm() {
       toast({
         variant: 'destructive',
         title: 'Lỗi khi lưu đặt phòng',
-        description: error.message,
+        description: getFriendlyError(error),
       })
       return false
     } finally {

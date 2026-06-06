@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { useUser } from '@/hooks/useUser'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export type RoomCheckType = 'daily' | 'periodic' | 'checkin' | 'checkout' | 'maintenance' | 'delivery' | 'replenish'
 
@@ -129,7 +130,7 @@ export function useRoomCheckSession(roomId: string | undefined) {
     } catch (error: any) {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
       return null
@@ -192,7 +193,7 @@ export function useRoomCheckSession(roomId: string | undefined) {
     } catch (error: any) {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
       return null

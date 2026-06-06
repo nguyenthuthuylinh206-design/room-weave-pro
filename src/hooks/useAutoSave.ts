@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useToast } from './use-toast'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 interface UseAutoSaveOptions<T> {
   data: T
@@ -35,7 +36,7 @@ export function useAutoSave<T>({
     } catch (error: any) {
       toast({
         title: 'Lỗi lưu tự động',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     } finally {

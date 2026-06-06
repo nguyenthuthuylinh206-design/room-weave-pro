@@ -4,6 +4,7 @@ import { PurchaseOrder, POFilters } from '@/types/purchase-order.types';
 import { useToast } from './use-toast';
 import { useUser } from './useUser';
 import { useHotelContext } from '@/contexts/HotelContext';
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export function usePurchaseOrders(filters?: POFilters) {
   const { tenantId } = useUser();
@@ -426,7 +427,7 @@ export function useDeletePO() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       });
     },

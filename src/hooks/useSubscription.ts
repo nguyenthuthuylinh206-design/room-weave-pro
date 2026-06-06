@@ -14,6 +14,7 @@ import {
   calculateSubscriptionPrice,
   calculateEndDate,
 } from '@/lib/pricing'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 // Fetch all active subscription plans
 export const useSubscriptionPlans = () => {
@@ -137,7 +138,7 @@ export const useCreatePayment = () => {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -176,7 +177,7 @@ export const useCreateInvoice = () => {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -289,7 +290,7 @@ export const useUpdateTenantSubscription = () => {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },

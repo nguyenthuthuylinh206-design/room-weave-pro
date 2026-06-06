@@ -4,6 +4,7 @@ import { useUser } from './useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from 'sonner'
 import { isAdminUser } from '@/lib/userAccess'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export interface LaundryRequestItem {
   item_id: string
@@ -232,7 +233,7 @@ export function useAddToDraftBatch() {
       toast.success('Đã thêm vào lô giặt')
     },
     onError: (error: Error) => {
-      toast.error('Lỗi thêm vào lô giặt', { description: error.message })
+      toast.error('Lỗi thêm vào lô giặt', { description: getFriendlyError(error) })
     },
   })
 }

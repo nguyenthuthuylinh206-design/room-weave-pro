@@ -25,6 +25,7 @@ import {
   formatVNCurrency,
   calculateEndDate,
 } from '@/lib/pricing';
+import { getFriendlyError } from '@/lib/errorMessage'
 
 interface ChangePlanDialogProps {
   tenant: any | null;
@@ -163,7 +164,7 @@ export function ChangePlanDialog({
     } catch (error: any) {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       });
     } finally {

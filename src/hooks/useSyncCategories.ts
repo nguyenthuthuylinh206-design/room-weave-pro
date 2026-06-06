@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from '@/hooks/use-toast'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 interface SyncResult {
   categories_created: number
@@ -29,7 +30,7 @@ export function useSyncCategories() {
         console.error('Sync categories error:', error)
         toast({
           title: 'Lỗi đồng bộ',
-          description: error.message,
+          description: getFriendlyError(error),
           variant: 'destructive',
         })
         return null
@@ -56,7 +57,7 @@ export function useSyncCategories() {
       console.error('Sync categories exception:', err)
       toast({
         title: 'Lỗi đồng bộ',
-        description: err.message,
+        description: getFriendlyError(err),
         variant: 'destructive',
       })
       return null

@@ -12,6 +12,7 @@ import type {
   CreateInboundData,
   CreateOutboundData
 } from '@/types/inventory.types'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 // Translate UI-friendly category keys to canonical DB values (Sprint 1)
 const INBOUND_CATEGORY_MAP: Record<string, string> = {
@@ -171,7 +172,7 @@ export function useCreateInboundTransaction() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -264,7 +265,7 @@ export function useCreateOutboundTransaction() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -308,7 +309,7 @@ export function useDeleteTransaction() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },

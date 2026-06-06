@@ -4,6 +4,7 @@ import { useTenant } from '@/hooks/useTenant'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useToast } from '@/hooks/use-toast'
 import { Json } from '@/integrations/supabase/types'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export interface GuestInvoice {
   id: string
@@ -145,7 +146,7 @@ export function useCreateGuestInvoice() {
       toast({ title: 'Đã tạo hóa đơn' })
     },
     onError: (error: any) => {
-      toast({ variant: 'destructive', title: 'Lỗi tạo hóa đơn', description: error.message })
+      toast({ variant: 'destructive', title: 'Lỗi tạo hóa đơn', description: getFriendlyError(error) })
     },
   })
 }
@@ -179,7 +180,7 @@ export function useUpdateGuestInvoice() {
       toast({ title: 'Đã cập nhật hóa đơn' })
     },
     onError: (error: any) => {
-      toast({ variant: 'destructive', title: 'Lỗi', description: error.message })
+      toast({ variant: 'destructive', title: 'Lỗi', description: getFriendlyError(error) })
     },
   })
 }

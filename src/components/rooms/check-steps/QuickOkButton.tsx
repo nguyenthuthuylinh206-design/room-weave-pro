@@ -17,6 +17,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { toast } from '@/hooks/use-toast'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 interface Props {
   roomId: string
@@ -54,7 +55,7 @@ export function QuickOkButton({ roomId, hotelId, checkType, onSuccessNavigate = 
       const uploaded = await uploadImage(file, tenantId)
       if (uploaded?.url) setPhotos((p) => [...p, uploaded.url])
     } catch (err: any) {
-      toast({ title: 'Tải ảnh thất bại', description: err.message, variant: 'destructive' })
+      toast({ title: 'Tải ảnh thất bại', description: getFriendlyError(err), variant: 'destructive' })
     } finally {
       e.target.value = ''
     }

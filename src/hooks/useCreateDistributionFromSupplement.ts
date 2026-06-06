@@ -5,6 +5,7 @@ import { useHotelContext } from '@/contexts/HotelContext'
 import { useTenant } from './useTenant'
 import { toast } from 'sonner'
 import type { SupplementRequestItem } from './useSupplementRequests'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 interface CreateDistributionFromSupplementParams {
   supplementRequestId: string
@@ -104,7 +105,7 @@ export function useCreateDistributionFromSupplement() {
       })
     },
     onError: (error: Error) => {
-      toast.error('Lỗi tạo phiếu giao hàng', { description: error.message })
+      toast.error('Lỗi tạo phiếu giao hàng', { description: getFriendlyError(error) })
     },
   })
 }

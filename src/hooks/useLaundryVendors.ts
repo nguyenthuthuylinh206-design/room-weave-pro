@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useTenant } from './useTenant'
 import { toast } from './use-toast'
 import type { LaundryVendor, VendorFormData, VendorPerformance } from '@/types/laundry.types'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export function useLaundryVendors(filters: { status?: string } = {}) {
   const { tenant } = useTenant()
@@ -111,7 +112,7 @@ export function useCreateVendor() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -141,7 +142,7 @@ export function useUpdateVendor() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -170,7 +171,7 @@ export function useDeleteVendor() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },

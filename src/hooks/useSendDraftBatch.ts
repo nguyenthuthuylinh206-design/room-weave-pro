@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 interface SendDraftBatchParams {
   batchId: string
@@ -40,7 +41,7 @@ export function useSendDraftBatch() {
       toast.success('Đã gửi lô giặt đi')
     },
     onError: (error: Error) => {
-      toast.error('Lỗi gửi lô giặt', { description: error.message })
+      toast.error('Lỗi gửi lô giặt', { description: getFriendlyError(error) })
     },
   })
 }

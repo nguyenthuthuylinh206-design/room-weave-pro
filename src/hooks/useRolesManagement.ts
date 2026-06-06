@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { useUser } from './useUser'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export interface Role {
   id: string
@@ -112,7 +113,7 @@ export function useRolesManagement() {
     onError: (error: any) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -141,7 +142,7 @@ export function useRolesManagement() {
     onError: (error: any) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -167,7 +168,7 @@ export function useRolesManagement() {
     onError: (error: any) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -210,7 +211,7 @@ export function useRolesManagement() {
     onError: (error: any) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },

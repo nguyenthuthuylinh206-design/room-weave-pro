@@ -4,6 +4,7 @@ import { useUser } from './useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from 'sonner'
 import { isAdminUser } from '@/lib/userAccess'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export interface SupplementRequestItem {
   item_id: string
@@ -333,7 +334,7 @@ export function useApproveSupplementRequest() {
       })
     },
     onError: (error: Error) => {
-      toast.error('Lỗi duyệt yêu cầu', { description: error.message })
+      toast.error('Lỗi duyệt yêu cầu', { description: getFriendlyError(error) })
     },
   })
 }
@@ -368,7 +369,7 @@ export function useRejectSupplementRequest() {
       toast.success('Đã từ chối yêu cầu bổ sung')
     },
     onError: (error: Error) => {
-      toast.error('Lỗi từ chối yêu cầu', { description: error.message })
+      toast.error('Lỗi từ chối yêu cầu', { description: getFriendlyError(error) })
     },
   })
 }

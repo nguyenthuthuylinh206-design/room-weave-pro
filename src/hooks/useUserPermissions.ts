@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
 import { useUser } from './useUser'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export interface UserPermission {
   id: string
@@ -186,7 +187,7 @@ export function useUpdateUserPermissions() {
       toast({
         variant: 'destructive',
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
       })
     },
   })

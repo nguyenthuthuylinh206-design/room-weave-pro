@@ -5,6 +5,7 @@ import { useUser } from './useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from './use-toast'
 import type { CategoryWithStats, CategoryFormData } from '@/types/items.types'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export function useCategories() {
   const { tenantId, hotelId: userHotelId } = useUser()
@@ -94,7 +95,7 @@ export function useCreateCategory() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -126,7 +127,7 @@ export function useUpdateCategory() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },
@@ -165,7 +166,7 @@ export function useDeleteCategory() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     },

@@ -16,6 +16,7 @@ import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers
 import { useUser } from '@/hooks/useUser'
 import { useTenant } from '@/hooks/useTenant'
 import { useRequireShift } from '@/contexts/RequireShiftContext'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 interface UseBookingActionsOptions {
   onSuccess?: () => void
@@ -298,7 +299,7 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
       toast({
         variant: 'destructive',
         title: 'Lỗi check-out',
-        description: error.message?.includes('not in checked_in') 
+        description: getFriendlyError(error)?.includes('not in checked_in') 
           ? 'Booking chưa check-in hoặc đã check-out'
           : error.message?.includes('modified by another')
           ? 'Phòng đã được cập nhật bởi người khác. Vui lòng refresh lại.'
@@ -346,7 +347,7 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
       toast({
         variant: 'destructive',
         title: 'Lỗi cập nhật thanh toán',
-        description: error.message,
+        description: getFriendlyError(error),
       })
       return false
     } finally {
@@ -377,7 +378,7 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
       toast({
         variant: 'destructive',
         title: 'Lỗi hủy đặt phòng',
-        description: error.message?.includes('cannot be cancelled')
+        description: getFriendlyError(error)?.includes('cannot be cancelled')
           ? 'Không thể hủy booking đã hoàn thành hoặc đã hủy'
           : error.message,
       })

@@ -40,6 +40,7 @@ import { useUser } from '@/hooks/useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useTranslation } from 'react-i18next'
 import type { CategoryFormData } from '@/types/items.types'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export function CategoriesPage() {
   const { t } = useTranslation(['items', 'common'])
@@ -178,7 +179,7 @@ export function CategoriesPage() {
     } catch (error: any) {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     } finally {

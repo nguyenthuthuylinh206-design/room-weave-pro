@@ -20,6 +20,7 @@ import { formatCurrency } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { useBookingConflictCheck } from '@/hooks/useBookingConflicts'
 import { ConflictWarningSection } from './ConflictWarningSection'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 interface ExtendBookingDialogProps {
   open: boolean
@@ -144,7 +145,7 @@ export function ExtendBookingDialog({
       toast({
         variant: 'destructive',
         title: 'Lỗi gia hạn',
-        description: error.message?.includes('overlap') 
+        description: getFriendlyError(error)?.includes('overlap') 
           ? 'Không thể gia hạn do trùng lịch với booking khác'
           : error.message,
       })

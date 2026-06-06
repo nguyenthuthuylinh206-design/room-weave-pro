@@ -6,6 +6,7 @@ import { useUsageMode, type UsageMode } from '@/hooks/useUsageMode'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { useQueryClient } from '@tanstack/react-query'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 const MODES = [
   {
@@ -61,7 +62,7 @@ export function UsageModeSelector() {
     } catch (error: any) {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     } finally {

@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { useQueryClient } from '@tanstack/react-query'
 import { generateInvoicePDFBase64 } from './InvoicePDFTemplate'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 interface Props {
   invoice: GuestInvoice | null
@@ -54,7 +55,7 @@ export default function SendInvoiceEmailDialog({ invoice, open, onOpenChange, ho
       toast({ title: 'Đã gửi hóa đơn kèm file PDF qua email' })
       onOpenChange(false)
     } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Lỗi gửi email', description: err.message })
+      toast({ variant: 'destructive', title: 'Lỗi gửi email', description: getFriendlyError(err) })
     } finally {
       setSending(false)
       setStatus('')

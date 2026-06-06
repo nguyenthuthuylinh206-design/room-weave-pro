@@ -19,6 +19,7 @@ import { toast } from '@/hooks/use-toast'
 import { exportItemsToExcel } from '@/lib/exportUtils'
 import { useState } from 'react'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 interface BulkActionsBarProps {
   selectedCount: number
@@ -67,7 +68,7 @@ export function BulkActionsBar({
     } catch (error: any) {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     } finally {
@@ -135,7 +136,7 @@ export function BulkActionsBar({
     } catch (error: any) {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       })
     } finally {

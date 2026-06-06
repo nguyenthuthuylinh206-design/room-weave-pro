@@ -5,6 +5,7 @@ import { useTenant } from './useTenant'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from 'sonner'
 import type { RoomItemWithDetails } from '@/types/rooms.types'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export interface SupplementItem {
   item_id: string
@@ -270,7 +271,7 @@ export function useCreateRoomSupplement() {
     },
     onError: (error: Error) => {
       toast.error('Lỗi bổ sung đồ dùng', {
-        description: error.message,
+        description: getFriendlyError(error),
       })
     },
   })

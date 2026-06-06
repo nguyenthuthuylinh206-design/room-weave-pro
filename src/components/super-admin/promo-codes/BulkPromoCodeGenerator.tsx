@@ -31,6 +31,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Copy, Download } from 'lucide-react';
+import { getFriendlyError } from '@/lib/errorMessage'
 
 const bulkSchema = z.object({
   prefix: z.string().min(2).max(10),
@@ -116,7 +117,7 @@ export function BulkPromoCodeGenerator({ open, onOpenChange }: BulkPromoCodeGene
     } catch (error: any) {
       toast({
         title: 'Error Generating Codes',
-        description: error.message,
+        description: getFriendlyError(error),
         variant: 'destructive',
       });
     } finally {

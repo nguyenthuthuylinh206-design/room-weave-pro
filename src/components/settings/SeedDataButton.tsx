@@ -23,6 +23,7 @@ import { Progress } from '@/components/ui/progress'
 import { useUser } from '@/hooks/useUser'
 import { seedDemoData } from '@/lib/seedDemoData'
 import { toast } from '@/hooks/use-toast'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 interface SeedProgress {
   step: string
@@ -87,7 +88,7 @@ export function SeedDataButton() {
       console.error('Seed error:', error)
       toast({
         title: 'Lỗi',
-        description: error.message || 'Không thể tạo dữ liệu demo',
+        description: getFriendlyError(error) || 'Không thể tạo dữ liệu demo',
         variant: 'destructive'
       })
       setShowProgress(false)

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useTenant } from '@/hooks/useTenant'
 import { useToast } from '@/hooks/use-toast'
 import type { BookingServiceCharge } from '@/types/services.types'
+import { getFriendlyError } from '@/lib/errorMessage'
 
 export interface ServiceChargeDetail {
   id: string
@@ -163,7 +164,7 @@ export function useAddServiceCharge() {
       toast({ title: 'Đã thêm dịch vụ' })
     },
     onError: (error: any) => {
-      toast({ variant: 'destructive', title: 'Lỗi', description: error.message })
+      toast({ variant: 'destructive', title: 'Lỗi', description: getFriendlyError(error) })
     },
   })
 }
@@ -207,7 +208,7 @@ export function useDeleteServiceCharge() {
       toast({ title: 'Đã xóa dịch vụ' })
     },
     onError: (error: any) => {
-      toast({ variant: 'destructive', title: 'Lỗi', description: error.message })
+      toast({ variant: 'destructive', title: 'Lỗi', description: getFriendlyError(error) })
     },
   })
 }
