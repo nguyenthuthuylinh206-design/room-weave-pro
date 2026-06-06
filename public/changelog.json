@@ -1,6 +1,18 @@
 {
-  "current": "1.1.89",
+  "current": "1.1.90",
   "versions": [
+    {
+      "version": "1.1.90",
+      "date": "2026-06-06",
+      "title": "Booking Wizard: autosave draft 24h vào localStorage",
+      "highlights": [
+        "**Autosave `booking_wizard_draft_v1`** — `useBookingForm` tự lưu state vào `localStorage` debounce 1000ms mỗi lần đổi, TTL 24h. Đóng dialog / refresh / mất mạng giữa chừng không còn mất dữ liệu đã nhập (loại đặt, ngày, phòng đã chọn + giá tuỳ chỉnh, khách, OTA, VAT/phí dịch vụ, ghi chú).",
+        "**Restore prompt 1-shot khi mở wizard** — Mount kiểm tra draft; nếu còn hạn → sonner toast 'Bạn có bản nháp đặt phòng chưa hoàn thành' với 2 nút **Tiếp tục** (restore state) và **Bỏ qua** (xoá draft). Toast 12s, không tự popup lặp.",
+        "**Skip-reset guard** — `skipResetsRef` chặn 2 useEffect (OTA defaults + clear-rooms theo dates/type) chạy ngay sau khi restore, tránh tự xoá `selectedRooms` vừa khôi phục.",
+        "**Field nhạy cảm KHÔNG lưu** — `guestIdImageUrl` và `guestIdNumber` bị strip trước khi `JSON.stringify` (giữ ID giấy tờ ngoài localStorage). Date fields (`checkInDate/checkOutDate/hourlyDate/monthlyStartDate`) revive về `Date` khi đọc.",
+        "**Auto-clear sau submit / reset** — `submit` thành công và `reset()` (đóng dialog) đều gọi `clearDraftStorage()`. Thêm `discardDraft` export trong API hook để parent chủ động xoá khi cần."
+      ]
+    },
     {
       "version": "1.1.89",
       "date": "2026-06-06",

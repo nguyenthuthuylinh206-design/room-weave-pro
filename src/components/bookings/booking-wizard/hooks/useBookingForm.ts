@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { addDays, addMonths, addHours, differenceInCalendarDays, format, setHours, setMinutes } from 'date-fns'
 import { useQueryClient } from '@tanstack/react-query'
+import { toast as sonnerToast } from 'sonner'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { useTenant } from '@/hooks/useTenant'
@@ -16,6 +17,42 @@ import {
   HOURLY_MIN_HOURS,
 } from '../types'
 import { AvailableRoom } from '@/hooks/useAvailableRooms'
+
+// ===== Draft autosave (localStorage, 24h TTL) =====
+const DRAFT_KEY = 'booking_wizard_draft_v1'
+const DRAFT_TTL_MS = 24 * 60 * 60 * 1000
+const DRAFT_DATE_FIELDS = ['checkInDate', 'checkOutDate', 'hourlyDate', 'monthlyStartDate'] as const
+
+function serializeDraft(state: BookingFormState): string {
+  // Strip sensitive fields trước khi lưu
+  const { guestIdImageUrl, guestIdNumber, ...rest } = state
+  return JSON.stringify({ version: 1, savedAt: Date.now(), data: rest })
+}
+
+function readDraft(): BookingFormState | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY)
+    if (!raw) return null
+    const env = JSON.parse(raw) as { version?: number; savedAt?: number; data?: any }
+    if (!env?.savedAt || Date.now() - env.savedAt > DRAFT_TTL_MS) {
+      localStorage.removeItem(DRAFT_KEY)
+      return null
+    }
+    const data = env.data || {}
+    // Revive Date fields
+    DRAFT_DATE_FIELDS.forEach((f) => {
+      if (data[f]) data[f] = new Date(data[f])
+    })
+    return data as BookingFormState
+  } catch {
+    return null
+  }
+}
+
+function clearDraftStorage(): void {
+  try { localStorage.removeItem(DRAFT_KEY) } catch {}
+}
+
 
 const initialState: BookingFormState = {
   // Booking type
@@ -76,6 +113,12 @@ export function useBookingForm() {
   const [state, setState] = useState<BookingFormState>(initialState)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Skip side-effects (clear-rooms + OTA defaults) ngay sau khi restore draft,
+  // tránh việc effect dep [bookingType, dates...] xoá selectedRooms vừa khôi phục.
+  const skipResetsRef = useRef(0)
+  const restoreOfferedRef = useRef(false)
+  const firstSaveSkipRef = useRef(true)
+
   // Check if OTA source
   const isOtaSource = useMemo(() => 
     OTA_SOURCES.includes(state.bookingSource), 
@@ -84,6 +127,10 @@ export function useBookingForm() {
 
   // Auto-fill OTA commission rate when booking source changes
   useEffect(() => {
+    if (skipResetsRef.current > 0) {
+      skipResetsRef.current--
+      return
+    }
     if (isOtaSource) {
       const defaultRate = OTA_DEFAULT_COMMISSION[state.bookingSource] || 15
       setState(prev => ({
@@ -104,12 +151,63 @@ export function useBookingForm() {
 
   // Clear room selection when dates/type change
   useEffect(() => {
+    if (skipResetsRef.current > 0) {
+      skipResetsRef.current--
+      return
+    }
     setState(prev => ({
       ...prev,
       selectedRooms: [],
       depositAmount: 0,
     }))
   }, [state.bookingType, state.checkInDate, state.checkOutDate, state.hourlyDate, state.monthlyStartDate, state.bookingMonths])
+
+  // === Mount: offer draft restore (one-shot) ===
+  useEffect(() => {
+    if (restoreOfferedRef.current) return
+    restoreOfferedRef.current = true
+    const draft = readDraft()
+    if (!draft) return
+    sonnerToast('Bạn có bản nháp đặt phòng chưa hoàn thành', {
+      description: 'Khôi phục để tiếp tục, hoặc bỏ qua để bắt đầu lại.',
+      duration: 12000,
+      action: {
+        label: 'Tiếp tục',
+        onClick: () => {
+          // Skip 2 reset effects (OTA + clear-rooms) sẽ chạy ngay sau setState
+          skipResetsRef.current = 2
+          // Bỏ qua autosave lần này (state thay đổi sẽ trigger save lại đúng nội dung)
+          firstSaveSkipRef.current = true
+          setState(draft)
+          sonnerToast.success('Đã khôi phục bản nháp')
+        },
+      },
+      cancel: {
+        label: 'Bỏ qua',
+        onClick: () => {
+          clearDraftStorage()
+        },
+      },
+    })
+  }, [])
+
+  // === Autosave draft (debounced 1000ms) ===
+  useEffect(() => {
+    if (firstSaveSkipRef.current) {
+      firstSaveSkipRef.current = false
+      return
+    }
+    const handle = window.setTimeout(() => {
+      try {
+        localStorage.setItem(DRAFT_KEY, serializeDraft(state))
+      } catch {
+        // ignore quota / serialization errors
+      }
+    }, 1000)
+    return () => window.clearTimeout(handle)
+  }, [state])
+
+
 
   // Computed values
   const computed: BookingFormComputed = useMemo(() => {
@@ -334,8 +432,16 @@ export function useBookingForm() {
   }, [state, tenant, toast])
 
   const reset = useCallback(() => {
+    clearDraftStorage()
+    // Bỏ qua autosave lần tiếp theo để không re-save lại initialState
+    firstSaveSkipRef.current = true
     setState(initialState)
   }, [])
+
+  const discardDraft = useCallback(() => {
+    clearDraftStorage()
+  }, [])
+
 
   const submit = useCallback(async (onSuccess?: () => void): Promise<boolean> => {
     // Validation
@@ -676,8 +782,11 @@ export function useBookingForm() {
       
       queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
       queryClient.invalidateQueries({ queryKey: ['available-rooms'] })
+      // Submit thành công → xoá draft
+      clearDraftStorage()
       onSuccess?.()
       return true
+
     } catch (error: any) {
       console.error('Error saving booking:', error)
       toast({
@@ -702,6 +811,8 @@ export function useBookingForm() {
     updateRoomPrice,
     applyPricingV2,
     reset,
+    discardDraft,
     submit,
   }
 }
+
