@@ -239,6 +239,15 @@ export default function MobileNotificationSettingsPage() {
           </CollapsibleContent>
         </Collapsible>
 
+        {/* Event-level notification types */}
+        <NotificationEventTypesCard
+          prefs={localPrefs}
+          pushSubscribed={isSubscribed}
+          onChange={(key, value) => handleChange(key as string, value)}
+        />
+
+
+
         {/* Admin-only settings */}
         {isAdmin && (
           <>
