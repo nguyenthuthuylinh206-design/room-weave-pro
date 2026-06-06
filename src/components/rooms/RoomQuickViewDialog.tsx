@@ -2,28 +2,17 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import {
-  CheckCircle,
-  AlertTriangle,
-  Wind,
-  Truck,
-  PackageOpen,
-  Clock,
-  LogOut,
-  ClipboardList,
-  ExternalLink,
-} from 'lucide-react'
+import { Clock } from 'lucide-react'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 import { RoomStatusSelector } from './RoomStatusSelector'
 import { RoomQuickHeader } from './RoomQuickHeader'
+import { QuickViewBookingCard } from './quickview/QuickViewBookingCard'
+import { QuickViewGroupSiblings } from './quickview/QuickViewGroupSiblings'
+import { QuickViewItemsStatus } from './quickview/QuickViewItemsStatus'
+import { QuickViewFooter } from './quickview/QuickViewFooter'
 import { cn } from '@/lib/utils'
-import { getMissingDisplay, type PriorityTier } from '@/lib/roomPriority'
-import {
-  minutesUntilCheckout,
-  formatCheckoutTime,
-  type ActiveBooking,
-} from '@/hooks/useActiveRoomBookings'
+import { type PriorityTier } from '@/lib/roomPriority'
+import { type ActiveBooking } from '@/hooks/useActiveRoomBookings'
 import type { RoomWithStats, RoomStatus } from '@/types/rooms.types'
 
 export interface GroupSibling {
@@ -58,22 +47,14 @@ interface Props {
   onOpenCreateTask?: (room: RoomWithStats) => void
 }
 
-
 export function RoomQuickViewDialog({
-  open,
-  onOpenChange,
-  entry,
-  canViewRoomDetail,
-  canCreateTask,
-  currentUserId,
-  onOpenCreateTask,
+  open, onOpenChange, entry, canViewRoomDetail, canCreateTask, currentUserId, onOpenCreateTask,
 }: Props) {
-  const { t } = useTranslation(['rooms', 'distribution'])
+  const { t } = useTranslation(['rooms'])
   const navigate = useNavigate()
 
   if (!entry) return null
   const { room, pendingCount, priority, booking, minutesToCheckout, session, groupSiblings } = entry
-  const missing = getMissingDisplay(room)
   const roomTypeLabel = t(`roomTypes.${room.room_type}`, { defaultValue: room.room_type })
 
   const metaParts = [
@@ -89,43 +70,25 @@ export function RoomQuickViewDialog({
       })
     : t('grid.neverChecked')
 
-  const lastCheckColor =
-    priority.daysSinceCheck === null
-      ? 'text-amber-600'
-      : priority.daysSinceCheck > 30
-        ? 'text-red-600'
-        : priority.daysSinceCheck > 7
-          ? 'text-amber-600'
-          : 'text-muted-foreground'
-
+  const close = () => onOpenChange(false)
   const goCheck = () => {
     const mine = !!session && session.user_id === currentUserId
     navigate(`/rooms/${room.id}/check${mine ? '?resume=true' : ''}`)
-    onOpenChange(false)
+    close()
   }
-  const goDetail = () => {
-    navigate(`/rooms/${room.id}`)
-    onOpenChange(false)
-  }
+  const goDetail = () => { navigate(`/rooms/${room.id}`); close() }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm p-0 gap-0">
-        <RoomQuickHeader
-          roomNumber={room.room_number}
-          status={room.status}
-          withPrefix={false}
-        />
-
+        <RoomQuickHeader roomNumber={room.room_number} status={room.status} withPrefix={false} />
 
         <div className="px-4 py-3 space-y-3 text-sm">
-          {/* Đổi trạng thái nhanh */}
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">Đổi trạng thái</span>
             <RoomStatusSelector roomId={room.id} currentStatus={room.status as RoomStatus} />
           </div>
 
-          {/* Cần xử lý */}
           {priority.reason && priority.tier !== 'normal' && (
             <div
               className={cn(
@@ -139,7 +102,6 @@ export function RoomQuickViewDialog({
             </div>
           )}
 
-          {/* Đang kiểm */}
           {session && (
             <div className="flex items-center gap-2 text-orange-600">
               <Clock className="h-4 w-4 animate-pulse shrink-0" />
@@ -152,151 +114,35 @@ export function RoomQuickViewDialog({
             </div>
           )}
 
-          {/* Booking */}
-          {booking && (
-            <div className="rounded-md border px-3 py-2 space-y-0.5">
-              <div className="flex items-center gap-2">
-                <LogOut className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <span className="font-medium">
-                  {t('grid.checkoutAt', { time: formatCheckoutTime(booking.expected_check_out_time) })}
-                </span>
-                <span className="text-muted-foreground">·</span>
-                <span className="truncate">{booking.guest_name}</span>
-              </div>
-              {minutesToCheckout !== null && (
-                <div
-                  className={cn(
-                    'text-xs pl-6',
-                    minutesToCheckout < 0
-                      ? 'text-red-600 font-medium'
-                      : minutesToCheckout <= 120
-                        ? 'text-orange-600'
-                        : 'text-muted-foreground',
-                  )}
-                >
-                  {minutesToCheckout < 0
-                    ? t('grid.checkoutOverdue', { minutes: Math.abs(minutesToCheckout) })
-                    : minutesToCheckout <= 120
-                      ? t('grid.checkoutSoon')
-                      : `Còn ${Math.round(minutesToCheckout / 60)}h`}
-                </div>
-              )}
-            </div>
-          )}
+          {booking && <QuickViewBookingCard booking={booking} minutesToCheckout={minutesToCheckout} />}
 
-          {/* Group siblings — đoàn nhiều phòng */}
           {groupSiblings && groupSiblings.length > 0 && (
-            <div className="rounded-md border bg-muted/30 px-3 py-2 space-y-1.5">
-              <div className="text-xs text-muted-foreground font-medium">
-                Cùng đoàn ({groupSiblings.length + 1} phòng)
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {groupSiblings.map((s) => (
-                  <button
-                    key={s.roomId}
-                    type="button"
-                    onClick={() => {
-                      navigate(`/rooms/${s.roomId}`)
-                      onOpenChange(false)
-                    }}
-                    className="inline-flex items-center gap-1 rounded-md border bg-background px-2 py-1 text-xs font-medium hover:border-primary hover:text-primary transition-colors"
-                    title={s.guestName ?? ''}
-                  >
-                    <span
-                      className={cn(
-                        'inline-block h-1.5 w-1.5 rounded-full',
-                        s.status?.includes('occupied') ? 'bg-blue-500' :
-                          s.status?.includes('clean') ? 'bg-emerald-500' :
-                            s.status?.includes('dirty') ? 'bg-amber-500' : 'bg-muted-foreground',
-                      )}
-                    />
-                    {s.roomNumber}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <QuickViewGroupSiblings siblings={groupSiblings} onNavigate={close} />
           )}
 
-          {/* Vật tư */}
+          <QuickViewItemsStatus
+            room={room}
+            pendingCount={pendingCount}
+            daysSinceCheck={priority.daysSinceCheck}
+            lastCheckText={lastCheckText}
+          />
 
-          <div className="space-y-1.5">
-            {missing.kind === 'complete' && (
-              <div className="flex items-center gap-2 text-green-600">
-                <CheckCircle className="h-4 w-4 shrink-0" />
-                <span>{t('grid.itemsComplete')}</span>
-              </div>
-            )}
-            {missing.kind === 'after_clean' && (
-              <div className="flex items-center gap-2 text-red-600">
-                <AlertTriangle className="h-4 w-4 shrink-0" />
-                <span>{t('grid.missingAfterClean', { count: missing.count })}</span>
-              </div>
-            )}
-            {missing.kind === 'restock' && (
-              <div className="flex items-center gap-2 text-amber-600">
-                <PackageOpen className="h-4 w-4 shrink-0" />
-                <span>{t('grid.needRestock', { count: missing.count })}</span>
-              </div>
-            )}
-            {room.items_in_laundry > 0 && (
-              <div className="flex items-center gap-2 text-cyan-600">
-                <Wind className="h-4 w-4 shrink-0" />
-                <span>{t('grid.itemsInLaundry', { count: room.items_in_laundry })}</span>
-              </div>
-            )}
-            {pendingCount > 0 && (
-              <div className="flex items-center gap-2 text-amber-600">
-                <Truck className="h-4 w-4 shrink-0" />
-                <span>{t('distribution:roomHistory.pendingDeliveries', { count: pendingCount })}</span>
-              </div>
-            )}
-            <div className={cn('flex items-center gap-2', lastCheckColor)}>
-              <Clock className="h-4 w-4 shrink-0" />
-              <span>{lastCheckText}</span>
-            </div>
-          </div>
-
-          {/* Meta */}
           <div className="pt-2 border-t text-xs text-muted-foreground">
             {metaParts.join(' • ')}
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="px-4 pb-4 pt-1 space-y-2">
-          <Button
-            className="w-full h-10"
-            disabled={!!session && session.user_id !== currentUserId}
-            onClick={goCheck}
-          >
-            {session
-              ? session.user_id === currentUserId
-                ? t('checkSession.continueCheck')
-                : t('checkSession.inProgress')
-              : 'Kiểm tra phòng'}
-          </Button>
-          <div className="flex gap-2">
-            {canViewRoomDetail && (
-              <Button variant="outline" className="flex-1 h-9" onClick={goDetail}>
-                <ExternalLink className="h-4 w-4 mr-1.5" />
-                Xem chi tiết phòng
-              </Button>
-            )}
-            {canCreateTask && onOpenCreateTask && (
-              <Button
-                variant="outline"
-                className="h-9"
-                onClick={() => {
-                  onOpenCreateTask(room)
-                  onOpenChange(false)
-                }}
-                title="Giao việc"
-              >
-                <ClipboardList className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </div>
+        <QuickViewFooter
+          room={room}
+          session={session}
+          currentUserId={currentUserId}
+          canViewRoomDetail={canViewRoomDetail}
+          canCreateTask={canCreateTask}
+          onCheck={goCheck}
+          onDetail={goDetail}
+          onCreateTask={onOpenCreateTask}
+          onClose={close}
+        />
       </DialogContent>
     </Dialog>
   )
