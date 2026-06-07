@@ -495,9 +495,8 @@ const router = createBrowserRouter([
 
       // Legacy / standalone report URLs → redirect vào hub mới
       { path: "reports/legacy", element: <Navigate to="/reports" replace /> },
-      { path: "reports/room-revenue", element: <Navigate to="/reports/finance?tab=room-revenue" replace /> },
       { path: "reports/cash-flow", element: <Navigate to="/reports/finance?tab=cash-flow" replace /> },
-      { path: "reports/revenue", element: <Navigate to="/reports/finance?tab=room-revenue" replace /> },
+      { path: "reports/revenue", element: <Navigate to="/reports/finance?tab=channels" replace /> },
       { path: "reports/financial", element: <Navigate to="/reports/finance?tab=costs" replace /> },
       { path: "reports/rooms", element: <Navigate to="/reports/operations?tab=rooms" replace /> },
       { path: "reports/damages", element: <Navigate to="/reports/inventory?tab=damages" replace /> },

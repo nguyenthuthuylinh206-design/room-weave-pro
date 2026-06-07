@@ -3,6 +3,7 @@ import { ReportHubShell } from './ReportHubShell'
 import { RoomRevenueReportPage } from '../RoomRevenueReportPage'
 import { CashFlowReportPage } from '../CashFlowReportPage'
 import { FinancialReportPage } from '../FinancialReportPage'
+import { RevenueReportPage } from '../RevenueReportPage'
 import { FinanceKpiStrip } from '@/components/reports/FinanceKpiStrip'
 import { PeriodPresetChips } from '@/components/reports/PeriodPresetChips'
 import { resolvePeriod, type PeriodPresetId } from '@/lib/reportPeriods'
@@ -14,7 +15,7 @@ export function FinanceHubPage() {
   return (
     <ReportHubShell
       title="Báo cáo Tài chính"
-      question="Hôm nay thu bao nhiêu? Tháng này lời hay lỗ? Tiền đi đâu?"
+      question="Hôm nay thu bao nhiêu? Kênh nào mang khách về nhiều nhất? Tháng này lời hay lỗ?"
       tabs={[
         {
           id: 'room-revenue',
@@ -30,6 +31,11 @@ export function FinanceHubPage() {
           id: 'costs',
           label: 'Chi phí & Lợi nhuận',
           render: () => <FinancialReportPage period={period} embedded />,
+        },
+        {
+          id: 'channels',
+          label: 'Kênh bán',
+          render: () => <RevenueReportPage period={period} embedded />,
         },
       ]}
       defaultTab="room-revenue"

@@ -11,13 +11,15 @@ const SOURCE_LABELS: Record<string, string> = {
   walk_in: 'Khách vãng lai',
   direct: 'Trực tiếp',
   phone: 'Điện thoại',
-  web: 'Website',
-  ota_booking: 'Booking.com',
-  ota_agoda: 'Agoda',
-  ota_expedia: 'Expedia',
-  ota_traveloka: 'Traveloka',
-  ota_airbnb: 'Airbnb',
-  ota_other: 'OTA khác',
+  website: 'Website',
+  booking_com: 'Booking.com',
+  agoda: 'Agoda',
+  traveloka: 'Traveloka',
+  expedia: 'Expedia',
+  airbnb: 'Airbnb',
+  corporate: 'Doanh nghiệp',
+  agent: 'Đại lý du lịch',
+  other: 'Khác',
 }
 
 function labelOf(source: string) {
@@ -41,21 +43,25 @@ export function ChannelMixPanel({ bySource, loading }: Props) {
         <div className="p-6 text-center text-sm text-muted-foreground">Chưa có dữ liệu</div>
       ) : (
         <div className="divide-y">
-          <div className="grid grid-cols-[1fr_60px_120px_120px_60px] gap-2 px-3 py-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+          <div className="grid grid-cols-[1fr_60px_110px_110px_110px_55px] gap-2 px-3 py-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">
             <span>Kênh</span>
             <span className="text-right">Lượt</span>
             <span className="text-right">Doanh thu</span>
             <span className="text-right">Hoa hồng</span>
+            <span className="text-right">Ròng</span>
             <span className="text-right">%</span>
           </div>
           {sorted.map((s) => (
             <div key={s.source} className="px-3 py-2">
-              <div className="grid grid-cols-[1fr_60px_120px_120px_60px] gap-2 text-sm items-center">
+              <div className="grid grid-cols-[1fr_60px_110px_110px_110px_55px] gap-2 text-sm items-center">
                 <div className="font-medium truncate">{labelOf(s.source)}</div>
                 <div className="text-right tabular-nums">{s.bookings}</div>
                 <div className="text-right tabular-nums font-medium">{formatCurrency(s.grossRevenue)}</div>
                 <div className="text-right tabular-nums text-red-600">
                   {s.otaCommission > 0 ? `-${formatCurrency(s.otaCommission)}` : '—'}
+                </div>
+                <div className="text-right tabular-nums font-medium text-green-700">
+                  {formatCurrency(s.netRevenue)}
                 </div>
                 <div className="text-right tabular-nums text-muted-foreground">{s.percentage.toFixed(0)}%</div>
               </div>
