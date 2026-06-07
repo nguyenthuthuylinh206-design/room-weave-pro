@@ -432,7 +432,7 @@ export default function GuestInvoicesPage() {
                             {VAT_STATUS_LABEL[inv.status] || inv.status}
                           </span>
                         </td>
-                        <td className="px-3 py-2 text-right whitespace-nowrap">
+                        <td className="px-3 py-2 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                           {inv.status === 'pending' && (
                             <>
                               <Button
@@ -441,7 +441,7 @@ export default function GuestInvoicesPage() {
                                 size="icon"
                                 className="h-8 w-8 text-green-600"
                                 title="Đánh dấu đã xuất"
-                                onClick={() => handleIssue(inv.id)}
+                                onClick={() => setVatDetailInvoice(inv)}
                               >
                                 <Check className="h-4 w-4" />
                               </Button>
@@ -463,7 +463,7 @@ export default function GuestInvoicesPage() {
                             size="icon"
                             className="h-8 w-8"
                             title="Xem"
-                            onClick={() => setPreviewInvoice(inv)}
+                            onClick={() => setVatDetailInvoice(inv)}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
