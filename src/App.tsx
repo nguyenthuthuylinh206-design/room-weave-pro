@@ -446,6 +446,7 @@ const router = createBrowserRouter([
       { path: "settings/general", element: <PermissionRoute module="settings"><GeneralSettingsPage /></PermissionRoute> },
       { path: "settings/hotels", element: <PermissionRoute module="hotels"><HotelsManagementPage /></PermissionRoute> },
       { path: "settings/categories", element: <PermissionRoute module="settings"><CategoryManagementPage /></PermissionRoute> },
+      { path: "settings/fixed-costs", element: <PermissionRoute module="settings"><FixedCostsSettingsPage /></PermissionRoute> },
       { path: "settings/users", element: <PermissionRoute module="users"><UsersPage /></PermissionRoute> },
       { path: "settings/change-password", element: <ChangePasswordPage /> },
       { path: "staff", element: <PermissionRoute module="users"><StaffManagementPage /></PermissionRoute> },
