@@ -222,6 +222,20 @@ export function DailyReportPage() {
   })
 
   const alertsQ = useOverviewAlerts()
+  const { notes, save } = useShiftNotes(3)
+  const [noteText, setNoteText] = useState('')
+  const todayStr = format(new Date(), 'yyyy-MM-dd')
+
+  const handleSaveNote = async () => {
+    if (!noteText.trim()) return
+    try {
+      await save.mutateAsync({ content: noteText.trim(), noteDate: todayStr })
+      setNoteText('')
+      toast.success('Đã lưu ghi chú ca')
+    } catch {
+      toast.error('Lưu thất bại')
+    }
+  }
 
   const isLoading = revLoading || roomLoading || movLoading || debtLoading
   const occupancyPct =
