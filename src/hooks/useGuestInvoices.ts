@@ -47,7 +47,7 @@ export interface InvoiceLineItem {
   amount: number
 }
 
-export function useGuestInvoices(filters?: { status?: string; search?: string }) {
+export function useGuestInvoices(filters?: { status?: string; search?: string; invoice_type?: string; from?: Date; to?: Date }) {
   const { tenant } = useTenant()
   const { selectedHotel } = useHotelContext()
   const tenantId = tenant?.id
@@ -72,6 +72,18 @@ export function useGuestInvoices(filters?: { status?: string; search?: string })
         query = query.eq('status', filters.status)
       }
 
+      if (filters?.invoice_type) {
+        query = query.eq('invoice_type', filters.invoice_type)
+      }
+
+      if (filters?.from) {
+        query = query.gte('created_at', filters.from.toISOString())
+      }
+
+      if (filters?.to) {
+        query = query.lte('created_at', filters.to.toISOString())
+      }
+
       if (filters?.search) {
         query = query.or(`guest_name.ilike.%${filters.search}%,invoice_number.ilike.%${filters.search}%,guest_phone.ilike.%${filters.search}%`)
       }
@@ -86,6 +98,7 @@ export function useGuestInvoices(filters?: { status?: string; search?: string })
     enabled: !!tenantId,
   })
 }
+
 
 export function useCreateGuestInvoice() {
   const queryClient = useQueryClient()
