@@ -224,12 +224,37 @@ export function FinancialReportPage({ period: embeddedPeriod, embedded }: Props 
               </div>
             )}
           </div>
-          {grossProfit > 0 && (
+
+          {/* Tầng 2: Lợi nhuận thực sau khi trừ chi phí cố định */}
+          {hasFixedCosts ? (
+            <div className="border rounded-lg divide-y">
+              <div className="p-3 flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Chi phí cố định tháng (lương, thuê, điện…)</span>
+                <span className="text-sm font-mono tabular-nums text-red-600">−{formatCurrency(totalFixed)}</span>
+              </div>
+              <div className="p-3 flex items-center justify-between bg-muted/30">
+                <span className="text-sm font-medium">Lợi nhuận thực ước tính</span>
+                <div className="text-right">
+                  <span className={cn("text-sm font-semibold font-mono tabular-nums", netProfit >= 0 ? "text-green-600" : "text-red-600")}>
+                    {formatCurrency(netProfit)}
+                  </span>
+                  <div className={cn("text-xs mt-0.5", netProfit >= 0 ? "text-green-600" : "text-red-600")}>
+                    Margin: {netMarginPct.toFixed(1)}%
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
             <p className="text-xs text-muted-foreground px-1 flex items-start gap-1.5">
               <Info className="h-3 w-3 shrink-0 mt-0.5" />
-              Số liệu trên chưa trừ chi phí cố định hàng tháng (lương, thuê, điện nước). Để xem lợi nhuận thực, hãy nhập chi phí cố định trong Cài đặt.
+              <span>
+                Nhập chi phí cố định (lương, thuê, điện) trong{' '}
+                <Link to="/settings/fixed-costs" className="underline text-primary">Cài đặt → Chi phí & Mục tiêu</Link>{' '}
+                để xem lợi nhuận thực.
+              </span>
             </p>
           )}
+
 
           {/* Xu hướng chi phí */}
           <div className="border rounded-lg p-4">
