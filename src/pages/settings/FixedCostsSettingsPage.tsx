@@ -131,6 +131,10 @@ export function FixedCostsSettingsPage() {
     onError: () => toast.error('Lưu thất bại, thử lại'),
   })
 
+  if (role && role !== 'owner' && role !== 'super_admin') {
+    return <Navigate to="/settings" replace />
+  }
+
   if (!hotelId) {
     return (
       <div className="p-6">

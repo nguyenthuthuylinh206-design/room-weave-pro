@@ -13,6 +13,7 @@ import { useMonthlyTarget } from '@/hooks/useFixedExpenses'
 import { TargetProgressBar } from '@/components/reports/TargetProgressBar'
 import { resolvePeriod, type PeriodPresetId } from '@/lib/reportPeriods'
 import { useBreakpoint } from '@/lib/breakpoints'
+import { useHotelContext } from '@/contexts/HotelContext'
 
 export function OverviewHubPage() {
   const [periodId, setPeriodId] = useState<PeriodPresetId>('this_month')
@@ -25,6 +26,7 @@ export function OverviewHubPage() {
   const targetQ = useMonthlyTarget()
   const target = targetQ.data
   const hasTarget = !!target && (!!target.revenue_target || !!target.occupancy_target)
+  const { isAllHotelsMode } = useHotelContext()
 
   return (
     <div className="space-y-4">
@@ -54,7 +56,7 @@ export function OverviewHubPage() {
 
       <OverviewKpiStrip period={period} />
 
-      {hasTarget && (
+      {isAllHotelsMode ? null : hasTarget ? (
         <div className="rounded-lg border p-4 space-y-4">
           <h3 className="text-sm font-semibold">Tiến độ mục tiêu tháng</h3>
           {target!.revenue_target ? (
@@ -73,6 +75,16 @@ export function OverviewHubPage() {
               format="percent"
             />
           ) : null}
+        </div>
+      ) : (
+        <div className="rounded-lg border border-dashed p-4 flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">Chưa đặt mục tiêu tháng này</span>
+          <Link
+            to="/settings/fixed-costs"
+            className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+          >
+            Đặt mục tiêu →
+          </Link>
         </div>
       )}
 
