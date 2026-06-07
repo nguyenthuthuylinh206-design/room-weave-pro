@@ -169,6 +169,7 @@ const navigation: NavItem[] = [
     roles: ['owner', 'hotel_manager', 'department_manager'],
     minMode: 'standard',
     children: [
+      { titleKey: 'dailyReport', href: '/reports/daily', icon: CalendarDays },
       { titleKey: 'reportsDashboard', href: '/reports', icon: LayoutDashboard },
       { titleKey: 'financeReport', href: '/reports/finance', icon: TrendingUp },
       { titleKey: 'operationsReport', href: '/reports/operations', icon: Hotel },
