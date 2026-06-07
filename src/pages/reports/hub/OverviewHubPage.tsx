@@ -29,6 +29,21 @@ export function OverviewHubPage() {
         />
       )}
 
+      <Link
+        to="/reports/daily"
+        className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 hover:bg-primary/10 transition-colors"
+      >
+        <div>
+          <div className="text-sm font-semibold">Báo cáo ngày</div>
+          <div className="text-xs text-muted-foreground">
+            Tình hình hôm qua & hôm nay trong 10 giây
+          </div>
+        </div>
+        <span className="text-xs text-primary inline-flex items-center gap-1">
+          Xem báo cáo ngày <ArrowRight className="h-3 w-3" />
+        </span>
+      </Link>
+
       <PeriodPresetChips value={periodId} onChange={setPeriodId} />
 
       <OverviewKpiStrip period={period} />
