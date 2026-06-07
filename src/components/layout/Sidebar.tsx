@@ -39,6 +39,8 @@ import {
   Zap,
   Tag,
   Truck,
+  PackagePlus,
+  PackageMinus,
   BarChart3,
   Inbox,
   CalendarDays,
