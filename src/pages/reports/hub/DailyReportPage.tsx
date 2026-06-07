@@ -214,6 +214,8 @@ export function DailyReportPage() {
     },
   })
 
+  const alertsQ = useOverviewAlerts()
+
   const isLoading = revLoading || roomLoading || movLoading || debtLoading
   const occupancyPct =
     roomData && roomData.total > 0 ? Math.round((roomData.occupied / roomData.total) * 100) : 0
