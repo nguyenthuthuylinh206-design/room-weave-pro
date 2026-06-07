@@ -116,6 +116,7 @@ const PushDevicesPage = lazy(() => import("./pages/settings/PushDevicesPage"));
 const TelegramSettingsPage = lazy(() => import("./pages/settings/TelegramSettingsPage"));
 const BusinessConfigurationPage = lazyNamed(() => import("./pages/settings/BusinessConfigurationPage"), "BusinessConfigurationPage");
 const CategoryManagementPage = lazy(() => import("./pages/settings/CategoryManagementPage"));
+const FixedCostsSettingsPage = lazy(() => import("./pages/settings/FixedCostsSettingsPage"));
 const WorkflowsPage = lazy(() => import("./pages/settings/WorkflowsPage"));
 const WarehouseListPage = lazy(() => import("./pages/settings/WarehouseListPage"));
 const ChangePasswordPage = lazy(() => import("./pages/settings/ChangePasswordPage"));
