@@ -18,6 +18,7 @@ import { Separator } from '@/components/ui/separator'
 import { supabase } from '@/integrations/supabase/client'
 import { formatCurrency } from '@/lib/utils'
 import { printInvoice, type HotelInfo } from './InvoicePDFTemplate'
+import { VatRequestForm } from './VatRequestForm'
 
 interface PrintReceiptDialogProps {
   open: boolean
@@ -50,8 +51,6 @@ export function PrintReceiptDialog({
   const [vatEnabled, setVatEnabled] = useState(false)
   const [vatRate, setVatRate] = useState(10)
   const [showVatRequestForm, setShowVatRequestForm] = useState(false)
-  const [accountantEmail, setAccountantEmail] = useState('')
-  const [isSubmittingVat, setIsSubmittingVat] = useState(false)
   const [isPrinting, setIsPrinting] = useState(false)
 
   // Reset state when dialog re-opens
@@ -60,7 +59,6 @@ export function PrintReceiptDialog({
       setVatEnabled(false)
       setVatRate(10)
       setShowVatRequestForm(false)
-      setAccountantEmail('')
     }
   }, [open, bookingId])
 
@@ -152,37 +150,6 @@ export function PrintReceiptDialog({
     }
   }
 
-  const handleSubmitVatRequest = async () => {
-    if (!invoice) {
-      toast.error('Chưa tạo được phiếu thu, vui lòng đợi…')
-      return
-    }
-    if (!accountantEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(accountantEmail.trim())) {
-      toast.error('Email kế toán không hợp lệ')
-      return
-    }
-    setIsSubmittingVat(true)
-    try {
-      const { error } = await supabase
-        .from('guest_invoices')
-        .update({
-          invoice_type: 'vat_request',
-          accountant_email: accountantEmail.trim(),
-          vat_rate: vatEnabled ? safeRate : 10,
-          vat_amount: vatEnabled ? vatAmount : Math.round((subtotal * 10) / 100),
-          total_amount: vatEnabled ? totalWithVat : subtotal + Math.round((subtotal * 10) / 100),
-        } as any)
-        .eq('id', invoice.id)
-        .eq('tenant_id', tenantId)
-      if (error) throw error
-      toast.success('Đã gửi yêu cầu xuất HĐVAT cho kế toán')
-      onOpenChange(false)
-    } catch (e: any) {
-      toast.error('Không gửi được yêu cầu', { description: e?.message })
-    } finally {
-      setIsSubmittingVat(false)
-    }
-  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -282,47 +249,15 @@ export function PrintReceiptDialog({
             </Button>
           </div>
         ) : (
-          <div className="space-y-3 rounded-md border p-3">
-            <div className="space-y-1">
-              <h4 className="text-sm font-semibold">Yêu cầu xuất HĐVAT</h4>
-              <p className="text-xs text-muted-foreground">
-                Nhập email kế toán nhận yêu cầu xuất hóa đơn VAT cho khách.
-              </p>
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="accountant-email" className="text-xs">
-                Email kế toán
-              </Label>
-              <Input
-                id="accountant-email"
-                type="email"
-                placeholder="ketoan@khachsan.vn"
-                value={accountantEmail}
-                onChange={(e) => setAccountantEmail(e.target.value)}
-                className="h-9"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                className="flex-1"
-                onClick={() => setShowVatRequestForm(false)}
-                disabled={isSubmittingVat}
-              >
-                Quay lại
-              </Button>
-              <Button
-                type="button"
-                className="flex-1"
-                onClick={handleSubmitVatRequest}
-                disabled={isSubmittingVat}
-              >
-                {isSubmittingVat && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Gửi yêu cầu
-              </Button>
-            </div>
-          </div>
+          <VatRequestForm
+            parentInvoiceId={invoice?.id ?? null}
+            bookingId={bookingId}
+            tenantId={tenantId}
+            hotelId={hotelId}
+            subtotal={vatEnabled ? totalWithVat : subtotal}
+            onSuccess={() => { setShowVatRequestForm(false); onOpenChange(false) }}
+            onCancel={() => setShowVatRequestForm(false)}
+          />
         )}
       </DialogContent>
     </Dialog>
