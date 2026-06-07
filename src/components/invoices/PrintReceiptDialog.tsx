@@ -18,6 +18,7 @@ import { Separator } from '@/components/ui/separator'
 import { supabase } from '@/integrations/supabase/client'
 import { formatCurrency } from '@/lib/utils'
 import { printInvoice, type HotelInfo } from './InvoicePDFTemplate'
+import { VatRequestForm } from './VatRequestForm'
 
 interface PrintReceiptDialogProps {
   open: boolean
