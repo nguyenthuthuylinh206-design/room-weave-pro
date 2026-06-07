@@ -246,7 +246,9 @@ export async function createInvoiceAfterCheckout({
       status: 'issued',
       issued_at: new Date().toISOString(),
       created_by: userId || null,
-    })
+      invoice_type: invoice_type ?? 'receipt',
+    } as any)
+
 
   if (insertError) {
     console.error('Invoice: Failed to create', insertError)
