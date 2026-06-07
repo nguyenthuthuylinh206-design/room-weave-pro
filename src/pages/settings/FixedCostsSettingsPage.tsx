@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Navigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from '@/hooks/useUser'
@@ -25,7 +26,7 @@ const FIXED_COST_CATEGORIES = [
 ] as const
 
 export function FixedCostsSettingsPage() {
-  const { tenantId } = useUser()
+  const { tenantId, role } = useUser()
   const { selectedHotel } = useHotelContext()
   const hotelId = selectedHotel?.id
   const qc = useQueryClient()
@@ -129,6 +130,10 @@ export function FixedCostsSettingsPage() {
     },
     onError: () => toast.error('Lưu thất bại, thử lại'),
   })
+
+  if (role && role !== 'owner' && role !== 'super_admin') {
+    return <Navigate to="/settings" replace />
+  }
 
   if (!hotelId) {
     return (
