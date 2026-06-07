@@ -116,6 +116,7 @@ const PushDevicesPage = lazy(() => import("./pages/settings/PushDevicesPage"));
 const TelegramSettingsPage = lazy(() => import("./pages/settings/TelegramSettingsPage"));
 const BusinessConfigurationPage = lazyNamed(() => import("./pages/settings/BusinessConfigurationPage"), "BusinessConfigurationPage");
 const CategoryManagementPage = lazy(() => import("./pages/settings/CategoryManagementPage"));
+const FixedCostsSettingsPage = lazy(() => import("./pages/settings/FixedCostsSettingsPage"));
 const WorkflowsPage = lazy(() => import("./pages/settings/WorkflowsPage"));
 const WarehouseListPage = lazy(() => import("./pages/settings/WarehouseListPage"));
 const ChangePasswordPage = lazy(() => import("./pages/settings/ChangePasswordPage"));
@@ -445,6 +446,7 @@ const router = createBrowserRouter([
       { path: "settings/general", element: <PermissionRoute module="settings"><GeneralSettingsPage /></PermissionRoute> },
       { path: "settings/hotels", element: <PermissionRoute module="hotels"><HotelsManagementPage /></PermissionRoute> },
       { path: "settings/categories", element: <PermissionRoute module="settings"><CategoryManagementPage /></PermissionRoute> },
+      { path: "settings/fixed-costs", element: <PermissionRoute module="settings"><FixedCostsSettingsPage /></PermissionRoute> },
       { path: "settings/users", element: <PermissionRoute module="users"><UsersPage /></PermissionRoute> },
       { path: "settings/change-password", element: <ChangePasswordPage /> },
       { path: "staff", element: <PermissionRoute module="users"><StaffManagementPage /></PermissionRoute> },

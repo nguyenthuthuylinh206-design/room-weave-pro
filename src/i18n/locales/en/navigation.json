@@ -7,6 +7,7 @@
   "items": "Assets",
   "itemsList": "Asset List",
   "categories": "Categories & Units",
+  "fixedCosts": "Costs & Targets",
   "addItem": "Add New Asset",
   "transactions": "Inventory Transactions",
   "inbound": "Inbound",

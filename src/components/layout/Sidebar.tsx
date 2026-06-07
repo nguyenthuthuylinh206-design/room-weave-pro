@@ -56,6 +56,7 @@ import {
   ShieldCheck,
   ClipboardList,
   Shirt,
+  Calculator,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -216,6 +217,7 @@ const navigation: NavItem[] = [
 
       // Thiết lập hệ thống
       { titleKey: 'categories', href: '/settings/categories', icon: Tag, group: 'Thiết lập hệ thống' },
+      { titleKey: 'fixedCosts', href: '/settings/fixed-costs', icon: Calculator, minMode: 'standard', roles: ['owner'], group: 'Thiết lập hệ thống' },
       { titleKey: 'businessConfig', href: '/settings/business', icon: Briefcase, minMode: 'standard', group: 'Thiết lập hệ thống' },
       { titleKey: 'roomCheckSettings', href: '/settings/room-check', icon: ClipboardCheck, group: 'Thiết lập hệ thống' },
       { titleKey: 'automation', href: '/settings/workflows', icon: Zap, minMode: 'full', group: 'Thiết lập hệ thống' },
@@ -253,6 +255,7 @@ const NAVIGATION_MODULE_MAP: Record<string, string> = {
   'settings': 'settings',
   'reports': 'reports',
   'categories': 'settings',
+  'fixedCosts': 'settings',
 }
 
 // Map child item keywords to required actions
