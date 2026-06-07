@@ -86,6 +86,13 @@ export function FinancialReportPage({ period: embeddedPeriod, embedded }: Props 
   const grossProfit = totalRevenue - totalCost
   const grossMarginPct = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0
 
+  const fixedQ = useFixedExpenses(dateRange.start)
+  const totalFixed = (fixedQ.data || []).reduce((s, r) => s + Number(r.amount || 0), 0)
+  const netProfit = grossProfit - totalFixed
+  const netMarginPct = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0
+  const hasFixedCosts = totalFixed > 0
+
+
   return (
     <div className="space-y-6">
       {!embedded && (
