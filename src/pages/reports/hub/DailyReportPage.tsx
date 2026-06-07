@@ -16,12 +16,19 @@ import {
   CreditCard,
   AlertCircle,
   Bell,
+  ClipboardList,
+  Send,
 } from 'lucide-react'
 import { AlertList } from '@/components/reports/AlertList'
 import { useOverviewAlerts } from '@/hooks/useOverviewAlerts'
+import { useShiftNotes } from '@/hooks/useShiftNotes'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { toast } from 'sonner'
 
 const OTA_SOURCES = ['agoda', 'booking_com', 'airbnb', 'traveloka', 'expedia']
 
