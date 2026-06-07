@@ -81,6 +81,10 @@ export function FinancialReportPage({ period: embeddedPeriod, embedded }: Props 
   const laundryPercent = totalCost > 0 ? (summary.laundry_cost / totalCost) * 100 : 0
   const maintenancePercent = totalCost > 0 ? (summary.maintenance_cost / totalCost) * 100 : 0
 
+  const totalRevenue = revenueData?.currentPeriod?.totalRevenue ?? 0
+  const grossProfit = totalRevenue - totalCost
+  const grossMarginPct = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0
+
   return (
     <div className="space-y-6">
       {!embedded && (
