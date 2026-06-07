@@ -359,6 +359,16 @@ export function DailyReportPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Cần chú ý */}
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Bell className="h-4 w-4 text-muted-foreground" /> Cần chú ý
+          </div>
+          <AlertList alerts={alertsQ.data} loading={alertsQ.isLoading} />
+        </CardContent>
+      </Card>
     </div>
   )
 }
