@@ -98,9 +98,8 @@ export function DailyReportPage() {
 
   const today = new Date()
   const yesterday = subDays(today, 1)
-  const dayBefore = subDays(today, 2)
 
-  // Doanh thu hôm qua vs hôm kia — dùng bảng booking_payments theo paid_at
+  // Doanh thu hôm qua vs trung bình 7 ngày trước
   const { data: revenueData, isLoading: revLoading } = useQuery({
     queryKey: ['daily-report-revenue', tenantId, hotelId, format(yesterday, 'yyyy-MM-dd')],
     enabled: !!tenantId,
@@ -108,7 +107,7 @@ export function DailyReportPage() {
       const fetchPayments = async (start: Date, end: Date) => {
         let q = supabase
           .from('booking_payments')
-          .select('amount, payment_method, booking_id')
+          .select('amount, payment_method, booking_id, paid_at')
           .eq('tenant_id', tenantId!)
           .eq('payment_status', 'completed')
           .gte('paid_at', startOfDay(start).toISOString())
@@ -117,9 +116,10 @@ export function DailyReportPage() {
         const { data } = await q
         return data || []
       }
-      const [yday, dday] = await Promise.all([
+      const sevenDaysAgo = subDays(yesterday, 7)
+      const [yday, prev7days] = await Promise.all([
         fetchPayments(yesterday, yesterday),
-        fetchPayments(dayBefore, dayBefore),
+        fetchPayments(sevenDaysAgo, subDays(yesterday, 1)),
       ])
 
       // OTA: dựa vào booking_source của booking liên quan
@@ -139,12 +139,35 @@ export function DailyReportPage() {
 
       const sum = (rows: any[]) => rows.reduce((s, r) => s + Number(r.amount || 0), 0)
       const ydayTotal = sum(yday)
-      const ddayTotal = sum(dday)
-      const delta = ddayTotal > 0 ? ((ydayTotal - ddayTotal) / ddayTotal) * 100 : null
+      const avg7 = sum(prev7days) / 7
+      const delta = avg7 > 0 ? ((ydayTotal - avg7) / avg7) * 100 : null
       const cash = sum(yday.filter((r: any) => r.payment_method === 'cash'))
       const transfer = sum(yday.filter((r: any) => r.payment_method === 'bank_transfer'))
       const ota = sum(yday.filter((r: any) => otaBookingIds.has(r.booking_id)))
-      return { total: ydayTotal, delta, cash, transfer, ota }
+      return { total: ydayTotal, delta, avg7, cash, transfer, ota }
+    },
+  })
+
+  // ADR trung bình 30 ngày gần nhất (để ước tính doanh thu bị block bởi phòng bảo trì)
+  const { data: adrData } = useQuery({
+    queryKey: ['daily-report-adr', tenantId, hotelId],
+    enabled: !!tenantId,
+    staleTime: 60 * 60_000,
+    queryFn: async () => {
+      const from = startOfDay(subDays(new Date(), 30)).toISOString()
+      let q = supabase
+        .from('room_bookings')
+        .select('total_amount, total_nights')
+        .eq('tenant_id', tenantId!)
+        .eq('status', 'checked_out')
+        .gte('check_out_date', from)
+        .gt('total_nights', 0)
+      if (hotelId) q = q.eq('hotel_id', hotelId)
+      const { data } = await q
+      const rows = data || []
+      const totalRevenue = rows.reduce((s: number, r: any) => s + Number(r.total_amount || 0), 0)
+      const totalNights = rows.reduce((s: number, r: any) => s + Number(r.total_nights || 0), 0)
+      return totalNights > 0 ? totalRevenue / totalNights : 0
     },
   })
 
@@ -291,9 +314,16 @@ export function DailyReportPage() {
                 )}
               </div>
               {(roomData?.maintenance || 0) > 0 && (
-                <div className="flex items-center gap-1.5 text-xs text-red-600">
-                  <AlertCircle className="h-3.5 w-3.5" />
-                  {roomData?.maintenance} phòng đang bảo trì — không thể bán
+                <div className="mt-2 p-2 rounded bg-destructive/10 text-xs text-destructive space-y-0.5">
+                  <div className="flex items-center gap-1.5 font-medium">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
+                    {roomData?.maintenance} phòng đang bảo trì — không thể bán
+                  </div>
+                  {adrData && adrData > 0 && (
+                    <p className="text-destructive/80 pl-[18px]">
+                      Ước tính block ≈ {formatCurrency(adrData * (roomData?.maintenance || 0))} doanh thu hôm nay
+                    </p>
+                  )}
                 </div>
               )}
             </>
@@ -340,7 +370,7 @@ export function DailyReportPage() {
               <KpiRow
                 label="Tổng thu"
                 value={formatCurrency(revenueData?.total || 0)}
-                sub="so với hôm kia"
+                sub={`TB 7 ngày trước: ${formatCurrency(revenueData?.avg7 || 0)}`}
                 delta={revenueData?.delta ?? null}
               />
               <KpiRow label="Tiền mặt" value={formatCurrency(revenueData?.cash || 0)} />
