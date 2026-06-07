@@ -60,6 +60,7 @@ export default function GuestInvoicesPage() {
   const [previewInvoice, setPreviewInvoice] = useState<GuestInvoice | null>(null)
   const [editInvoice, setEditInvoice] = useState<GuestInvoice | null>(null)
   const [emailInvoice, setEmailInvoice] = useState<GuestInvoice | null>(null)
+  const [vatDetailInvoice, setVatDetailInvoice] = useState<GuestInvoice | null>(null)
   const [dateRange, setDateRange] = useState<{ from: Date | null; to: Date | null }>({
     from: startOfMonth(new Date()),
     to: endOfDay(new Date()),
