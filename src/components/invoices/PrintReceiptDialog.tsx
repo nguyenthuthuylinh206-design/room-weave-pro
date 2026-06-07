@@ -51,8 +51,6 @@ export function PrintReceiptDialog({
   const [vatEnabled, setVatEnabled] = useState(false)
   const [vatRate, setVatRate] = useState(10)
   const [showVatRequestForm, setShowVatRequestForm] = useState(false)
-  const [accountantEmail, setAccountantEmail] = useState('')
-  const [isSubmittingVat, setIsSubmittingVat] = useState(false)
   const [isPrinting, setIsPrinting] = useState(false)
 
   // Reset state when dialog re-opens
@@ -61,7 +59,6 @@ export function PrintReceiptDialog({
       setVatEnabled(false)
       setVatRate(10)
       setShowVatRequestForm(false)
-      setAccountantEmail('')
     }
   }, [open, bookingId])
 
