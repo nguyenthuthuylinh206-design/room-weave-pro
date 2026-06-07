@@ -242,12 +242,11 @@ const navigation: NavItem[] = [
 // Map navigation titles to permission modules
 const NAVIGATION_MODULE_MAP: Record<string, string> = {
   'dashboard': 'dashboard',
-  'inventory': 'inventory,items',
+  'inventory': 'inventory,items,vendors,purchase_orders',
   'rooms': 'rooms',
   'bookings': 'bookings',
   'laundry': 'laundry',
   'maintenance': 'maintenance',
-  'vendors': 'vendors,purchase_orders',
   'hotels': 'hotels',
   'users': 'users',
   'settings': 'settings',
