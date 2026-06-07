@@ -363,7 +363,7 @@ export function DailyReportPage() {
               <KpiRow
                 label="Tổng thu"
                 value={formatCurrency(revenueData?.total || 0)}
-                sub="so với hôm kia"
+                sub={`TB 7 ngày trước: ${formatCurrency(revenueData?.avg7 || 0)}`}
                 delta={revenueData?.delta ?? null}
               />
               <KpiRow label="Tiền mặt" value={formatCurrency(revenueData?.cash || 0)} />
