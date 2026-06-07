@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Download, FileText, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Download, FileText, AlertTriangle, Info } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -185,8 +185,8 @@ export function FinancialReportPage({ period: embeddedPeriod, embedded }: Props 
           {/* Lợi nhuận gộp */}
           <div className="border rounded-lg">
             <div className="p-3 border-b">
-              <h3 className="text-sm font-medium">Lợi nhuận ước tính</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Doanh thu phòng trừ chi phí trực tiếp đã ghi nhận trong kỳ</p>
+              <h3 className="text-sm font-medium">Lợi nhuận vận hành</h3>
+              <p className="text-xs text-muted-foreground/80 mt-0.5">Doanh thu phòng trừ chi phí vận hành trực tiếp. Chưa bao gồm: lương nhân viên, tiền thuê mặt bằng, điện nước.</p>
             </div>
             <div className="divide-y">
               <div className="p-3 flex items-center justify-between">
@@ -216,6 +216,12 @@ export function FinancialReportPage({ period: embeddedPeriod, embedded }: Props 
               </div>
             )}
           </div>
+          {grossProfit > 0 && (
+            <p className="text-xs text-muted-foreground px-1 flex items-start gap-1.5">
+              <Info className="h-3 w-3 shrink-0 mt-0.5" />
+              Số liệu trên chưa trừ chi phí cố định hàng tháng (lương, thuê, điện nước). Để xem lợi nhuận thực, hãy nhập chi phí cố định trong Cài đặt.
+            </p>
+          )}
 
           {/* Xu hướng chi phí */}
           <div className="border rounded-lg p-4">
