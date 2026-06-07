@@ -158,6 +158,10 @@ export function BookingsPage() {
   // States for check-in/check-out dialogs
   const [showCheckinConfirm, setShowCheckinConfirm] = useState(false)
   const [showCheckoutSummary, setShowCheckoutSummary] = useState(false)
+  const [showPrintReceiptDialog, setShowPrintReceiptDialog] = useState(false)
+  const [printReceiptBookingId, setPrintReceiptBookingId] = useState<string | null>(null)
+  const [printReceiptSubtotal, setPrintReceiptSubtotal] = useState(0)
+  const [printReceiptMeta, setPrintReceiptMeta] = useState<{ guestName: string; roomNumber: string; hotelId: string } | null>(null)
   const [showExtendDialog, setShowExtendDialog] = useState(false)
   const [showGroupPaymentDialog, setShowGroupPaymentDialog] = useState(false)
   const [showGroupCheckoutDialog, setShowGroupCheckoutDialog] = useState(false)
