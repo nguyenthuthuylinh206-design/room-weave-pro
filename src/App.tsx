@@ -146,6 +146,7 @@ const OperationsHubPage = lazyNamed(() => import("./pages/reports/hub/Operations
 const HousekeepingHubPage = lazyNamed(() => import("./pages/reports/hub/HousekeepingHubPage"), "HousekeepingHubPage");
 const InventoryHubPage = lazyNamed(() => import("./pages/reports/hub/InventoryHubPage"), "InventoryHubPage");
 const OverviewHubPage = lazyNamed(() => import("./pages/reports/hub/OverviewHubPage"), "OverviewHubPage");
+const DailyReportPage = lazyNamed(() => import("./pages/reports/hub/DailyReportPage"), "DailyReportPage");
 const RoomRevenueReportPage = lazyNamed(() => import("./pages/reports/RoomRevenueReportPage"), "RoomRevenueReportPage");
 const CashFlowReportPage = lazyNamed(() => import("./pages/reports/CashFlowReportPage"), "CashFlowReportPage");
 
@@ -486,6 +487,7 @@ const router = createBrowserRouter([
 
       // Reports — consolidated hubs (4 trang chính + overview)
       { path: "reports", element: <PermissionRoute module="reports"><OverviewHubPage /></PermissionRoute> },
+      { path: "reports/daily", element: <PermissionRoute module="reports"><DailyReportPage /></PermissionRoute> },
       { path: "reports/finance", element: <PermissionRoute module="reports"><FinanceHubPage /></PermissionRoute> },
       { path: "reports/operations", element: <PermissionRoute module="reports"><OperationsHubPage /></PermissionRoute> },
       { path: "reports/housekeeping", element: <PermissionRoute module="reports"><HousekeepingHubPage /></PermissionRoute> },

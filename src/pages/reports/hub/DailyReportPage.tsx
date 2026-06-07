@@ -1,0 +1,338 @@
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/integrations/supabase/client'
+import { useUser } from '@/hooks/useUser'
+import { useHotelContext } from '@/contexts/HotelContext'
+import { formatCurrency } from '@/lib/utils'
+import { format, subDays, startOfDay, endOfDay } from 'date-fns'
+import { vi } from 'date-fns/locale'
+import {
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  BedDouble,
+  LogIn,
+  LogOut,
+  Banknote,
+  CreditCard,
+  AlertCircle,
+} from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Link } from 'react-router-dom'
+
+const OTA_SOURCES = ['agoda', 'booking_com', 'airbnb', 'traveloka', 'expedia']
+
+function Delta({ value }: { value: number | null }) {
+  if (value === null || value === undefined) return null
+  if (value > 0) {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-xs text-green-600">
+        <TrendingUp className="h-3 w-3" />+{value.toFixed(1)}%
+      </span>
+    )
+  }
+  if (value < 0) {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-xs text-red-600">
+        <TrendingDown className="h-3 w-3" />
+        {value.toFixed(1)}%
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground">
+      <Minus className="h-3 w-3" />
+      0%
+    </span>
+  )
+}
+
+function KpiRow({
+  label,
+  value,
+  sub,
+  delta,
+  href,
+}: {
+  label: string
+  value: string
+  sub?: string
+  delta?: number | null
+  href?: string
+}) {
+  const content = (
+    <div className="flex items-center justify-between py-2 border-b last:border-b-0">
+      <div className="min-w-0">
+        <div className="text-xs text-muted-foreground">{label}</div>
+        {sub && <div className="text-xs text-muted-foreground/70">{sub}</div>}
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="text-sm font-semibold tabular-nums">{value}</div>
+        {delta !== undefined && <Delta value={delta ?? null} />}
+      </div>
+    </div>
+  )
+  return href ? (
+    <Link to={href} className="block hover:bg-muted/40 -mx-2 px-2 rounded">
+      {content}
+    </Link>
+  ) : (
+    content
+  )
+}
+
+export function DailyReportPage() {
+  const { tenantId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
+  const hotelId = isAllHotelsMode ? null : selectedHotel?.id ?? null
+
+  const today = new Date()
+  const yesterday = subDays(today, 1)
+  const dayBefore = subDays(today, 2)
+
+  // Doanh thu hôm qua vs hôm kia — dùng bảng booking_payments theo paid_at
+  const { data: revenueData, isLoading: revLoading } = useQuery({
+    queryKey: ['daily-report-revenue', tenantId, hotelId, format(yesterday, 'yyyy-MM-dd')],
+    enabled: !!tenantId,
+    queryFn: async () => {
+      const fetchPayments = async (start: Date, end: Date) => {
+        let q = supabase
+          .from('booking_payments')
+          .select('amount, payment_method, booking_id')
+          .eq('tenant_id', tenantId!)
+          .eq('payment_status', 'completed')
+          .gte('paid_at', startOfDay(start).toISOString())
+          .lte('paid_at', endOfDay(end).toISOString())
+        if (hotelId) q = q.eq('hotel_id', hotelId)
+        const { data } = await q
+        return data || []
+      }
+      const [yday, dday] = await Promise.all([
+        fetchPayments(yesterday, yesterday),
+        fetchPayments(dayBefore, dayBefore),
+      ])
+
+      // OTA: dựa vào booking_source của booking liên quan
+      const bookingIds = Array.from(new Set(yday.map((p: any) => p.booking_id).filter(Boolean)))
+      let otaBookingIds = new Set<string>()
+      if (bookingIds.length > 0) {
+        const { data: bks } = await supabase
+          .from('room_bookings')
+          .select('id, booking_source')
+          .in('id', bookingIds)
+        otaBookingIds = new Set(
+          (bks || [])
+            .filter((b: any) => OTA_SOURCES.includes(b.booking_source))
+            .map((b: any) => b.id),
+        )
+      }
+
+      const sum = (rows: any[]) => rows.reduce((s, r) => s + Number(r.amount || 0), 0)
+      const ydayTotal = sum(yday)
+      const ddayTotal = sum(dday)
+      const delta = ddayTotal > 0 ? ((ydayTotal - ddayTotal) / ddayTotal) * 100 : null
+      const cash = sum(yday.filter((r: any) => r.payment_method === 'cash'))
+      const transfer = sum(yday.filter((r: any) => r.payment_method === 'bank_transfer'))
+      const ota = sum(yday.filter((r: any) => otaBookingIds.has(r.booking_id)))
+      return { total: ydayTotal, delta, cash, transfer, ota }
+    },
+  })
+
+  // Tình trạng phòng hôm nay
+  const { data: roomData, isLoading: roomLoading } = useQuery({
+    queryKey: ['daily-report-rooms', tenantId, hotelId],
+    enabled: !!tenantId,
+    queryFn: async () => {
+      let q = supabase.from('rooms').select('status').eq('tenant_id', tenantId!)
+      if (hotelId) q = q.eq('hotel_id', hotelId)
+      const { data } = await q
+      const rows = data || []
+      return {
+        total: rows.length,
+        occupied: rows.filter((r: any) => r.status === 'occupied').length,
+        vacant: rows.filter((r: any) => r.status === 'vacant').length,
+        cleaning: rows.filter((r: any) => r.status === 'cleaning').length,
+        maintenance: rows.filter((r: any) => r.status === 'maintenance').length,
+      }
+    },
+  })
+
+  // Check-in/out hôm nay
+  const { data: movementData, isLoading: movLoading } = useQuery({
+    queryKey: ['daily-report-movement', tenantId, hotelId, format(today, 'yyyy-MM-dd')],
+    enabled: !!tenantId,
+    queryFn: async () => {
+      let qIn = supabase
+        .from('room_bookings')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId!)
+        .gte('check_in_date', startOfDay(today).toISOString())
+        .lte('check_in_date', endOfDay(today).toISOString())
+        .eq('status', 'confirmed')
+      let qOut = supabase
+        .from('room_bookings')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId!)
+        .gte('check_out_date', startOfDay(today).toISOString())
+        .lte('check_out_date', endOfDay(today).toISOString())
+        .eq('status', 'checked_in')
+      if (hotelId) {
+        qIn = qIn.eq('hotel_id', hotelId)
+        qOut = qOut.eq('hotel_id', hotelId)
+      }
+      const [inRes, outRes] = await Promise.all([qIn, qOut])
+      return { checkIn: inRes.count || 0, checkOut: outRes.count || 0 }
+    },
+  })
+
+  // Công nợ chưa thu
+  const { data: debtData, isLoading: debtLoading } = useQuery({
+    queryKey: ['daily-report-debt', tenantId, hotelId],
+    enabled: !!tenantId,
+    queryFn: async () => {
+      let q = supabase
+        .from('room_bookings')
+        .select('id, guest_name, total_amount, amount_paid')
+        .eq('tenant_id', tenantId!)
+        .eq('status', 'checked_in')
+        .gt('total_amount', 0)
+      if (hotelId) q = q.eq('hotel_id', hotelId)
+      const { data } = await q
+      const rows = data || []
+      const unpaid = rows.filter(
+        (r: any) => Number(r.amount_paid || 0) < Number(r.total_amount || 0),
+      )
+      const totalDebt = unpaid.reduce(
+        (s: number, r: any) =>
+          s + Math.max(0, Number(r.total_amount || 0) - Number(r.amount_paid || 0)),
+        0,
+      )
+      return { count: unpaid.length, total: totalDebt }
+    },
+  })
+
+  const isLoading = revLoading || roomLoading || movLoading || debtLoading
+  const occupancyPct =
+    roomData && roomData.total > 0 ? Math.round((roomData.occupied / roomData.total) * 100) : 0
+
+  return (
+    <div className="space-y-4 max-w-3xl mx-auto">
+      <div>
+        <h1 className="text-2xl font-bold">Báo cáo ngày</h1>
+        <p className="text-sm text-muted-foreground">
+          {format(today, "EEEE, dd/MM/yyyy", { locale: vi })}
+        </p>
+      </div>
+
+      {/* Tình trạng phòng */}
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <BedDouble className="h-4 w-4 text-muted-foreground" /> Tình trạng phòng hôm nay
+          </div>
+          {isLoading ? (
+            <Skeleton className="h-16 w-full" />
+          ) : (
+            <>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-bold tabular-nums">{occupancyPct}%</span>
+                <span className="text-xs text-muted-foreground">
+                  công suất ({roomData?.occupied}/{roomData?.total} phòng)
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-3 text-xs">
+                <span className="text-green-600">Trống: {roomData?.vacant}</span>
+                <span className="text-amber-600">Đang dọn: {roomData?.cleaning}</span>
+                {(roomData?.maintenance || 0) > 0 && (
+                  <span className="text-red-600">Bảo trì: {roomData?.maintenance}</span>
+                )}
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Check-in / Check-out hôm nay */}
+      <Card>
+        <CardContent className="p-4 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <LogIn className="h-4 w-4 text-muted-foreground" /> Lịch di chuyển hôm nay
+          </div>
+          {isLoading ? (
+            <Skeleton className="h-16 w-full" />
+          ) : (
+            <>
+              <KpiRow
+                label="Khách nhận phòng"
+                value={`${movementData?.checkIn ?? 0}`}
+                href="/bookings?status=confirmed"
+              />
+              <KpiRow
+                label="Khách trả phòng"
+                value={`${movementData?.checkOut ?? 0}`}
+                href="/bookings?status=checked_in"
+              />
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Doanh thu hôm qua */}
+      <Card>
+        <CardContent className="p-4 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Banknote className="h-4 w-4 text-muted-foreground" /> Doanh thu hôm qua (
+            {format(yesterday, 'dd/MM')})
+          </div>
+          {isLoading ? (
+            <Skeleton className="h-24 w-full" />
+          ) : (
+            <>
+              <KpiRow
+                label="Tổng thu"
+                value={formatCurrency(revenueData?.total || 0)}
+                sub="so với hôm kia"
+                delta={revenueData?.delta ?? null}
+              />
+              <KpiRow label="Tiền mặt" value={formatCurrency(revenueData?.cash || 0)} />
+              <KpiRow
+                label="Chuyển khoản"
+                value={formatCurrency(revenueData?.transfer || 0)}
+              />
+              {(revenueData?.ota || 0) > 0 && (
+                <KpiRow label="OTA" value={formatCurrency(revenueData?.ota || 0)} />
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Công nợ chưa thu */}
+      {(debtData?.count || 0) > 0 && (
+        <Card className="border-amber-500/40">
+          <CardContent className="p-4 space-y-2">
+            <div className="flex items-center gap-2 text-sm font-semibold text-amber-700">
+              <AlertCircle className="h-4 w-4" /> Tiền chưa thu
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">
+                {debtData?.count} booking đang ở chưa thanh toán đủ
+              </div>
+              <div className="text-2xl font-bold text-amber-700 tabular-nums">
+                {formatCurrency(debtData?.total || 0)}
+              </div>
+            </div>
+            <Link
+              to="/bookings?status=checked_in"
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              <CreditCard className="h-3 w-3" /> Xem chi tiết →
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
+}
+
+export default DailyReportPage
