@@ -65,7 +65,7 @@ export default function MaintenanceDashboard() {
               <span className="text-xs text-muted-foreground">Tổng yêu cầu</span>
               <Wrench className="h-3.5 w-3.5 text-muted-foreground" />
             </div>
-            <div className="text-xl font-semibold">{stats.total}</div>
+            <div className="text-2xl font-bold">{stats.total}</div>
             <span className="text-xs text-muted-foreground">+{stats.totalLast30Days} (30d)</span>
           </div>
           <div className="border rounded-lg p-3">
@@ -73,7 +73,7 @@ export default function MaintenanceDashboard() {
               <span className="text-xs text-muted-foreground">Đang xử lý</span>
               <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
             </div>
-            <div className="text-xl font-semibold text-amber-600">{stats.inProgress}</div>
+            <div className="text-2xl font-bold text-amber-600">{stats.inProgress}</div>
             <span className="text-xs text-muted-foreground">Cần xử lý</span>
           </div>
           <div className="border rounded-lg p-3">
@@ -81,7 +81,7 @@ export default function MaintenanceDashboard() {
               <span className="text-xs text-muted-foreground">Hoàn thành</span>
               <CheckCircle className="h-3.5 w-3.5 text-green-500" />
             </div>
-            <div className="text-xl font-semibold text-green-600">{stats.completed}</div>
+            <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
             <span className="text-xs text-muted-foreground">{stats.completionRate}%</span>
           </div>
           <div className="border rounded-lg p-3">
@@ -89,7 +89,7 @@ export default function MaintenanceDashboard() {
               <span className="text-xs text-muted-foreground">Thời gian TB</span>
               <Clock className="h-3.5 w-3.5 text-muted-foreground" />
             </div>
-            <div className="text-xl font-semibold">{stats.avgTime}h</div>
+            <div className="text-2xl font-bold">{stats.avgTime}h</div>
             <span className="text-xs text-muted-foreground">MTTR: {stats.mttr}h</span>
           </div>
           <div className="border rounded-lg p-3">
@@ -97,7 +97,7 @@ export default function MaintenanceDashboard() {
               <span className="text-xs text-muted-foreground">Chi phí (30d)</span>
               <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
             </div>
-            <div className="text-xl font-semibold">{formatCurrency(stats.costLast30Days)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(stats.costLast30Days)}</div>
             <span className="text-xs text-muted-foreground">FTF: {stats.firstTimeFixRate}%</span>
           </div>
         </div>
