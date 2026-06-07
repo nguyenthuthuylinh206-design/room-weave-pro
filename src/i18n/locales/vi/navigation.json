@@ -13,6 +13,7 @@
   "transactions": "Giao dịch kho",
   "inbound": "Nhập kho",
   "outbound": "Xuất kho",
+  "adjustments": "Điều chỉnh tồn kho",
   "adjustment": "Kiểm kê",
   "transfer": "Chuyển kho",
   "distribution": "Phiếu giao hàng",
