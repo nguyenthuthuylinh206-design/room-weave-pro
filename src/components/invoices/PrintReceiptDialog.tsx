@@ -90,10 +90,10 @@ export function PrintReceiptDialog({
     queryFn: async () => {
       const { data } = await supabase
         .from('hotels')
-        .select('name, address, phone, tax_code')
+        .select('*')
         .eq('id', hotelId)
         .maybeSingle()
-      return data
+      return data as any
     },
     enabled: open && !!hotelId && !hotelInfoProp,
   })
