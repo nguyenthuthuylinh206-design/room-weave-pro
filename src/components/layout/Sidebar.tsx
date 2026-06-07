@@ -132,7 +132,7 @@ const navigation: NavItem[] = [
       { titleKey: 'housekeepingOverview', href: '/housekeeping', icon: List, group: 'Quản lý phòng' },
       { titleKey: 'roomsList', href: '/rooms', icon: List, group: 'Quản lý phòng' },
       { titleKey: 'roomStandards', href: '/rooms/standards', icon: Settings, minMode: 'standard', group: 'Quản lý phòng' },
-      { titleKey: 'addRoom', href: '/rooms/new', icon: Plus, group: 'Quản lý phòng' },
+      
       { titleKey: 'lostFound', href: '/lost-found', icon: PackageSearch, group: 'Khác' },
     ],
   },
