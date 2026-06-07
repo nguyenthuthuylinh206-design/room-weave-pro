@@ -11,6 +11,7 @@
   "transactions": "Inventory Transactions",
   "inbound": "Inbound",
   "outbound": "Outbound",
+  "adjustments": "Stock Adjustments",
   "adjustment": "Stock Adjustment",
   "transfer": "Transfer",
   "distribution": "Distribution Orders",
