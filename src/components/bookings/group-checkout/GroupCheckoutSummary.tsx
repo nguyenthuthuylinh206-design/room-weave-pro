@@ -69,13 +69,13 @@ export function GroupCheckoutSummary({ totals, selectedRoomCount, roomsRemaining
         {/* Service & Minibar itemized details */}
         {hasServiceDetails ? (
           <div className="space-y-1">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium border-b border-border/50 pb-1 mt-1">
+            <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium border-b border-border/50 pb-1 mt-1">
               Dịch vụ & Minibar
             </div>
             {allServiceDetails.map((detail) => (
               <div key={detail.id} className="flex justify-between text-sm py-0.5">
                 <span className="text-muted-foreground flex items-center gap-1.5">
-                  <span className="text-[10px] uppercase text-muted-foreground/60 w-12 shrink-0">
+                  <span className="text-xs uppercase text-muted-foreground/60 w-12 shrink-0">
                     {detail.source === 'minibar' ? 'Minibar' : 'Dịch vụ'}
                   </span>
                   <span className="truncate">

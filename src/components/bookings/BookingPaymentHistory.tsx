@@ -61,13 +61,13 @@ export function BookingPaymentHistory({ bookingId }: BookingPaymentHistoryProps)
             </span>
             <span className="col-span-1 text-right">
               {p.payment_status === 'completed' && (
-                <Badge variant="outline" className="border-green-500/50 text-green-600 text-[10px] px-1 py-0 h-4">OK</Badge>
+                <Badge variant="outline" className="border-green-500/50 text-green-600 text-xs px-1 py-0 h-4">OK</Badge>
               )}
               {p.payment_status === 'pending' && (
-                <Badge variant="outline" className="border-amber-500/50 text-amber-600 text-[10px] px-1 py-0 h-4">Chờ</Badge>
+                <Badge variant="outline" className="border-amber-500/50 text-amber-600 text-xs px-1 py-0 h-4">Chờ</Badge>
               )}
               {p.payment_status === 'cancelled' && (
-                <Badge variant="outline" className="border-red-500/50 text-red-600 text-[10px] px-1 py-0 h-4">Hủy</Badge>
+                <Badge variant="outline" className="border-red-500/50 text-red-600 text-xs px-1 py-0 h-4">Hủy</Badge>
               )}
             </span>
           </div>
