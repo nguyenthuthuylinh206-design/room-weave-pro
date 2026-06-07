@@ -410,7 +410,7 @@ export default function GuestInvoicesPage() {
                   {vatRequests.map((inv) => {
                     const services = (inv.line_items || []).map(li => li.description).join(', ')
                     return (
-                      <tr key={inv.id} className="hover:bg-muted/20">
+                      <tr key={inv.id} className="hover:bg-muted/20 cursor-pointer" onClick={() => setVatDetailInvoice(inv)}>
                         <td className="px-3 py-2 text-xs whitespace-nowrap">
                           {format(new Date(inv.created_at), 'dd/MM/yyyy HH:mm')}
                         </td>
