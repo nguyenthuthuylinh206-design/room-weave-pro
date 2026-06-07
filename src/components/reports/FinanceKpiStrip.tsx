@@ -87,7 +87,7 @@ export function FinanceKpiStrip({ period }: Props) {
         loading={loading}
       />
       <KpiScorecard
-        label="Lợi nhuận"
+        label="Lợi nhuận vận hành"
         value={formatCurrency(kpis.profit.value)}
         deltaPct={loading ? null : kpis.profit.delta}
         goodDirection="up"
