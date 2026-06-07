@@ -245,6 +245,23 @@ export function DailyReportPage() {
                   công suất ({roomData?.occupied}/{roomData?.total} phòng)
                 </span>
               </div>
+              <div className="space-y-1">
+                <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                  <div
+                    className={cn(
+                      "h-2 rounded-full transition-all",
+                      occupancyPct >= 80 ? "bg-green-500" : occupancyPct >= 50 ? "bg-amber-500" : "bg-destructive"
+                    )}
+                    style={{ width: `${occupancyPct}%` }}
+                  />
+                </div>
+                <div className={cn(
+                  "text-xs font-medium tabular-nums",
+                  occupancyPct >= 80 ? "text-green-600" : occupancyPct >= 50 ? "text-amber-600" : "text-destructive"
+                )}>
+                  {occupancyPct}%
+                </div>
+              </div>
               <div className="flex flex-wrap gap-3 text-xs">
                 <span className="text-green-600">Trống: {roomData?.vacant}</span>
                 <span className="text-amber-600">Đang dọn: {roomData?.cleaning}</span>
@@ -252,6 +269,12 @@ export function DailyReportPage() {
                   <span className="text-red-600">Bảo trì: {roomData?.maintenance}</span>
                 )}
               </div>
+              {(roomData?.maintenance || 0) > 0 && (
+                <div className="flex items-center gap-1.5 text-xs text-red-600">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  {roomData?.maintenance} phòng đang bảo trì — không thể bán
+                </div>
+              )}
             </>
           )}
         </CardContent>
