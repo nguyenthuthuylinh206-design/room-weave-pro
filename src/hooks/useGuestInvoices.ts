@@ -38,6 +38,8 @@ export interface GuestInvoice {
   email_sent_at: string | null
   created_at: string
   updated_at: string
+  invoice_type?: string
+  accountant_email?: string | null
 }
 
 export interface InvoiceLineItem {
