@@ -50,6 +50,7 @@ export function FinancialReportPage({ period: embeddedPeriod, embedded }: Props 
     : standaloneRange
 
   const { data: reportData, isLoading } = useFinancialReport(dateRange)
+  const { data: revenueData } = useRevenueReport('custom', { start: dateRange.start, end: dateRange.end })
   const { exportToPDF, exportToExcel, isExporting } = useReportExport()
 
   if (isMobile && !embedded) return <MobileFinancialReportPage />
