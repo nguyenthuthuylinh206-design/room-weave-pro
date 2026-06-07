@@ -3015,6 +3015,60 @@ export type Database = {
         }
         Relationships: []
       }
+      hotel_fixed_expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          hotel_id: string
+          id: string
+          label: string | null
+          month: string
+          note: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          category: string
+          created_at?: string
+          hotel_id: string
+          id?: string
+          label?: string | null
+          month: string
+          note?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          hotel_id?: string
+          id?: string
+          label?: string | null
+          month?: string
+          note?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_fixed_expenses_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "hotel_fixed_expenses_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hotel_invoices: {
         Row: {
           adjustment_reason: string | null
@@ -6087,6 +6141,54 @@ export type Database = {
             columns: ["parent_message_id"]
             isOneToOne: false
             referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monthly_targets: {
+        Row: {
+          created_at: string
+          hotel_id: string
+          id: string
+          month: string
+          occupancy_target: number | null
+          revenue_target: number | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hotel_id: string
+          id?: string
+          month: string
+          occupancy_target?: number | null
+          revenue_target?: number | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hotel_id?: string
+          id?: string
+          month?: string
+          occupancy_target?: number | null
+          revenue_target?: number | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_targets_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "monthly_targets_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
             referencedColumns: ["id"]
           },
         ]
@@ -9405,6 +9507,57 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_user_effective_roles"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      shift_notes: {
+        Row: {
+          author_id: string | null
+          author_name: string | null
+          content: string
+          created_at: string
+          hotel_id: string | null
+          id: string
+          note_date: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          author_name?: string | null
+          content: string
+          created_at?: string
+          hotel_id?: string | null
+          id?: string
+          note_date: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          author_name?: string | null
+          content?: string
+          created_at?: string
+          hotel_id?: string | null
+          id?: string
+          note_date?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_notes_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "shift_notes_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
           },
         ]
       }
