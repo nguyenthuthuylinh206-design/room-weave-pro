@@ -29,6 +29,7 @@ import CreateInvoiceDialog from '@/components/invoices/CreateInvoiceDialog'
 import InvoicePreviewDialog from '@/components/invoices/InvoicePreviewDialog'
 import EditInvoiceDialog from '@/components/invoices/EditInvoiceDialog'
 import SendInvoiceEmailDialog from '@/components/invoices/SendInvoiceEmailDialog'
+import VatRequestDetailDialog from '@/components/invoices/VatRequestDetailDialog'
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'Tất cả' },
