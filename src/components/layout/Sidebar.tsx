@@ -132,8 +132,6 @@ const navigation: NavItem[] = [
       { titleKey: 'housekeepingOverview', href: '/housekeeping', icon: List, group: 'Quản lý phòng' },
       { titleKey: 'roomsList', href: '/rooms', icon: List, group: 'Quản lý phòng' },
       { titleKey: 'roomStandards', href: '/rooms/standards', icon: Settings, minMode: 'standard', group: 'Quản lý phòng' },
-      
-      { titleKey: 'lostFound', href: '/lost-found', icon: PackageSearch, group: 'Khác' },
     ],
   },
   {
@@ -145,8 +143,9 @@ const navigation: NavItem[] = [
       { titleKey: 'bookings', href: '/bookings', icon: CalendarDays, group: 'Đặt phòng' },
       { titleKey: 'guests', href: '/guests', icon: Users, group: 'Khách' },
       { titleKey: 'guestInvoices', href: '/guest-invoices', icon: FileText, group: 'Khách' },
-      { titleKey: 'stayRegistrations', href: '/legal/stay-registrations', icon: ClipboardList, group: 'Khác' },
-      { titleKey: 'pendingCharges', href: '/reception/pending-charges', icon: DollarSign, group: 'Khác' },
+      { titleKey: 'lostFound', href: '/lost-found', icon: PackageSearch, group: 'Khách' },
+      { titleKey: 'stayRegistrations', href: '/legal/stay-registrations', icon: ClipboardList, group: 'Tiếp nhận' },
+      { titleKey: 'pendingCharges', href: '/reception/pending-charges', icon: DollarSign, group: 'Tiếp nhận' },
     ],
   },
   {
