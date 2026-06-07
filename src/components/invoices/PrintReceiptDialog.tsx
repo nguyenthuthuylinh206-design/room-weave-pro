@@ -249,47 +249,15 @@ export function PrintReceiptDialog({
             </Button>
           </div>
         ) : (
-          <div className="space-y-3 rounded-md border p-3">
-            <div className="space-y-1">
-              <h4 className="text-sm font-semibold">Yêu cầu xuất HĐVAT</h4>
-              <p className="text-xs text-muted-foreground">
-                Nhập email kế toán nhận yêu cầu xuất hóa đơn VAT cho khách.
-              </p>
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="accountant-email" className="text-xs">
-                Email kế toán
-              </Label>
-              <Input
-                id="accountant-email"
-                type="email"
-                placeholder="ketoan@khachsan.vn"
-                value={accountantEmail}
-                onChange={(e) => setAccountantEmail(e.target.value)}
-                className="h-9"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                className="flex-1"
-                onClick={() => setShowVatRequestForm(false)}
-                disabled={isSubmittingVat}
-              >
-                Quay lại
-              </Button>
-              <Button
-                type="button"
-                className="flex-1"
-                onClick={handleSubmitVatRequest}
-                disabled={isSubmittingVat}
-              >
-                {isSubmittingVat && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Gửi yêu cầu
-              </Button>
-            </div>
-          </div>
+          <VatRequestForm
+            parentInvoiceId={invoice?.id ?? null}
+            bookingId={bookingId}
+            tenantId={tenantId}
+            hotelId={hotelId}
+            subtotal={vatEnabled ? totalWithVat : subtotal}
+            onSuccess={() => { setShowVatRequestForm(false); onOpenChange(false) }}
+            onCancel={() => setShowVatRequestForm(false)}
+          />
         )}
       </DialogContent>
     </Dialog>
