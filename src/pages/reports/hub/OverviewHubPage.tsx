@@ -54,6 +54,29 @@ export function OverviewHubPage() {
 
       <OverviewKpiStrip period={period} />
 
+      {hasTarget && (
+        <div className="rounded-lg border p-4 space-y-4">
+          <h3 className="text-sm font-semibold">Tiến độ mục tiêu tháng</h3>
+          {target!.revenue_target ? (
+            <TargetProgressBar
+              label="Doanh thu"
+              current={kpi.netRevenue.value}
+              target={Number(target!.revenue_target)}
+              format="currency"
+            />
+          ) : null}
+          {target!.occupancy_target ? (
+            <TargetProgressBar
+              label="Công suất"
+              current={kpi.occupancy.value}
+              target={Number(target!.occupancy_target)}
+              format="percent"
+            />
+          ) : null}
+        </div>
+      )}
+
+
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <RevenueVsCostChart data={chartQ.data} loading={chartQ.isLoading} days={30} />
