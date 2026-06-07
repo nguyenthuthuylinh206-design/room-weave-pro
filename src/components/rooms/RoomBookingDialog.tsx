@@ -1465,6 +1465,27 @@ export function RoomBookingDialog({
           }}
         />
       )}
+
+      {showPrintReceiptDialog && printReceiptBookingId && (
+        <PrintReceiptDialog
+          open={showPrintReceiptDialog}
+          onOpenChange={(o) => {
+            setShowPrintReceiptDialog(o)
+            if (!o) {
+              setPrintReceiptBookingId(null)
+              setPrintReceiptSubtotal(0)
+              invalidateQueries()
+              onOpenChange(false)
+            }
+          }}
+          bookingId={printReceiptBookingId}
+          guestName={guestName || booking?.guest_name || ''}
+          roomNumber={roomNumber}
+          subtotal={printReceiptSubtotal}
+          tenantId={tenantId}
+          hotelId={hotelId}
+        />
+      )}
     </>
   )
 }
