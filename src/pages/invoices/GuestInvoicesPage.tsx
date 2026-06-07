@@ -29,6 +29,7 @@ import CreateInvoiceDialog from '@/components/invoices/CreateInvoiceDialog'
 import InvoicePreviewDialog from '@/components/invoices/InvoicePreviewDialog'
 import EditInvoiceDialog from '@/components/invoices/EditInvoiceDialog'
 import SendInvoiceEmailDialog from '@/components/invoices/SendInvoiceEmailDialog'
+import VatRequestDetailDialog from '@/components/invoices/VatRequestDetailDialog'
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'Tất cả' },
@@ -59,6 +60,7 @@ export default function GuestInvoicesPage() {
   const [previewInvoice, setPreviewInvoice] = useState<GuestInvoice | null>(null)
   const [editInvoice, setEditInvoice] = useState<GuestInvoice | null>(null)
   const [emailInvoice, setEmailInvoice] = useState<GuestInvoice | null>(null)
+  const [vatDetailInvoice, setVatDetailInvoice] = useState<GuestInvoice | null>(null)
   const [dateRange, setDateRange] = useState<{ from: Date | null; to: Date | null }>({
     from: startOfMonth(new Date()),
     to: endOfDay(new Date()),
@@ -408,7 +410,7 @@ export default function GuestInvoicesPage() {
                   {vatRequests.map((inv) => {
                     const services = (inv.line_items || []).map(li => li.description).join(', ')
                     return (
-                      <tr key={inv.id} className="hover:bg-muted/20">
+                      <tr key={inv.id} className="hover:bg-muted/20 cursor-pointer" onClick={() => setVatDetailInvoice(inv)}>
                         <td className="px-3 py-2 text-xs whitespace-nowrap">
                           {format(new Date(inv.created_at), 'dd/MM/yyyy HH:mm')}
                         </td>
@@ -430,7 +432,7 @@ export default function GuestInvoicesPage() {
                             {VAT_STATUS_LABEL[inv.status] || inv.status}
                           </span>
                         </td>
-                        <td className="px-3 py-2 text-right whitespace-nowrap">
+                        <td className="px-3 py-2 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                           {inv.status === 'pending' && (
                             <>
                               <Button
@@ -439,7 +441,7 @@ export default function GuestInvoicesPage() {
                                 size="icon"
                                 className="h-8 w-8 text-green-600"
                                 title="Đánh dấu đã xuất"
-                                onClick={() => handleIssue(inv.id)}
+                                onClick={() => setVatDetailInvoice(inv)}
                               >
                                 <Check className="h-4 w-4" />
                               </Button>
@@ -461,7 +463,7 @@ export default function GuestInvoicesPage() {
                             size="icon"
                             className="h-8 w-8"
                             title="Xem"
-                            onClick={() => setPreviewInvoice(inv)}
+                            onClick={() => setVatDetailInvoice(inv)}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -494,6 +496,12 @@ export default function GuestInvoicesPage() {
         open={!!emailInvoice}
         onOpenChange={(v) => { if (!v) setEmailInvoice(null) }}
         hotelInfo={hotelInfo}
+      />
+      <VatRequestDetailDialog
+        invoice={vatDetailInvoice}
+        open={!!vatDetailInvoice}
+        onOpenChange={(v) => { if (!v) setVatDetailInvoice(null) }}
+        onOpenEmail={(inv) => { setVatDetailInvoice(null); setEmailInvoice(inv) }}
       />
     </div>
   )
