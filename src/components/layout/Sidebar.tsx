@@ -214,18 +214,23 @@ const navigation: NavItem[] = [
       { titleKey: 'usersPermissions', href: '/settings/users', icon: Users, minMode: 'standard', group: 'Tài khoản' },
       { titleKey: 'changePassword', href: '/settings/change-password', icon: KeyRound, group: 'Tài khoản' },
 
-      // Khách sạn
-      { titleKey: 'hotelsSettings', href: '/settings/hotels', icon: Building2, group: 'Khách sạn' },
-      { titleKey: 'hotelPolicy', href: '/settings/hotel-policy', icon: ScrollText, minMode: 'standard', group: 'Khách sạn' },
-      { titleKey: 'businessConfig', href: '/settings/business', icon: Briefcase, minMode: 'standard', group: 'Khách sạn' },
+      // Khách sạn & Pháp lý
+      { titleKey: 'hotelsSettings', href: '/settings/hotels', icon: Building2, group: 'Khách sạn & Pháp lý' },
+      { titleKey: 'hotelPolicy', href: '/settings/hotel-policy', icon: ScrollText, minMode: 'standard', group: 'Khách sạn & Pháp lý' },
+      { titleKey: 'bcaConfig', href: '/settings/legal/stay-registration', icon: ShieldCheck, group: 'Khách sạn & Pháp lý' },
 
-      // Bảng giá & Phụ thu — gộp 3 trang vào 1 hub có tabs
+      // Thiết lập hệ thống
+      { titleKey: 'categories', href: '/settings/categories', icon: Tag, group: 'Thiết lập hệ thống' },
+      { titleKey: 'businessConfig', href: '/settings/business', icon: Briefcase, minMode: 'standard', group: 'Thiết lập hệ thống' },
+      { titleKey: 'roomCheckSettings', href: '/settings/room-check', icon: ClipboardCheck, group: 'Thiết lập hệ thống' },
+      { titleKey: 'automation', href: '/settings/workflows', icon: Zap, minMode: 'full', group: 'Thiết lập hệ thống' },
+
+      // Bảng giá & Phụ thu
       { titleKey: 'pricingHub', href: '/settings/pricing', icon: DollarSign, minMode: 'standard', group: 'Bảng giá & Phụ thu' },
 
-      // Vận hành
-      { titleKey: 'roomCheckSettings', href: '/settings/room-check', icon: ClipboardCheck, group: 'Vận hành' },
-      { titleKey: 'automation', href: '/settings/workflows', icon: Zap, minMode: 'full', group: 'Vận hành' },
-      { titleKey: 'bcaConfig', href: '/settings/legal/stay-registration', icon: ShieldCheck, group: 'Vận hành' },
+      // Thông báo
+      { titleKey: 'notifications', href: '/settings/notifications', icon: Bell, group: 'Thông báo' },
+      { titleKey: 'telegram', href: '/settings/telegram', icon: MessageCircle, group: 'Thông báo' },
 
       // Thanh toán & Gói
       { titleKey: 'subscription', href: '/settings/subscription', icon: CreditCard, group: 'Thanh toán & Gói' },
@@ -233,8 +238,6 @@ const navigation: NavItem[] = [
 
       // Hệ thống
       { titleKey: 'generalSettings', href: '/settings/general', icon: Settings, group: 'Hệ thống' },
-      { titleKey: 'notifications', href: '/settings/notifications', icon: Bell, group: 'Hệ thống' },
-      { titleKey: 'telegram', href: '/settings/telegram', icon: MessageCircle, group: 'Hệ thống' },
       { titleKey: 'aiSettings', href: '/settings/ai', icon: Brain, group: 'Hệ thống' },
       { titleKey: 'auditLog', href: '/settings/audit-log', icon: History, group: 'Hệ thống' },
     ],
@@ -255,6 +258,7 @@ const NAVIGATION_MODULE_MAP: Record<string, string> = {
   'users': 'users',
   'settings': 'settings',
   'reports': 'reports',
+  'categories': 'settings',
 }
 
 // Map child item keywords to required actions
