@@ -1001,6 +1001,15 @@ export function BookingsPage() {
       if (tenantId) {
         createInvoiceAfterCheckout({ bookingId: actionBooking.id, tenantId, hotelId: actionBooking.hotel_id, userId: null }).catch(err => console.error('Failed to create invoice', err))
       }
+      setPrintReceiptBookingId(actionBooking.id)
+      setPrintReceiptSubtotal(adjustedCostBreakdown.subtotal)
+      setPrintReceiptMeta({
+        guestName: (actionBooking as any).guest_name || '',
+        roomNumber: actionBooking.room?.room_number || '',
+        hotelId: actionBooking.hotel_id,
+      })
+      setShowPrintReceiptDialog(true)
+
 
       // Update notes if adjusted
       const allNotes: string[] = []
