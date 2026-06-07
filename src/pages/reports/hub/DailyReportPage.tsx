@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useUser } from '@/hooks/useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { formatCurrency, cn } from '@/lib/utils'
+import { OTA_SOURCES } from '@/lib/constants'
 import { format, subDays, startOfDay, endOfDay } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import {
@@ -29,8 +30,6 @@ import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import { toast } from 'sonner'
-
-const OTA_SOURCES = ['agoda', 'booking_com', 'airbnb', 'traveloka', 'expedia']
 
 function Delta({ value }: { value: number | null }) {
   if (value === null || value === undefined) return null
