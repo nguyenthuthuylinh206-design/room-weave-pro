@@ -258,6 +258,7 @@ const NAVIGATION_MODULE_MAP: Record<string, string> = {
   'users': 'users',
   'settings': 'settings',
   'reports': 'reports',
+  'categories': 'settings',
 }
 
 // Map child item keywords to required actions
