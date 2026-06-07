@@ -1,7 +1,10 @@
 import { useState } from 'react'
+import { Download } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { PeriodPresetChips } from '@/components/reports/PeriodPresetChips'
 import { resolvePeriod, type PeriodPresetId, type PeriodRangeWithPrevious } from '@/lib/reportPeriods'
 import { useCashFlowReport } from '@/hooks/useCashFlowReport'
+import { useReportExport } from '@/hooks/useReportExport'
 import { CashFlowKpiHeadline } from '@/components/reports/cash-flow/CashFlowKpiHeadline'
 import { CashInOutChart } from '@/components/reports/cash-flow/CashInOutChart'
 import { CashInOutBreakdown } from '@/components/reports/cash-flow/CashInOutBreakdown'
@@ -22,6 +25,30 @@ export function CashFlowReportPage({ period: embeddedPeriod, embedded }: Props =
   const [presetId, setPresetId] = useState<PeriodPresetId>('this_month')
   const period = embeddedPeriod ?? resolvePeriod(presetId)
   const m = useCashFlowReport(period)
+  const { exportToExcel, isExporting } = useReportExport()
+
+  const handleExport = () => {
+    const dateRange = `${period.current.start.toLocaleDateString('vi-VN')} – ${period.current.end.toLocaleDateString('vi-VN')}`
+    exportToExcel(
+      {
+        title: 'Báo cáo Dòng tiền',
+        dateRange,
+        tables: [
+          {
+            title: 'Dòng tiền',
+            headers: ['Ngày', 'Tiền vào', 'Tiền ra', 'Ròng'],
+            rows: (m.daily || []).map(d => [d.date, d.inflow, d.outflow, d.net]),
+          },
+          {
+            title: 'Công nợ',
+            headers: ['Khách', 'Số tiền', 'Số ngày quá hạn'],
+            rows: (m.topReceivables || []).map(r => [r.guest_name, r.debt, r.age_days]),
+          },
+        ],
+      },
+      'cash-flow'
+    )
+  }
 
   return (
     <div className={embedded ? 'space-y-4' : 'space-y-4 p-3 sm:p-4 max-w-7xl mx-auto'}>
@@ -34,6 +61,12 @@ export function CashFlowReportPage({ period: embeddedPeriod, embedded }: Props =
             </p>
           </header>
           <PeriodPresetChips value={presetId} onChange={setPresetId} />
+          <div className="flex justify-end">
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting || m.loading}>
+              <Download className="w-4 h-4 mr-1" />
+              {isExporting ? 'Đang xuất…' : 'Xuất Excel'}
+            </Button>
+          </div>
         </>
       )}
 
