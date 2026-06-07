@@ -102,6 +102,9 @@ export function RoomBookingDialog({
   const [showPaymentDetails, setShowPaymentDetails] = useState(false)
   const [checkoutDamageItems, setCheckoutDamageItems] = useState<DamageChargeItem[]>([])
   const [checkoutServiceDetails, setCheckoutServiceDetails] = useState<ServiceChargeDetail[]>([])
+  const [showPrintReceiptDialog, setShowPrintReceiptDialog] = useState(false)
+  const [printReceiptBookingId, setPrintReceiptBookingId] = useState<string | null>(null)
+  const [printReceiptSubtotal, setPrintReceiptSubtotal] = useState(0)
   
   // Guest info
   const [guestName, setGuestName] = useState(booking?.guest_name || '')
