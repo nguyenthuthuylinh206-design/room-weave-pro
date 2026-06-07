@@ -57,6 +57,7 @@ import {
 import { triggerRoomCheckoutNotification, triggerRoomCheckinNotification, triggerNewBookingNotification } from '@/hooks/useNotificationTriggers'
 import type { RoomBooking } from '@/hooks/useRoomBooking'
 import { createInvoiceAfterCheckout } from '@/lib/invoiceHelpers'
+import { PrintReceiptDialog } from '@/components/invoices/PrintReceiptDialog'
 import { getFriendlyError } from '@/lib/errorMessage'
 
 // Time options for check-in/check-out
