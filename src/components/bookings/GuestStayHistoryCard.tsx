@@ -30,7 +30,7 @@ export function GuestStayHistoryCard({ bookingId, guestPhone, guestIdNumber }: G
       <div className="px-3 py-2 border-b text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center justify-between">
         <span>Lịch sử lưu trú</span>
         {data && data.length > 0 && (
-          <span className="text-[10px] normal-case tracking-normal text-foreground">{data.length} lần</span>
+          <span className="text-xs normal-case tracking-normal text-foreground">{data.length} lần</span>
         )}
       </div>
       <div className="divide-y divide-border">

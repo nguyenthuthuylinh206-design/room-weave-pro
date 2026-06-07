@@ -15,14 +15,14 @@ const getRoomStatusBadge = (status: string) => {
   switch (status) {
     case 'cleaning':
       return (
-        <span className="absolute bottom-1 left-1 flex items-center gap-0.5 px-1 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px] font-medium">
+        <span className="absolute bottom-1 left-1 flex items-center gap-0.5 px-1 py-0.5 rounded bg-blue-100 text-blue-700 text-xs font-medium">
           <Sparkles className="h-2.5 w-2.5" />
           Dọn
         </span>
       )
     case 'maintenance':
       return (
-        <span className="absolute bottom-1 left-1 flex items-center gap-0.5 px-1 py-0.5 rounded bg-amber-100 text-amber-700 text-[10px] font-medium">
+        <span className="absolute bottom-1 left-1 flex items-center gap-0.5 px-1 py-0.5 rounded bg-amber-100 text-amber-700 text-xs font-medium">
           <Wrench className="h-2.5 w-2.5" />
           Bảo trì
         </span>
@@ -189,7 +189,7 @@ export function RoomSelectionStep({
                       <Link
                         to="/settings/pricing?tab=default"
                         onClick={(e) => e.stopPropagation()}
-                        className="text-[10px] text-amber-600 hover:underline inline-flex items-center gap-0.5"
+                        className="text-xs text-amber-600 hover:underline inline-flex items-center gap-0.5"
                         title="Loại phòng chưa cấu hình giá"
                       >
                         <Settings2 className="h-2.5 w-2.5" />
