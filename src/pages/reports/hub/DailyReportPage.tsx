@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from '@/hooks/useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, cn } from '@/lib/utils'
 import { format, subDays, startOfDay, endOfDay } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import {
@@ -15,7 +15,10 @@ import {
   Banknote,
   CreditCard,
   AlertCircle,
+  Bell,
 } from 'lucide-react'
+import { AlertList } from '@/components/reports/AlertList'
+import { useOverviewAlerts } from '@/hooks/useOverviewAlerts'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Link } from 'react-router-dom'
@@ -211,6 +214,8 @@ export function DailyReportPage() {
     },
   })
 
+  const alertsQ = useOverviewAlerts()
+
   const isLoading = revLoading || roomLoading || movLoading || debtLoading
   const occupancyPct =
     roomData && roomData.total > 0 ? Math.round((roomData.occupied / roomData.total) * 100) : 0
@@ -240,6 +245,23 @@ export function DailyReportPage() {
                   công suất ({roomData?.occupied}/{roomData?.total} phòng)
                 </span>
               </div>
+              <div className="space-y-1">
+                <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                  <div
+                    className={cn(
+                      "h-2 rounded-full transition-all",
+                      occupancyPct >= 80 ? "bg-green-500" : occupancyPct >= 50 ? "bg-amber-500" : "bg-destructive"
+                    )}
+                    style={{ width: `${occupancyPct}%` }}
+                  />
+                </div>
+                <div className={cn(
+                  "text-xs font-medium tabular-nums",
+                  occupancyPct >= 80 ? "text-green-600" : occupancyPct >= 50 ? "text-amber-600" : "text-destructive"
+                )}>
+                  {occupancyPct}%
+                </div>
+              </div>
               <div className="flex flex-wrap gap-3 text-xs">
                 <span className="text-green-600">Trống: {roomData?.vacant}</span>
                 <span className="text-amber-600">Đang dọn: {roomData?.cleaning}</span>
@@ -247,6 +269,12 @@ export function DailyReportPage() {
                   <span className="text-red-600">Bảo trì: {roomData?.maintenance}</span>
                 )}
               </div>
+              {(roomData?.maintenance || 0) > 0 && (
+                <div className="flex items-center gap-1.5 text-xs text-red-600">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  {roomData?.maintenance} phòng đang bảo trì — không thể bán
+                </div>
+              )}
             </>
           )}
         </CardContent>
@@ -331,6 +359,16 @@ export function DailyReportPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Cần chú ý */}
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Bell className="h-4 w-4 text-muted-foreground" /> Cần chú ý
+          </div>
+          <AlertList alerts={alertsQ.data} loading={alertsQ.isLoading} />
+        </CardContent>
+      </Card>
     </div>
   )
 }
