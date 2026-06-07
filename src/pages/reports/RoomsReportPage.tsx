@@ -325,7 +325,7 @@ export function RoomsReportPage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Tổng phòng</p>
                     {isLoading ? <Skeleton className="h-8 w-16" /> : (
-                      <p className="text-3xl font-bold">{roomStats.total}</p>
+                      <p className="text-2xl font-bold">{roomStats.total}</p>
                     )}
                   </div>
                 </div>
@@ -341,7 +341,7 @@ export function RoomsReportPage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Phòng trống</p>
                     {isLoading ? <Skeleton className="h-8 w-16" /> : (
-                      <p className="text-3xl font-bold text-green-600">{roomStats.vacant}</p>
+                      <p className="text-2xl font-bold text-green-600">{roomStats.vacant}</p>
                     )}
                   </div>
                 </div>
@@ -357,7 +357,7 @@ export function RoomsReportPage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Đang dọn</p>
                     {isLoading ? <Skeleton className="h-8 w-16" /> : (
-                      <p className="text-3xl font-bold text-orange-600">{roomStats.cleaning}</p>
+                      <p className="text-2xl font-bold text-orange-600">{roomStats.cleaning}</p>
                     )}
                   </div>
                 </div>
@@ -373,7 +373,7 @@ export function RoomsReportPage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Bảo trì</p>
                     {isLoading ? <Skeleton className="h-8 w-16" /> : (
-                      <p className="text-3xl font-bold text-red-600">{roomStats.maintenance}</p>
+                      <p className="text-2xl font-bold text-red-600">{roomStats.maintenance}</p>
                     )}
                   </div>
                 </div>
