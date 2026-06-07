@@ -109,11 +109,19 @@ const navigation: NavItem[] = [
   },
   {
     titleKey: 'inventory',
-    href: '/inventory',
     icon: Warehouse,
     badgeKey: 'inventoryTotal',
     roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
     minMode: 'standard',
+    children: [
+      { titleKey: 'inventoryDashboard', href: '/inventory', icon: LayoutDashboard, group: 'Kho' },
+      { titleKey: 'inbound', href: '/inventory/inbound', icon: PackagePlus, group: 'Kho' },
+      { titleKey: 'outbound', href: '/inventory/outbound', icon: PackageMinus, group: 'Kho' },
+      { titleKey: 'distributions', href: '/inventory/distributions', icon: Truck, group: 'Kho' },
+      { titleKey: 'vendorsList', href: '/vendors', icon: Building, group: 'Mua hàng' },
+      { titleKey: 'compareVendors', href: '/vendors/compare', icon: GitCompare, group: 'Mua hàng' },
+      { titleKey: 'purchaseOrders', href: '/purchase-orders', icon: ShoppingCart, group: 'Mua hàng' },
+    ],
   },
   {
     titleKey: 'rooms',
