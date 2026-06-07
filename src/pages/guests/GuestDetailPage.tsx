@@ -88,7 +88,7 @@ export default function GuestDetailPage() {
         <Button type="button" variant="ghost" size="icon" onClick={() => navigate('/guests')} className="h-8 w-8">
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-lg font-semibold">{guest.full_name}</h1>
+        <h1 className="text-xl font-bold">{guest.full_name}</h1>
         {!editing && (
           <Button type="button" variant="outline" size="sm" onClick={startEdit} className="ml-auto h-8">
             <Edit2 className="h-3.5 w-3.5 mr-1" /> Sửa
