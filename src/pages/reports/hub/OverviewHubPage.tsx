@@ -21,6 +21,10 @@ export function OverviewHubPage() {
   const alertsQ = useOverviewAlerts()
   const { reports } = useAccessibleReports()
   const { isMobile } = useBreakpoint()
+  const kpi = useOverviewKpiStrip(period)
+  const targetQ = useMonthlyTarget()
+  const target = targetQ.data
+  const hasTarget = !!target && (!!target.revenue_target || !!target.occupancy_target)
 
   return (
     <div className="space-y-4">
