@@ -643,6 +643,10 @@ export function RoomBookingDialog({
 
       // Fire-and-forget: create invoice
       createInvoiceAfterCheckout({ bookingId: booking.id, tenantId, hotelId, userId: null }).catch(err => console.error('Failed to create invoice', err))
+      setPrintReceiptBookingId(booking.id)
+      setPrintReceiptSubtotal(adjustedCostBreakdown.subtotal)
+      setShowPrintReceiptDialog(true)
+
 
       // Update notes if there was an adjustment
       const allNotes: string[] = []
