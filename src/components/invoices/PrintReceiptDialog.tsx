@@ -150,37 +150,6 @@ export function PrintReceiptDialog({
     }
   }
 
-  const handleSubmitVatRequest = async () => {
-    if (!invoice) {
-      toast.error('Chưa tạo được phiếu thu, vui lòng đợi…')
-      return
-    }
-    if (!accountantEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(accountantEmail.trim())) {
-      toast.error('Email kế toán không hợp lệ')
-      return
-    }
-    setIsSubmittingVat(true)
-    try {
-      const { error } = await supabase
-        .from('guest_invoices')
-        .update({
-          invoice_type: 'vat_request',
-          accountant_email: accountantEmail.trim(),
-          vat_rate: vatEnabled ? safeRate : 10,
-          vat_amount: vatEnabled ? vatAmount : Math.round((subtotal * 10) / 100),
-          total_amount: vatEnabled ? totalWithVat : subtotal + Math.round((subtotal * 10) / 100),
-        } as any)
-        .eq('id', invoice.id)
-        .eq('tenant_id', tenantId)
-      if (error) throw error
-      toast.success('Đã gửi yêu cầu xuất HĐVAT cho kế toán')
-      onOpenChange(false)
-    } catch (e: any) {
-      toast.error('Không gửi được yêu cầu', { description: e?.message })
-    } finally {
-      setIsSubmittingVat(false)
-    }
-  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
