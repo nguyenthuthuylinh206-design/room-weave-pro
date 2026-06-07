@@ -26,7 +26,7 @@ const FIXED_COST_CATEGORIES = [
 ] as const
 
 export function FixedCostsSettingsPage() {
-  const { tenantId } = useUser()
+  const { tenantId, role } = useUser()
   const { selectedHotel } = useHotelContext()
   const hotelId = selectedHotel?.id
   const qc = useQueryClient()
