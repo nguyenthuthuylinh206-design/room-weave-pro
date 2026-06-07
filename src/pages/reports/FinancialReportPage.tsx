@@ -22,6 +22,7 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { useFinancialReport } from '@/hooks/useReports'
 import { useRevenueReport } from '@/hooks/useRevenueReport'
+import { useFixedExpenses } from '@/hooks/useFixedExpenses'
 import { useReportExport } from '@/hooks/useReportExport'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileFinancialReportPage } from '@/components/reports/MobileFinancialReportPage'
