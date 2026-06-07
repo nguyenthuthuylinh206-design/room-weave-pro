@@ -255,6 +255,7 @@ const NAVIGATION_MODULE_MAP: Record<string, string> = {
   'settings': 'settings',
   'reports': 'reports',
   'categories': 'settings',
+  'fixedCosts': 'settings',
 }
 
 // Map child item keywords to required actions
