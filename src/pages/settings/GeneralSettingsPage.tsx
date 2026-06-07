@@ -46,6 +46,7 @@ type GeneralSettingsForm = z.infer<ReturnType<typeof createGeneralSettingsSchema
 export function GeneralSettingsPage() {
   const { t } = useTranslation(['settings', 'common'])
   const { tenant, isLoading } = useTenant()
+  const { role } = useUser()
   const { toast } = useToast()
   const [isSaving, setIsSaving] = useState(false)
   const [enableAutoSave, setEnableAutoSave] = useState(false)
@@ -307,16 +308,22 @@ export function GeneralSettingsPage() {
         <HotelPhotoEvidenceSettings />
 
         {/* Demo Data Section */}
-        <div className="border rounded-lg p-4 space-y-3">
-          <div className="flex items-center gap-2 pb-2 border-b">
-            <Database className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <h2 className="text-sm font-medium">{t('settings:demoData.title')}</h2>
-              <p className="text-[10px] text-muted-foreground">{t('settings:demoData.description')}</p>
-            </div>
-          </div>
-          <SeedDataButton />
-        </div>
+        {(role === 'owner' || role === 'super_admin') && (
+          <Card className="border-destructive/30">
+            <CardHeader>
+              <CardTitle className="text-base text-destructive flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4" />
+                Dữ liệu mẫu
+              </CardTitle>
+              <CardDescription>
+                Xóa dữ liệu demo để bắt đầu dùng thật. Thao tác này không thể hoàn tác.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SeedDataButton />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Actions */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t">
