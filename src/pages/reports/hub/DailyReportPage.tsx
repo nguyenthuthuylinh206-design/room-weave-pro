@@ -15,7 +15,10 @@ import {
   Banknote,
   CreditCard,
   AlertCircle,
+  Bell,
 } from 'lucide-react'
+import { AlertList } from '@/components/reports/AlertList'
+import { useOverviewAlerts } from '@/hooks/useOverviewAlerts'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Link } from 'react-router-dom'
