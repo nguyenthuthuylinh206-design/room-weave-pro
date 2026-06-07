@@ -16,12 +16,19 @@ import {
   CreditCard,
   AlertCircle,
   Bell,
+  ClipboardList,
+  Send,
 } from 'lucide-react'
 import { AlertList } from '@/components/reports/AlertList'
 import { useOverviewAlerts } from '@/hooks/useOverviewAlerts'
+import { useShiftNotes } from '@/hooks/useShiftNotes'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { toast } from 'sonner'
 
 const OTA_SOURCES = ['agoda', 'booking_com', 'airbnb', 'traveloka', 'expedia']
 
@@ -215,6 +222,20 @@ export function DailyReportPage() {
   })
 
   const alertsQ = useOverviewAlerts()
+  const { notes, save } = useShiftNotes(3)
+  const [noteText, setNoteText] = useState('')
+  const todayStr = format(new Date(), 'yyyy-MM-dd')
+
+  const handleSaveNote = async () => {
+    if (!noteText.trim()) return
+    try {
+      await save.mutateAsync({ content: noteText.trim(), noteDate: todayStr })
+      setNoteText('')
+      toast.success('Đã lưu ghi chú ca')
+    } catch {
+      toast.error('Lưu thất bại')
+    }
+  }
 
   const isLoading = revLoading || roomLoading || movLoading || debtLoading
   const occupancyPct =
@@ -367,6 +388,55 @@ export function DailyReportPage() {
             <Bell className="h-4 w-4 text-muted-foreground" /> Cần chú ý
           </div>
           <AlertList alerts={alertsQ.data} loading={alertsQ.isLoading} />
+        </CardContent>
+      </Card>
+
+      {/* Ghi chú ca */}
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <ClipboardList className="h-4 w-4 text-muted-foreground" /> Ghi chú ca
+          </div>
+
+          {/* Nhập ghi chú mới */}
+          <div className="space-y-2">
+            <Textarea
+              placeholder="Nhập thông tin cần bàn giao cho ca tiếp theo..."
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              rows={3}
+              className="text-sm resize-none"
+            />
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleSaveNote}
+                disabled={!noteText.trim() || save.isPending}
+              >
+                <Send className="h-3.5 w-3.5 mr-1.5" />
+                {save.isPending ? 'Đang lưu…' : 'Lưu ghi chú'}
+              </Button>
+            </div>
+          </div>
+
+          {/* Lịch sử 3 ngày gần nhất */}
+          {notes.length > 0 && (
+            <div className="space-y-2 border-t pt-3">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Ghi chú gần đây</p>
+              {notes.slice(0, 5).map((n) => (
+                <div key={n.id} className="text-sm border rounded p-2.5 space-y-1 bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium">
+                      {format(new Date(n.note_date), 'EEEE dd/MM', { locale: vi })}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{n.author_name}</span>
+                  </div>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{n.content}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
