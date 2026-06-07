@@ -20,7 +20,9 @@ export async function createInvoiceAfterCheckout({
   tenantId,
   hotelId,
   userId,
+  invoice_type,
 }: CreateInvoiceParams): Promise<void> {
+
   // Wait for RPC commit and replication to sync before reading booking data
   await new Promise(resolve => setTimeout(resolve, 500))
 
