@@ -61,6 +61,12 @@ export function CashFlowReportPage({ period: embeddedPeriod, embedded }: Props =
             </p>
           </header>
           <PeriodPresetChips value={presetId} onChange={setPresetId} />
+          <div className="flex justify-end">
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting || m.loading}>
+              <Download className="w-4 h-4 mr-1" />
+              {isExporting ? 'Đang xuất…' : 'Xuất Excel'}
+            </Button>
+          </div>
         </>
       )}
 
