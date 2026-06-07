@@ -6,9 +6,11 @@ import { PeriodPresetChips } from '@/components/reports/PeriodPresetChips'
 import { OverviewKpiStrip } from '@/components/reports/OverviewKpiStrip'
 import { RevenueVsCostChart } from '@/components/reports/RevenueVsCostChart'
 import { AlertList } from '@/components/reports/AlertList'
-import { useOverviewChart } from '@/hooks/useOverviewKpiStrip'
+import { useOverviewChart, useOverviewKpiStrip } from '@/hooks/useOverviewKpiStrip'
 import { useOverviewAlerts } from '@/hooks/useOverviewAlerts'
 import { useAccessibleReports } from '@/hooks/useAccessibleReports'
+import { useMonthlyTarget } from '@/hooks/useFixedExpenses'
+import { TargetProgressBar } from '@/components/reports/TargetProgressBar'
 import { resolvePeriod, type PeriodPresetId } from '@/lib/reportPeriods'
 import { useBreakpoint } from '@/lib/breakpoints'
 
@@ -19,6 +21,10 @@ export function OverviewHubPage() {
   const alertsQ = useOverviewAlerts()
   const { reports } = useAccessibleReports()
   const { isMobile } = useBreakpoint()
+  const kpi = useOverviewKpiStrip(period)
+  const targetQ = useMonthlyTarget()
+  const target = targetQ.data
+  const hasTarget = !!target && (!!target.revenue_target || !!target.occupancy_target)
 
   return (
     <div className="space-y-4">
@@ -47,6 +53,29 @@ export function OverviewHubPage() {
       <PeriodPresetChips value={periodId} onChange={setPeriodId} />
 
       <OverviewKpiStrip period={period} />
+
+      {hasTarget && (
+        <div className="rounded-lg border p-4 space-y-4">
+          <h3 className="text-sm font-semibold">Tiến độ mục tiêu tháng</h3>
+          {target!.revenue_target ? (
+            <TargetProgressBar
+              label="Doanh thu"
+              current={kpi.netRevenue.value}
+              target={Number(target!.revenue_target)}
+              format="currency"
+            />
+          ) : null}
+          {target!.occupancy_target ? (
+            <TargetProgressBar
+              label="Công suất"
+              current={kpi.occupancy.value}
+              target={Number(target!.occupancy_target)}
+              format="percent"
+            />
+          ) : null}
+        </div>
+      )}
+
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">

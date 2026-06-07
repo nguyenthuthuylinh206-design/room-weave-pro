@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Download, FileText, AlertTriangle, Info } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -22,6 +22,7 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { useFinancialReport } from '@/hooks/useReports'
 import { useRevenueReport } from '@/hooks/useRevenueReport'
+import { useFixedExpenses } from '@/hooks/useFixedExpenses'
 import { useReportExport } from '@/hooks/useReportExport'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileFinancialReportPage } from '@/components/reports/MobileFinancialReportPage'
@@ -84,6 +85,13 @@ export function FinancialReportPage({ period: embeddedPeriod, embedded }: Props 
   const totalRevenue = revenueData?.currentPeriod?.totalRevenue ?? 0
   const grossProfit = totalRevenue - totalCost
   const grossMarginPct = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0
+
+  const fixedQ = useFixedExpenses(dateRange.start)
+  const totalFixed = (fixedQ.data || []).reduce((s, r) => s + Number(r.amount || 0), 0)
+  const netProfit = grossProfit - totalFixed
+  const netMarginPct = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0
+  const hasFixedCosts = totalFixed > 0
+
 
   return (
     <div className="space-y-6">
@@ -216,12 +224,37 @@ export function FinancialReportPage({ period: embeddedPeriod, embedded }: Props 
               </div>
             )}
           </div>
-          {grossProfit > 0 && (
+
+          {/* Tầng 2: Lợi nhuận thực sau khi trừ chi phí cố định */}
+          {hasFixedCosts ? (
+            <div className="border rounded-lg divide-y">
+              <div className="p-3 flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Chi phí cố định tháng (lương, thuê, điện…)</span>
+                <span className="text-sm font-mono tabular-nums text-red-600">−{formatCurrency(totalFixed)}</span>
+              </div>
+              <div className="p-3 flex items-center justify-between bg-muted/30">
+                <span className="text-sm font-medium">Lợi nhuận thực ước tính</span>
+                <div className="text-right">
+                  <span className={cn("text-sm font-semibold font-mono tabular-nums", netProfit >= 0 ? "text-green-600" : "text-red-600")}>
+                    {formatCurrency(netProfit)}
+                  </span>
+                  <div className={cn("text-xs mt-0.5", netProfit >= 0 ? "text-green-600" : "text-red-600")}>
+                    Margin: {netMarginPct.toFixed(1)}%
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
             <p className="text-xs text-muted-foreground px-1 flex items-start gap-1.5">
               <Info className="h-3 w-3 shrink-0 mt-0.5" />
-              Số liệu trên chưa trừ chi phí cố định hàng tháng (lương, thuê, điện nước). Để xem lợi nhuận thực, hãy nhập chi phí cố định trong Cài đặt.
+              <span>
+                Nhập chi phí cố định (lương, thuê, điện) trong{' '}
+                <Link to="/settings/fixed-costs" className="underline text-primary">Cài đặt → Chi phí & Mục tiêu</Link>{' '}
+                để xem lợi nhuận thực.
+              </span>
             </p>
           )}
+
 
           {/* Xu hướng chi phí */}
           <div className="border rounded-lg p-4">
