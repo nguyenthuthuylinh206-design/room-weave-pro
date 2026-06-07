@@ -497,6 +497,12 @@ export default function GuestInvoicesPage() {
         onOpenChange={(v) => { if (!v) setEmailInvoice(null) }}
         hotelInfo={hotelInfo}
       />
+      <VatRequestDetailDialog
+        invoice={vatDetailInvoice}
+        open={!!vatDetailInvoice}
+        onOpenChange={(v) => { if (!v) setVatDetailInvoice(null) }}
+        onOpenEmail={(inv) => { setVatDetailInvoice(null); setEmailInvoice(inv) }}
+      />
     </div>
   )
 }
