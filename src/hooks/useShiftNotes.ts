@@ -40,7 +40,7 @@ export function useShiftNotes(days = 3) {
         note_date: noteDate,
         content,
         author_id: user?.id,
-        author_name: user?.user_metadata?.full_name || user?.email || 'Nhân viên',
+        author_name: user?.full_name || user?.email || 'Nhân viên',
       })
       if (error) throw error
     },
