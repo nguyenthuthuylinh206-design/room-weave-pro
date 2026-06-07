@@ -57,6 +57,7 @@ import {
 import { triggerRoomCheckoutNotification, triggerRoomCheckinNotification, triggerNewBookingNotification } from '@/hooks/useNotificationTriggers'
 import type { RoomBooking } from '@/hooks/useRoomBooking'
 import { createInvoiceAfterCheckout } from '@/lib/invoiceHelpers'
+import { PrintReceiptDialog } from '@/components/invoices/PrintReceiptDialog'
 import { getFriendlyError } from '@/lib/errorMessage'
 
 // Time options for check-in/check-out
@@ -101,6 +102,9 @@ export function RoomBookingDialog({
   const [showPaymentDetails, setShowPaymentDetails] = useState(false)
   const [checkoutDamageItems, setCheckoutDamageItems] = useState<DamageChargeItem[]>([])
   const [checkoutServiceDetails, setCheckoutServiceDetails] = useState<ServiceChargeDetail[]>([])
+  const [showPrintReceiptDialog, setShowPrintReceiptDialog] = useState(false)
+  const [printReceiptBookingId, setPrintReceiptBookingId] = useState<string | null>(null)
+  const [printReceiptSubtotal, setPrintReceiptSubtotal] = useState(0)
   
   // Guest info
   const [guestName, setGuestName] = useState(booking?.guest_name || '')
@@ -639,6 +643,10 @@ export function RoomBookingDialog({
 
       // Fire-and-forget: create invoice
       createInvoiceAfterCheckout({ bookingId: booking.id, tenantId, hotelId, userId: null }).catch(err => console.error('Failed to create invoice', err))
+      setPrintReceiptBookingId(booking.id)
+      setPrintReceiptSubtotal(adjustedCostBreakdown.subtotal)
+      setShowPrintReceiptDialog(true)
+
 
       // Update notes if there was an adjustment
       const allNotes: string[] = []
@@ -747,6 +755,10 @@ export function RoomBookingDialog({
 
       // Fire-and-forget: create invoice
       createInvoiceAfterCheckout({ bookingId: booking.id, tenantId, hotelId, userId: null }).catch(err => console.error('Failed to create invoice', err))
+      setPrintReceiptBookingId(booking.id)
+      setPrintReceiptSubtotal(adjustedCostBreakdown.subtotal)
+      setShowPrintReceiptDialog(true)
+
 
       // Update notes if there was an adjustment
       const allNotes: string[] = []
@@ -1451,6 +1463,27 @@ export function RoomBookingDialog({
             }
             invalidateQueries()
           }}
+        />
+      )}
+
+      {showPrintReceiptDialog && printReceiptBookingId && (
+        <PrintReceiptDialog
+          open={showPrintReceiptDialog}
+          onOpenChange={(o) => {
+            setShowPrintReceiptDialog(o)
+            if (!o) {
+              setPrintReceiptBookingId(null)
+              setPrintReceiptSubtotal(0)
+              invalidateQueries()
+              onOpenChange(false)
+            }
+          }}
+          bookingId={printReceiptBookingId}
+          guestName={guestName || booking?.guest_name || ''}
+          roomNumber={roomNumber}
+          subtotal={printReceiptSubtotal}
+          tenantId={tenantId}
+          hotelId={hotelId}
         />
       )}
     </>

@@ -86,6 +86,7 @@ import { fetchServiceChargeSummary, type ServiceChargeDetail } from '@/hooks/use
 import { MobileBookingsPage } from './MobileBookingsPage'
 import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers'
 import { createInvoiceAfterCheckout } from '@/lib/invoiceHelpers'
+import { PrintReceiptDialog } from '@/components/invoices/PrintReceiptDialog'
 import { useOverdueCheckins } from '@/hooks/useOverdueCheckins'
 import { MarkNoShowDialog } from '@/components/bookings/MarkNoShowDialog'
 import { RescheduleCheckinDialog } from '@/components/bookings/RescheduleCheckinDialog'
@@ -158,6 +159,10 @@ export function BookingsPage() {
   // States for check-in/check-out dialogs
   const [showCheckinConfirm, setShowCheckinConfirm] = useState(false)
   const [showCheckoutSummary, setShowCheckoutSummary] = useState(false)
+  const [showPrintReceiptDialog, setShowPrintReceiptDialog] = useState(false)
+  const [printReceiptBookingId, setPrintReceiptBookingId] = useState<string | null>(null)
+  const [printReceiptSubtotal, setPrintReceiptSubtotal] = useState(0)
+  const [printReceiptMeta, setPrintReceiptMeta] = useState<{ guestName: string; roomNumber: string; hotelId: string } | null>(null)
   const [showExtendDialog, setShowExtendDialog] = useState(false)
   const [showGroupPaymentDialog, setShowGroupPaymentDialog] = useState(false)
   const [showGroupCheckoutDialog, setShowGroupCheckoutDialog] = useState(false)
@@ -874,6 +879,15 @@ export function BookingsPage() {
       if (tenantId) {
         createInvoiceAfterCheckout({ bookingId: actionBooking.id, tenantId, hotelId: actionBooking.hotel_id, userId: null }).catch(err => console.error('Failed to create invoice', err))
       }
+      setPrintReceiptBookingId(actionBooking.id)
+      setPrintReceiptSubtotal(adjustedCostBreakdown.subtotal)
+      setPrintReceiptMeta({
+        guestName: (actionBooking as any).guest_name || '',
+        roomNumber: actionBooking.room?.room_number || '',
+        hotelId: actionBooking.hotel_id,
+      })
+      setShowPrintReceiptDialog(true)
+
 
       // Update notes if adjusted
       const allNotes: string[] = []
@@ -988,6 +1002,15 @@ export function BookingsPage() {
       if (tenantId) {
         createInvoiceAfterCheckout({ bookingId: actionBooking.id, tenantId, hotelId: actionBooking.hotel_id, userId: null }).catch(err => console.error('Failed to create invoice', err))
       }
+      setPrintReceiptBookingId(actionBooking.id)
+      setPrintReceiptSubtotal(adjustedCostBreakdown.subtotal)
+      setPrintReceiptMeta({
+        guestName: (actionBooking as any).guest_name || '',
+        roomNumber: actionBooking.room?.room_number || '',
+        hotelId: actionBooking.hotel_id,
+      })
+      setShowPrintReceiptDialog(true)
+
 
       // Update notes if adjusted
       const allNotes: string[] = []
@@ -2148,6 +2171,27 @@ export function BookingsPage() {
             queryClient.invalidateQueries({ queryKey: ['rooms'] })
           }}
           onMinimize={handleMinimizeGroupCheckout}
+        />
+      )}
+
+      {showPrintReceiptDialog && printReceiptBookingId && tenantId && printReceiptMeta && (
+        <PrintReceiptDialog
+          open={showPrintReceiptDialog}
+          onOpenChange={(o) => {
+            setShowPrintReceiptDialog(o)
+            if (!o) {
+              setPrintReceiptBookingId(null)
+              setPrintReceiptSubtotal(0)
+              setPrintReceiptMeta(null)
+              queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
+            }
+          }}
+          bookingId={printReceiptBookingId}
+          guestName={printReceiptMeta.guestName}
+          roomNumber={printReceiptMeta.roomNumber}
+          subtotal={printReceiptSubtotal}
+          tenantId={tenantId}
+          hotelId={printReceiptMeta.hotelId}
         />
       )}
     </div>
