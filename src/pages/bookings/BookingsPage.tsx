@@ -86,6 +86,7 @@ import { fetchServiceChargeSummary, type ServiceChargeDetail } from '@/hooks/use
 import { MobileBookingsPage } from './MobileBookingsPage'
 import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers'
 import { createInvoiceAfterCheckout } from '@/lib/invoiceHelpers'
+import { PrintReceiptDialog } from '@/components/invoices/PrintReceiptDialog'
 import { useOverdueCheckins } from '@/hooks/useOverdueCheckins'
 import { MarkNoShowDialog } from '@/components/bookings/MarkNoShowDialog'
 import { RescheduleCheckinDialog } from '@/components/bookings/RescheduleCheckinDialog'
