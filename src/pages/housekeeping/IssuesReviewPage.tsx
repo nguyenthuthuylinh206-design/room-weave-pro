@@ -124,7 +124,7 @@ export default function IssuesReviewPage() {
   return (
     <div className="h-full flex flex-col">
       <div className="px-4 py-3 border-b">
-        <h1 className="text-base font-semibold">Sự cố chờ duyệt</h1>
+        <h1 className="text-xl font-bold">Sự cố chờ duyệt</h1>
         <p className="text-[11px] text-muted-foreground">
           Duyệt các báo cáo từ kiểm tra phòng cần Manager xác nhận trước khi ghi sổ.
         </p>

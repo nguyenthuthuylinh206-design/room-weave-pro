@@ -76,7 +76,7 @@ export default function TasksPendingReviewPage() {
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between px-4 py-3 border-b bg-background">
         <div>
-          <h1 className="text-base font-semibold">Công việc chờ duyệt</h1>
+          <h1 className="text-xl font-bold">Công việc chờ duyệt</h1>
           <p className="text-[11px] text-muted-foreground">
             Chế độ QC hiện tại: <span className="font-medium">{qcMode ? QC_MODE_LABELS[qcMode] : '—'}</span>
           </p>

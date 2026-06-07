@@ -33,7 +33,7 @@ export default function HousekeepingDashboardPage() {
     <div className="flex flex-col gap-3 p-3 sm:p-4 max-w-[1600px] mx-auto w-full">
       <header className="flex items-start justify-between gap-2 flex-wrap">
         <div>
-          <h1 className="text-lg sm:text-xl font-semibold">Theo dõi phòng</h1>
+          <h1 className="text-2xl font-bold">Theo dõi phòng</h1>
           <p className="text-xs text-muted-foreground">Tổng quan tình trạng phòng theo thời gian thực</p>
         </div>
         <div className="flex items-center gap-2">

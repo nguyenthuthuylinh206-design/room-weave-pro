@@ -112,7 +112,7 @@ export default function QcDashboardPage({ embedded }: { embedded?: boolean } = {
       <header className="flex items-start justify-between gap-3 flex-wrap">
         {!embedded && (
           <div>
-            <h1 className="text-xl font-semibold">Dashboard QC</h1>
+            <h1 className="text-2xl font-bold">Dashboard QC</h1>
             <p className="text-xs text-muted-foreground mt-1">
               Chất lượng dọn phòng {days} ngày gần nhất
             </p>
