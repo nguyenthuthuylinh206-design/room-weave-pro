@@ -25,6 +25,30 @@ export function CashFlowReportPage({ period: embeddedPeriod, embedded }: Props =
   const [presetId, setPresetId] = useState<PeriodPresetId>('this_month')
   const period = embeddedPeriod ?? resolvePeriod(presetId)
   const m = useCashFlowReport(period)
+  const { exportToExcel, isExporting } = useReportExport()
+
+  const handleExport = () => {
+    const dateRange = `${period.current.start.toLocaleDateString('vi-VN')} – ${period.current.end.toLocaleDateString('vi-VN')}`
+    exportToExcel(
+      {
+        title: 'Báo cáo Dòng tiền',
+        dateRange,
+        tables: [
+          {
+            title: 'Dòng tiền',
+            headers: ['Ngày', 'Tiền vào', 'Tiền ra', 'Ròng'],
+            rows: (m.daily || []).map(d => [d.date, d.inflow, d.outflow, d.net]),
+          },
+          {
+            title: 'Công nợ',
+            headers: ['Khách', 'Số tiền', 'Số ngày quá hạn'],
+            rows: (m.topReceivables || []).map(r => [r.guest_name, r.debt, r.age_days]),
+          },
+        ],
+      },
+      'cash-flow'
+    )
+  }
 
   return (
     <div className={embedded ? 'space-y-4' : 'space-y-4 p-3 sm:p-4 max-w-7xl mx-auto'}>
