@@ -487,6 +487,7 @@ const router = createBrowserRouter([
 
       // Reports — consolidated hubs (4 trang chính + overview)
       { path: "reports", element: <PermissionRoute module="reports"><OverviewHubPage /></PermissionRoute> },
+      { path: "reports/daily", element: <PermissionRoute module="reports"><DailyReportPage /></PermissionRoute> },
       { path: "reports/finance", element: <PermissionRoute module="reports"><FinanceHubPage /></PermissionRoute> },
       { path: "reports/operations", element: <PermissionRoute module="reports"><OperationsHubPage /></PermissionRoute> },
       { path: "reports/housekeeping", element: <PermissionRoute module="reports"><HousekeepingHubPage /></PermissionRoute> },
