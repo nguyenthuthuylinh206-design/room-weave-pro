@@ -2173,6 +2173,27 @@ export function BookingsPage() {
           onMinimize={handleMinimizeGroupCheckout}
         />
       )}
+
+      {showPrintReceiptDialog && printReceiptBookingId && tenantId && printReceiptMeta && (
+        <PrintReceiptDialog
+          open={showPrintReceiptDialog}
+          onOpenChange={(o) => {
+            setShowPrintReceiptDialog(o)
+            if (!o) {
+              setPrintReceiptBookingId(null)
+              setPrintReceiptSubtotal(0)
+              setPrintReceiptMeta(null)
+              queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
+            }
+          }}
+          bookingId={printReceiptBookingId}
+          guestName={printReceiptMeta.guestName}
+          roomNumber={printReceiptMeta.roomNumber}
+          subtotal={printReceiptSubtotal}
+          tenantId={tenantId}
+          hotelId={printReceiptMeta.hotelId}
+        />
+      )}
     </div>
   )
 }
