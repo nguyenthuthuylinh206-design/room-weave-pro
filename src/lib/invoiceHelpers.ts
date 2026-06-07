@@ -7,7 +7,9 @@ export interface CreateInvoiceParams {
   tenantId: string
   hotelId: string
   userId?: string | null
+  invoice_type?: 'receipt' | 'vat_request'
 }
+
 
 /**
  * Creates a guest invoice automatically after checkout.
@@ -18,7 +20,9 @@ export async function createInvoiceAfterCheckout({
   tenantId,
   hotelId,
   userId,
+  invoice_type,
 }: CreateInvoiceParams): Promise<void> {
+
   // Wait for RPC commit and replication to sync before reading booking data
   await new Promise(resolve => setTimeout(resolve, 500))
 
@@ -242,7 +246,9 @@ export async function createInvoiceAfterCheckout({
       status: 'issued',
       issued_at: new Date().toISOString(),
       created_by: userId || null,
-    })
+      invoice_type: invoice_type ?? 'receipt',
+    } as any)
+
 
   if (insertError) {
     console.error('Invoice: Failed to create', insertError)

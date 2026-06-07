@@ -2540,6 +2540,7 @@ export type Database = {
       }
       guest_invoices: {
         Row: {
+          accountant_email: string | null
           amount_paid: number
           booking_id: string | null
           check_in_date: string | null
@@ -2560,6 +2561,7 @@ export type Database = {
           hotel_id: string
           id: string
           invoice_number: string
+          invoice_type: string
           issued_at: string | null
           line_items: Json
           notes: string | null
@@ -2577,6 +2579,7 @@ export type Database = {
           vat_rate: number
         }
         Insert: {
+          accountant_email?: string | null
           amount_paid?: number
           booking_id?: string | null
           check_in_date?: string | null
@@ -2597,6 +2600,7 @@ export type Database = {
           hotel_id: string
           id?: string
           invoice_number: string
+          invoice_type?: string
           issued_at?: string | null
           line_items?: Json
           notes?: string | null
@@ -2614,6 +2618,7 @@ export type Database = {
           vat_rate?: number
         }
         Update: {
+          accountant_email?: string | null
           amount_paid?: number
           booking_id?: string | null
           check_in_date?: string | null
@@ -2634,6 +2639,7 @@ export type Database = {
           hotel_id?: string
           id?: string
           invoice_number?: string
+          invoice_type?: string
           issued_at?: string | null
           line_items?: Json
           notes?: string | null
