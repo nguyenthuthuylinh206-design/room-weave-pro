@@ -26,6 +26,37 @@ export function RoomRevenueReportPage({ period: embeddedPeriod, embedded }: Prop
   const [presetId, setPresetId] = useState<PeriodPresetId>('this_month')
   const period = embeddedPeriod ?? resolvePeriod(presetId)
   const m = useRoomRevenueMetrics(period)
+  const { exportToExcel, isExporting } = useReportExport()
+
+  const handleExport = () => {
+    if (!m.revenue) return
+    const dateRange = `${period.current.start.toLocaleDateString('vi-VN')} – ${period.current.end.toLocaleDateString('vi-VN')}`
+    exportToExcel(
+      {
+        title: 'Báo cáo Doanh thu phòng',
+        dateRange,
+        tables: [
+          {
+            title: 'Doanh thu phòng',
+            headers: ['Chỉ số', 'Kỳ này', 'Kỳ trước', 'Thay đổi'],
+            rows: [
+              ['Doanh thu phòng', m.roomRevenue.value, '', `${m.roomRevenue.delta?.toFixed(1) ?? '-'}%`],
+              ['Công suất (%)', m.occupancy.value, '', `${m.occupancy.delta?.toFixed(1) ?? '-'}%`],
+              ['ADR', m.adr.value, '', `${m.adr.delta?.toFixed(1) ?? '-'}%`],
+              ['RevPAR', m.revpar.value, '', `${m.revpar.delta?.toFixed(1) ?? '-'}%`],
+              ['ALOS (đêm)', m.alos.toFixed(1), '', ''],
+            ],
+          },
+          {
+            title: 'Top phòng',
+            headers: ['Phòng', 'Doanh thu', 'Số đêm'],
+            rows: (m.revenue?.topRooms || []).map(r => [r.roomNumber, r.total, r.bookings]),
+          },
+        ],
+      },
+      'room-revenue'
+    )
+  }
 
   return (
     <div className={embedded ? 'space-y-4' : 'space-y-4 p-3 sm:p-4 max-w-7xl mx-auto'}>
