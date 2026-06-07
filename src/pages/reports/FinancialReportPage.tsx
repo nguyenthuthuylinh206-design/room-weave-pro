@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Download, FileText } from 'lucide-react'
+import { ArrowLeft, Download, FileText, AlertTriangle } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -21,10 +21,11 @@ import {
 } from 'recharts'
 import { Progress } from '@/components/ui/progress'
 import { useFinancialReport } from '@/hooks/useReports'
+import { useRevenueReport } from '@/hooks/useRevenueReport'
 import { useReportExport } from '@/hooks/useReportExport'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileFinancialReportPage } from '@/components/reports/MobileFinancialReportPage'
-import { formatCurrency } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 import { subDays } from 'date-fns'
 import { OperationsInsightsTab } from './components/OperationsInsightsTab'
 import type { PeriodRangeWithPrevious } from '@/lib/reportPeriods'
@@ -49,6 +50,7 @@ export function FinancialReportPage({ period: embeddedPeriod, embedded }: Props 
     : standaloneRange
 
   const { data: reportData, isLoading } = useFinancialReport(dateRange)
+  const { data: revenueData } = useRevenueReport('custom', { start: dateRange.start, end: dateRange.end })
   const { exportToPDF, exportToExcel, isExporting } = useReportExport()
 
   if (isMobile && !embedded) return <MobileFinancialReportPage />
@@ -78,6 +80,10 @@ export function FinancialReportPage({ period: embeddedPeriod, embedded }: Props 
   const purchasePercent = totalCost > 0 ? (summary.purchase_cost / totalCost) * 100 : 0
   const laundryPercent = totalCost > 0 ? (summary.laundry_cost / totalCost) * 100 : 0
   const maintenancePercent = totalCost > 0 ? (summary.maintenance_cost / totalCost) * 100 : 0
+
+  const totalRevenue = revenueData?.currentPeriod?.totalRevenue ?? 0
+  const grossProfit = totalRevenue - totalCost
+  const grossMarginPct = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0
 
   return (
     <div className="space-y-6">
@@ -174,6 +180,41 @@ export function FinancialReportPage({ period: embeddedPeriod, embedded }: Props 
                 <span className="text-sm font-semibold font-mono">{formatCurrency(totalCost)}</span>
               </div>
             </div>
+          </div>
+
+          {/* Lợi nhuận gộp */}
+          <div className="border rounded-lg">
+            <div className="p-3 border-b">
+              <h3 className="text-sm font-medium">Lợi nhuận ước tính</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Doanh thu phòng trừ chi phí trực tiếp đã ghi nhận trong kỳ</p>
+            </div>
+            <div className="divide-y">
+              <div className="p-3 flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Doanh thu</span>
+                <span className="text-sm font-mono tabular-nums">{formatCurrency(totalRevenue)}</span>
+              </div>
+              <div className="p-3 flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Chi phí</span>
+                <span className="text-sm font-mono tabular-nums">{formatCurrency(totalCost)}</span>
+              </div>
+              <div className="p-3 flex items-center justify-between bg-muted/30">
+                <span className="text-sm font-medium">Lợi nhuận gộp</span>
+                <div className="text-right">
+                  <span className={cn("text-sm font-semibold font-mono tabular-nums", grossProfit >= 0 ? "text-green-600" : "text-red-600")}>
+                    {formatCurrency(grossProfit)}
+                  </span>
+                  <div className={cn("text-xs mt-0.5", grossProfit >= 0 ? "text-green-600" : "text-red-600")}>
+                    Margin: {grossMarginPct.toFixed(1)}%
+                  </div>
+                </div>
+              </div>
+            </div>
+            {grossProfit < 0 && (
+              <div className="p-3 bg-red-50 border-t flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
+                <p className="text-xs text-red-700">Chi phí vượt doanh thu trong kỳ này. Kiểm tra lại chi phí mua hàng và bảo trì.</p>
+              </div>
+            )}
           </div>
 
           {/* Xu hướng chi phí */}
