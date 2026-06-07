@@ -2,6 +2,8 @@
   "chat": "Messages",
   "dashboard": "Dashboard",
   "inventory": "Inventory & Assets",
+  "inventoryDashboard": "Inventory Overview",
+  "distributions": "Distributions",
   "items": "Assets",
   "itemsList": "Asset List",
   "categories": "Categories & Units",
