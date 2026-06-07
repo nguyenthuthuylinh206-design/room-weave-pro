@@ -7,7 +7,9 @@ export interface CreateInvoiceParams {
   tenantId: string
   hotelId: string
   userId?: string | null
+  invoice_type?: 'receipt' | 'vat_request'
 }
+
 
 /**
  * Creates a guest invoice automatically after checkout.
