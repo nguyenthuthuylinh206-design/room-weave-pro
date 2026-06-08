@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Package, TrendingUp, AlertCircle, Download, ClipboardCheck } from 'lucide-react'
+import { Package, TrendingUp, AlertCircle, Download, ClipboardCheck, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useReportExport } from '@/hooks/useReportExport'
 
 const REPORT_TYPES = [
   { id: 'current', label: 'Tồn kho hiện tại' },
