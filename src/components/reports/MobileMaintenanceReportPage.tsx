@@ -203,10 +203,14 @@ export const MobileMaintenanceReportPage = () => {
         <Button
           className="w-full"
           variant="outline"
-          onClick={() => console.log('Export maintenance report')}
+          onClick={handleExport}
+          disabled={isExporting || !data}
         >
-          <Download className="h-4 w-4 mr-2" />
-          Xuất báo cáo Excel
+          {isExporting ? (
+            <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Đang xuất...</>
+          ) : (
+            <><Download className="h-4 w-4 mr-2" />Xuất báo cáo Excel</>
+          )}
         </Button>
       </div>
     </div>
