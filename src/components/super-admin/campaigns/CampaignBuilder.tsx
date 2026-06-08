@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCreateCampaign } from '@/hooks/super-admin/useMarketingCampaigns';
 import { CampaignPreview } from './CampaignPreview';
 import { Mail, Send } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 
 const campaignSchema = z.object({
   name: z.string().min(3),
