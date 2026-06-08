@@ -79,6 +79,9 @@ export interface BookingCostBreakdown {
   damageCharges: number
   damageItems?: DamageChargeItem[]
   
+  // VAT base (subtotal excluding damage charges — the taxable portion)
+  vatBase: number
+  
   // Subtotal (before tax)
   subtotal: number
   
