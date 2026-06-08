@@ -18,13 +18,13 @@ import { MobilePaymentQRDisplay } from '@/components/payment/MobilePaymentQRDisp
 import { useBankPaymentSettings } from '@/hooks/useBankPaymentSettings';
 import {
   useCreateBookingPayment,
-  useUpdateBookingAmountPaid,
   useConfirmBookingPayment,
   generatePaymentReference,
   BookingPayment,
 } from '@/hooks/useBookingPayments';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 export interface BookingPaymentDialogProps {
   open: boolean;
