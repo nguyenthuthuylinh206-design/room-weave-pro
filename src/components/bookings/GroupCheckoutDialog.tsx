@@ -577,9 +577,7 @@ export function GroupCheckoutDialog({
           p_late_checkout_charge: lateCharge,
           p_service_charges: serviceCharges,
           p_subtotal: costBreakdown?.subtotal || 0,
-          p_vat_amount: costBreakdown?.vatAmount || 0,
-          p_service_fee_amount: costBreakdown?.serviceFeeAmount || 0,
-          p_total_amount: costBreakdown?.totalAmount || booking.total_amount || 0,
+          // VAT/phí dịch vụ/tổng tiền: server tự tính lại từ rate gốc của booking
           p_damage_charges: damageCharges,
           p_damage_notes: damageNotesStr,
           p_damage_items: JSON.stringify(cost?.adjustedDamageItems || []),
