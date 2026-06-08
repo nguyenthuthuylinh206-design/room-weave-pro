@@ -670,6 +670,94 @@ export function BookingsPage() {
     }
   }
 
+  const computeAndOpenCheckoutSummary = async (
+    booking: BookingWithRoom,
+    opts?: { effectiveCheckOutDate?: string }
+  ) => {
+    const now = new Date()
+    const todayStr = opts?.effectiveCheckOutDate || null
+    const bType = booking.booking_type || 'daily'
+    const roomPrice = (booking as any).room_price || 0
+
+    // Late checkout charge
+    const calculatedLateCharge = bType === 'daily'
+      ? calculateLateCheckoutCharge(format(now, 'HH:mm'), roomPrice, now, new Date(booking.check_out_date))
+      : 0
+
+    // Effective check-out date (overdue path uses today)
+    const effectiveCheckOut = todayStr ? new Date(todayStr) : new Date(booking.check_out_date)
+    const checkIn = new Date(booking.check_in_date)
+    const nights = Math.max(1, Math.ceil((effectiveCheckOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
+
+    // Service charges
+    let serviceCharges = 0
+    let serviceDetails: ServiceChargeDetail[] = []
+    try {
+      const summary = await fetchServiceChargeSummary(booking.id, tenantId!, { includeAllBilled: true })
+      serviceCharges = summary.grandTotal
+      serviceDetails = summary.details
+    } catch {
+      const consumablesTotal = await calculateServiceChargesFromConsumables(booking.id)
+      serviceCharges = consumablesTotal > 0 ? consumablesTotal : ((booking as any).service_charges || 0)
+    }
+
+    // Damage items from latest room check
+    const { data: latestCheck } = await supabase
+      .from('room_checks')
+      .select('items_lost, items_damaged, items_consumed')
+      .eq('room_id', booking.room_id)
+      .in('check_type', ['checkout', 'daily'])
+      .order('checked_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    const damageItems: DamageChargeItem[] = [
+      ...((latestCheck?.items_lost as any[]) || []).map(item => ({
+        item_id: item.item_id, item_name: item.item_name, item_type: 'lost' as const,
+        quantity: item.quantity, charge_amount: item.estimated_value || 0,
+      })),
+      ...((latestCheck?.items_damaged as any[]) || []).map(item => ({
+        item_id: item.item_id, item_name: item.item_name, item_type: 'damaged' as const,
+        quantity: item.quantity, charge_amount: item.damage_cost || 0, damage_type: item.damage_type,
+      })),
+    ]
+
+    const totalDamageCharge = damageItems.reduce((sum, i) => sum + i.charge_amount * i.quantity, 0)
+
+    // Hourly overtime
+    let hourlyOvertimeCharge = 0
+    if (bType === 'hourly' && booking.hourly_end_time) {
+      const scheduledEnd = new Date(booking.hourly_end_time)
+      const overtimeMinutes = (now.getTime() - scheduledEnd.getTime()) / (1000 * 60)
+      if (overtimeMinutes > 0) hourlyOvertimeCharge = Math.ceil(overtimeMinutes / 60) * (booking.hourly_rate || 0)
+    }
+
+    const costBreakdown = calculateBookingCost({
+      bookingType: bType,
+      roomPrice, nights,
+      earlyCheckinCharge: bType === 'daily' ? ((booking as any).early_checkin_charge || 0) : 0,
+      lateCheckoutCharge: bType === 'daily' ? calculatedLateCharge : 0,
+      hourlyRate: booking.hourly_rate || 0,
+      hours: booking.booking_hours || 0,
+      hourlyOvertimeCharge,
+      monthlyRate: booking.monthly_rate || 0,
+      months: booking.booking_months || 0,
+      serviceCharges,
+      extraCharges: (booking as any).extra_charges || 0,
+      damageCharges: totalDamageCharge,
+      damageItems,
+      vatRate: (booking as any).vat_rate ?? DEFAULT_PRICING_RULES.vatRate,
+      serviceFeeRate: (booking as any).service_fee_rate ?? DEFAULT_PRICING_RULES.serviceFeeRate,
+      depositAmount: (booking as any).deposit_amount || 0,
+      amountPaid: (booking as any).amount_paid || 0,
+    })
+
+    setCheckoutDamageItems(damageItems)
+    setCheckoutServiceDetails(serviceDetails)
+    setCheckoutCostBreakdown(costBreakdown)
+    setShowCheckoutSummary(true)
+  }
+
   // Handle Check-out click - validate date first, then show summary dialog
   const handleCheckOutClick = async (booking: BookingWithRoom) => {
     const now = new Date()
