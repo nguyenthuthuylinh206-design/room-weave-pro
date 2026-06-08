@@ -1200,7 +1200,7 @@ export function BookingsPage() {
         check_out_date: firstBooking.check_out_date,
         room: firstBooking.room,
       },
-      costBreakdown: { bookingType: 'daily', roomPricePerNight: 0, nights: 0, roomTotal: 0, earlyCheckinCharge: 0, lateCheckoutCharge: 0, totalSurcharges: 0, serviceCharges: 0, extraCharges: 0, damageCharges: 0, subtotal: 0, vatRate: 0, vatAmount: 0, serviceFeeRate: 0, serviceFeeAmount: 0, totalAmount: 0, depositAmount: 0, amountPaid: 0, remainingAmount: 0, paymentStatus: 'pending' },
+      costBreakdown: { bookingType: 'daily', roomPricePerNight: 0, nights: 0, roomTotal: 0, earlyCheckinCharge: 0, lateCheckoutCharge: 0, totalSurcharges: 0, serviceCharges: 0, extraCharges: 0, damageCharges: 0, vatBase: 0, subtotal: 0, vatRate: 0, vatAmount: 0, serviceFeeRate: 0, serviceFeeAmount: 0, totalAmount: 0, depositAmount: 0, amountPaid: 0, remainingAmount: 0, paymentStatus: 'pending' },
       damageItems: [],
       actualCheckoutTime: format(new Date(), 'HH:mm'),
       actualCheckoutDate: new Date(),
