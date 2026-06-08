@@ -140,7 +140,7 @@ export function ItemFormPage() {
   // Load item data for edit mode
   useEffect(() => {
     if (item && isEdit && !copyFrom) {
-      console.log('Loading item data:', item);
+      
       reset({
         code: item.code || '',
         name: item.name || '',
@@ -181,8 +181,8 @@ export function ItemFormPage() {
       return;
     }
     try {
-      console.log('Form data:', data);
-      console.log('Images:', images);
+      
+      
       const {
         images: _,
         ...itemDataWithoutImages

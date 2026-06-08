@@ -73,7 +73,7 @@ export async function sendTelegramNotification({
       return { success: false, sent: 0, total: 0 };
     }
 
-    console.log('[Telegram] Notification sent:', data);
+    
     return data as { success: boolean; sent: number; total: number };
   } catch (err) {
     console.error('[Telegram] Failed to send notification:', err);
@@ -1342,7 +1342,7 @@ export async function triggerAdjustmentPendingApproval({
     }),
   ]);
 
-console.log('[triggerAdjustmentPendingApproval] Notifications sent to', recipientIds.length, 'recipients');
+
 }
 
 // ==================== ADJUSTMENT ASSIGNED NOTIFICATION ====================
@@ -1411,7 +1411,7 @@ export async function triggerAdjustmentAssigned({
     }),
   ]);
 
-  console.log('[triggerAdjustmentAssigned] Notifications sent to', recipientIds.length, 'staff members');
+  
 }
 
 // ==================== HOUSEKEEPING TASK ASSIGNMENT NOTIFICATION ====================
@@ -1447,7 +1447,7 @@ export async function triggerHousekeepingTaskAssignedNotification({
 }): Promise<void> {
   // Don't notify if user assigns to themselves
   if (assignedToUserId === assignedByUserId) {
-    console.log('[triggerHousekeepingTaskAssigned] Skipping - user assigned to self');
+    
     return;
   }
 
@@ -1476,7 +1476,7 @@ export async function triggerHousekeepingTaskAssignedNotification({
   const body = bodyParts.join('\n');
   const actionUrl = `/my-tasks?task=${taskId}`;
 
-  console.log('[triggerHousekeepingTaskAssigned] Sending notifications to user:', assignedToUserId);
+  
 
   // Send all channels in parallel: In-app + Push + Telegram
   await Promise.allSettled([
@@ -1518,5 +1518,5 @@ export async function triggerHousekeepingTaskAssignedNotification({
     }),
   ]);
 
-  console.log('[triggerHousekeepingTaskAssigned] Notifications sent successfully');
+  
 }

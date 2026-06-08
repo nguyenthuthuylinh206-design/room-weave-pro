@@ -1069,7 +1069,7 @@ export function BookingsPage() {
 
   // Handle when inspection is completed - refetch damage items from room check
   const handleInspectionCompleted = async (roomCheckId: string) => {
-    console.log('[BookingsPage] Inspection completed, refetching damage items. room_check_id:', roomCheckId)
+    
     
     // KHÔNG hiển thị toast ở đây - CheckoutSummaryDialog đã hiển thị rồi
     
@@ -1108,7 +1108,7 @@ export function BookingsPage() {
           // items_consumed excluded — already tracked via chargeable_consumptions
         ]
         
-        console.log('[BookingsPage] Fetched damage items:', damageItems.length)
+        
         setCheckoutDamageItems(damageItems)
         
         // Recalculate cost breakdown with new damage items
@@ -1147,7 +1147,7 @@ export function BookingsPage() {
           })
           
           setCheckoutCostBreakdown(newCostBreakdown)
-          console.log('[BookingsPage] Updated cost breakdown with damage charges:', totalDamageCharge)
+          
         }
         
         // KHÔNG hiển thị toast ở đây - CheckoutSummaryDialog đã hiển thị toast gộp rồi

@@ -259,7 +259,7 @@ export function RoomCheckPage() {
   // Cập nhật stableInspectionId khi pendingInspection load xong
   useEffect(() => {
     if (pendingInspection?.id && !stableInspectionId) {
-      console.log('[RoomCheckPage] Setting stableInspectionId from pendingInspection:', pendingInspection.id)
+      
       setStableInspectionId(pendingInspection.id)
     }
   }, [pendingInspection?.id, stableInspectionId])
@@ -281,7 +281,7 @@ export function RoomCheckPage() {
       !hasAutoStartedInspection.current &&
       !startInspection.isPending
     ) {
-      console.log('[RoomCheckPage] Auto-starting inspection:', pendingInspection.id)
+      
       hasAutoStartedInspection.current = true
       startInspection.mutate(pendingInspection.id)
     }
@@ -314,7 +314,7 @@ export function RoomCheckPage() {
       !isInspectionLoading &&
       !isLoadingRoomInspection
     ) {
-      console.log('[RoomCheckPage] Auto-creating checkout inspection for booking:', currentBooking.id)
+      
       autoCreateInspection.mutate({
         tenantId: room.tenant_id,
         hotelId: room.hotel_id,
@@ -649,7 +649,7 @@ export function RoomCheckPage() {
     try {
       // 1. Save chargeable consumptions if any
       if (chargeableItems.length > 0) {
-        console.log('[RoomCheckPage] Phase 1: Saving chargeable consumptions:', chargeableItems.length)
+        
         const savedItems = await createChargeableConsumptions.mutateAsync(chargeableItems)
         
         // 2. Send notification to reception
@@ -671,7 +671,7 @@ export function RoomCheckPage() {
               recorded_by_name: user.full_name || user.email,
             },
           })
-          console.log('[RoomCheckPage] Phase 1: Chargeable notification sent')
+          
         }
       }
       
@@ -710,7 +710,7 @@ export function RoomCheckPage() {
               recorded_by_name: user.full_name || user.email,
             },
           })
-          console.log('[RoomCheckPage] Phase 1: Lost/damaged notification sent')
+          
         } catch (notifyError) {
           console.error('[RoomCheckPage] Failed to send lost/damaged notification:', notifyError)
         }
@@ -718,10 +718,7 @@ export function RoomCheckPage() {
       
       // 4. Save phase1_damage_data to checkout_inspection_requests for realtime updates
       const finalInspectionId = stableInspectionId || autoCreatedInspectionId || inspectionIdFromUrl || pendingInspection?.id
-      console.log('[RoomCheckPage] Phase 1: finalInspectionId sources:', {
-        stableInspectionId, autoCreatedInspectionId, inspectionIdFromUrl,
-        pendingInspectionId: pendingInspection?.id, final: finalInspectionId,
-      })
+      
       if (finalInspectionId && (lostItems.length > 0 || damagedItems.length > 0 || chargeableItems.length > 0)) {
         try {
           const phase1DamageData = {
@@ -747,7 +744,7 @@ export function RoomCheckPage() {
             .update({ phase1_damage_data: phase1DamageData as any })
             .eq('id', finalInspectionId)
           
-          console.log('[RoomCheckPage] Phase 1: Saved phase1_damage_data to inspection request')
+          
         } catch (dmgError) {
           console.error('[RoomCheckPage] Failed to save phase1_damage_data:', dmgError)
         }
@@ -840,9 +837,9 @@ export function RoomCheckPage() {
     // Ưu tiên: stableInspectionId > autoCreatedInspectionId > URL > pendingInspection
     const finalInspectionId = stableInspectionId || autoCreatedInspectionId || inspectionIdFromUrl || pendingInspection?.id
     
-    console.log('[RoomCheckPage] onSubmit - check_type:', data.check_type)
-    console.log('[RoomCheckPage] onSubmit - finalInspectionId:', finalInspectionId)
-    console.log('[RoomCheckPage] onSubmit - sources: stable=', stableInspectionId, 'autoCreated=', autoCreatedInspectionId, 'url=', inspectionIdFromUrl, 'pending=', pendingInspection?.id)
+    
+    
+    
     
     // Warning nếu là checkout mà không có inspectionId
     if (data.check_type === 'checkout' && !finalInspectionId) {
@@ -853,7 +850,7 @@ export function RoomCheckPage() {
       // Save chargeable consumptions for checkout if any
       // Skip if already submitted in Phase 1 (2-phase checkout flow)
       if (data.check_type === 'checkout' && chargeableItems.length > 0 && !phase1Submitted) {
-        console.log('[RoomCheckPage] Saving chargeable consumptions (non-phase1):', chargeableItems.length)
+        
         const savedItems = await createChargeableConsumptions.mutateAsync(chargeableItems)
         
         // Fire-and-forget: notify chargeable
@@ -937,7 +934,7 @@ export function RoomCheckPage() {
                 .maybeSingle()
               
               if (relatedTask) {
-                console.log('[BG] Auto-completing task:', relatedTask.id)
+                
                 // F-FSM-02: ghi `room_check_id` (field non-status) trước, rồi
                 // chuyển status qua RPC `transition_task_status` để có audit log.
                 if (createdCheck?.id) {
