@@ -27,6 +27,7 @@ import { Switch } from '@/components/ui/switch'
 import { UsageModeSelector } from '@/components/settings/UsageModeSelector'
 import { HotelQcModeSettings } from '@/components/settings/HotelQcModeSettings'
 import { HotelPhotoEvidenceSettings } from '@/components/settings/HotelPhotoEvidenceSettings'
+import { BackupHistoryDialog } from '@/components/settings/BackupHistoryDialog'
 import { getFriendlyError } from '@/lib/errorMessage'
 
 const createGeneralSettingsSchema = (t: (key: string) => string) => z.object({
