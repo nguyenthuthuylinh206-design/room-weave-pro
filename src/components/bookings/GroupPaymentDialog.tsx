@@ -143,9 +143,14 @@ export function GroupPaymentDialog({
   /**
    * Distribute payment amount across bookings
    * Priority: Checked-out rooms first, then by remaining amount
+   * Uses record_booking_payment RPC to INSERT booking_payments + UPDATE amount_paid atomically
+   * → giữ audit trail riêng cho từng phòng, không chỉ phòng đầu
    */
-  const distributePayment = async (paymentAmount: number, bookings: GroupBookingRoom[]) => {
-    // Build a map of calculated totals per booking
+  const distributePayment = async (
+    paymentAmount: number,
+    bookings: GroupBookingRoom[],
+    paymentMethod: PaymentMethod,
+  ) => {
     const calcTotalMap = new Map<string, number>()
     if (roomCostsByBooking) {
       for (const rc of roomCostsByBooking) {
@@ -153,7 +158,6 @@ export function GroupPaymentDialog({
       }
     }
 
-    // Sort: checked_out first, then by remaining amount descending
     const sortedBookings = [...bookings].sort((a, b) => {
       if (a.status === 'checked_out' && b.status !== 'checked_out') return -1
       if (b.status === 'checked_out' && a.status !== 'checked_out') return 1
@@ -169,19 +173,31 @@ export function GroupPaymentDialog({
     for (const booking of sortedBookings) {
       if (remaining <= 0) break
 
-      // Use calculated total (includes overdue, VAT, fees) instead of DB total_amount
       const effectiveTotal = calcTotalMap.get(booking.id) ?? (booking.total_amount || 0)
       const bookingOwed = effectiveTotal - (booking.amount_paid || 0)
       if (bookingOwed <= 0) continue
 
       const payForThis = Math.min(remaining, bookingOwed)
 
-      // Use atomic RPC instead of direct UPDATE to prevent race conditions
-      await supabase.rpc('update_booking_amount_paid', {
+      // Dùng record_booking_payment thay vì update_booking_amount_paid
+      // → vừa tạo payment record cho booking này vừa update amount_paid atomically
+      const { error } = await supabase.rpc('record_booking_payment', {
         p_booking_id: booking.id,
-        p_amount_to_add: payForThis,
+        p_tenant_id: tenantId,
+        p_hotel_id: hotelId,
+        p_amount: payForThis,
+        p_payment_method: paymentMethod,
+        p_transaction_reference: null,
+        p_metadata: {
+          is_group_payment: true,
+          booking_group_id: bookingGroupId,
+          group_total_amount: paymentAmount,
+        },
         p_total_amount: effectiveTotal,
       })
+      if (error) {
+        console.error('[GroupPayment] Error recording payment for booking', booking.id, error)
+      }
 
       remaining -= payForThis
     }
