@@ -96,7 +96,7 @@ export function AdvancedCampaignManagement() {
         </TabsContent>
 
         <TabsContent value="templates">
-          <EmailTemplateLibrary />
+          <EmailTemplateLibrary onSelectTemplate={handleSelectTemplate} />
         </TabsContent>
 
         <TabsContent value="ab-testing">
