@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -71,8 +71,6 @@ export function CancelBookingDialog({
       queryClient.invalidateQueries({ queryKey: ['available-rooms'] })
       onSuccess?.()
       onOpenChange(false)
-      setReason('')
-      setRefund('keep')
     } catch (err: any) {
       toast.error(mapDbError(err?.message ?? String(err)))
     } finally {
