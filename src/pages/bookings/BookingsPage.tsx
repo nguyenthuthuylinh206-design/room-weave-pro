@@ -668,6 +668,7 @@ export function BookingsPage() {
   // Handle Check-out click - validate date first, then show summary dialog
   const handleCheckOutClick = async (booking: BookingWithRoom) => {
     const now = new Date()
+    setOverdueCheckoutDate(null)
     const action = decideCheckoutAction({
       booking: {
         id: booking.id,
