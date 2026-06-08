@@ -155,12 +155,23 @@ export const MobileInventoryReportPage = () => {
               <CardTitle className="text-base">Tồn kho hiện tại theo danh mục</CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-0 space-y-3">
-              {['Đồ dùng phòng', 'Đồ giặt là', 'Vật tư'].map((category) => (
-                <div key={category} className="flex justify-between items-center py-2 border-b last:border-0">
-                  <span className="font-medium">{category}</span>
-                  <span className="text-primary font-semibold">250</span>
+              {isReportLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-6 bg-muted animate-pulse rounded" />
+                  ))}
                 </div>
-              ))}
+              ) : (
+                reportData?.by_category.map((cat) => (
+                  <div key={cat.category_id} className="flex justify-between items-center py-2 border-b last:border-0">
+                    <span className="font-medium">{cat.category_name}</span>
+                    <span className="text-primary font-semibold">{formatNumber(cat.total_stock)}</span>
+                  </div>
+                ))
+              )}
+              {!isReportLoading && (!reportData?.by_category || reportData.by_category.length === 0) && (
+                <p className="text-sm text-muted-foreground text-center py-4">Không có dữ liệu danh mục</p>
+              )}
             </CardContent>
           </Card>
         )}
@@ -171,33 +182,58 @@ export const MobileInventoryReportPage = () => {
               <CardTitle className="text-base">Phân tích ABC</CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-0 space-y-3">
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Nhóm A (80% giá trị)</span>
-                  <span className="text-primary">25 mặt hàng</span>
+              {isABCLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-10 bg-muted animate-pulse rounded" />
+                  ))}
                 </div>
-                <div className="w-full bg-muted h-2 rounded-full overflow-hidden">
-                  <div className="bg-primary h-full" style={{ width: '20%' }} />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Nhóm B (15% giá trị)</span>
-                  <span className="text-blue-500">50 mặt hàng</span>
-                </div>
-                <div className="w-full bg-muted h-2 rounded-full overflow-hidden">
-                  <div className="bg-blue-500 h-full" style={{ width: '40%' }} />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Nhóm C (5% giá trị)</span>
-                  <span className="text-gray-500">50 mặt hàng</span>
-                </div>
-                <div className="w-full bg-muted h-2 rounded-full overflow-hidden">
-                  <div className="bg-gray-500 h-full" style={{ width: '40%' }} />
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Nhóm A (80% giá trị)</span>
+                      <span className="text-primary">
+                        {abcCounts.total > 0 ? `${abcCounts.a} mặt hàng` : '—'}
+                      </span>
+                    </div>
+                    <div className="w-full bg-muted h-2 rounded-full overflow-hidden">
+                      <div
+                        className="bg-primary h-full"
+                        style={{ width: abcCounts.total > 0 ? `${(abcCounts.a / abcCounts.total) * 100}%` : '0%' }}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Nhóm B (15% giá trị)</span>
+                      <span className="text-blue-500">
+                        {abcCounts.total > 0 ? `${abcCounts.b} mặt hàng` : '—'}
+                      </span>
+                    </div>
+                    <div className="w-full bg-muted h-2 rounded-full overflow-hidden">
+                      <div
+                        className="bg-blue-500 h-full"
+                        style={{ width: abcCounts.total > 0 ? `${(abcCounts.b / abcCounts.total) * 100}%` : '0%' }}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Nhóm C (5% giá trị)</span>
+                      <span className="text-gray-500">
+                        {abcCounts.total > 0 ? `${abcCounts.c} mặt hàng` : '—'}
+                      </span>
+                    </div>
+                    <div className="w-full bg-muted h-2 rounded-full overflow-hidden">
+                      <div
+                        className="bg-gray-500 h-full"
+                        style={{ width: abcCounts.total > 0 ? `${(abcCounts.c / abcCounts.total) * 100}%` : '0%' }}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         )}
