@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -47,6 +47,13 @@ export function CancelBookingDialog({
   const [refund, setRefund] = useState<'keep' | 'refund'>('keep')
   const [submitting, setSubmitting] = useState(false)
 
+  useEffect(() => {
+    if (!open) {
+      setReason('')
+      setRefund('keep')
+    }
+  }, [open])
+
   const handleSubmit = async () => {
     if (reason.trim().length < 3) return
     if (!tenant?.id) {
@@ -71,8 +78,6 @@ export function CancelBookingDialog({
       queryClient.invalidateQueries({ queryKey: ['available-rooms'] })
       onSuccess?.()
       onOpenChange(false)
-      setReason('')
-      setRefund('keep')
     } catch (err: any) {
       toast.error(mapDbError(err?.message ?? String(err)))
     } finally {
