@@ -37,15 +37,23 @@ export interface DecideCheckoutInput {
   groupCounts?: Record<string, number> | null | undefined
   /** Inject "now" to keep tests deterministic */
   now?: Date
+  /** False while group-counts query is still loading; defaults to true for backwards compat */
+  isGroupCountsReady?: boolean
 }
 
 export function decideCheckoutAction(input: DecideCheckoutInput): CheckoutAction {
-  const { booking, groupCounts, now = new Date() } = input
+  const { booking, groupCounts, now = new Date(), isGroupCountsReady = true } = input
 
   // 1) Group booking (>1 rooms in the group) → GroupCheckoutDialog
   const groupId = booking.booking_group_id
-  if (groupId && groupCounts && (groupCounts[groupId] ?? 0) > 1) {
-    return 'group'
+  if (groupId) {
+    if (!isGroupCountsReady) {
+      // Data not ready — default to group path to avoid incorrectly skipping group checkout
+      return 'group'
+    }
+    if (groupCounts && (groupCounts[groupId] ?? 0) > 1) {
+      return 'group'
+    }
   }
 
   // 2) Overdue (today is AFTER the scheduled checkout date) → ExtendBookingDialog
