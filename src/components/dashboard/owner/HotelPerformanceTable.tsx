@@ -1,8 +1,10 @@
 import { useHotelsPerformanceComparison, HotelComparison } from '@/hooks/useHotelPerformance'
 import { formatCurrency } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Building2, TrendingUp, TrendingDown, ArrowUpDown } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Building2, TrendingUp, TrendingDown, ArrowUpDown, ExternalLink } from 'lucide-react'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 
 interface HotelPerformanceTableProps {
