@@ -141,25 +141,28 @@ export function PaymentMethodsManager() {
       </Card>
 
       {/* Other Payment Methods - Coming Soon */}
-      <Card>
+      <Card className="border-dashed opacity-60">
         <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-secondary">
-              <CreditCard className="h-6 w-6 text-muted-foreground" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-secondary">
+                <CreditCard className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <div>
+                <CardTitle className="text-muted-foreground">Phương thức khác</CardTitle>
+                <CardDescription>
+                  Thẻ tín dụng, Ví điện tử
+                </CardDescription>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-muted-foreground">Phương thức khác</CardTitle>
-              <CardDescription>
-                Thẻ tín dụng, Ví điện tử
-              </CardDescription>
-            </div>
+            <Badge variant="secondary">Sắp ra mắt</Badge>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-6">
-            <CreditCard className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-50" />
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+            <CreditCard className="h-5 w-5 text-muted-foreground shrink-0" />
             <p className="text-sm text-muted-foreground">
-              Đang phát triển - Sẽ hỗ trợ Stripe, VNPay trong tương lai
+              Stripe, VNPay và các phương thức khác sẽ sớm được tích hợp.
             </p>
           </div>
         </CardContent>
