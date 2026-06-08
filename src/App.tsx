@@ -123,7 +123,7 @@ const ChangePasswordPage = lazy(() => import("./pages/settings/ChangePasswordPag
 
 const AISettingsPage = lazy(() => import("./pages/settings/AISettingsPage"));
 const AuditLogPage = lazy(() => import("./pages/settings/AuditLogPage"));
-const AssetGroupMigrationPage = lazy(() => import("./pages/settings/AssetGroupMigrationPage"));
+
 const HotelPolicyPage = lazy(() => import("./pages/settings/HotelPolicyPage"));
 const PricingHubPage = lazy(() => import("./pages/settings/PricingHubPage"));
 const SettingsRedirect = lazy(() => import("./pages/settings/SettingsRedirect"));
@@ -346,20 +346,6 @@ const router = createBrowserRouter([
       { path: "chat", element: <ChatPage /> },
       { path: "chat/:conversationId", element: <ChatPage /> },
       
-      // Legacy /admin/* routes — redirect to canonical /super-admin/*
-      { path: "admin", element: <Navigate to="/super-admin" replace /> },
-      { path: "admin/dashboard", element: <Navigate to="/super-admin" replace /> },
-      { path: "admin/tenants", element: <Navigate to="/super-admin/tenants" replace /> },
-      { path: "admin/approval", element: <Navigate to="/super-admin/approval" replace /> },
-      { path: "admin/promo-codes", element: <Navigate to="/super-admin/promo-codes" replace /> },
-      { path: "admin/campaigns", element: <Navigate to="/super-admin/campaigns" replace /> },
-      { path: "admin/reminders", element: <Navigate to="/super-admin/reminders" replace /> },
-      { path: "admin/payments", element: <Navigate to="/super-admin/payments" replace /> },
-      { path: "admin/pricing", element: <Navigate to="/super-admin/pricing" replace /> },
-      { path: "admin/analytics", element: <Navigate to="/super-admin/analytics" replace /> },
-      { path: "admin/settings", element: <Navigate to="/super-admin/settings" replace /> },
-      { path: "admin/announcements", element: <Navigate to="/super-admin/announcements" replace /> },
-      { path: "admin/*", element: <Navigate to="/super-admin" replace /> },
       
       // Inventory - Permission Based
       { path: "inventory", element: <PermissionRoute module="inventory"><InventoryDashboardPage /></PermissionRoute> },
@@ -473,7 +459,7 @@ const router = createBrowserRouter([
       { path: "settings/legal/stay-registration", element: <PermissionRoute module="settings"><StayRegistrationSettingsPage /></PermissionRoute> },
       { path: "settings/ai", element: <RoleGuard allowedRoles={['super_admin', 'owner']}><AISettingsPage /></RoleGuard> },
       { path: "settings/audit-log", element: <RoleGuard allowedRoles={['super_admin', 'owner', 'hotel_manager', 'department_manager']}><AuditLogPage /></RoleGuard> },
-      { path: "settings/asset-group-migration", element: <RoleGuard allowedRoles={['super_admin', 'owner', 'hotel_manager']}><AssetGroupMigrationPage /></RoleGuard> },
+      
       { path: "settings/hotel-policy", element: <RoleGuard allowedRoles={['super_admin', 'owner', 'hotel_manager']}><HotelPolicyPage /></RoleGuard> },
 
       // Profile

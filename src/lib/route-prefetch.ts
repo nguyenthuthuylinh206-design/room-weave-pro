@@ -97,7 +97,7 @@ const loaders: Record<string, () => Promise<unknown>> = {
   '/settings/workflows': () => import('@/pages/settings/WorkflowsPage'),
   '/settings/ai': () => import('@/pages/settings/AISettingsPage'),
   '/settings/audit-log': () => import('@/pages/settings/AuditLogPage'),
-  '/settings/asset-group-migration': () => import('@/pages/settings/AssetGroupMigrationPage'),
+  
   '/settings/hotel-policy': () => import('@/pages/settings/HotelPolicyPage'),
   '/settings/warehouses': () => import('@/pages/settings/WarehouseListPage'),
   '/settings/profile': () => import('@/pages/profile/ProfilePage'),

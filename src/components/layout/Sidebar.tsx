@@ -109,6 +109,7 @@ const navigation: NavItem[] = [
     children: [
       { titleKey: 'housekeepingOverview', href: '/housekeeping', icon: List, group: 'Quản lý phòng' },
       { titleKey: 'roomsList', href: '/rooms', icon: List, group: 'Quản lý phòng' },
+      { titleKey: 'supplements', href: '/supplements', icon: Package, group: 'Quản lý phòng' },
       { titleKey: 'roomStandards', href: '/rooms/standards', icon: Settings, minMode: 'standard', group: 'Quản lý phòng' },
     ],
   },
@@ -124,6 +125,7 @@ const navigation: NavItem[] = [
       { titleKey: 'outbound', href: '/inventory/outbound', icon: PackageMinus, group: 'Kho' },
       { titleKey: 'adjustments', href: '/inventory/adjustments', icon: ClipboardCheck, group: 'Kho' },
       { titleKey: 'distributions', href: '/inventory/distributions', icon: Truck, group: 'Kho' },
+      { titleKey: 'warehouses', href: '/settings/warehouses', icon: Warehouse, minMode: 'standard', roles: ['owner', 'hotel_manager'], group: 'Kho' },
       { titleKey: 'vendorsList', href: '/vendors', icon: Building, group: 'Mua hàng' },
       { titleKey: 'compareVendors', href: '/vendors/compare', icon: GitCompare, group: 'Mua hàng' },
       { titleKey: 'purchaseOrders', href: '/purchase-orders', icon: ShoppingCart, group: 'Mua hàng' },
