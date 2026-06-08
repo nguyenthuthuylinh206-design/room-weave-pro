@@ -65,14 +65,18 @@ const templates: EmailTemplate[] = [
   },
 ];
 
-export function EmailTemplateLibrary() {
+interface EmailTemplateLibraryProps {
+  onSelectTemplate?: (template: EmailTemplate) => void;
+}
+
+export function EmailTemplateLibrary({ onSelectTemplate }: EmailTemplateLibraryProps = {}) {
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
   const categories = [...new Set(templates.map(t => t.category))];
 
   const handleUseTemplate = (template: EmailTemplate) => {
-    console.log('Using template:', template);
+    onSelectTemplate?.(template);
   };
 
   return (
