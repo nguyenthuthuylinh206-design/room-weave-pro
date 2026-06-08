@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
-import { Loader2, Save, Building2, Globe, Database, AlertTriangle } from 'lucide-react'
+import { Loader2, Save, Building2, Globe, Database, AlertTriangle, History } from 'lucide-react'
 import { UnsavedChangesPrompt } from '@/components/settings/UnsavedChangesPrompt'
 import { useAutoSave } from '@/hooks/useAutoSave'
 import { logUpdate } from '@/lib/activityLogger'
