@@ -258,7 +258,7 @@ export function PrintReceiptDialog({
             bookingId={bookingId}
             tenantId={tenantId}
             hotelId={hotelId}
-            subtotal={vatEnabled ? totalWithVat : subtotal}
+            subtotal={vatEnabled ? totalWithVat : effectiveSubtotal}
             onSuccess={() => { setShowVatRequestForm(false); onOpenChange(false) }}
             onCancel={() => setShowVatRequestForm(false)}
           />
