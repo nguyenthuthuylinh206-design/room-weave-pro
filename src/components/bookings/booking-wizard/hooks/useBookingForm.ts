@@ -700,74 +700,29 @@ export function useBookingForm() {
         }
       })
 
-      // Upsert guest record - works with or without phone
-      let guestId: string | null = null
-      if (state.guestName.trim() && tenant?.id) {
-        try {
-          const phone = state.guestPhone.trim() || null
-          
-          if (phone) {
-            // Look up by phone first
-            const { data: existingGuest } = await supabase
-              .from('guests')
-              .select('id')
-              .eq('tenant_id', tenant.id)
-              .eq('phone', phone)
-              .maybeSingle()
-
-            if (existingGuest) {
-              guestId = existingGuest.id
-              await supabase.from('guests').update({
-                full_name: state.guestName.trim(),
-                email: state.guestEmail.trim() || null,
-                id_type: state.guestIdType || null,
-                id_number: state.guestIdNumber || null,
-                nationality: state.guestNationality || null,
-                gender: state.guestGender || null,
-                date_of_birth: state.guestDateOfBirth || null,
-                address: state.guestAddress || null,
-                id_image_url: state.guestIdImageUrl || null,
-                updated_at: new Date().toISOString(),
-              }).eq('id', existingGuest.id)
-            }
+      // Atomic: tạo guest + bookings trong 1 transaction qua RPC create_booking_v2
+      // Tránh booking orphan khi insert guest fail giữa chừng.
+      const guestPayload = state.guestName.trim()
+        ? {
+            full_name: state.guestName.trim(),
+            phone: state.guestPhone.trim() || null,
+            email: state.guestEmail.trim() || null,
+            id_type: state.guestIdType || null,
+            id_number: state.guestIdNumber || null,
+            nationality: state.guestNationality || null,
+            gender: state.guestGender || null,
+            date_of_birth: state.guestDateOfBirth || null,
+            address: state.guestAddress || null,
+            id_image_url: state.guestIdImageUrl || null,
+            vip_level: 'normal',
           }
+        : null
 
-          if (!guestId) {
-            // Create new guest (with or without phone)
-            const { data: newGuest } = await supabase
-              .from('guests')
-              .insert({
-                tenant_id: tenant.id,
-                full_name: state.guestName.trim(),
-                phone,
-                email: state.guestEmail.trim() || null,
-                id_type: state.guestIdType || null,
-                id_number: state.guestIdNumber || null,
-                nationality: state.guestNationality || null,
-                gender: state.guestGender || null,
-                date_of_birth: state.guestDateOfBirth || null,
-                address: state.guestAddress || null,
-                id_image_url: state.guestIdImageUrl || null,
-                vip_level: 'normal',
-              })
-              .select('id')
-              .single()
-            if (newGuest) guestId = newGuest.id
-          }
-        } catch (e) {
-          console.warn('Guest upsert failed, continuing without guest_id', e)
-        }
-      }
+      const { error } = await supabase.rpc('create_booking_v2' as any, {
+        p_bookings: bookingsData as any,
+        p_guest: guestPayload as any,
+      })
 
-      // Add guest_id to all bookings
-      if (guestId) {
-        bookingsData.forEach(b => { b.guest_id = guestId })
-      }
-      
-      const { error } = await supabase
-        .from('room_bookings')
-        .insert(bookingsData)
-        
       if (error) throw error
       
       const bookingTypeLabel = state.bookingType === 'hourly' ? 'theo giờ' : state.bookingType === 'monthly' ? 'theo tháng' : ''
