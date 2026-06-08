@@ -133,6 +133,8 @@ export function GroupCheckoutDialog({
     if (!open) {
       resetCosts()
       setExpandedRooms(new Set())
+      setReceiptBookingId(null)
+      setShowReceiptDialog(false)
     }
   }, [open, resetCosts])
 
