@@ -17,6 +17,23 @@ interface BackupHistoryDialogProps {
 
 export function BackupHistoryDialog({ open, onOpenChange }: BackupHistoryDialogProps) {
   const { data: backups, isLoading } = useBackupLogs()
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+
+  const handleDownload = async (backup: BackupLog) => {
+    if (!backup.file_path) return
+    setDownloadingId(backup.id)
+    try {
+      const { data, error } = await supabase.storage
+        .from('backups')
+        .createSignedUrl(backup.file_path, 60)
+      if (error) throw error
+      window.open(data.signedUrl, '_blank')
+    } catch (err: any) {
+      toast.error('Không thể tải file: ' + err.message)
+    } finally {
+      setDownloadingId(null)
+    }
+  }
 
   const formatFileSize = (bytes: number | null) => {
     if (!bytes) return 'N/A'
