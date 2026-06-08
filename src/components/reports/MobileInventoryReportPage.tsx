@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Package, TrendingUp, AlertCircle, Download, ClipboardCheck } from 'lucide-react'
+import { Package, TrendingUp, AlertCircle, Download, ClipboardCheck, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useReportExport } from '@/hooks/useReportExport'
 
 const REPORT_TYPES = [
   { id: 'current', label: 'Tồn kho hiện tại' },
@@ -20,8 +21,19 @@ export const MobileInventoryReportPage = () => {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
 
+  const { exportToExcel, isExporting } = useReportExport()
+
   const handleExport = () => {
-    console.log('Export inventory report')
+    exportToExcel(
+      {
+        title: 'Báo cáo tồn kho',
+        dateRange: dateFrom && dateTo ? `${dateFrom} - ${dateTo}` : 'Tất cả thời gian',
+        summary: {
+          report_type: REPORT_TYPES.find(t => t.id === reportType)?.label ?? reportType,
+        },
+      },
+      'inventory_report'
+    )
   }
 
   const handleReportTypeChange = (typeId: string) => {
@@ -165,9 +177,12 @@ export const MobileInventoryReportPage = () => {
           className="w-full"
           variant="outline"
           onClick={handleExport}
+          disabled={isExporting}
         >
-          <Download className="h-4 w-4 mr-2" />
-          Xuất báo cáo Excel
+          {isExporting
+            ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            : <Download className="h-4 w-4 mr-2" />}
+          {isExporting ? 'Đang xuất...' : 'Xuất báo cáo Excel'}
         </Button>
       </div>
     </div>

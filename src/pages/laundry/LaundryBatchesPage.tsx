@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, Download, Eye, Filter } from 'lucide-react'
+import { Plus, Download, Eye, Filter, Loader2 } from 'lucide-react'
+import { useReportExport } from '@/hooks/useReportExport'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { PermissionGate } from '@/components/auth/PermissionGate'
@@ -84,9 +85,34 @@ export function LaundryBatchesPage() {
     new Date(b.actual_return_date!).getMonth() === new Date().getMonth()
   ).length
   
+  const { exportToExcel, isExporting } = useReportExport()
+
   const handleExport = () => {
-    console.log('Export to Excel')
-    // TODO: Implement Excel export
+    exportToExcel(
+      {
+        title: 'Danh sách lô giặt',
+        dateRange: 'Tất cả',
+        summary: {
+          total_batches: batches.length,
+        },
+        tables: [
+          {
+            title: 'Lô giặt',
+            headers: ['Mã lô', 'Nhà cung cấp', 'Ngày gửi', 'Ngày dự kiến trả', 'Số items', 'Chi phí dự kiến', 'Trạng thái'],
+            rows: batches.map(b => [
+              b.batch_code,
+              (b as any).vendor_name ?? '',
+              b.delivery_date ? new Date(b.delivery_date).toLocaleDateString('vi-VN') : '',
+              b.expected_return_date ? new Date(b.expected_return_date).toLocaleDateString('vi-VN') : '',
+              b.total_items,
+              b.estimated_cost,
+              b.status,
+            ]),
+          },
+        ],
+      },
+      'laundry_batches'
+    )
   }
   
   return (
@@ -96,9 +122,11 @@ export function LaundryBatchesPage() {
         description={t('batches.list')}
       >
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="mr-2 h-4 w-4" />
-            {t('actions.exportExcel')}
+          <Button variant="outline" onClick={handleExport} disabled={isExporting}>
+            {isExporting
+              ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              : <Download className="mr-2 h-4 w-4" />}
+            {isExporting ? t('common:exporting', 'Đang xuất...') : t('actions.exportExcel')}
           </Button>
           <PermissionGate module="laundry" action="create">
             <Button onClick={() => navigate('/laundry/batches/new')}>

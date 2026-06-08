@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Download, Eye } from 'lucide-react'
+import { Download, Eye, Loader2 } from 'lucide-react'
+import { useReportExport } from '@/hooks/useReportExport'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -45,8 +46,31 @@ export function VendorBatchHistory({ vendorId }: VendorBatchHistoryProps) {
   
   const batches = data?.batches || []
   
+  const { exportToExcel, isExporting } = useReportExport()
+
   const handleExport = () => {
-    console.log('Export to Excel')
+    exportToExcel(
+      {
+        title: 'Lịch sử lô giặt theo nhà cung cấp',
+        dateRange: 'Tất cả',
+        summary: {
+          total_batches: batches.length,
+        },
+        tables: [
+          {
+            title: 'Lịch sử',
+            headers: ['Mã lô', 'Ngày gửi', 'Ngày trả thực tế', 'Trạng thái'],
+            rows: batches.map(b => [
+              b.batch_code,
+              b.delivery_date ? new Date(b.delivery_date).toLocaleDateString('vi-VN') : '',
+              b.actual_return_date ? new Date(b.actual_return_date).toLocaleDateString('vi-VN') : '',
+              b.status,
+            ]),
+          },
+        ],
+      },
+      'vendor_batch_history'
+    )
   }
   
   return (
@@ -70,9 +94,11 @@ export function VendorBatchHistory({ vendorId }: VendorBatchHistoryProps) {
                 <SelectItem value="received">{t('laundry:batchHistory.received')}</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={handleExport}>
-              <Download className="mr-2 h-4 w-4" />
-              {t('laundry:batchHistory.exportExcel')}
+            <Button variant="outline" onClick={handleExport} disabled={isExporting}>
+              {isExporting
+                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                : <Download className="mr-2 h-4 w-4" />}
+              {isExporting ? 'Đang xuất...' : t('laundry:batchHistory.exportExcel')}
             </Button>
           </div>
         </div>
