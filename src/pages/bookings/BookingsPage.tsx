@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { format, isToday, isTomorrow, isPast, differenceInDays, startOfDay, isBefore, isAfter } from 'date-fns'
+import { format, isToday, isTomorrow, isPast, differenceInDays, startOfDay, isBefore, isAfter, subDays, addDays } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -154,6 +154,7 @@ export function BookingsPage() {
   
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<BookingStatus>('all')
+  const [dateRangeFilter, setDateRangeFilter] = useState<'7d' | '30d' | '90d' | 'all'>('30d')
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [selectedBooking, setSelectedBooking] = useState<BookingWithRoom | null>(null)
@@ -360,7 +361,7 @@ export function BookingsPage() {
   const [transferBooking, setTransferBooking] = useState<BookingWithRoom | null>(null)
   
   const { data: bookings, isLoading } = useQuery({
-    queryKey: ['all-bookings', isAllHotelsMode ? 'all' : selectedHotelId, statusFilter],
+    queryKey: ['all-bookings', isAllHotelsMode ? 'all' : selectedHotelId, statusFilter, dateRangeFilter],
     queryFn: async () => {
       let query = supabase
         .from('room_bookings')
@@ -377,7 +378,6 @@ export function BookingsPage() {
           booking_group_id
         `)
         .order('check_in_date', { ascending: false })
-        .limit(100)
       
       if (!isAllHotelsMode && selectedHotelId) {
         query = query.eq('hotel_id', selectedHotelId)
@@ -397,6 +397,23 @@ export function BookingsPage() {
       if (statusFilter === 'overdue_checkin') {
         query = query.eq('status', 'confirmed')
       }
+
+      // Apply date range filter (except for active statuses that need all-time data)
+      const activeStatuses = ['checked_in', 'conflict', 'overdue']
+      const isActiveFilter = activeStatuses.includes(statusFilter)
+
+      if (!isActiveFilter && dateRangeFilter !== 'all') {
+        const daysBack = dateRangeFilter === '7d' ? 7 : dateRangeFilter === '30d' ? 30 : 90
+        const fromDate = format(subDays(new Date(), daysBack), 'yyyy-MM-dd')
+        const toDate = format(addDays(new Date(), 30), 'yyyy-MM-dd') // include upcoming bookings
+        query = query
+          .gte('check_in_date', fromDate)
+          .lte('check_in_date', toDate)
+      }
+
+      // For checked_in/active: no date limit (must show ALL active bookings)
+      // but cap at 500 to prevent timeout
+      query = query.limit(isActiveFilter ? 500 : 200)
       
       const { data, error } = await query
       
@@ -1514,6 +1531,17 @@ export function BookingsPage() {
             <SelectItem value="checked_out">Đã trả phòng</SelectItem>
             <SelectItem value="cancelled">Đã hủy</SelectItem>
             <SelectItem value="no_show">Không đến</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={dateRangeFilter} onValueChange={(v) => setDateRangeFilter(v as any)}>
+          <SelectTrigger className="w-32 h-8 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="7d">7 ngày</SelectItem>
+            <SelectItem value="30d">30 ngày</SelectItem>
+            <SelectItem value="90d">90 ngày</SelectItem>
+            <SelectItem value="all">Tất cả</SelectItem>
           </SelectContent>
         </Select>
       </div>
