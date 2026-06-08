@@ -12,6 +12,47 @@ export const MobileMaintenanceReportPage = () => {
     }).format(amount)
   }
 
+  const { exportToExcel, isExporting } = useReportExport()
+
+  const data = {
+    total_requests: 45,
+    pending: 3,
+    in_progress: 12,
+    completed: 30,
+    avg_resolution_hours: 4.2,
+  }
+
+  const handleExport = () => {
+    if (!data) return
+    exportToExcel(
+      {
+        title: 'Báo Cáo Bảo Trì',
+        dateRange: new Date().toLocaleDateString('vi-VN'),
+        summary: {
+          total_requests: data.total_requests,
+          pending: data.pending,
+          in_progress: data.in_progress,
+          completed: data.completed,
+          avg_resolution_hours: `${data.avg_resolution_hours}h`,
+        },
+        tables: [
+          {
+            title: 'Tổng Quan',
+            headers: ['Chỉ số', 'Giá trị'],
+            rows: [
+              ['Tổng yêu cầu', data.total_requests ?? 0],
+              ['Đang chờ', data.pending ?? 0],
+              ['Đang xử lý', data.in_progress ?? 0],
+              ['Hoàn thành', data.completed ?? 0],
+              ['Thời gian xử lý TB (giờ)', data.avg_resolution_hours ?? 0],
+            ],
+          },
+        ],
+      },
+      'bao-cao-bao-tri-mobile'
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <MobileDetailHeader
