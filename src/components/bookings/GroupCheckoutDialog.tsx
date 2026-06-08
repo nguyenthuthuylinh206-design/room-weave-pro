@@ -831,6 +831,20 @@ export function GroupCheckoutDialog({
         </DialogContent>
       </Dialog>
 
+      {/* Receipt Dialog */}
+      {receiptBookingId && (
+        <PrintReceiptDialog
+          open={showReceiptDialog}
+          onOpenChange={(open) => {
+            setShowReceiptDialog(open)
+            if (!open) setReceiptBookingId(null)
+          }}
+          bookingId={receiptBookingId}
+          tenantId={tenantId}
+          hotelId={hotelId}
+        />
+      )}
+
       {/* Payment Dialog */}
       <GroupPaymentDialog
         open={showPaymentDialog}
