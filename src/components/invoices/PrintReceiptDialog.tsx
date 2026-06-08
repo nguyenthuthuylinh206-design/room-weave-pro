@@ -24,9 +24,9 @@ interface PrintReceiptDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   bookingId: string
-  guestName: string
-  roomNumber: string
-  subtotal: number
+  guestName?: string
+  roomNumber?: string
+  subtotal?: number
   tenantId: string
   hotelId: string
   hotelInfo?: {
