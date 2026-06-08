@@ -1,7 +1,10 @@
 import { useState } from 'react'
-import { FileText, X, Upload } from 'lucide-react'
+import { FileText, X, Upload, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { supabase } from '@/integrations/supabase/client'
+import { useTenant } from '@/hooks/useTenant'
+import { toast } from 'sonner'
 
 interface FileUploadProps {
   files: string[]
