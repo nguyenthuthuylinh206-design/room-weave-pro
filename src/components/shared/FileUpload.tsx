@@ -20,18 +20,42 @@ export function FileUpload({
   accept = ".pdf,.doc,.docx,.xls,.xlsx"
 }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false)
-  
+  const [isUploading, setIsUploading] = useState(false)
+  const { tenant } = useTenant()
+
   const handleRemove = (index: number) => {
     onChange(files.filter((_, i) => i !== index))
   }
-  
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  const uploadFiles = async (filesToUpload: File[]) => {
+    if (!filesToUpload.length || !tenant?.id) return
+
+    setIsUploading(true)
+    try {
+      const uploadedUrls: string[] = []
+      for (const file of filesToUpload) {
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${tenant.id}/documents/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+        const { data, error } = await supabase.storage
+          .from('item-images')
+          .upload(fileName, file, { cacheControl: '3600', upsert: false })
+        if (error) throw error
+        const { data: { publicUrl } } = supabase.storage.from('item-images').getPublicUrl(data.path)
+        uploadedUrls.push(publicUrl)
+      }
+      onChange([...files, ...uploadedUrls].slice(0, maxFiles))
+    } catch (err: any) {
+      toast.error('Không thể tải file lên. Vui lòng thử lại.')
+      console.error('FileUpload error:', err)
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || [])
-    // TODO: Upload files to storage and get URLs
-    console.log('Upload files:', selectedFiles)
-    // For now, just add dummy URLs
-    const newFiles = selectedFiles.map(f => URL.createObjectURL(f))
-    onChange([...files, ...newFiles].slice(0, maxFiles))
+    await uploadFiles(selectedFiles)
+    e.target.value = ''
   }
   
   return (
