@@ -60,7 +60,6 @@ export async function createInvoiceAfterCheckout({
     .limit(1)
 
   if (existingInvoice && existingInvoice.length > 0) {
-    console.log('Invoice: Already exists for booking', bookingId)
     return
   }
 

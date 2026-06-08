@@ -48,7 +48,6 @@ export async function storeCredential(email: string, password: string): Promise<
         name: email,
       });
       await navigator.credentials.store(credential);
-      console.log('[Credential] Stored to native password manager');
     } catch (error) {
       console.warn('[Credential] Native store failed (non-fatal):', error);
     }

@@ -38,11 +38,9 @@ export function usePWAUpdate() {
     immediate: pwaEnabled,
     onRegistered(registration) {
       if (!pwaEnabled) return;
-      console.log('[PWA] Service Worker registered');
       registrationRef.current = registration || null;
       if (registration) {
         setInterval(() => {
-          console.log('[PWA] Periodic update check...');
           registration.update();
         }, UPDATE_CHECK_INTERVAL);
       }
@@ -51,10 +49,8 @@ export function usePWAUpdate() {
       console.error('[PWA] SW registration error:', error);
     },
     onNeedRefresh() {
-      console.log('[PWA] New version available');
     },
     onOfflineReady() {
-      console.log('[PWA] App ready offline');
     },
   });
 
@@ -62,7 +58,6 @@ export function usePWAUpdate() {
   useEffect(() => {
     if (!pwaEnabled) return;
     const handleControllerChange = () => {
-      console.log('[PWA] New SW activated, reloading...');
       toast.info('Đang cập nhật phiên bản mới...', { duration: 2000 });
       setTimeout(() => {
         window.location.reload();
@@ -80,7 +75,6 @@ export function usePWAUpdate() {
     if (!pwaEnabled) return;
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && registrationRef.current) {
-        console.log('[PWA] Tab visible, checking updates...');
         registrationRef.current.update();
       }
     };
@@ -93,7 +87,6 @@ export function usePWAUpdate() {
 
   const update = async () => {
     if (!pwaEnabled) return;
-    console.log('[PWA] Manual update...');
     await updateServiceWorker(true);
   };
 

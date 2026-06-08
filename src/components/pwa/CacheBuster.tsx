@@ -47,7 +47,6 @@ export function CacheBuster() {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored === CURRENT_VERSION) return;
 
-        console.log('[CacheBuster] Version mismatch:', { stored, current: CURRENT_VERSION });
         await cleanupServiceWorkers();
         if (cancelled) return;
 

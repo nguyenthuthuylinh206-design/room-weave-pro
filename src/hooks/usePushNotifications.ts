@@ -113,7 +113,6 @@ export function usePushNotifications() {
     const isSupported = hasServiceWorker && hasPushManager && hasNotification;
     
     // Log for debugging
-    console.log('[Push] Support check:', { hasServiceWorker, hasPushManager, hasNotification, isSupported });
     
     return isSupported;
   }, []);
@@ -171,19 +170,15 @@ export function usePushNotifications() {
 
       // Use the main PWA service worker (registered by vite-plugin-pwa)
       const registration = await navigator.serviceWorker.ready;
-      console.log('[Push] Service Worker ready:', registration);
-      console.log('[Push] SW active:', registration.active?.scriptURL);
 
       // Force update service worker if there's a waiting one
       if (registration.waiting) {
-        console.log('[Push] Found waiting SW, activating it...');
         registration.waiting.postMessage({ type: 'SKIP_WAITING' });
       }
       
       // Force check for updates
       try {
         await registration.update();
-        console.log('[Push] SW update check completed');
       } catch (updateErr) {
         console.warn('[Push] SW update check failed:', updateErr);
       }

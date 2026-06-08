@@ -70,7 +70,6 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
       })
       
       setPermissions(newPermissions)
-      console.log('[Permissions] Initialized permissions:', newPermissions)
     }
   }, [permissionsSummary])
 
@@ -212,7 +211,6 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
                         size="sm"
                         onClick={() => {
                           const newState = !allEnabled
-                          console.log(`[Permissions] Toggle module ${module.code}: ${allEnabled} → ${newState}`)
                           toggleAllActions(module.code, newState)
                         }}
                         disabled={isSuperAdmin || isOwner || isSaving}

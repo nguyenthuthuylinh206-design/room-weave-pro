@@ -52,13 +52,11 @@ export default function ScanDocumentPage() {
       // and accepts both 'pending' and 'failed' (auto-resetting failed→pending).
 
       // Compress image
-      console.log('[ScanDoc] Compressing image...')
       const base64 = await compressImage(file, 0.8, 1024, 1024)
       setPreviewUrl(base64)
       setStatus('scanning')
 
       // Single API call - server handles OCR + storage upload + session update
-      console.log('[ScanDoc] Calling mobile-scan-upload...')
       const { data: result, error: fnError } = await supabase.functions.invoke('mobile-scan-upload', {
         body: {
           sessionId,
@@ -70,7 +68,6 @@ export default function ScanDocumentPage() {
       if (fnError) throw fnError
       if (result?.error) throw new Error(result.error)
 
-      console.log('[ScanDoc] Success:', result)
       setStatus('success')
     } catch (err: any) {
       console.error('[ScanDoc] Error:', err)

@@ -69,7 +69,6 @@ export async function cleanupServiceWorkers(): Promise<boolean> {
       if (regs.length > 0) {
         await Promise.all(regs.map((r) => r.unregister()));
         didCleanup = true;
-        console.log('[PWA-Cleanup] Unregistered', regs.length, 'SW');
       }
     }
     if ('caches' in window) {
@@ -77,7 +76,6 @@ export async function cleanupServiceWorkers(): Promise<boolean> {
       if (names.length > 0) {
         await Promise.all(names.map((n) => caches.delete(n)));
         didCleanup = true;
-        console.log('[PWA-Cleanup] Cleared caches:', names);
       }
     }
   } catch (err) {
