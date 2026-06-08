@@ -73,6 +73,7 @@ export function CreateABTestDialog({ open, onOpenChange }: CreateABTestDialogPro
         title: 'A/B Test đã tạo',
         description: `"${data.name}" đã được lưu ở trạng thái Draft. Bắt đầu test khi sẵn sàng.`,
       });
+      queryClient.invalidateQueries({ queryKey: ['ab-tests'] });
       onOpenChange(false);
       form.reset();
     } catch (err: any) {
