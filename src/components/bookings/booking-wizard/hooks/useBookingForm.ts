@@ -5,6 +5,8 @@ import { toast as sonnerToast } from 'sonner'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { useTenant } from '@/hooks/useTenant'
+import { useHotelContext } from '@/contexts/HotelContext'
+import { useHotelPricingRules } from '@/hooks/useHotelPricingRules'
 import { formatCurrency } from '@/lib/utils'
 import { OTA_SOURCES, OTA_DEFAULT_COMMISSION } from '@/lib/constants'
 import { 
@@ -110,9 +112,24 @@ export function useBookingForm() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { tenant } = useTenant()
-  
+  const { selectedHotel } = useHotelContext()
+  const hotelId = (selectedHotel as any)?.id as string | undefined
+  const { data: pricingRules } = useHotelPricingRules(hotelId)
+
   const [state, setState] = useState<BookingFormState>(initialState)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const pricingAppliedRef = useRef(false)
+
+  // Apply hotel-specific pricing rules once they load (only if user hasn't manually changed)
+  useEffect(() => {
+    if (!pricingRules || pricingAppliedRef.current) return
+    pricingAppliedRef.current = true
+    setState((prev) => ({
+      ...prev,
+      vatRate: pricingRules.vatRate,
+      serviceFeeRate: pricingRules.serviceFeeRate,
+    }))
+  }, [pricingRules])
 
   // Skip side-effects (clear-rooms + OTA defaults) ngay sau khi restore draft,
   // tránh việc effect dep [bookingType, dates...] xoá selectedRooms vừa khôi phục.

@@ -3409,6 +3409,57 @@ export type Database = {
           },
         ]
       }
+      hotel_settings: {
+        Row: {
+          created_at: string
+          early_checkin_5_9_pct: number | null
+          early_checkin_9_14_pct: number | null
+          early_checkin_before5_pct: number | null
+          hotel_id: string
+          id: string
+          late_checkout_12_15_pct: number | null
+          late_checkout_15_18_pct: number | null
+          late_checkout_after18_pct: number | null
+          monthly_discounts: Json | null
+          service_fee_rate: number | null
+          tenant_id: string
+          updated_at: string
+          vat_rate: number | null
+        }
+        Insert: {
+          created_at?: string
+          early_checkin_5_9_pct?: number | null
+          early_checkin_9_14_pct?: number | null
+          early_checkin_before5_pct?: number | null
+          hotel_id: string
+          id?: string
+          late_checkout_12_15_pct?: number | null
+          late_checkout_15_18_pct?: number | null
+          late_checkout_after18_pct?: number | null
+          monthly_discounts?: Json | null
+          service_fee_rate?: number | null
+          tenant_id: string
+          updated_at?: string
+          vat_rate?: number | null
+        }
+        Update: {
+          created_at?: string
+          early_checkin_5_9_pct?: number | null
+          early_checkin_9_14_pct?: number | null
+          early_checkin_before5_pct?: number | null
+          hotel_id?: string
+          id?: string
+          late_checkout_12_15_pct?: number | null
+          late_checkout_15_18_pct?: number | null
+          late_checkout_after18_pct?: number | null
+          monthly_discounts?: Json | null
+          service_fee_rate?: number | null
+          tenant_id?: string
+          updated_at?: string
+          vat_rate?: number | null
+        }
+        Relationships: []
+      }
       hotels: {
         Row: {
           address: string | null
