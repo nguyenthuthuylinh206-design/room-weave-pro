@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
-import { Loader2, CheckCircle, XCircle, Clock, Search, CreditCard, Building2 } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, Clock, Search, CreditCard, Building2, RefreshCw } from 'lucide-react';
 import { formatVNCurrency } from '@/lib/pricing';
 import { toast } from 'sonner';
 import { BankPaymentSettings } from '@/components/super-admin/settings/BankPaymentSettings';
@@ -44,6 +45,7 @@ export function PaymentSettingsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState('pending');
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // Fetch payments
   const { data: payments, isLoading } = useQuery({
@@ -247,6 +249,10 @@ export function PaymentSettingsPage() {
             Xác nhận thanh toán và cấu hình tài khoản ngân hàng
           </p>
         </div>
+        <Button variant="outline" onClick={() => navigate('/finance/reconciliation')}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Đối soát giao dịch SePay
+        </Button>
       </div>
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>

@@ -54,6 +54,7 @@ import {
   ScrollText,
   CalendarRange,
   ShieldCheck,
+  RefreshCw,
   ClipboardList,
   Shirt,
   Calculator,
@@ -232,6 +233,7 @@ const navigation: NavItem[] = [
       // Thanh toán & Gói
       { titleKey: 'subscription', href: '/settings/subscription', icon: CreditCard, group: 'Thanh toán & Gói' },
       { titleKey: 'usage', href: '/settings/usage', icon: BarChart3, minMode: 'standard', group: 'Thanh toán & Gói' },
+      { titleKey: 'sepayReconciliation', href: '/finance/reconciliation', icon: RefreshCw, roles: ['super_admin', 'owner'], group: 'Thanh toán & Gói' },
 
       // Hệ thống
       { titleKey: 'generalSettings', href: '/settings/general', icon: Settings, group: 'Hệ thống' },
