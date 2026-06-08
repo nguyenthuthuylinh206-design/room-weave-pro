@@ -79,6 +79,9 @@ export interface BookingCostBreakdown {
   damageCharges: number
   damageItems?: DamageChargeItem[]
   
+  // VAT base (subtotal excluding damage charges — the taxable portion)
+  vatBase: number
+  
   // Subtotal (before tax)
   subtotal: number
   
@@ -353,12 +356,14 @@ export function calculateBookingCost(params: {
       break
   }
   
-  // Subtotal before tax (including damage charges)
-  const subtotal = roomTotal + totalSurcharges + serviceCharges + extraCharges + damageCharges
+  // VAT base excludes damage charges (damage compensation is not a taxable service)
+  const vatBase = roomTotal + totalSurcharges + serviceCharges + extraCharges
+  // Damage is added to subtotal for grand total purposes but NOT taxed
+  const subtotal = vatBase + damageCharges
   
-  // Calculate VAT and service fee
-  const vatAmount = Math.round(subtotal * vatRate / 100)
-  const serviceFeeAmount = Math.round(subtotal * serviceFeeRate / 100)
+  // Calculate VAT and service fee on vatBase only
+  const vatAmount = Math.round(vatBase * vatRate / 100)
+  const serviceFeeAmount = Math.round(vatBase * serviceFeeRate / 100)
   
   // Grand total
   const totalAmount = subtotal + vatAmount + serviceFeeAmount
@@ -396,6 +401,7 @@ export function calculateBookingCost(params: {
     extraCharges,
     damageCharges,
     damageItems,
+    vatBase,
     subtotal,
     vatRate,
     vatAmount,

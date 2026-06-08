@@ -737,7 +737,7 @@ export function CheckoutSummaryDialog({
                   </div>
                   {adjustedCostBreakdown.vatRate > 0 && (
                     <div className="flex justify-between text-muted-foreground">
-                      <span>VAT ({adjustedCostBreakdown.vatRate}%)</span>
+                      <span>VAT ({adjustedCostBreakdown.vatRate}%) <span className="text-xs text-muted-foreground">(trên dịch vụ)</span></span>
                       <span className="font-mono">{formatCurrency(adjustedCostBreakdown.vatAmount)}</span>
                     </div>
                   )}
