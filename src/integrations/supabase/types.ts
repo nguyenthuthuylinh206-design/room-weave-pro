@@ -14159,10 +14159,7 @@ export type Database = {
           p_new_amount_paid?: number
           p_room_id: string
           p_service_charges?: number
-          p_service_fee_amount?: number
           p_subtotal?: number
-          p_total_amount?: number
-          p_vat_amount?: number
         }
         Returns: Json
       }

@@ -248,9 +248,7 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
         p_late_checkout_charge: surchargeToStore,
         p_service_charges: serviceCharges,
         p_subtotal: costBreakdown.subtotal,
-        p_vat_amount: costBreakdown.vatAmount,
-        p_service_fee_amount: costBreakdown.serviceFeeAmount,
-        p_total_amount: costBreakdown.totalAmount,
+        // VAT/phí dịch vụ/tổng tiền: server tự tính lại từ rate gốc của booking
       })
 
       if (rpcError) throw rpcError

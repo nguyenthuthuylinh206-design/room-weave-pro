@@ -869,9 +869,7 @@ export function BookingsPage() {
         p_late_checkout_charge: adjustedLateCharge,
         p_service_charges: checkoutCostBreakdown.serviceCharges,
         p_subtotal: adjustedCostBreakdown.subtotal,
-        p_vat_amount: adjustedCostBreakdown.vatAmount,
-        p_service_fee_amount: adjustedCostBreakdown.serviceFeeAmount,
-        p_total_amount: adjustedCostBreakdown.totalAmount,
+        // VAT, phí dịch vụ và tổng tiền được server tính lại từ vat_rate/service_fee_rate của booking
         p_damage_charges: damageCharges || 0,
         p_damage_notes: damageAdjustmentNote || null,
         p_damage_items: adjustedDamageItems ? JSON.stringify(adjustedDamageItems) : '[]',
@@ -992,9 +990,7 @@ export function BookingsPage() {
         p_late_checkout_charge: adjustedLateCharge,
         p_service_charges: checkoutCostBreakdown.serviceCharges,
         p_subtotal: adjustedCostBreakdown.subtotal,
-        p_vat_amount: adjustedCostBreakdown.vatAmount,
-        p_service_fee_amount: adjustedCostBreakdown.serviceFeeAmount,
-        p_total_amount: adjustedCostBreakdown.totalAmount,
+        // VAT, phí dịch vụ và tổng tiền được server tính lại từ rate gốc trong booking
         p_damage_charges: damageCharges || 0,
         p_damage_notes: damageAdjustmentNote || null,
         p_damage_items: adjustedDamageItems ? JSON.stringify(adjustedDamageItems) : '[]',
