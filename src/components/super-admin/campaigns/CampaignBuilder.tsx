@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCreateCampaign } from '@/hooks/super-admin/useMarketingCampaigns';
 import { CampaignPreview } from './CampaignPreview';
 import { Mail, Send } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 
 const campaignSchema = z.object({
   name: z.string().min(3),
@@ -44,16 +45,19 @@ const campaignSchema = z.object({
 
 type CampaignFormValues = z.infer<typeof campaignSchema>;
 
+
 export function CampaignBuilder() {
   const [activeTab, setActiveTab] = useState('compose');
   const createCampaign = useCreateCampaign();
+  const location = useLocation();
+  const prefill = (location.state as { prefill?: { name?: string; email_subject?: string } } | null)?.prefill;
 
   const form = useForm<CampaignFormValues>({
     resolver: zodResolver(campaignSchema),
     defaultValues: {
-      name: '',
+      name: prefill?.name ?? '',
       target_audience: 'all',
-      email_subject: '',
+      email_subject: prefill?.email_subject ?? '',
       email_template: '',
       campaign_type: 'price_promotion',
       starts_at: new Date().toISOString().split('T')[0],
