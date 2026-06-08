@@ -1,7 +1,8 @@
 import { MobileDetailHeader } from '@/components/layout/MobileDetailHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Wrench, Clock, CheckCircle, DollarSign, Download } from 'lucide-react'
+import { Wrench, Clock, CheckCircle, DollarSign, Download, Loader2 } from 'lucide-react'
+import { useReportExport } from '@/hooks/useReportExport'
 
 export const MobileMaintenanceReportPage = () => {
   const formatCurrency = (amount: number) => {
