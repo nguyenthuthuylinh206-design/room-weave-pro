@@ -54,6 +54,7 @@ import {
   ScrollText,
   CalendarRange,
   ShieldCheck,
+  RefreshCw,
   ClipboardList,
   Shirt,
   Calculator,
