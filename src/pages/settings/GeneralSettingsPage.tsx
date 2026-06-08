@@ -300,6 +300,27 @@ export function GeneralSettingsPage() {
           </div>
         </div>
 
+        {/* Data Backup */}
+        <div className="border rounded-lg p-4 space-y-3">
+          <div className="flex items-center gap-2 pb-2 border-b">
+            <Database className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <h2 className="text-sm font-medium">Sao lưu dữ liệu</h2>
+              <p className="text-[10px] text-muted-foreground">Xem và tải về các bản sao lưu đã tạo</p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs"
+            onClick={() => setBackupHistoryOpen(true)}
+          >
+            <History className="mr-1.5 h-3 w-3" />
+            Xem lịch sử
+          </Button>
+        </div>
+
         {/* Usage Mode */}
         <UsageModeSelector />
 
