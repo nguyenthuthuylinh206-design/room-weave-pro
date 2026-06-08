@@ -94,29 +94,28 @@ export function BookingPaymentDialog({
     }
 
     try {
-      // Create payment record
-      await createPayment.mutateAsync({
-        tenant_id: booking.tenant_id,
-        hotel_id: booking.hotel_id,
-        booking_id: booking.id,
-        amount: parsedAmount,
-        payment_method: 'cash',
-        metadata: {
+      const { error } = await supabase.rpc('record_booking_payment', {
+        p_booking_id: booking.id,
+        p_tenant_id: booking.tenant_id,
+        p_hotel_id: booking.hotel_id,
+        p_amount: parsedAmount,
+        p_payment_method: 'cash',
+        p_total_amount: booking.total_amount,
+        p_metadata: {
           guest_name: booking.guest_name,
           room_number: booking.room_number,
         },
       });
+      if (error) throw error;
 
-      // Update booking amount_paid
-      await updateBookingAmount.mutateAsync({
-        bookingId: booking.id,
-        amountToAdd: parsedAmount,
-        totalAmount: booking.total_amount,
-      });
+      queryClient.invalidateQueries({ queryKey: ['room-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['all-pending-payments'] });
+      queryClient.invalidateQueries({ queryKey: ['booking-payments', booking.id] });
 
       setStep('success');
       toast.success(`Đã nhận ${formatVNCurrency(parsedAmount)} tiền mặt`);
-      
+
       setTimeout(() => {
         onOpenChange(false);
         onPaymentComplete?.(parsedAmount);
