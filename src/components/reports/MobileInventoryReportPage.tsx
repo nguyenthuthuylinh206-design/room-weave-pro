@@ -21,8 +21,19 @@ export const MobileInventoryReportPage = () => {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
 
+  const { exportToExcel, isExporting } = useReportExport()
+
   const handleExport = () => {
-    console.log('Export inventory report')
+    exportToExcel(
+      {
+        title: 'Báo cáo tồn kho',
+        dateRange: dateFrom && dateTo ? `${dateFrom} - ${dateTo}` : 'Tất cả thời gian',
+        summary: {
+          report_type: REPORT_TYPES.find(t => t.id === reportType)?.label ?? reportType,
+        },
+      },
+      'inventory_report'
+    )
   }
 
   const handleReportTypeChange = (typeId: string) => {
