@@ -739,9 +739,7 @@ export function RoomBookingDialog({
         p_late_checkout_charge: adjustedLateCharge,
         p_service_charges: serviceCharges,
         p_subtotal: adjustedCostBreakdown.subtotal,
-        p_vat_amount: adjustedCostBreakdown.vatAmount,
-        p_service_fee_amount: adjustedCostBreakdown.serviceFeeAmount,
-        p_total_amount: adjustedCostBreakdown.totalAmount,
+        // VAT/phí dịch vụ/tổng tiền: server tự tính lại
         p_damage_charges: damageCharges || 0,
         p_damage_notes: damageAdjustmentNote || null,
         p_damage_items: adjustedDamageItems ? JSON.stringify(adjustedDamageItems) : '[]',
