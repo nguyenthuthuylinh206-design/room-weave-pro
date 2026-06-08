@@ -46,6 +46,10 @@ export default function HotelPerformancePage() {
     dateRange
   )
   const { data: comparison, isLoading: comparisonLoading } = useHotelsPerformanceComparison(dateRange)
+  const { data: reportData, isLoading: trendLoading } = useRoomsReportData({
+    start: subDays(new Date(), 30),
+    end: new Date(),
+  })
 
   // Set first hotel as default
   if (!selectedHotelId && hotels && hotels.length > 0) {
@@ -470,12 +474,96 @@ export default function HotelPerformancePage() {
           <TabsContent value="trends" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Đang phát triển</CardTitle>
+                <CardTitle>Tỷ lệ lấp đầy theo ngày (30 ngày gần nhất)</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">
-                  Tính năng phân tích xu hướng theo thời gian sẽ được bổ sung trong phiên bản tiếp theo.
-                </p>
+                {trendLoading ? (
+                  <div className="h-[250px] flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                  </div>
+                ) : !reportData?.occupancyTrend || reportData.occupancyTrend.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">Chưa có dữ liệu</p>
+                ) : (
+                  <div className="h-[250px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={reportData.occupancyTrend}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="date"
+                          tickFormatter={(d) => format(parseISO(d), 'dd/MM')}
+                          tick={{ fontSize: 12 }}
+                        />
+                        <YAxis
+                          tickFormatter={(v) => `${v}%`}
+                          domain={[0, 100]}
+                          tick={{ fontSize: 12 }}
+                        />
+                        <Tooltip
+                          labelFormatter={(d) => format(parseISO(d as string), 'dd/MM/yyyy')}
+                          formatter={(v: number) => [`${v}%`, 'Tỷ lệ lấp đầy']}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="occupancy_rate"
+                          stroke="hsl(var(--primary))"
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Doanh thu theo ngày (30 ngày gần nhất)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {trendLoading ? (
+                  <div className="h-[250px] flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                  </div>
+                ) : !reportData?.occupancyTrend || reportData.occupancyTrend.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">Chưa có dữ liệu</p>
+                ) : (
+                  <div className="h-[250px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={reportData.occupancyTrend}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="date"
+                          tickFormatter={(d) => format(parseISO(d), 'dd/MM')}
+                          tick={{ fontSize: 12 }}
+                        />
+                        <YAxis
+                          tickFormatter={(v) =>
+                            new Intl.NumberFormat('vi-VN', { notation: 'compact' }).format(Number(v))
+                          }
+                          tick={{ fontSize: 12 }}
+                        />
+                        <Tooltip
+                          labelFormatter={(d) => format(parseISO(d as string), 'dd/MM/yyyy')}
+                          formatter={(v: number) => [
+                            new Intl.NumberFormat('vi-VN', {
+                              style: 'currency',
+                              currency: 'VND',
+                            }).format(v),
+                            'Doanh thu',
+                          ]}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="revenue"
+                          stroke="#10b981"
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
