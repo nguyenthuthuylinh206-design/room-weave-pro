@@ -1,7 +1,8 @@
 import { MobileDetailHeader } from '@/components/layout/MobileDetailHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Wrench, Clock, CheckCircle, DollarSign, Download } from 'lucide-react'
+import { Wrench, Clock, CheckCircle, DollarSign, Download, Loader2 } from 'lucide-react'
+import { useReportExport } from '@/hooks/useReportExport'
 
 export const MobileMaintenanceReportPage = () => {
   const formatCurrency = (amount: number) => {
@@ -9,6 +10,47 @@ export const MobileMaintenanceReportPage = () => {
       style: 'currency',
       currency: 'VND',
     }).format(amount)
+  }
+
+  const { exportToExcel, isExporting } = useReportExport()
+
+  const data = {
+    total_requests: 45,
+    pending: 3,
+    in_progress: 12,
+    completed: 30,
+    avg_resolution_hours: 4.2,
+  }
+
+  const handleExport = () => {
+    if (!data) return
+    exportToExcel(
+      {
+        title: 'Báo Cáo Bảo Trì',
+        dateRange: new Date().toLocaleDateString('vi-VN'),
+        summary: {
+          total_requests: data.total_requests,
+          pending: data.pending,
+          in_progress: data.in_progress,
+          completed: data.completed,
+          avg_resolution_hours: `${data.avg_resolution_hours}h`,
+        },
+        tables: [
+          {
+            title: 'Tổng Quan',
+            headers: ['Chỉ số', 'Giá trị'],
+            rows: [
+              ['Tổng yêu cầu', data.total_requests ?? 0],
+              ['Đang chờ', data.pending ?? 0],
+              ['Đang xử lý', data.in_progress ?? 0],
+              ['Hoàn thành', data.completed ?? 0],
+              ['Thời gian xử lý TB (giờ)', data.avg_resolution_hours ?? 0],
+            ],
+          },
+        ],
+      },
+      'bao-cao-bao-tri-mobile'
+    )
   }
 
   return (
@@ -161,10 +203,14 @@ export const MobileMaintenanceReportPage = () => {
         <Button
           className="w-full"
           variant="outline"
-          onClick={() => console.log('Export maintenance report')}
+          onClick={handleExport}
+          disabled={isExporting || !data}
         >
-          <Download className="h-4 w-4 mr-2" />
-          Xuất báo cáo Excel
+          {isExporting ? (
+            <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Đang xuất...</>
+          ) : (
+            <><Download className="h-4 w-4 mr-2" />Xuất báo cáo Excel</>
+          )}
         </Button>
       </div>
     </div>
