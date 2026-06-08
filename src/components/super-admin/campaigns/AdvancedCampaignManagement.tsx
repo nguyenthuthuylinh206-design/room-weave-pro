@@ -15,6 +15,17 @@ export function AdvancedCampaignManagement() {
   const navigate = useNavigate();
   const { data: campaigns = [] } = useMarketingCampaigns();
 
+  const handleSelectTemplate = (template: { name: string; subject: string }) => {
+    navigate('/super-admin/campaigns/new', {
+      state: {
+        prefill: {
+          name: `Campaign: ${template.name}`,
+          email_subject: template.subject,
+        },
+      },
+    });
+  };
+
   // Calculate stats
   const stats = {
     total: campaigns.length,
