@@ -1549,6 +1549,15 @@ export function BookingsPage() {
         </Select>
       </div>
       
+      {isAtQueryLimit && (
+        <Alert variant="destructive" className="mb-3 mx-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Đang hiển thị tối đa {bookings?.length} booking. Vui lòng dùng bộ lọc ngày để thu hẹp kết quả và xem đầy đủ.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Bookings Table */}
       <Card>
         <CardContent className="p-0">
