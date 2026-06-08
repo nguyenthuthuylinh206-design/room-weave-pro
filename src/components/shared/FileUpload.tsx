@@ -108,14 +108,26 @@ export function FileUpload({
             multiple
             onChange={handleFileSelect}
             className="absolute inset-0 cursor-pointer opacity-0"
+            disabled={isUploading}
           />
-          <Upload className="mx-auto h-8 w-8 text-muted-foreground" />
-          <p className="mt-2 text-sm text-muted-foreground">
-            Kéo thả file hoặc click để chọn
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Tối đa {maxFiles} files
-          </p>
+          {isUploading ? (
+            <>
+              <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+              <p className="mt-2 text-sm text-muted-foreground">
+                Đang tải lên...
+              </p>
+            </>
+          ) : (
+            <>
+              <Upload className="mx-auto h-8 w-8 text-muted-foreground" />
+              <p className="mt-2 text-sm text-muted-foreground">
+                Kéo thả file hoặc click để chọn
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Tối đa {maxFiles} files
+              </p>
+            </>
+          )}
         </div>
       )}
     </div>
