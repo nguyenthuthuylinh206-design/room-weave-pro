@@ -131,6 +131,7 @@ export function CheckoutSummaryDialog({
   const [adjustedLateCharge, setAdjustedLateCharge] = useState(costBreakdown.lateCheckoutCharge)
   const [adjustmentNote, setAdjustmentNote] = useState('')
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
+  const [showDebtConfirm, setShowDebtConfirm] = useState(false)
   
   // Damage charge states
   const [adjustedDamageItems, setAdjustedDamageItems] = useState<DamageChargeItem[]>(initialDamageItems)
