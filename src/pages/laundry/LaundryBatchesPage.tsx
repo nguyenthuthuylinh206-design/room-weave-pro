@@ -122,9 +122,11 @@ export function LaundryBatchesPage() {
         description={t('batches.list')}
       >
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="mr-2 h-4 w-4" />
-            {t('actions.exportExcel')}
+          <Button variant="outline" onClick={handleExport} disabled={isExporting}>
+            {isExporting
+              ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              : <Download className="mr-2 h-4 w-4" />}
+            {isExporting ? t('common:exporting', 'Đang xuất...') : t('actions.exportExcel')}
           </Button>
           <PermissionGate module="laundry" action="create">
             <Button onClick={() => navigate('/laundry/batches/new')}>

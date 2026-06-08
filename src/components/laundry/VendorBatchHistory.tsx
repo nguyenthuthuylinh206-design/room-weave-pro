@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Download, Eye } from 'lucide-react'
+import { Download, Eye, Loader2 } from 'lucide-react'
+import { useReportExport } from '@/hooks/useReportExport'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
