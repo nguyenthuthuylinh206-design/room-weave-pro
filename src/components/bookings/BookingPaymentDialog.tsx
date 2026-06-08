@@ -18,13 +18,13 @@ import { MobilePaymentQRDisplay } from '@/components/payment/MobilePaymentQRDisp
 import { useBankPaymentSettings } from '@/hooks/useBankPaymentSettings';
 import {
   useCreateBookingPayment,
-  useUpdateBookingAmountPaid,
   useConfirmBookingPayment,
   generatePaymentReference,
   BookingPayment,
 } from '@/hooks/useBookingPayments';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 export interface BookingPaymentDialogProps {
   open: boolean;
@@ -65,8 +65,8 @@ export function BookingPaymentDialog({
 
   const { data: bankSettings } = useBankPaymentSettings(booking.hotel_id);
   const createPayment = useCreateBookingPayment();
-  const updateBookingAmount = useUpdateBookingAmountPaid();
   const confirmPayment = useConfirmBookingPayment();
+  const queryClient = useQueryClient();
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -94,29 +94,28 @@ export function BookingPaymentDialog({
     }
 
     try {
-      // Create payment record
-      await createPayment.mutateAsync({
-        tenant_id: booking.tenant_id,
-        hotel_id: booking.hotel_id,
-        booking_id: booking.id,
-        amount: parsedAmount,
-        payment_method: 'cash',
-        metadata: {
+      const { error } = await supabase.rpc('record_booking_payment', {
+        p_booking_id: booking.id,
+        p_tenant_id: booking.tenant_id,
+        p_hotel_id: booking.hotel_id,
+        p_amount: parsedAmount,
+        p_payment_method: 'cash',
+        p_total_amount: booking.total_amount,
+        p_metadata: {
           guest_name: booking.guest_name,
           room_number: booking.room_number,
         },
       });
+      if (error) throw error;
 
-      // Update booking amount_paid
-      await updateBookingAmount.mutateAsync({
-        bookingId: booking.id,
-        amountToAdd: parsedAmount,
-        totalAmount: booking.total_amount,
-      });
+      queryClient.invalidateQueries({ queryKey: ['room-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['all-pending-payments'] });
+      queryClient.invalidateQueries({ queryKey: ['booking-payments', booking.id] });
 
       setStep('success');
       toast.success(`Đã nhận ${formatVNCurrency(parsedAmount)} tiền mặt`);
-      
+
       setTimeout(() => {
         onOpenChange(false);
         onPaymentComplete?.(parsedAmount);
@@ -166,16 +165,21 @@ export function BookingPaymentDialog({
     if (!createdPayment) return;
 
     try {
-      await confirmPayment.mutateAsync(createdPayment.id);
-      
-      await updateBookingAmount.mutateAsync({
-        bookingId: booking.id,
-        amountToAdd: parsedAmount,
-        totalAmount: booking.total_amount,
+      const { error } = await supabase.rpc('confirm_booking_payment_manual', {
+        p_payment_id: createdPayment.id,
+        p_booking_id: booking.id,
+        p_amount: parsedAmount,
+        p_total_amount: booking.total_amount,
       });
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ['room-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['all-pending-payments'] });
+      queryClient.invalidateQueries({ queryKey: ['booking-payments', booking.id] });
 
       setStep('success');
-      
+
       setTimeout(() => {
         onOpenChange(false);
         onPaymentComplete?.(parsedAmount);
@@ -237,7 +241,7 @@ export function BookingPaymentDialog({
     }
   };
 
-  const isProcessing = createPayment.isPending || updateBookingAmount.isPending || confirmPayment.isPending;
+  const isProcessing = createPayment.isPending || confirmPayment.isPending;
 
   return (
     <>

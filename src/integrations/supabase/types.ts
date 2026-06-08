@@ -12664,6 +12664,15 @@ export type Database = {
         Args: { _hotel_id?: string; _item_id?: string; _tenant_id: string }
         Returns: Json
       }
+      confirm_booking_payment_manual: {
+        Args: {
+          p_amount: number
+          p_booking_id: string
+          p_payment_id: string
+          p_total_amount?: number
+        }
+        Returns: Json
+      }
       confirm_delivery_from_room_check: {
         Args: { p_confirmed_by: string; p_room_order_id: string }
         Returns: Json
@@ -14283,6 +14292,19 @@ export type Database = {
         Returns: Json
       }
       reconcile_room_check_outbox: { Args: { _hours?: number }; Returns: Json }
+      record_booking_payment: {
+        Args: {
+          p_amount: number
+          p_booking_id: string
+          p_hotel_id: string
+          p_metadata?: Json
+          p_payment_method: string
+          p_tenant_id: string
+          p_total_amount?: number
+          p_transaction_reference?: string
+        }
+        Returns: Json
+      }
       refresh_consumption_snapshots: {
         Args: { _hotel_id?: string; _tenant_id: string }
         Returns: Json
