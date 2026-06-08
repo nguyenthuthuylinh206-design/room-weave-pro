@@ -46,8 +46,31 @@ export function VendorBatchHistory({ vendorId }: VendorBatchHistoryProps) {
   
   const batches = data?.batches || []
   
+  const { exportToExcel, isExporting } = useReportExport()
+
   const handleExport = () => {
-    console.log('Export to Excel')
+    exportToExcel(
+      {
+        title: 'Lịch sử lô giặt theo nhà cung cấp',
+        dateRange: 'Tất cả',
+        summary: {
+          total_batches: batches.length,
+        },
+        tables: [
+          {
+            title: 'Lịch sử',
+            headers: ['Mã lô', 'Ngày gửi', 'Ngày trả thực tế', 'Trạng thái'],
+            rows: batches.map(b => [
+              b.batch_code,
+              b.delivery_date ? new Date(b.delivery_date).toLocaleDateString('vi-VN') : '',
+              b.actual_return_date ? new Date(b.actual_return_date).toLocaleDateString('vi-VN') : '',
+              b.status,
+            ]),
+          },
+        ],
+      },
+      'vendor_batch_history'
+    )
   }
   
   return (
