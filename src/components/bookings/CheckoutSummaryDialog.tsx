@@ -170,7 +170,7 @@ export function CheckoutSummaryDialog({
        ))
     
     if (hasNewItems) {
-      console.log('[CheckoutSummaryDialog] Syncing damage items from parent:', initialDamageItems.length)
+      
       setAdjustedDamageItems(initialDamageItems)
     }
   }, [initialDamageItems])
@@ -186,7 +186,7 @@ export function CheckoutSummaryDialog({
     const intervalMs = inspection.status === 'in_progress' ? 2000 : 3000
     
     const interval = setInterval(() => {
-      console.log('[CheckoutSummaryDialog] Polling inspection status...')
+      
       refetchInspection()
     }, intervalMs)
     
@@ -204,7 +204,7 @@ export function CheckoutSummaryDialog({
     // Only notify once per room_check_id
     if (lastNotifiedCheckId.current === inspection.room_check_id) return
     
-    console.log('[CheckoutSummaryDialog] Inspection completed, notifying parent. room_check_id:', inspection.room_check_id)
+    
     lastNotifiedCheckId.current = inspection.room_check_id
     
     // Show toast notification immediately - unless widget already showed it

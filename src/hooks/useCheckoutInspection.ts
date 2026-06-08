@@ -56,12 +56,12 @@ export function useCheckoutInspection(bookingId: string | undefined) {
           filter: `booking_id=eq.${bookingId}`,
         },
         (payload) => {
-          console.log('[CheckoutInspection Realtime] Received event:', payload)
+          
           refetch()
         }
       )
       .subscribe((status) => {
-        console.log('[CheckoutInspection Realtime] Channel status:', status)
+        
       })
     
     return () => {
@@ -324,7 +324,7 @@ export function usePendingInspections(roomId: string | undefined) {
   // Sử dụng maybeSingle() để tránh lỗi khi 0 rows (inspection đã started hoặc completed)
   const startInspection = useMutation({
     mutationFn: async (inspectionId: string) => {
-      console.log('[usePendingInspections.startInspection] Starting with id:', inspectionId)
+      
       
       const { data, error } = await supabase
         .from('checkout_inspection_requests')
@@ -348,11 +348,11 @@ export function usePendingInspections(roomId: string | undefined) {
         return null
       }
       
-      console.log('[usePendingInspections.startInspection] Success, data:', data)
+      
       return data
     },
     onSuccess: async (data) => {
-      console.log('[usePendingInspections.startInspection] onSuccess:', data)
+      
       queryClient.invalidateQueries({ queryKey: ['pending-inspection', roomId, user?.id] })
       queryClient.invalidateQueries({ queryKey: ['checkout-inspection'] })
       queryClient.invalidateQueries({ queryKey: ['room-has-pending-inspection', roomId] })
@@ -371,7 +371,7 @@ export function usePendingInspections(roomId: string | undefined) {
           const roomNumber = roomData?.room_number || ''
           const staffName = user?.full_name || 'Nhân viên'
           
-          console.log('[usePendingInspections] Sending reverse notifications to requested_by:', data.requested_by)
+          
           
           // Gửi thông báo song song
           await Promise.allSettled([

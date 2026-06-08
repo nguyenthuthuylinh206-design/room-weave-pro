@@ -30,9 +30,9 @@ const requestPersistentStorage = async () => {
       const isPersisted = await navigator.storage.persisted()
       if (!isPersisted) {
         const granted = await navigator.storage.persist()
-        console.log('[Auth] Persistent storage request:', granted ? 'granted' : 'denied')
+        
       } else {
-        console.log('[Auth] Storage already persistent')
+        
       }
     }
   } catch (e) {
@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const isIOSStandalone = (window.navigator as any).standalone === true
     
     if (isStandalone || isIOSStandalone) {
-      console.log('[Auth] PWA mode detected, requesting persistent storage')
+      
       requestPersistentStorage()
     }
   }, [])
@@ -71,7 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (error) {
             console.warn('[Auth] Silent refresh failed:', error.message)
           } else if (data.session) {
-            console.log('[Auth] Token refreshed silently')
+            
           }
         }
       } catch (err) {
@@ -92,7 +92,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('[Auth] State change:', event)
+        
         
         setSession(session)
         setUser(session?.user ?? null)
@@ -100,13 +100,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // Handle auth events
         if (event === 'TOKEN_REFRESHED') {
-          console.log('[Auth] Token refreshed successfully')
+          
         }
 
         if (event === 'SIGNED_OUT') {
           // Check if this was an unexpected logout (session expired)
           if (!isManualLogout.current && previousSessionRef.current) {
-            console.log('[Auth] Session expired unexpectedly')
+            
             toast({
               title: 'Phiên đăng nhập hết hạn',
               description: 'Vui lòng đăng nhập lại để tiếp tục sử dụng ứng dụng.',

@@ -112,17 +112,11 @@ async function processDailyCheck(params: {
   
   // 4. Auto-create laundry request nếu có đồ gửi giặt
   const hasLaundry = laundryItems.length > 0
-  console.log('[processDailyCheck] Laundry check:', { 
-    hasLaundry, 
-    tenantId: !!tenantId, 
-    userId: !!userId, 
-    checkId: !!checkId,
-    laundryItemsCount: laundryItems.length 
-  })
+  
   
   if (hasLaundry && tenantId && userId && checkId) {
     try {
-      console.log('[processDailyCheck] Creating laundry request...')
+      
       await createLaundryRequestFromCheck({
         roomId,
         roomNumber,
@@ -133,7 +127,7 @@ async function processDailyCheck(params: {
         checkId,
         laundryItems,
       })
-      console.log('[processDailyCheck] Laundry request created successfully')
+      
     } catch (err) {
       console.error('[processDailyCheck] Failed to create laundry request:', err)
       // Không throw - cho phép room check vẫn thành công
@@ -156,10 +150,7 @@ async function processDailyCheck(params: {
 
   if ((hasConsumed || hasShortage) && tenantId && userId && checkId) {
     try {
-      console.log('[processDailyCheck] Creating supplement request (consumed + shortage)...', {
-        consumed: consumedItems.length,
-        shortage: shortageItems.length,
-      })
+      
       // Gộp consumed + shortage thành 1 phiếu yêu cầu bổ sung
       await createSupplementRequestFromCheck({
         roomId,
@@ -172,7 +163,7 @@ async function processDailyCheck(params: {
         consumedItems: [...consumedItems, ...shortageItems],
         lostItems: [],
       })
-      console.log('[processDailyCheck] Supplement request created successfully')
+      
     } catch (err) {
       console.error('[processDailyCheck] Failed to create supplement request:', err)
     }
@@ -182,9 +173,7 @@ async function processDailyCheck(params: {
   const damagedItems = data.items_damaged || []
   if (damagedItems.length > 0 && tenantId && userId && checkId) {
     try {
-      console.log('[processDailyCheck] Creating maintenance request for damaged items...', {
-        count: damagedItems.length,
-      })
+      
       await createMaintenanceForDamagedItems({
         roomId,
         roomNumber,
@@ -195,7 +184,7 @@ async function processDailyCheck(params: {
         checkId,
         damagedItems,
       })
-      console.log('[processDailyCheck] Maintenance request created successfully')
+      
     } catch (err) {
       console.error('[processDailyCheck] Failed to create maintenance request:', err)
     }
@@ -230,7 +219,7 @@ async function processDailyCheck(params: {
       if (taskError) {
         console.error('[processDailyCheck] Error creating cleaning task:', taskError)
       } else {
-        console.log('[processDailyCheck] Auto-created cleaning task for room', roomNumber)
+        
       }
     } catch (err) {
       console.error('[processDailyCheck] Failed to create cleaning task:', err)
@@ -442,7 +431,7 @@ async function processCheckoutCheck(params: {
       if (taskError) {
         console.error('[useRoomChecks] Error creating cleaning task:', taskError)
       } else {
-        console.log('[useRoomChecks] Auto-created cleaning task for room', roomNumber)
+        
         
         // Trigger workflow for automation (e.g., notify assigned staff)
         triggerWorkflow({
@@ -702,7 +691,7 @@ async function completeCheckoutInspection(
   
   // Fallback: query for pending/in_progress inspection
   if (!effectiveInspectionId) {
-    console.log('[useRoomChecks] Checkout without inspectionId, searching for pending inspection')
+    
     
     const { data: foundInspection } = await supabase
       .from('checkout_inspection_requests')
@@ -714,13 +703,13 @@ async function completeCheckoutInspection(
       .maybeSingle()
     
     if (foundInspection) {
-      console.log('[useRoomChecks] Found pending inspection:', foundInspection.id)
+      
       effectiveInspectionId = foundInspection.id
     }
   }
   
   if (effectiveInspectionId) {
-    console.log('[useRoomChecks] Completing checkout inspection:', effectiveInspectionId)
+    
     const { error: inspectionError } = await supabase
       .from('checkout_inspection_requests')
       .update({
@@ -1275,7 +1264,7 @@ async function sendCleaningRequestNotifications(params: {
     }),
   ])
   
-  console.log('[useRoomChecks] Cleaning request notifications sent for room', roomNumber)
+  
 }
 
 // ===== AUTO-CREATE SUPPLEMENT REQUEST (After checkout with consumed/lost items) =====
@@ -1382,7 +1371,7 @@ async function createSupplementRequestFromCheck(params: {
     return null
   }
   
-  console.log('[useRoomChecks] Created supplement request:', request?.request_code)
+  
   
   // Send notification with link to new supplements page
   const managers = await getNotificationRecipients({
@@ -1499,7 +1488,7 @@ async function createLaundryRequestFromCheck(params: {
     return null
   }
   
-  console.log('[useRoomChecks] Created laundry request:', request?.request_code)
+  
   
   // Auto-add to draft batch
   try {
@@ -1508,7 +1497,7 @@ async function createLaundryRequestFromCheck(params: {
       p_hotel_id: hotelId,
       p_laundry_request_id: request?.id,
     })
-    console.log('[useRoomChecks] Auto-added laundry request to draft batch')
+    
   } catch (err) {
     console.error('[useRoomChecks] Error auto-adding to batch:', err)
   }
@@ -1637,7 +1626,7 @@ async function createMaintenanceForDamagedItems(params: {
     }
     
     createdRequests.push(request)
-    console.log('[useRoomChecks] Created maintenance request:', request?.request_code)
+    
   }
   
   // Send summary notification if any requests were created

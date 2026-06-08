@@ -40,7 +40,7 @@ export default function PaymentQRPage() {
       try {
         const { data } = await supabase.auth.getSession();
         setHasSession(!!data.session);
-        console.log('[PaymentQR] Session check:', !!data.session);
+        
       } catch {
         setHasSession(false);
       } finally {
@@ -78,7 +78,7 @@ export default function PaymentQRPage() {
       setAutoOpenAttempted(true);
       // Small delay to ensure page loads first
       const timer = setTimeout(() => {
-        console.log('[PaymentQR] Auto-opening in Safari:', targetUrl);
+        
         window.open(targetUrl, '_blank');
       }, 500);
       return () => clearTimeout(timer);
@@ -171,7 +171,7 @@ export default function PaymentQRPage() {
             size="lg" 
             className="w-full h-12 text-base shadow-lg hover:shadow-xl transition-all"
             onClick={() => {
-              console.log('[PaymentQR] Manual open in Safari:', targetUrl);
+              
               window.open(targetUrl, '_blank');
             }}
           >
