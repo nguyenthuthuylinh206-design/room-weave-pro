@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { Clock, AlertTriangle, Check, User, Phone, CalendarDays, Wallet } from 'lucide-react'
@@ -95,7 +95,7 @@ export function CheckInConfirmDialog({
   const [adjustmentNote, setAdjustmentNote] = useState('')
 
   // Reset when dialog opens
-  useMemo(() => {
+  useEffect(() => {
     if (open) {
       setAdjustedCharge(suggestedCharge)
       setAdjustmentNote('')
