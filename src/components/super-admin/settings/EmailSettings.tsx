@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2, Send, Save } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export function EmailSettings() {
   const { t } = useTranslation('superAdmin');
@@ -22,12 +23,44 @@ export function EmailSettings() {
     senderName: '',
   });
 
+  useEffect(() => {
+    supabase
+      .from('platform_settings')
+      .select('value')
+      .eq('key', 'smtp_config')
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.value) {
+          try {
+            const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+            setSmtpConfig(prev => ({ ...prev, ...parsed }));
+          } catch {
+            // ignore parse errors
+          }
+        }
+      });
+  }, []);
+
   const handleSave = async () => {
     setIsSaving(true);
-    // TODO: Save SMTP config to platform_settings or secrets
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    toast.success('Đã lưu cấu hình SMTP');
-    setIsSaving(false);
+    try {
+      const { error } = await supabase
+        .from('platform_settings')
+        .upsert(
+          {
+            key: 'smtp_config',
+            value: JSON.stringify(smtpConfig),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'key' }
+        );
+      if (error) throw error;
+      toast.success('Đã lưu cấu hình SMTP');
+    } catch (err: any) {
+      toast.error('Lỗi lưu cấu hình: ' + err.message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSendTestEmail = async () => {
@@ -38,11 +71,17 @@ export function EmailSettings() {
 
     setIsSendingTest(true);
     try {
-      // TODO: Implement actual email sending via edge function
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const { error } = await supabase.functions.invoke('send-notification-email', {
+        body: {
+          to: testEmail,
+          subject: '[Test] Kiểm tra cấu hình email hệ thống',
+          html: '<p>Email test từ RoomWeave Pro. Nếu bạn nhận được email này, cấu hình đã hoạt động.</p>',
+        },
+      });
+      if (error) throw error;
       toast.success(`Đã gửi email test đến ${testEmail}`);
-    } catch (error) {
-      toast.error('Lỗi khi gửi email test');
+    } catch (err: any) {
+      toast.error('Lỗi gửi email: ' + err.message);
     } finally {
       setIsSendingTest(false);
     }
