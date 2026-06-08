@@ -55,8 +55,6 @@ export function MarkNoShowDialog({
       refundDeposit: refund === 'refund',
     })
     onOpenChange(false)
-    setReason('')
-    setRefund('keep')
     onSuccess?.()
   }
 
