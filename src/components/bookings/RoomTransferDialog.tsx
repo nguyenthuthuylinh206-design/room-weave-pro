@@ -169,7 +169,7 @@ export function RoomTransferDialog({
 
           <div className="space-y-2">
             <Label className="text-sm">Chọn phòng mới</Label>
-            {isLoading ? (
+            {isLoading || hourlyChecking ? (
               <div className="text-sm text-muted-foreground py-4 text-center">
                 Đang tải danh sách phòng...
               </div>
