@@ -51,6 +51,7 @@ export function GeneralSettingsPage() {
   const { toast } = useToast()
   const [isSaving, setIsSaving] = useState(false)
   const [enableAutoSave, setEnableAutoSave] = useState(false)
+  const [backupHistoryOpen, setBackupHistoryOpen] = useState(false)
 
   const generalSettingsSchema = createGeneralSettingsSchema(t)
 
