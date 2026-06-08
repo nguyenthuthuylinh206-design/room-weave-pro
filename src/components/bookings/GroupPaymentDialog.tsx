@@ -291,7 +291,7 @@ export function GroupPaymentDialog({
         .eq('id', createdPayment.id)
 
       // Distribute payment
-      await distributePayment(createdPayment.amount, groupData.bookings)
+      await distributePayment(createdPayment.amount, groupData.bookings, 'bank_transfer')
 
       setStep('success')
       toast.success('Đã xác nhận thanh toán nhóm')
