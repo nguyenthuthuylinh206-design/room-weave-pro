@@ -91,6 +91,7 @@ import { useOverdueCheckins } from '@/hooks/useOverdueCheckins'
 import { MarkNoShowDialog } from '@/components/bookings/MarkNoShowDialog'
 import { RescheduleCheckinDialog } from '@/components/bookings/RescheduleCheckinDialog'
 import { CancelBookingDialog } from '@/components/bookings/CancelBookingDialog'
+import { RoomTransferDialog } from '@/components/bookings/RoomTransferDialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -355,6 +356,8 @@ export function BookingsPage() {
   const [noShowBooking, setNoShowBooking] = useState<BookingWithRoom | null>(null)
   const [rescheduleBooking, setRescheduleBooking] = useState<BookingWithRoom | null>(null)
   const [cancelBooking, setCancelBooking] = useState<BookingWithRoom | null>(null)
+  const [showTransferDialog, setShowTransferDialog] = useState(false)
+  const [transferBooking, setTransferBooking] = useState<BookingWithRoom | null>(null)
   
   const { data: bookings, isLoading } = useQuery({
     queryKey: ['all-bookings', isAllHotelsMode ? 'all' : selectedHotelId, statusFilter],
@@ -1444,7 +1447,9 @@ export function BookingsPage() {
               }
             }}
             onTransferRoom={() => {
-              toast({ title: 'Chuyển phòng', description: 'Tính năng chuyển phòng đang phát triển.', variant: 'default' })
+              setShowExtendDialog(false)
+              setTransferBooking(actionBooking)
+              setShowTransferDialog(true)
             }}
           />
         )}
@@ -2181,12 +2186,25 @@ export function BookingsPage() {
             }
           }}
           onTransferRoom={() => {
-            // Navigate to room transfer page
-            toast({
-              title: 'Chuyển phòng',
-              description: 'Tính năng chuyển phòng đang phát triển. Vui lòng xử lý thủ công.',
-              variant: 'default',
-            })
+            setShowExtendDialog(false)
+            setTransferBooking(actionBooking)
+            setShowTransferDialog(true)
+          }}
+        />
+      )}
+
+      {/* Room Transfer Dialog */}
+      {showTransferDialog && transferBooking && (
+        <RoomTransferDialog
+          open={showTransferDialog}
+          onOpenChange={(open) => {
+            setShowTransferDialog(open)
+            if (!open) setTransferBooking(null)
+          }}
+          booking={transferBooking}
+          onSuccess={() => {
+            setTransferBooking(null)
+            setActionBooking(null)
           }}
         />
       )}
