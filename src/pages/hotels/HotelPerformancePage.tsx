@@ -12,7 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useHotelPerformanceStats, useHotelsPerformanceComparison } from '@/hooks/useHotelPerformance'
 import { useHotels } from '@/hooks/useHotels'
 import { formatCurrency } from '@/lib/utils'
-import { subDays, subMonths } from 'date-fns'
+import { subDays, subMonths, format, parseISO } from 'date-fns'
+import { useRoomsReportData } from '@/hooks/useRoomsReportData'
 import {
   BarChart,
   Bar,
