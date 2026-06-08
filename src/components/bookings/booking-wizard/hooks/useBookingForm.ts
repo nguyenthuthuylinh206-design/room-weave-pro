@@ -5,6 +5,8 @@ import { toast as sonnerToast } from 'sonner'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { useTenant } from '@/hooks/useTenant'
+import { useHotelContext } from '@/contexts/HotelContext'
+import { useHotelPricingRules } from '@/hooks/useHotelPricingRules'
 import { formatCurrency } from '@/lib/utils'
 import { OTA_SOURCES, OTA_DEFAULT_COMMISSION } from '@/lib/constants'
 import { 
