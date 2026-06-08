@@ -24,9 +24,9 @@ interface PrintReceiptDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   bookingId: string
-  guestName: string
-  roomNumber: string
-  subtotal: number
+  guestName?: string
+  roomNumber?: string
+  subtotal?: number
   tenantId: string
   hotelId: string
   hotelInfo?: {
@@ -106,9 +106,13 @@ export function PrintReceiptDialog({
       }
     : undefined
 
+  const effectiveSubtotal = subtotal ?? invoice?.subtotal ?? 0
+  const effectiveGuestName = guestName || invoice?.guest_name || ''
+  const effectiveRoomNumber = roomNumber || invoice?.room_number || ''
+
   const safeRate = Math.max(0, Math.min(30, Number.isFinite(vatRate) ? vatRate : 0))
-  const vatAmount = vatEnabled ? Math.round((subtotal * safeRate) / 100) : 0
-  const totalWithVat = subtotal + vatAmount
+  const vatAmount = vatEnabled ? Math.round((effectiveSubtotal * safeRate) / 100) : 0
+  const totalWithVat = effectiveSubtotal + vatAmount
 
   const handlePrint = async () => {
     if (!invoice) {
@@ -160,7 +164,7 @@ export function PrintReceiptDialog({
             In phiếu thu
           </DialogTitle>
           <DialogDescription>
-            {guestName} · Phòng {roomNumber}
+            {effectiveGuestName} · Phòng {effectiveRoomNumber}
           </DialogDescription>
         </DialogHeader>
 
@@ -168,7 +172,7 @@ export function PrintReceiptDialog({
         <div className="space-y-3 rounded-md border p-3">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Thành tiền</span>
-            <span className="font-medium">{formatCurrency(subtotal)}</span>
+            <span className="font-medium">{formatCurrency(effectiveSubtotal)}</span>
           </div>
 
           <div className="flex items-center justify-between gap-3">
@@ -254,7 +258,7 @@ export function PrintReceiptDialog({
             bookingId={bookingId}
             tenantId={tenantId}
             hotelId={hotelId}
-            subtotal={vatEnabled ? totalWithVat : subtotal}
+            subtotal={vatEnabled ? totalWithVat : effectiveSubtotal}
             onSuccess={() => { setShowVatRequestForm(false); onOpenChange(false) }}
             onCancel={() => setShowVatRequestForm(false)}
           />

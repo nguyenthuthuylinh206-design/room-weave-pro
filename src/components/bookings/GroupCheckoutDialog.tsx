@@ -28,6 +28,7 @@ import { useOnShiftStaffList, OnShiftStaffMember } from '@/hooks/useOnShiftStaff
 import { supabase } from '@/integrations/supabase/client'
 import { cn } from '@/lib/utils'
 import { createInvoiceAfterCheckout } from '@/lib/invoiceHelpers'
+import { PrintReceiptDialog } from '@/components/invoices/PrintReceiptDialog'
 import { GroupPaymentDialog } from './GroupPaymentDialog'
 import { useUser } from '@/hooks/useUser'
 import { useGroupCheckoutCalculations, GroupBookingCostData } from '@/hooks/useGroupCheckoutCalculations'
@@ -114,6 +115,9 @@ export function GroupCheckoutDialog({
   const [selectedRooms, setSelectedRooms] = useState<Set<string>>(new Set())
   const [staffAssignments, setStaffAssignments] = useState<Map<string, string>>(new Map())
 
+  const [receiptBookingId, setReceiptBookingId] = useState<string | null>(null)
+  const [showReceiptDialog, setShowReceiptDialog] = useState(false)
+
   // Initialize selected rooms when groupData loads
   useEffect(() => {
     if (groupData?.bookings) {
@@ -129,6 +133,8 @@ export function GroupCheckoutDialog({
     if (!open) {
       resetCosts()
       setExpandedRooms(new Set())
+      setReceiptBookingId(null)
+      setShowReceiptDialog(false)
     }
   }, [open, resetCosts])
 
@@ -614,7 +620,16 @@ export function GroupCheckoutDialog({
       }
       
       toast.success(`Đã checkout ${bookingIds.length} phòng thành công!`)
-      
+
+      // Show receipt for the first checked-out booking
+      if (bookingIds.length > 0) {
+        // Wait for invoices to be created (createInvoiceAfterCheckout uses setTimeout 500ms)
+        setTimeout(() => {
+          setReceiptBookingId(bookingIds[0])
+          setShowReceiptDialog(true)
+        }, 800)
+      }
+
       const allRoomsNowDone = groupData.bookings.every(b => b.status === 'checked_out' || bookingIds.includes(b.id))
       if (allRoomsNowDone) {
         onOpenChange(false)
@@ -815,6 +830,20 @@ export function GroupCheckoutDialog({
           />
         </DialogContent>
       </Dialog>
+
+      {/* Receipt Dialog */}
+      {receiptBookingId && (
+        <PrintReceiptDialog
+          open={showReceiptDialog}
+          onOpenChange={(open) => {
+            setShowReceiptDialog(open)
+            if (!open) setReceiptBookingId(null)
+          }}
+          bookingId={receiptBookingId}
+          tenantId={tenantId}
+          hotelId={hotelId}
+        />
+      )}
 
       {/* Payment Dialog */}
       <GroupPaymentDialog
