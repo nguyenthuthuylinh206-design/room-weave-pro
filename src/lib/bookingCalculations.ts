@@ -401,6 +401,7 @@ export function calculateBookingCost(params: {
     extraCharges,
     damageCharges,
     damageItems,
+    vatBase,
     subtotal,
     vatRate,
     vatAmount,
