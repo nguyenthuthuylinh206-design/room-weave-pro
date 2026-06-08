@@ -31,6 +31,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Select,
   SelectContent,
@@ -413,7 +414,7 @@ export function BookingsPage() {
 
       // For checked_in/active: no date limit (must show ALL active bookings)
       // but cap at 500 to prevent timeout
-      query = query.limit(isActiveFilter ? 500 : 200)
+      query = query.limit(isActiveFilter ? 1000 : 500)
       
       const { data, error } = await query
       
@@ -428,6 +429,8 @@ export function BookingsPage() {
     placeholderData: (prev) => prev,
     staleTime: 30_000,
   })
+
+  const isAtQueryLimit = (bookings?.length ?? 0) >= (statusFilter === 'checked_in' || statusFilter === 'conflict' || statusFilter === 'overdue' ? 1000 : 500)
   
   // Get group booking counts for badge display
   const groupIds = useMemo(() => 
@@ -1546,6 +1549,15 @@ export function BookingsPage() {
         </Select>
       </div>
       
+      {isAtQueryLimit && (
+        <Alert variant="destructive" className="mb-3 mx-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Đang hiển thị tối đa {bookings?.length} booking. Vui lòng dùng bộ lọc ngày để thu hẹp kết quả và xem đầy đủ.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Bookings Table */}
       <Card>
         <CardContent className="p-0">
