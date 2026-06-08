@@ -177,9 +177,12 @@ export const MobileInventoryReportPage = () => {
           className="w-full"
           variant="outline"
           onClick={handleExport}
+          disabled={isExporting}
         >
-          <Download className="h-4 w-4 mr-2" />
-          Xuất báo cáo Excel
+          {isExporting
+            ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            : <Download className="h-4 w-4 mr-2" />}
+          {isExporting ? 'Đang xuất...' : 'Xuất báo cáo Excel'}
         </Button>
       </div>
     </div>
