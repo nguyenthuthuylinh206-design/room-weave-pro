@@ -414,7 +414,7 @@ export function BookingsPage() {
 
       // For checked_in/active: no date limit (must show ALL active bookings)
       // but cap at 500 to prevent timeout
-      query = query.limit(isActiveFilter ? 500 : 200)
+      query = query.limit(isActiveFilter ? 1000 : 500)
       
       const { data, error } = await query
       
