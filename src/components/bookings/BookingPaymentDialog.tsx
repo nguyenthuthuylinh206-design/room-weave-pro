@@ -165,16 +165,21 @@ export function BookingPaymentDialog({
     if (!createdPayment) return;
 
     try {
-      await confirmPayment.mutateAsync(createdPayment.id);
-      
-      await updateBookingAmount.mutateAsync({
-        bookingId: booking.id,
-        amountToAdd: parsedAmount,
-        totalAmount: booking.total_amount,
+      const { error } = await supabase.rpc('confirm_booking_payment_manual', {
+        p_payment_id: createdPayment.id,
+        p_booking_id: booking.id,
+        p_amount: parsedAmount,
+        p_total_amount: booking.total_amount,
       });
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ['room-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['all-pending-payments'] });
+      queryClient.invalidateQueries({ queryKey: ['booking-payments', booking.id] });
 
       setStep('success');
-      
+
       setTimeout(() => {
         onOpenChange(false);
         onPaymentComplete?.(parsedAmount);
