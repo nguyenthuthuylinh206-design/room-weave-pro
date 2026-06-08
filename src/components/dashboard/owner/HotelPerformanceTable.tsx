@@ -17,6 +17,7 @@ export function HotelPerformanceTable({ dateRange }: HotelPerformanceTableProps)
   const { data: hotels, isLoading } = useHotelsPerformanceComparison(dateRange)
   const [sortKey, setSortKey] = useState<SortKey>('efficiency_score')
   const [sortDesc, setSortDesc] = useState(true)
+  const navigate = useNavigate()
 
   if (isLoading) {
     return (
@@ -77,7 +78,12 @@ export function HotelPerformanceTable({ dateRange }: HotelPerformanceTableProps)
     <div className="border border-border rounded-lg p-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-medium text-foreground">So sánh hiệu suất khách sạn</h3>
-        <span className="text-xs text-muted-foreground">{hotels.length} khách sạn</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">{hotels.length} khách sạn</span>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/hotels/performance')}>
+            Xem chi tiết <ExternalLink className="h-3 w-3 ml-1" />
+          </Button>
+        </div>
       </div>
 
       <div className="overflow-x-auto">
