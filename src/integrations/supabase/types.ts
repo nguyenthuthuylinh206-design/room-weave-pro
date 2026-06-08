@@ -12498,10 +12498,17 @@ export type Database = {
         Returns: boolean
       }
       can_perform_quick_check: { Args: { _room_id: string }; Returns: boolean }
-      cancel_booking: {
-        Args: { p_booking_id: string; p_room_id?: string }
-        Returns: Json
-      }
+      cancel_booking:
+        | { Args: { p_booking_id: string; p_room_id?: string }; Returns: Json }
+        | {
+            Args: {
+              p_booking_id: string
+              p_reason?: string
+              p_refund_deposit?: boolean
+              p_room_id?: string
+            }
+            Returns: Json
+          }
       cancel_distribution_order: {
         Args: { p_cancelled_by: string; p_order_id: string }
         Returns: Json

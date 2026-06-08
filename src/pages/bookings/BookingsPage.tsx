@@ -90,6 +90,7 @@ import { PrintReceiptDialog } from '@/components/invoices/PrintReceiptDialog'
 import { useOverdueCheckins } from '@/hooks/useOverdueCheckins'
 import { MarkNoShowDialog } from '@/components/bookings/MarkNoShowDialog'
 import { RescheduleCheckinDialog } from '@/components/bookings/RescheduleCheckinDialog'
+import { CancelBookingDialog } from '@/components/bookings/CancelBookingDialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -353,6 +354,7 @@ export function BookingsPage() {
   // No-show / Reschedule dialogs
   const [noShowBooking, setNoShowBooking] = useState<BookingWithRoom | null>(null)
   const [rescheduleBooking, setRescheduleBooking] = useState<BookingWithRoom | null>(null)
+  const [cancelBooking, setCancelBooking] = useState<BookingWithRoom | null>(null)
   
   const { data: bookings, isLoading } = useQuery({
     queryKey: ['all-bookings', isAllHotelsMode ? 'all' : selectedHotelId, statusFilter],
@@ -1816,7 +1818,7 @@ export function BookingsPage() {
                                   </>
                                 )}
                               </Button>
-                              {overdueCheckinMap.has(booking.id) && (
+                              {overdueCheckinMap.has(booking.id) ? (
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button type="button" size="sm" variant="ghost" className="h-7 w-7 p-0">
@@ -1843,6 +1845,43 @@ export function BookingsPage() {
                                     >
                                       <UserX className="h-3.5 w-3.5 mr-2" />
                                       Đánh dấu No-Show
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="text-red-600 focus:text-red-600"
+                                      onClick={() => setCancelBooking(booking)}
+                                    >
+                                      <XCircle className="h-3.5 w-3.5 mr-2" />
+                                      Hủy đặt phòng
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              ) : (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button type="button" size="sm" variant="ghost" className="h-7 w-7 p-0">
+                                      <MoreVertical className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-48">
+                                    {booking.guest_phone && (
+                                      <DropdownMenuItem asChild>
+                                        <a href={`tel:${booking.guest_phone}`}>
+                                          <PhoneCall className="h-3.5 w-3.5 mr-2" />
+                                          Gọi khách
+                                        </a>
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuItem onClick={() => setRescheduleBooking(booking)}>
+                                      <CalendarClock className="h-3.5 w-3.5 mr-2" />
+                                      Dời ngày check-in
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-red-600 focus:text-red-600"
+                                      onClick={() => setCancelBooking(booking)}
+                                    >
+                                      <XCircle className="h-3.5 w-3.5 mr-2" />
+                                      Hủy đặt phòng
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
@@ -1929,6 +1968,21 @@ export function BookingsPage() {
           roomNumber={rescheduleBooking.room?.room_number || ''}
           currentCheckIn={rescheduleBooking.check_in_date}
           currentCheckOut={rescheduleBooking.check_out_date}
+        />
+      )}
+
+      {/* Cancel Booking Dialog */}
+      {cancelBooking && (
+        <CancelBookingDialog
+          open={!!cancelBooking}
+          onOpenChange={(o) => !o && setCancelBooking(null)}
+          bookingId={cancelBooking.id}
+          roomId={cancelBooking.room_id}
+          guestName={cancelBooking.guest_name}
+          roomNumber={cancelBooking.room?.room_number || ''}
+          checkInDate={format(new Date(cancelBooking.check_in_date), 'dd/MM/yyyy', { locale: vi })}
+          depositAmount={cancelBooking.deposit_amount || 0}
+          onSuccess={() => setCancelBooking(null)}
         />
       )}
 
