@@ -320,6 +320,7 @@ const router = createBrowserRouter([
       { path: "approval", element: <TenantApprovalPage /> },
       { path: "promo-codes", element: <PromoCodesPage /> },
       { path: "campaigns", element: <MarketingCampaignsPage /> },
+      { path: "campaigns/new", element: <NewCampaignPage /> },
       { path: "reminders", element: <RenewalRemindersPage /> },
       { path: "pricing", element: <PricingPlansPage /> },
       { path: "payments", element: <PaymentSettingsPage /> },
