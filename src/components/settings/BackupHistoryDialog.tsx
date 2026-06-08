@@ -1,11 +1,14 @@
+import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useBackupLogs } from '@/hooks/useBackupLogs'
 import { formatDistanceToNow } from 'date-fns'
-import { CheckCircle, XCircle, Clock, Download, FileArchive } from 'lucide-react'
+import { CheckCircle, XCircle, Clock, Download, FileArchive, Loader2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
+import { supabase } from '@/integrations/supabase/client'
+import { toast } from 'sonner'
 
 interface BackupHistoryDialogProps {
   open: boolean
