@@ -32,6 +32,7 @@ interface ExtendBookingDialogProps {
     check_in_date: string
     check_out_date: string
     room_price?: number
+    total_amount?: number
     room?: {
       room_number: string
     }
@@ -122,11 +123,13 @@ export function ExtendBookingDialog({
     setIsSubmitting(true)
     try {
       // Update booking checkout date
+      const currentTotal = (booking as any).total_amount || 0
       const { error } = await supabase
         .from('room_bookings')
         .update({
           check_out_date: format(newCheckOutDate, 'yyyy-MM-dd'),
-          notes: `${(booking as any).notes || ''}\n[Gia hạn từ ${format(currentCheckOut, 'dd/MM/yyyy')} → ${format(newCheckOutDate, 'dd/MM/yyyy')}]`.trim(),
+          total_amount: currentTotal + additionalCost,
+          notes: `${(booking as any).notes || ''}\n[Gia hạn từ ${format(currentCheckOut, 'dd/MM/yyyy')} → ${format(newCheckOutDate, 'dd/MM/yyyy')} | +${additionalNights} đêm, +${additionalCost.toLocaleString('vi-VN')}đ]`.trim(),
         })
         .eq('id', booking.id)
 
