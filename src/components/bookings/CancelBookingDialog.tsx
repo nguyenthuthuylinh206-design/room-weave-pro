@@ -47,6 +47,13 @@ export function CancelBookingDialog({
   const [refund, setRefund] = useState<'keep' | 'refund'>('keep')
   const [submitting, setSubmitting] = useState(false)
 
+  useEffect(() => {
+    if (!open) {
+      setReason('')
+      setRefund('keep')
+    }
+  }, [open])
+
   const handleSubmit = async () => {
     if (reason.trim().length < 3) return
     if (!tenant?.id) {
