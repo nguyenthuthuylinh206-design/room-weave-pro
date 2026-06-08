@@ -361,7 +361,7 @@ export function BookingsPage() {
   const [transferBooking, setTransferBooking] = useState<BookingWithRoom | null>(null)
   
   const { data: bookings, isLoading } = useQuery({
-    queryKey: ['all-bookings', isAllHotelsMode ? 'all' : selectedHotelId, statusFilter],
+    queryKey: ['all-bookings', isAllHotelsMode ? 'all' : selectedHotelId, statusFilter, dateRangeFilter],
     queryFn: async () => {
       let query = supabase
         .from('room_bookings')
@@ -378,7 +378,6 @@ export function BookingsPage() {
           booking_group_id
         `)
         .order('check_in_date', { ascending: false })
-        .limit(100)
       
       if (!isAllHotelsMode && selectedHotelId) {
         query = query.eq('hotel_id', selectedHotelId)
@@ -398,6 +397,23 @@ export function BookingsPage() {
       if (statusFilter === 'overdue_checkin') {
         query = query.eq('status', 'confirmed')
       }
+
+      // Apply date range filter (except for active statuses that need all-time data)
+      const activeStatuses = ['checked_in', 'conflict', 'overdue']
+      const isActiveFilter = activeStatuses.includes(statusFilter)
+
+      if (!isActiveFilter && dateRangeFilter !== 'all') {
+        const daysBack = dateRangeFilter === '7d' ? 7 : dateRangeFilter === '30d' ? 30 : 90
+        const fromDate = format(subDays(new Date(), daysBack), 'yyyy-MM-dd')
+        const toDate = format(addDays(new Date(), 30), 'yyyy-MM-dd') // include upcoming bookings
+        query = query
+          .gte('check_in_date', fromDate)
+          .lte('check_in_date', toDate)
+      }
+
+      // For checked_in/active: no date limit (must show ALL active bookings)
+      // but cap at 500 to prevent timeout
+      query = query.limit(isActiveFilter ? 500 : 200)
       
       const { data, error } = await query
       
