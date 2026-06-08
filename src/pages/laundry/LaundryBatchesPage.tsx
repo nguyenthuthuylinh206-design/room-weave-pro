@@ -85,9 +85,34 @@ export function LaundryBatchesPage() {
     new Date(b.actual_return_date!).getMonth() === new Date().getMonth()
   ).length
   
+  const { exportToExcel, isExporting } = useReportExport()
+
   const handleExport = () => {
-    console.log('Export to Excel')
-    // TODO: Implement Excel export
+    exportToExcel(
+      {
+        title: 'Danh sách lô giặt',
+        dateRange: 'Tất cả',
+        summary: {
+          total_batches: batches.length,
+        },
+        tables: [
+          {
+            title: 'Lô giặt',
+            headers: ['Mã lô', 'Nhà cung cấp', 'Ngày gửi', 'Ngày dự kiến trả', 'Số items', 'Chi phí dự kiến', 'Trạng thái'],
+            rows: batches.map(b => [
+              b.batch_code,
+              (b as any).vendor_name ?? '',
+              b.delivery_date ? new Date(b.delivery_date).toLocaleDateString('vi-VN') : '',
+              b.expected_return_date ? new Date(b.expected_return_date).toLocaleDateString('vi-VN') : '',
+              b.total_items,
+              b.estimated_cost,
+              b.status,
+            ]),
+          },
+        ],
+      },
+      'laundry_batches'
+    )
   }
   
   return (
