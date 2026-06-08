@@ -521,7 +521,7 @@ export function GroupCheckoutDialog({
 
   // Direct checkout
   const handleDirectCheckout = async () => {
-    if (!groupData) return
+    if (!groupData || isProcessing) return
     const readyRooms = Array.from(selectedRooms).filter(bookingId => {
       const booking = groupData.bookings.find(b => b.id === bookingId)
       if (!booking || booking.status !== 'checked_in') return false
@@ -538,6 +538,7 @@ export function GroupCheckoutDialog({
   }
 
   const handlePayAndCheckout = () => {
+    if (isProcessing) return
     if (totals.remaining > 0) {
       setShowPaymentDialog(true)
     } else {
@@ -547,7 +548,7 @@ export function GroupCheckoutDialog({
 
   // Actual checkout logic using RPC
   const performCheckout = async (bookingIds: string[]) => {
-    if (!groupData) return
+    if (!groupData || isProcessing) return
     
     setIsProcessing(true)
     try {
