@@ -45,7 +45,6 @@ const campaignSchema = z.object({
 
 type CampaignFormValues = z.infer<typeof campaignSchema>;
 
-import { useLocation } from 'react-router-dom';
 
 export function CampaignBuilder() {
   const [activeTab, setActiveTab] = useState('compose');
