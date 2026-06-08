@@ -1,7 +1,10 @@
 import { useState } from 'react'
-import { FileText, X, Upload } from 'lucide-react'
+import { FileText, X, Upload, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { supabase } from '@/integrations/supabase/client'
+import { useTenant } from '@/hooks/useTenant'
+import { toast } from 'sonner'
 
 interface FileUploadProps {
   files: string[]
@@ -17,18 +20,42 @@ export function FileUpload({
   accept = ".pdf,.doc,.docx,.xls,.xlsx"
 }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false)
-  
+  const [isUploading, setIsUploading] = useState(false)
+  const { tenant } = useTenant()
+
   const handleRemove = (index: number) => {
     onChange(files.filter((_, i) => i !== index))
   }
-  
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  const uploadFiles = async (filesToUpload: File[]) => {
+    if (!filesToUpload.length || !tenant?.id) return
+
+    setIsUploading(true)
+    try {
+      const uploadedUrls: string[] = []
+      for (const file of filesToUpload) {
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${tenant.id}/documents/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+        const { data, error } = await supabase.storage
+          .from('item-images')
+          .upload(fileName, file, { cacheControl: '3600', upsert: false })
+        if (error) throw error
+        const { data: { publicUrl } } = supabase.storage.from('item-images').getPublicUrl(data.path)
+        uploadedUrls.push(publicUrl)
+      }
+      onChange([...files, ...uploadedUrls].slice(0, maxFiles))
+    } catch (err: any) {
+      toast.error('Không thể tải file lên. Vui lòng thử lại.')
+      console.error('FileUpload error:', err)
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || [])
-    // TODO: Upload files to storage and get URLs
-    console.log('Upload files:', selectedFiles)
-    // For now, just add dummy URLs
-    const newFiles = selectedFiles.map(f => URL.createObjectURL(f))
-    onChange([...files, ...newFiles].slice(0, maxFiles))
+    await uploadFiles(selectedFiles)
+    e.target.value = ''
   }
   
   return (
@@ -68,10 +95,11 @@ export function FileUpload({
             setIsDragging(true)
           }}
           onDragLeave={() => setIsDragging(false)}
-          onDrop={(e) => {
+          onDrop={async (e) => {
             e.preventDefault()
             setIsDragging(false)
-            // Handle file drop
+            const droppedFiles = Array.from(e.dataTransfer.files)
+            await uploadFiles(droppedFiles)
           }}
         >
           <input
@@ -80,14 +108,26 @@ export function FileUpload({
             multiple
             onChange={handleFileSelect}
             className="absolute inset-0 cursor-pointer opacity-0"
+            disabled={isUploading}
           />
-          <Upload className="mx-auto h-8 w-8 text-muted-foreground" />
-          <p className="mt-2 text-sm text-muted-foreground">
-            Kéo thả file hoặc click để chọn
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Tối đa {maxFiles} files
-          </p>
+          {isUploading ? (
+            <>
+              <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+              <p className="mt-2 text-sm text-muted-foreground">
+                Đang tải lên...
+              </p>
+            </>
+          ) : (
+            <>
+              <Upload className="mx-auto h-8 w-8 text-muted-foreground" />
+              <p className="mt-2 text-sm text-muted-foreground">
+                Kéo thả file hoặc click để chọn
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Tối đa {maxFiles} files
+              </p>
+            </>
+          )}
         </div>
       )}
     </div>
