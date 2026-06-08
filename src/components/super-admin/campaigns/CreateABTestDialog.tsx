@@ -42,6 +42,7 @@ interface CreateABTestDialogProps {
 
 export function CreateABTestDialog({ open, onOpenChange }: CreateABTestDialogProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const form = useForm<ABTestFormValues>({
     resolver: zodResolver(abTestSchema),
