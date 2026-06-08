@@ -122,21 +122,27 @@ export const MobileInventoryReportPage = () => {
           <Card>
             <CardContent className="p-3 text-center">
               <Package className="h-5 w-5 mx-auto mb-1 text-primary" />
-              <p className="text-2xl font-bold">125</p>
+              <p className="text-2xl font-bold">
+                {isLoading ? '—' : formatNumber(reportData?.summary.total_types ?? 0)}
+              </p>
               <p className="text-xs text-muted-foreground">Tổng mặt hàng</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-3 text-center">
               <TrendingUp className="h-5 w-5 mx-auto mb-1 text-green-500" />
-              <p className="text-2xl font-bold">8.5K</p>
+              <p className="text-2xl font-bold">
+                {isLoading ? '—' : formatNumber(reportData?.summary.total_items ?? 0)}
+              </p>
               <p className="text-xs text-muted-foreground">Tổng số lượng</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-3 text-center">
               <AlertCircle className="h-5 w-5 mx-auto mb-1 text-red-500" />
-              <p className="text-2xl font-bold">12</p>
+              <p className="text-2xl font-bold">
+                {isLoading ? '—' : formatNumber(reportData?.summary.low_stock_count ?? 0)}
+              </p>
               <p className="text-xs text-muted-foreground">Dưới tối thiểu</p>
             </CardContent>
           </Card>
