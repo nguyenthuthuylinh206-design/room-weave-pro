@@ -417,7 +417,8 @@ export function BookingsPage() {
     bookings?.map(b => b.booking_group_id).filter((id): id is string => !!id) || [],
     [bookings]
   )
-  const { data: groupCounts } = useGroupBookingCounts(groupIds)
+  const groupCountsQuery = useGroupBookingCounts(groupIds)
+  const groupCounts = groupCountsQuery.data ?? {}
   
   const filteredBookings = (bookings?.filter(booking => {
     // Apply search filter
@@ -770,6 +771,7 @@ export function BookingsPage() {
       },
       groupCounts,
       now,
+      isGroupCountsReady: groupCountsQuery.isSuccess,
     })
 
     if (action === 'group') {
