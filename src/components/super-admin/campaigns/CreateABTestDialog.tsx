@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import {
@@ -41,6 +42,7 @@ interface CreateABTestDialogProps {
 
 export function CreateABTestDialog({ open, onOpenChange }: CreateABTestDialogProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const form = useForm<ABTestFormValues>({
     resolver: zodResolver(abTestSchema),
@@ -71,6 +73,7 @@ export function CreateABTestDialog({ open, onOpenChange }: CreateABTestDialogPro
         title: 'A/B Test đã tạo',
         description: `"${data.name}" đã được lưu ở trạng thái Draft. Bắt đầu test khi sẵn sàng.`,
       });
+      queryClient.invalidateQueries({ queryKey: ['ab-tests'] });
       onOpenChange(false);
       form.reset();
     } catch (err: any) {
