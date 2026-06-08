@@ -241,7 +241,7 @@ export function BookingPaymentDialog({
     }
   };
 
-  const isProcessing = createPayment.isPending || updateBookingAmount.isPending || confirmPayment.isPending;
+  const isProcessing = createPayment.isPending || confirmPayment.isPending;
 
   return (
     <>
