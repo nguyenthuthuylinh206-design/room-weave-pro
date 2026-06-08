@@ -146,19 +146,22 @@ export function useLaunchCampaign() {
 
   return useMutation({
     mutationFn: async (campaignId: string) => {
-      const { data, error } = await supabase
-        .from('marketing_campaigns')
-        .update({ status: 'active' })
-        .eq('id', campaignId)
-        .select()
-        .single();
-
+      const { data, error } = await supabase.functions.invoke('launch-campaign', {
+        body: { campaign_id: campaignId },
+      });
       if (error) throw error;
-      return data;
+      if (data?.error) throw new Error(data.error);
+      return data as { ok: boolean; total: number; sent: number; failed: number };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['marketing-campaigns'] });
-      toast.success('Đã khởi chạy chiến dịch');
+      const sent = data?.sent ?? 0;
+      const failed = data?.failed ?? 0;
+      if (failed > 0) {
+        toast.warning(`Đã gửi ${sent} email, ${failed} thất bại`);
+      } else {
+        toast.success(`Đã khởi chạy chiến dịch — gửi ${sent} email`);
+      }
     },
     onError: (error: any) => {
       toast.error('Lỗi khởi chạy: ' + error.message);
