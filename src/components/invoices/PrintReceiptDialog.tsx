@@ -164,7 +164,7 @@ export function PrintReceiptDialog({
             In phiếu thu
           </DialogTitle>
           <DialogDescription>
-            {guestName} · Phòng {roomNumber}
+            {effectiveGuestName} · Phòng {effectiveRoomNumber}
           </DialogDescription>
         </DialogHeader>
 
