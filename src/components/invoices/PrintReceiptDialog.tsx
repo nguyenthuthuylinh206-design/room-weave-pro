@@ -106,9 +106,13 @@ export function PrintReceiptDialog({
       }
     : undefined
 
+  const effectiveSubtotal = subtotal ?? invoice?.subtotal ?? 0
+  const effectiveGuestName = guestName || invoice?.guest_name || ''
+  const effectiveRoomNumber = roomNumber || invoice?.room_number || ''
+
   const safeRate = Math.max(0, Math.min(30, Number.isFinite(vatRate) ? vatRate : 0))
-  const vatAmount = vatEnabled ? Math.round((subtotal * safeRate) / 100) : 0
-  const totalWithVat = subtotal + vatAmount
+  const vatAmount = vatEnabled ? Math.round((effectiveSubtotal * safeRate) / 100) : 0
+  const totalWithVat = effectiveSubtotal + vatAmount
 
   const handlePrint = async () => {
     if (!invoice) {
