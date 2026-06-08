@@ -620,7 +620,16 @@ export function GroupCheckoutDialog({
       }
       
       toast.success(`Đã checkout ${bookingIds.length} phòng thành công!`)
-      
+
+      // Show receipt for the first checked-out booking
+      if (bookingIds.length > 0) {
+        // Wait for invoices to be created (createInvoiceAfterCheckout uses setTimeout 500ms)
+        setTimeout(() => {
+          setReceiptBookingId(bookingIds[0])
+          setShowReceiptDialog(true)
+        }, 800)
+      }
+
       const allRoomsNowDone = groupData.bookings.every(b => b.status === 'checked_out' || bookingIds.includes(b.id))
       if (allRoomsNowDone) {
         onOpenChange(false)
