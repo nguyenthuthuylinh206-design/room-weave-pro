@@ -95,10 +95,11 @@ export function FileUpload({
             setIsDragging(true)
           }}
           onDragLeave={() => setIsDragging(false)}
-          onDrop={(e) => {
+          onDrop={async (e) => {
             e.preventDefault()
             setIsDragging(false)
-            // Handle file drop
+            const droppedFiles = Array.from(e.dataTransfer.files)
+            await uploadFiles(droppedFiles)
           }}
         >
           <input
