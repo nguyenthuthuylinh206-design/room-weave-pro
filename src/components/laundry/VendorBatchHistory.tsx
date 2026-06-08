@@ -94,9 +94,11 @@ export function VendorBatchHistory({ vendorId }: VendorBatchHistoryProps) {
                 <SelectItem value="received">{t('laundry:batchHistory.received')}</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={handleExport}>
-              <Download className="mr-2 h-4 w-4" />
-              {t('laundry:batchHistory.exportExcel')}
+            <Button variant="outline" onClick={handleExport} disabled={isExporting}>
+              {isExporting
+                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                : <Download className="mr-2 h-4 w-4" />}
+              {isExporting ? 'Đang xuất...' : t('laundry:batchHistory.exportExcel')}
             </Button>
           </div>
         </div>
