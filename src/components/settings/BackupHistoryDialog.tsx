@@ -137,13 +137,13 @@ export function BackupHistoryDialog({ open, onOpenChange }: BackupHistoryDialogP
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          // TODO: Implement download
-                          console.log('Download backup:', backup.file_path)
-                        }}
+                        onClick={() => handleDownload(backup)}
+                        disabled={downloadingId === backup.id}
                       >
-                        <Download className="h-4 w-4 mr-2" />
-                        Download
+                        {downloadingId === backup.id
+                          ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          : <Download className="h-4 w-4 mr-2" />}
+                        {downloadingId === backup.id ? 'Đang tải...' : 'Download'}
                       </Button>
                     )}
                   </div>
