@@ -39,6 +39,14 @@ export function MarkNoShowDialog({
   const [refund, setRefund] = useState<'keep' | 'refund'>('keep')
   const mutation = useMarkBookingNoShow()
 
+  // Reset state whenever dialog closes
+  useEffect(() => {
+    if (!open) {
+      setReason('')
+      setRefund('keep')
+    }
+  }, [open])
+
   const handleSubmit = async () => {
     if (reason.trim().length < 3) return
     await mutation.mutateAsync({
