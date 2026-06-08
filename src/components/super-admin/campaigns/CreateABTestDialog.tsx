@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -21,6 +22,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { Loader2 } from 'lucide-react';
 
 const abTestSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),
@@ -49,14 +52,36 @@ export function CreateABTestDialog({ open, onOpenChange }: CreateABTestDialogPro
     },
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const onSubmit = async (data: ABTestFormValues) => {
-    console.log('Creating A/B test:', data);
-    toast({
-      title: 'A/B Test Created',
-      description: 'Your A/B test has been created and will start soon.',
-    });
-    onOpenChange(false);
-    form.reset();
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('ab_tests')
+        .insert({
+          name: data.name,
+          variant_a_subject: data.variantASubject,
+          variant_b_subject: data.variantBSubject,
+          sample_size: data.sampleSize,
+          status: 'draft',
+        });
+      if (error) throw error;
+      toast({
+        title: 'A/B Test đã tạo',
+        description: `"${data.name}" đã được lưu ở trạng thái Draft. Bắt đầu test khi sẵn sàng.`,
+      });
+      onOpenChange(false);
+      form.reset();
+    } catch (err: any) {
+      toast({
+        title: 'Lỗi tạo A/B test',
+        description: err.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -158,8 +183,9 @@ export function CreateABTestDialog({ open, onOpenChange }: CreateABTestDialogPro
               >
                 Cancel
               </Button>
-              <Button type="submit">
-                Create Test
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting ? 'Đang tạo...' : 'Tạo A/B Test'}
               </Button>
             </DialogFooter>
           </form>

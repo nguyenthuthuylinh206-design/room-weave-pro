@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      ab_tests: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          opened_a: number
+          opened_b: number
+          sample_size: number
+          sent_a: number
+          sent_b: number
+          status: string
+          updated_at: string
+          variant_a_subject: string
+          variant_b_subject: string
+          winner: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          opened_a?: number
+          opened_b?: number
+          sample_size?: number
+          sent_a?: number
+          sent_b?: number
+          status?: string
+          updated_at?: string
+          variant_a_subject: string
+          variant_b_subject: string
+          winner?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          opened_a?: number
+          opened_b?: number
+          sample_size?: number
+          sent_a?: number
+          sent_b?: number
+          status?: string
+          updated_at?: string
+          variant_a_subject?: string
+          variant_b_subject?: string
+          winner?: string | null
+        }
+        Relationships: []
+      }
       activity_logs: {
         Row: {
           action: string
