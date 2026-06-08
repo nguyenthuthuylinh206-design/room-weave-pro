@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { subDays } from 'date-fns'
 import { MobileDetailHeader } from '@/components/layout/MobileDetailHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,6 +9,8 @@ import { Label } from '@/components/ui/label'
 import { Package, TrendingUp, AlertCircle, Download, ClipboardCheck, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useReportExport } from '@/hooks/useReportExport'
+import { useInventoryReport, useABCAnalysis } from '@/hooks/useReports'
+import { formatNumber } from '@/lib/utils'
 
 const REPORT_TYPES = [
   { id: 'current', label: 'Tồn kho hiện tại' },
