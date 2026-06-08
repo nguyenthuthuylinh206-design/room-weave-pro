@@ -12633,6 +12633,10 @@ export type Database = {
         }
         Returns: Json
       }
+      create_booking_v2: {
+        Args: { p_bookings: Json; p_guest: Json }
+        Returns: Json
+      }
       create_default_categories: {
         Args: { p_tenant_id: string }
         Returns: undefined
