@@ -106,10 +106,34 @@ export function PricingRulesForm({ hotelId }: PricingRulesFormProps) {
           .insert(payload)
         if (error) throw error
       }
+
+      // Also mirror VAT / service fee / early-check-in / late-check-out percentages
+      // into hotel_settings so the Booking Wizard (which reads hotel_settings) sees
+      // the same values. The DB trigger covers this too; client-side upsert keeps
+      // things consistent if the trigger is ever removed and avoids a round-trip.
+      const { error: hsError } = await supabase
+        .from('hotel_settings')
+        .upsert(
+          {
+            tenant_id: tenant.id,
+            hotel_id: hotelId,
+            vat_rate: data.default_vat_rate,
+            service_fee_rate: data.default_service_fee_rate,
+            late_checkout_12_15_pct: data.late_checkout_12_15,
+            late_checkout_15_18_pct: data.late_checkout_15_18,
+            late_checkout_after18_pct: data.late_checkout_after_18,
+            early_checkin_before5_pct: data.early_checkin_before_5,
+            early_checkin_5_9_pct: data.early_checkin_5_9,
+            early_checkin_9_14_pct: data.early_checkin_9_14,
+          },
+          { onConflict: 'hotel_id' }
+        )
+      if (hsError) throw hsError
     },
     onSuccess: () => {
       toast({ title: 'Đã lưu cấu hình phụ thu' })
       queryClient.invalidateQueries({ queryKey: ['pricing-rules', hotelId] })
+      queryClient.invalidateQueries({ queryKey: ['hotel-pricing-rules', hotelId] })
     },
     onError: (error: any) => {
       toast({
