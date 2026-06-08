@@ -1533,6 +1533,17 @@ export function BookingsPage() {
             <SelectItem value="no_show">Không đến</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={dateRangeFilter} onValueChange={(v) => setDateRangeFilter(v as any)}>
+          <SelectTrigger className="w-32 h-8 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="7d">7 ngày</SelectItem>
+            <SelectItem value="30d">30 ngày</SelectItem>
+            <SelectItem value="90d">90 ngày</SelectItem>
+            <SelectItem value="all">Tất cả</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       
       {/* Bookings Table */}
