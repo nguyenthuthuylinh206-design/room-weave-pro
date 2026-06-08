@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Plus, X, Loader2, Zap, AlertCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { getFriendlyError } from '@/lib/errorMessage'
+import { supabase } from '@/integrations/supabase/client'
 
 interface CallWebhookActionConfig {
   url: string
