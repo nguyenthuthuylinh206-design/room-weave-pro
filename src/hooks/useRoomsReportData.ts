@@ -193,43 +193,37 @@ export function useRoomsReportData(dateRange: DateRange) {
     staleTime: 60000,
   })
 
-  const isLoading = roomStatsQuery.isLoading || checksReportQuery.isLoading
-  const error = roomStatsQuery.error || checksReportQuery.error
-
-  // Generate occupancy trend data from bookings (mock daily data based on date range)
-  const occupancyTrend: OccupancyTrend[] = []
-  const startDate = new Date(dateRange.start)
-  const endDate = new Date(dateRange.end)
-  const totalRooms = roomStatsQuery.data?.room_stats?.total || 1
-  const avgDailyRevenue = (roomStatsQuery.data?.occupancy_stats?.total_revenue || 0) / 
-    Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)))
-  
-  const baseRate = (roomStatsQuery.data?.occupancy_stats?.occupancy_rate || 0)
-  if (baseRate > 0) {
-    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-      const dayOfWeek = d.getDay()
-      // Use deterministic variation based on day of week
-      const variation = (dayOfWeek === 0 || dayOfWeek === 6) ? 1.1 : 0.95
-      const rate = Math.min(100, Math.round(baseRate * variation))
-      
-      occupancyTrend.push({
-        date: new Date(d).toISOString().split('T')[0],
-        occupancy_rate: rate,
-        room_nights_sold: Math.round(totalRooms * rate / 100),
-        revenue: Math.round(avgDailyRevenue * variation),
+  // Fetch real daily occupancy trend from bookings
+  const dailyTrendQuery = useQuery({
+    queryKey: ['daily-occupancy-trend', tenantId, hotelId, dateRange.start, dateRange.end],
+    queryFn: async () => {
+      if (!tenantId) throw new Error('No tenant')
+      const { data, error } = await supabase.rpc('get_daily_occupancy_trend' as any, {
+        p_tenant_id: tenantId,
+        p_hotel_id: hotelId,
+        p_start_date: dateRange.start.toISOString().split('T')[0],
+        p_end_date: dateRange.end.toISOString().split('T')[0],
       })
-    }
-  }
+      if (error) throw error
+      return (data as any[]) || []
+    },
+    enabled: !!tenantId,
+    staleTime: 5 * 60 * 1000,
+  })
 
-  // Calculate period comparison (current vs previous period of same length)
-  const periodLength = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-  const currentOccupancy = roomStatsQuery.data?.occupancy_stats?.occupancy_rate || 0
-  const currentRevenue = roomStatsQuery.data?.occupancy_stats?.total_revenue || 0
-  const currentBookings = roomStatsQuery.data?.occupancy_stats?.total_bookings || 0
-  const currentScore = checksReportQuery.data?.check_stats?.avg_score || 0
+  const isLoading = roomStatsQuery.isLoading || checksReportQuery.isLoading || dailyTrendQuery.isLoading
+  const error = roomStatsQuery.error || checksReportQuery.error || dailyTrendQuery.error
+
+  const occupancyTrend: OccupancyTrend[] = (dailyTrendQuery.data ?? []).map((row: any) => ({
+    date: row.date,
+    occupancy_rate: Number(row.occupancy_rate) || 0,
+    room_nights_sold: Number(row.room_nights_sold) || 0,
+    revenue: Number(row.revenue) || 0,
+  }))
 
   // No real previous period data available - set to null so UI hides this section
   const periodComparison: PeriodComparison | null = null
+
 
   const data: RoomsReportData | null = roomStatsQuery.data && checksReportQuery.data
     ? {
