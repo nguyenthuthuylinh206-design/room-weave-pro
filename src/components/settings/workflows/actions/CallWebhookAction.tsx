@@ -95,18 +95,34 @@ export const CallWebhookAction = ({ config, onChange }: CallWebhookActionProps) 
 
   const handleTestWebhook = async () => {
     setIsTesting(true)
+    setTestResult(null)
     try {
-      // Simulate webhook test
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      setTestResult({ status: 200, message: 'Success' })
-      toast({ title: 'Webhook test successful' })
-    } catch (error: any) {
-      toast({ 
-        title: 'Webhook test failed', 
-        description: getFriendlyError(error),
-        variant: 'destructive'
+      const { data, error } = await supabase.functions.invoke('test-webhook', {
+        body: {
+          url: localConfig.url,
+          method: localConfig.method,
+          headers: localConfig.headers,
+          body: localConfig.body,
+        },
       })
-      setTestResult({ error: error.message })
+      if (error) throw error
+      setTestResult(data)
+      if (data?.ok) {
+        toast({ title: `Webhook OK (${data.status})` })
+      } else {
+        toast({
+          title: 'Webhook test thất bại',
+          description: data?.error ?? `HTTP ${data?.status ?? '?'}`,
+          variant: 'destructive',
+        })
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Webhook test thất bại',
+        description: getFriendlyError(error),
+        variant: 'destructive',
+      })
+      setTestResult({ ok: false, error: error.message })
     } finally {
       setIsTesting(false)
     }
