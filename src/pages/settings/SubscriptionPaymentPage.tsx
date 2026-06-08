@@ -59,7 +59,6 @@ export default function SubscriptionPaymentPage() {
       table: 'payment_transactions',
       filter: `id=eq.${payment.id}`
     }, payload => {
-      console.log('Payment update received:', payload);
       const newStatus = payload.new?.payment_status;
       const oldStatus = payload.old?.payment_status;
 

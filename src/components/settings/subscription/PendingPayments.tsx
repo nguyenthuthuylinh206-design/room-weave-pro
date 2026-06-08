@@ -38,7 +38,6 @@ export function PendingPayments() {
           table: 'payment_transactions',
         },
         (payload) => {
-          console.log('Payment update received in PendingPayments:', payload);
           const newStatus = payload.new?.payment_status;
           const oldStatus = payload.old?.payment_status;
           

@@ -45,7 +45,6 @@ export function useRecentActivities(limit: number = 10) {
           filter: `tenant_id=eq.${tenantId}`,
         },
         (payload) => {
-          console.log('New activity:', payload)
           
           // Invalidate and refetch
           queryClient.invalidateQueries({

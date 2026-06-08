@@ -56,7 +56,6 @@ export function PendingDeliveriesSection({
         })
       } catch (error) {
         // If item doesn't exist in booking_consumables, ignore (could be non-consumable)
-        console.log(`Could not update supplemented for item ${item.item_id}:`, error)
       }
     }
   }

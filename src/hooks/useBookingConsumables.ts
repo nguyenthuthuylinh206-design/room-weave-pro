@@ -80,7 +80,6 @@ export function useInitializeBookingConsumables() {
         .limit(1)
 
       if (existing && existing.length > 0) {
-        console.log('Booking consumables already initialized')
         return existing
       }
 

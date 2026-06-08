@@ -78,7 +78,6 @@ export function usePaymentById(paymentId?: string) {
           filter: `id=eq.${paymentId}`,
         },
         (payload) => {
-          console.log('Payment update:', payload);
           queryClient.invalidateQueries({ queryKey: ['booking-payment', paymentId] });
 
           // If payment completed, show toast
@@ -135,7 +134,6 @@ export function useBookingPayments(bookingId?: string) {
           filter: `booking_id=eq.${bookingId}`,
         },
         (payload) => {
-          console.log('Booking payment update:', payload);
           queryClient.invalidateQueries({ queryKey: ['booking-payments', bookingId] });
           
           // If payment completed, show toast
