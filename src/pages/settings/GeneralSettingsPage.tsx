@@ -379,6 +379,8 @@ export function GeneralSettingsPage() {
       </form>
 
       <UnsavedChangesPrompt when={isDirty && !enableAutoSave} />
+
+      <BackupHistoryDialog open={backupHistoryOpen} onOpenChange={setBackupHistoryOpen} />
     </div>
   )
 }
