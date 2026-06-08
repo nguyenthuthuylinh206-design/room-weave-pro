@@ -65,8 +65,8 @@ export function BookingPaymentDialog({
 
   const { data: bankSettings } = useBankPaymentSettings(booking.hotel_id);
   const createPayment = useCreateBookingPayment();
-  const updateBookingAmount = useUpdateBookingAmountPaid();
   const confirmPayment = useConfirmBookingPayment();
+  const queryClient = useQueryClient();
 
   // Reset state when dialog opens
   useEffect(() => {
