@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
-import { Loader2, Save, Building2, Globe, Database, AlertTriangle } from 'lucide-react'
+import { Loader2, Save, Building2, Globe, Database, AlertTriangle, History } from 'lucide-react'
 import { UnsavedChangesPrompt } from '@/components/settings/UnsavedChangesPrompt'
 import { useAutoSave } from '@/hooks/useAutoSave'
 import { logUpdate } from '@/lib/activityLogger'
@@ -27,6 +27,7 @@ import { Switch } from '@/components/ui/switch'
 import { UsageModeSelector } from '@/components/settings/UsageModeSelector'
 import { HotelQcModeSettings } from '@/components/settings/HotelQcModeSettings'
 import { HotelPhotoEvidenceSettings } from '@/components/settings/HotelPhotoEvidenceSettings'
+import { BackupHistoryDialog } from '@/components/settings/BackupHistoryDialog'
 import { getFriendlyError } from '@/lib/errorMessage'
 
 const createGeneralSettingsSchema = (t: (key: string) => string) => z.object({
@@ -50,6 +51,7 @@ export function GeneralSettingsPage() {
   const { toast } = useToast()
   const [isSaving, setIsSaving] = useState(false)
   const [enableAutoSave, setEnableAutoSave] = useState(false)
+  const [backupHistoryOpen, setBackupHistoryOpen] = useState(false)
 
   const generalSettingsSchema = createGeneralSettingsSchema(t)
 
@@ -298,6 +300,27 @@ export function GeneralSettingsPage() {
           </div>
         </div>
 
+        {/* Data Backup */}
+        <div className="border rounded-lg p-4 space-y-3">
+          <div className="flex items-center gap-2 pb-2 border-b">
+            <Database className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <h2 className="text-sm font-medium">Sao lưu dữ liệu</h2>
+              <p className="text-[10px] text-muted-foreground">Xem và tải về các bản sao lưu đã tạo</p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs"
+            onClick={() => setBackupHistoryOpen(true)}
+          >
+            <History className="mr-1.5 h-3 w-3" />
+            Xem lịch sử
+          </Button>
+        </div>
+
         {/* Usage Mode */}
         <UsageModeSelector />
 
@@ -356,6 +379,8 @@ export function GeneralSettingsPage() {
       </form>
 
       <UnsavedChangesPrompt when={isDirty && !enableAutoSave} />
+
+      <BackupHistoryDialog open={backupHistoryOpen} onOpenChange={setBackupHistoryOpen} />
     </div>
   )
 }

@@ -1,11 +1,14 @@
+import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { useBackupLogs } from '@/hooks/useBackupLogs'
+import { useBackupLogs, BackupLog } from '@/hooks/useBackupLogs'
 import { formatDistanceToNow } from 'date-fns'
-import { CheckCircle, XCircle, Clock, Download, FileArchive } from 'lucide-react'
+import { CheckCircle, XCircle, Clock, Download, FileArchive, Loader2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
+import { supabase } from '@/integrations/supabase/client'
+import { toast } from 'sonner'
 
 interface BackupHistoryDialogProps {
   open: boolean
@@ -14,6 +17,23 @@ interface BackupHistoryDialogProps {
 
 export function BackupHistoryDialog({ open, onOpenChange }: BackupHistoryDialogProps) {
   const { data: backups, isLoading } = useBackupLogs()
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+
+  const handleDownload = async (backup: BackupLog) => {
+    if (!backup.file_path) return
+    setDownloadingId(backup.id)
+    try {
+      const { data, error } = await supabase.storage
+        .from('backups')
+        .createSignedUrl(backup.file_path, 60)
+      if (error) throw error
+      window.open(data.signedUrl, '_blank')
+    } catch (err: any) {
+      toast.error('Không thể tải file: ' + err.message)
+    } finally {
+      setDownloadingId(null)
+    }
+  }
 
   const formatFileSize = (bytes: number | null) => {
     if (!bytes) return 'N/A'
@@ -117,13 +137,13 @@ export function BackupHistoryDialog({ open, onOpenChange }: BackupHistoryDialogP
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          // TODO: Implement download
-                          console.log('Download backup:', backup.file_path)
-                        }}
+                        onClick={() => handleDownload(backup)}
+                        disabled={downloadingId === backup.id}
                       >
-                        <Download className="h-4 w-4 mr-2" />
-                        Download
+                        {downloadingId === backup.id
+                          ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          : <Download className="h-4 w-4 mr-2" />}
+                        {downloadingId === backup.id ? 'Đang tải...' : 'Download'}
                       </Button>
                     )}
                   </div>
