@@ -104,6 +104,8 @@
   "seasonalRules": "Mùa giá",
   "pricingHub": "Bảng giá",
   "bcaConfig": "Khai báo lưu trú (BCA)",
+  "sepayReconciliation": "Đối soát giao dịch",
+  "hotelPerformance": "Hiệu suất khách sạn",
 
   "stayRegistrations": "Khai báo lưu trú"
 }
