@@ -45,6 +45,7 @@ export function PaymentSettingsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState('pending');
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // Fetch payments
   const { data: payments, isLoading } = useQuery({
@@ -248,6 +249,10 @@ export function PaymentSettingsPage() {
             Xác nhận thanh toán và cấu hình tài khoản ngân hàng
           </p>
         </div>
+        <Button variant="outline" onClick={() => navigate('/finance/reconciliation')}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Đối soát giao dịch SePay
+        </Button>
       </div>
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
