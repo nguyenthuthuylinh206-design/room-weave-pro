@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -31,6 +31,8 @@ interface RoomTransferDialogProps {
     check_in_date: string
     check_out_date: string
     booking_type?: string
+    hourly_start_time?: string | null
+    hourly_end_time?: string | null
     room?: { room_number: string; room_type: string }
   }
   onSuccess?: () => void
@@ -46,18 +48,27 @@ export function RoomTransferDialog({
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null)
   const [reason, setReason] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [hourlyValidRoomIds, setHourlyValidRoomIds] = useState<Set<string> | null>(null)
+  const [hourlyChecking, setHourlyChecking] = useState(false)
+
+  const isHourly = booking.booking_type === 'hourly'
 
   const checkIn = useMemo(() => new Date(booking.check_in_date), [booking.check_in_date])
   const checkOut = useMemo(() => new Date(booking.check_out_date), [booking.check_out_date])
 
-  const { data: rooms, isLoading } = useAvailableRooms(checkIn, checkOut)
+  // For hourly bookings, skip the daily overlap filter (pass undefined dates) and
+  // validate each candidate room with the validate_hourly_booking RPC instead.
+  const { data: rooms, isLoading } = useAvailableRooms(
+    isHourly ? undefined : checkIn,
+    isHourly ? undefined : checkOut,
+  )
 
-  const candidates = useMemo(() => {
+  // Pre-filter (without hourly RPC results yet)
+  const preCandidates = useMemo(() => {
     const list = (rooms ?? []).filter(
       (r) => r.id !== booking.room_id && r.hotel_id === booking.hotel_id,
     )
     return list.sort((a, b) => {
-      // Same type first, then by floor & room number
       const aSame = a.room_type === booking.room?.room_type ? 0 : 1
       const bSame = b.room_type === booking.room?.room_type ? 0 : 1
       if (aSame !== bSame) return aSame - bSame
@@ -65,6 +76,50 @@ export function RoomTransferDialog({
       return a.room_number.localeCompare(b.room_number)
     })
   }, [rooms, booking.room_id, booking.hotel_id, booking.room?.room_type])
+
+  // Run validate_hourly_booking for each candidate when hourly
+  useEffect(() => {
+    if (!isHourly) {
+      setHourlyValidRoomIds(null)
+      return
+    }
+    if (!booking.hourly_start_time || !booking.hourly_end_time) {
+      setHourlyValidRoomIds(new Set())
+      return
+    }
+    if (preCandidates.length === 0) {
+      setHourlyValidRoomIds(new Set())
+      return
+    }
+    let cancelled = false
+    setHourlyChecking(true)
+    ;(async () => {
+      const results = await Promise.all(
+        preCandidates.map(async (r) => {
+          const { data, error } = await supabase.rpc('validate_hourly_booking', {
+            p_room_id: r.id,
+            p_start_time: booking.hourly_start_time!,
+            p_end_time: booking.hourly_end_time!,
+            p_exclude_booking_id: booking.id,
+          })
+          if (error) return null
+          const valid = (data as any)?.valid === true
+          return valid ? r.id : null
+        }),
+      )
+      if (!cancelled) {
+        setHourlyValidRoomIds(new Set(results.filter((x): x is string => !!x)))
+        setHourlyChecking(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [isHourly, preCandidates, booking.hourly_start_time, booking.hourly_end_time, booking.id])
+
+  const candidates = useMemo(() => {
+    if (!isHourly) return preCandidates
+    if (hourlyValidRoomIds === null) return []
+    return preCandidates.filter((r) => hourlyValidRoomIds.has(r.id))
+  }, [isHourly, preCandidates, hourlyValidRoomIds])
 
   const handleSubmit = async () => {
     if (!selectedRoomId) return
@@ -114,7 +169,7 @@ export function RoomTransferDialog({
 
           <div className="space-y-2">
             <Label className="text-sm">Chọn phòng mới</Label>
-            {isLoading ? (
+            {isLoading || hourlyChecking ? (
               <div className="text-sm text-muted-foreground py-4 text-center">
                 Đang tải danh sách phòng...
               </div>
