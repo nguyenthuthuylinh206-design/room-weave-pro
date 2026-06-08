@@ -32,6 +32,7 @@ interface ExtendBookingDialogProps {
     check_in_date: string
     check_out_date: string
     room_price?: number
+    total_amount?: number
     room?: {
       room_number: string
     }
