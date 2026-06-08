@@ -115,6 +115,9 @@ export function GroupCheckoutDialog({
   const [selectedRooms, setSelectedRooms] = useState<Set<string>>(new Set())
   const [staffAssignments, setStaffAssignments] = useState<Map<string, string>>(new Map())
 
+  const [receiptBookingId, setReceiptBookingId] = useState<string | null>(null)
+  const [showReceiptDialog, setShowReceiptDialog] = useState(false)
+
   // Initialize selected rooms when groupData loads
   useEffect(() => {
     if (groupData?.bookings) {
