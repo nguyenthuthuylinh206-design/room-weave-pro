@@ -34,7 +34,7 @@ BEGIN
   END IF;
 
   INSERT INTO public.rooms (tenant_id, hotel_id, room_number, room_type, status, floor)
-  VALUES (_tenant, _hotel, 'TEST-PC-1', 'STD', 'occupied_clean', 1)
+  VALUES (_tenant, _hotel, 'TEST-PC-1', 'standard', 'occupied_clean', 1)
   RETURNING id INTO _room;
 
   INSERT INTO public.room_bookings (
@@ -92,7 +92,7 @@ BEGIN
   FROM public.tenants t JOIN public.hotels h ON h.tenant_id = t.id LIMIT 1;
 
   INSERT INTO public.rooms (tenant_id, hotel_id, room_number, room_type, status, floor)
-  VALUES (_tenant, _hotel, 'TEST-PC-2', 'STD', 'occupied_clean', 1) RETURNING id INTO _room;
+  VALUES (_tenant, _hotel, 'TEST-PC-2', 'standard', 'occupied_clean', 1) RETURNING id INTO _room;
 
   INSERT INTO public.room_bookings (
     tenant_id, hotel_id, room_id, guest_name,
@@ -147,7 +147,7 @@ BEGIN
   FROM public.tenants t JOIN public.hotels h ON h.tenant_id = t.id LIMIT 1;
 
   INSERT INTO public.rooms (tenant_id, hotel_id, room_number, room_type, status, floor)
-  VALUES (_tenant, _hotel, 'TEST-PC-3', 'STD', 'occupied_clean', 1) RETURNING id INTO _room;
+  VALUES (_tenant, _hotel, 'TEST-PC-3', 'standard', 'occupied_clean', 1) RETURNING id INTO _room;
 
   INSERT INTO public.room_bookings (
     tenant_id, hotel_id, room_id, guest_name,
@@ -192,7 +192,7 @@ BEGIN
   FROM public.tenants t JOIN public.hotels h ON h.tenant_id = t.id LIMIT 1;
 
   INSERT INTO public.rooms (tenant_id, hotel_id, room_number, room_type, status, floor)
-  VALUES (_tenant, _hotel, 'TEST-PC-4', 'STD', 'occupied_clean', 1) RETURNING id INTO _room;
+  VALUES (_tenant, _hotel, 'TEST-PC-4', 'standard', 'occupied_clean', 1) RETURNING id INTO _room;
 
   INSERT INTO public.room_bookings (
     tenant_id, hotel_id, room_id, guest_name,
@@ -240,7 +240,7 @@ BEGIN
   FROM public.tenants t JOIN public.hotels h ON h.tenant_id = t.id LIMIT 1;
 
   INSERT INTO public.rooms (tenant_id, hotel_id, room_number, room_type, status, floor)
-  VALUES (_tenant, _hotel, 'TEST-PC-5', 'STD', 'vacant_clean', 1) RETURNING id INTO _room;
+  VALUES (_tenant, _hotel, 'TEST-PC-5', 'standard', 'vacant_clean', 1) RETURNING id INTO _room;
 
   INSERT INTO public.room_bookings (
     tenant_id, hotel_id, room_id, guest_name,
