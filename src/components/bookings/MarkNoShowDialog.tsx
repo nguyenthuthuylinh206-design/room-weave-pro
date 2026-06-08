@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -39,6 +39,14 @@ export function MarkNoShowDialog({
   const [refund, setRefund] = useState<'keep' | 'refund'>('keep')
   const mutation = useMarkBookingNoShow()
 
+  // Reset state whenever dialog closes
+  useEffect(() => {
+    if (!open) {
+      setReason('')
+      setRefund('keep')
+    }
+  }, [open])
+
   const handleSubmit = async () => {
     if (reason.trim().length < 3) return
     await mutation.mutateAsync({
@@ -47,8 +55,6 @@ export function MarkNoShowDialog({
       refundDeposit: refund === 'refund',
     })
     onOpenChange(false)
-    setReason('')
-    setRefund('keep')
     onSuccess?.()
   }
 
