@@ -670,6 +670,94 @@ export function BookingsPage() {
     }
   }
 
+  const computeAndOpenCheckoutSummary = async (
+    booking: BookingWithRoom,
+    opts?: { effectiveCheckOutDate?: string }
+  ) => {
+    const now = new Date()
+    const todayStr = opts?.effectiveCheckOutDate || null
+    const bType = booking.booking_type || 'daily'
+    const roomPrice = (booking as any).room_price || 0
+
+    // Late checkout charge
+    const calculatedLateCharge = bType === 'daily'
+      ? calculateLateCheckoutCharge(format(now, 'HH:mm'), roomPrice, now, new Date(booking.check_out_date))
+      : 0
+
+    // Effective check-out date (overdue path uses today)
+    const effectiveCheckOut = todayStr ? new Date(todayStr) : new Date(booking.check_out_date)
+    const checkIn = new Date(booking.check_in_date)
+    const nights = Math.max(1, Math.ceil((effectiveCheckOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
+
+    // Service charges
+    let serviceCharges = 0
+    let serviceDetails: ServiceChargeDetail[] = []
+    try {
+      const summary = await fetchServiceChargeSummary(booking.id, tenantId!, { includeAllBilled: true })
+      serviceCharges = summary.grandTotal
+      serviceDetails = summary.details
+    } catch {
+      const consumablesTotal = await calculateServiceChargesFromConsumables(booking.id)
+      serviceCharges = consumablesTotal > 0 ? consumablesTotal : ((booking as any).service_charges || 0)
+    }
+
+    // Damage items from latest room check
+    const { data: latestCheck } = await supabase
+      .from('room_checks')
+      .select('items_lost, items_damaged, items_consumed')
+      .eq('room_id', booking.room_id)
+      .in('check_type', ['checkout', 'daily'])
+      .order('checked_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    const damageItems: DamageChargeItem[] = [
+      ...((latestCheck?.items_lost as any[]) || []).map(item => ({
+        item_id: item.item_id, item_name: item.item_name, item_type: 'lost' as const,
+        quantity: item.quantity, charge_amount: item.estimated_value || 0,
+      })),
+      ...((latestCheck?.items_damaged as any[]) || []).map(item => ({
+        item_id: item.item_id, item_name: item.item_name, item_type: 'damaged' as const,
+        quantity: item.quantity, charge_amount: item.damage_cost || 0, damage_type: item.damage_type,
+      })),
+    ]
+
+    const totalDamageCharge = damageItems.reduce((sum, i) => sum + i.charge_amount * i.quantity, 0)
+
+    // Hourly overtime
+    let hourlyOvertimeCharge = 0
+    if (bType === 'hourly' && booking.hourly_end_time) {
+      const scheduledEnd = new Date(booking.hourly_end_time)
+      const overtimeMinutes = (now.getTime() - scheduledEnd.getTime()) / (1000 * 60)
+      if (overtimeMinutes > 0) hourlyOvertimeCharge = Math.ceil(overtimeMinutes / 60) * (booking.hourly_rate || 0)
+    }
+
+    const costBreakdown = calculateBookingCost({
+      bookingType: bType,
+      roomPrice, nights,
+      earlyCheckinCharge: bType === 'daily' ? ((booking as any).early_checkin_charge || 0) : 0,
+      lateCheckoutCharge: bType === 'daily' ? calculatedLateCharge : 0,
+      hourlyRate: booking.hourly_rate || 0,
+      hours: booking.booking_hours || 0,
+      hourlyOvertimeCharge,
+      monthlyRate: booking.monthly_rate || 0,
+      months: booking.booking_months || 0,
+      serviceCharges,
+      extraCharges: (booking as any).extra_charges || 0,
+      damageCharges: totalDamageCharge,
+      damageItems,
+      vatRate: (booking as any).vat_rate ?? DEFAULT_PRICING_RULES.vatRate,
+      serviceFeeRate: (booking as any).service_fee_rate ?? DEFAULT_PRICING_RULES.serviceFeeRate,
+      depositAmount: (booking as any).deposit_amount || 0,
+      amountPaid: (booking as any).amount_paid || 0,
+    })
+
+    setCheckoutDamageItems(damageItems)
+    setCheckoutServiceDetails(serviceDetails)
+    setCheckoutCostBreakdown(costBreakdown)
+    setShowCheckoutSummary(true)
+  }
+
   // Handle Check-out click - validate date first, then show summary dialog
   const handleCheckOutClick = async (booking: BookingWithRoom) => {
     const now = new Date()
@@ -702,109 +790,7 @@ export function BookingsPage() {
     setIsActionLoading(true)
 
     try {
-      const actualTime = format(now, 'HH:mm')
-      const roomPrice = (booking as any).room_price || 0
-      const calculatedLateCharge = calculateLateCheckoutCharge(actualTime, roomPrice, now, new Date(booking.check_out_date))
-
-      // Calculate nights - use effective checkout date for overdue bookings
-      const checkIn = new Date(booking.check_in_date)
-      const effectiveCheckOut = overdueCheckoutDate 
-        ? new Date(overdueCheckoutDate) 
-        : new Date(booking.check_out_date)
-      const nights = Math.max(1, Math.ceil((effectiveCheckOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
-
-      // Get service charges from all sources (booking_service_charges + chargeable_consumptions)
-      let serviceCharges = 0
-      let serviceDetails: ServiceChargeDetail[] = []
-      try {
-        const summary = await fetchServiceChargeSummary(booking.id, tenantId!, { includeAllBilled: true })
-        serviceCharges = summary.grandTotal
-        serviceDetails = summary.details
-      } catch (e) {
-        // Fallback to old method
-        const consumablesTotal = await calculateServiceChargesFromConsumables(booking.id)
-        serviceCharges = consumablesTotal > 0 ? consumablesTotal : ((booking as any).service_charges || 0)
-      }
-
-      // Note: chargeable consumptions already included in fetchServiceChargeSummary above
-
-      // Fetch latest room check for damage info
-      const { data: latestCheck } = await supabase
-        .from('room_checks')
-        .select('items_lost, items_damaged, items_consumed')
-        .eq('room_id', booking.room_id)
-        .in('check_type', ['checkout', 'daily'])
-        .order('checked_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      // Convert to DamageChargeItem[]
-      const damageItems: DamageChargeItem[] = [
-        ...((latestCheck?.items_lost as any[]) || []).map(item => ({
-          item_id: item.item_id,
-          item_name: item.item_name,
-          item_type: 'lost' as const,
-          quantity: item.quantity,
-          charge_amount: item.estimated_value || 0,
-        })),
-        ...((latestCheck?.items_damaged as any[]) || []).map(item => ({
-          item_id: item.item_id,
-          item_name: item.item_name,
-          item_type: 'damaged' as const,
-          quantity: item.quantity,
-          charge_amount: item.damage_cost || 0,
-          damage_type: item.damage_type,
-        })),
-        // items_consumed excluded from damage charges — already tracked via chargeable_consumptions
-      ]
-
-      const totalDamageCharge = damageItems.reduce(
-        (sum, item) => sum + item.charge_amount * item.quantity, 0
-      )
-
-      // Calculate cost breakdown with damage
-      // Determine booking type params
-      const bType = booking.booking_type || 'daily'
-      const bHourlyRate = booking.hourly_rate || 0
-      const bHours = booking.booking_hours || 0
-      const bMonthlyRate = booking.monthly_rate || 0
-      const bMonths = booking.booking_months || 0
-
-      // Calculate hourly overtime if applicable
-      let hourlyOvertimeCharge = 0
-      if (bType === 'hourly' && booking.hourly_end_time) {
-        const scheduledEnd = new Date(booking.hourly_end_time)
-        const overtimeMinutes = (now.getTime() - scheduledEnd.getTime()) / (1000 * 60)
-        if (overtimeMinutes > 0) {
-          hourlyOvertimeCharge = Math.ceil(overtimeMinutes / 60) * bHourlyRate
-        }
-      }
-
-      const costBreakdown = calculateBookingCost({
-        bookingType: bType,
-        roomPrice,
-        nights,
-        earlyCheckinCharge: bType === 'daily' ? ((booking as any).early_checkin_charge || 0) : 0,
-        lateCheckoutCharge: bType === 'daily' ? calculatedLateCharge : 0,
-        hourlyRate: bHourlyRate,
-        hours: bHours,
-        hourlyOvertimeCharge,
-        monthlyRate: bMonthlyRate,
-        months: bMonths,
-        serviceCharges,
-        extraCharges: (booking as any).extra_charges || 0,
-        damageCharges: totalDamageCharge,
-        damageItems,
-        vatRate: (booking as any).vat_rate ?? DEFAULT_PRICING_RULES.vatRate,
-        serviceFeeRate: (booking as any).service_fee_rate ?? DEFAULT_PRICING_RULES.serviceFeeRate,
-        depositAmount: (booking as any).deposit_amount || 0,
-        amountPaid: (booking as any).amount_paid || 0,
-      })
-
-      setCheckoutDamageItems(damageItems)
-      setCheckoutServiceDetails(serviceDetails)
-      setCheckoutCostBreakdown(costBreakdown)
-      setShowCheckoutSummary(true)
+      await computeAndOpenCheckoutSummary(booking)
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -1382,59 +1368,13 @@ export function BookingsPage() {
             onSuccess={() => setActionBooking(null)}
             onCheckoutNow={async () => {
               setShowExtendDialog(false)
-              if (!actionBooking) return
+              const todayStr = format(new Date(), 'yyyy-MM-dd')
+              setOverdueCheckoutDate(todayStr)
+              const updatedBooking = { ...actionBooking, check_out_date: todayStr }
+              setActionBooking(updatedBooking)
               setIsActionLoading(true)
               try {
-                const now = new Date()
-                const todayStr = format(now, 'yyyy-MM-dd')
-                setOverdueCheckoutDate(todayStr)
-                const updatedBooking = { ...actionBooking, check_out_date: todayStr }
-                setActionBooking(updatedBooking)
-                const actualTime = format(now, 'HH:mm')
-                const roomPrice = (updatedBooking as any).room_price || 0
-                const bType = updatedBooking.booking_type || 'daily'
-                const calculatedLateCharge = bType === 'daily' ? calculateLateCheckoutCharge(actualTime, roomPrice) : 0
-                const checkIn = new Date(updatedBooking.check_in_date)
-                const checkOut = new Date(todayStr)
-                const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
-                let serviceCharges = (updatedBooking as any).service_charges || 0
-                let serviceDetails: ServiceChargeDetail[] = []
-                try {
-                  const summary = await fetchServiceChargeSummary(updatedBooking.id, tenantId!, { includeAllBilled: true })
-                  serviceCharges = summary.grandTotal
-                  serviceDetails = summary.details
-                } catch (e) {
-                  console.warn('Failed to fetch service charge summary for overdue checkout:', e)
-                }
-                const { data: latestCheck } = await supabase.from('room_checks').select('items_lost, items_damaged, items_consumed').eq('room_id', updatedBooking.room_id).in('check_type', ['checkout', 'daily']).order('checked_at', { ascending: false }).limit(1).maybeSingle()
-                const damageItems: DamageChargeItem[] = [
-                  ...((latestCheck?.items_lost as any[]) || []).map(item => ({ item_id: item.item_id, item_name: item.item_name, item_type: 'lost' as const, quantity: item.quantity, charge_amount: item.estimated_value || 0 })),
-                  ...((latestCheck?.items_damaged as any[]) || []).map(item => ({ item_id: item.item_id, item_name: item.item_name, item_type: 'damaged' as const, quantity: item.quantity, charge_amount: item.damage_cost || 0, damage_type: item.damage_type })),
-                  // items_consumed excluded — already tracked via chargeable_consumptions
-                ]
-                const totalDamageCharge = damageItems.reduce((sum, item) => sum + item.charge_amount * item.quantity, 0)
-                let hourlyOvertimeCharge = 0
-                if (bType === 'hourly' && updatedBooking.hourly_end_time) {
-                  const scheduledEnd = new Date(updatedBooking.hourly_end_time)
-                  const overtimeMinutes = (now.getTime() - scheduledEnd.getTime()) / (1000 * 60)
-                  if (overtimeMinutes > 0) hourlyOvertimeCharge = Math.ceil(overtimeMinutes / 60) * (updatedBooking.hourly_rate || 0)
-                }
-                const costBreakdown = calculateBookingCost({
-                  bookingType: bType, roomPrice, nights,
-                  earlyCheckinCharge: bType === 'daily' ? ((updatedBooking as any).early_checkin_charge || 0) : 0,
-                  lateCheckoutCharge: bType === 'daily' ? calculatedLateCharge : 0,
-                  hourlyRate: updatedBooking.hourly_rate || 0, hours: updatedBooking.booking_hours || 0, hourlyOvertimeCharge,
-                  monthlyRate: updatedBooking.monthly_rate || 0, months: updatedBooking.booking_months || 0,
-                   serviceCharges, extraCharges: (updatedBooking as any).extra_charges || 0,
-                  damageCharges: totalDamageCharge, damageItems,
-                  vatRate: (updatedBooking as any).vat_rate ?? DEFAULT_PRICING_RULES.vatRate,
-                  serviceFeeRate: (updatedBooking as any).service_fee_rate ?? DEFAULT_PRICING_RULES.serviceFeeRate,
-                  depositAmount: (updatedBooking as any).deposit_amount || 0, amountPaid: (updatedBooking as any).amount_paid || 0,
-                })
-                setCheckoutDamageItems(damageItems)
-                setCheckoutServiceDetails(serviceDetails)
-                setCheckoutCostBreakdown(costBreakdown)
-                setShowCheckoutSummary(true)
+                await computeAndOpenCheckoutSummary(updatedBooking, { effectiveCheckOutDate: todayStr })
               } catch (error: any) {
                 toast({ variant: 'destructive', title: 'Lỗi tính toán', description: getFriendlyError(error) })
                 setActionBooking(null)
@@ -2082,98 +2022,14 @@ export function BookingsPage() {
             setActionBooking(null)
           }}
           onCheckoutNow={async () => {
-            // Close extend dialog first
             setShowExtendDialog(false)
-            
-            if (!actionBooking) return
+            const todayStr = format(new Date(), 'yyyy-MM-dd')
+            setOverdueCheckoutDate(todayStr)
+            const updatedBooking = { ...actionBooking, check_out_date: todayStr }
+            setActionBooking(updatedBooking)
             setIsActionLoading(true)
-            
             try {
-              const now = new Date()
-              const todayStr = format(now, 'yyyy-MM-dd')
-              
-              // Save overdue checkout date - will be passed to perform_checkout RPC atomically
-              // (No separate PATCH needed - the RPC handles check_out_date update)
-              setOverdueCheckoutDate(todayStr)
-              
-              // Update local state for cost calculation
-              const updatedBooking = { ...actionBooking, check_out_date: todayStr }
-              setActionBooking(updatedBooking)
-              
-              // Calculate costs (same logic as handleCheckOutClick)
-              const actualTime = format(now, 'HH:mm')
-              const roomPrice = (updatedBooking as any).room_price || 0
-              const bType = updatedBooking.booking_type || 'daily'
-              const calculatedLateCharge = bType === 'daily' ? calculateLateCheckoutCharge(actualTime, roomPrice) : 0
-              
-              const checkIn = new Date(updatedBooking.check_in_date)
-              const checkOut = new Date(todayStr)
-              const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
-              
-              let serviceCharges = (updatedBooking as any).service_charges || 0
-              let serviceDetails: ServiceChargeDetail[] = []
-              try {
-                const summary = await fetchServiceChargeSummary(updatedBooking.id, tenantId!, { includeAllBilled: true })
-                serviceCharges = summary.grandTotal
-                serviceDetails = summary.details
-              } catch (e) {
-                console.warn('Failed to fetch service charge summary for mobile overdue checkout:', e)
-              }
-              
-              const { data: latestCheck } = await supabase
-                .from('room_checks')
-                .select('items_lost, items_damaged, items_consumed')
-                .eq('room_id', updatedBooking.room_id)
-                .in('check_type', ['checkout', 'daily'])
-                .order('checked_at', { ascending: false })
-                .limit(1)
-                .maybeSingle()
-              
-              const damageItems: DamageChargeItem[] = [
-                ...((latestCheck?.items_lost as any[]) || []).map(item => ({
-                  item_id: item.item_id, item_name: item.item_name, item_type: 'lost' as const,
-                  quantity: item.quantity, charge_amount: item.estimated_value || 0,
-                })),
-                ...((latestCheck?.items_damaged as any[]) || []).map(item => ({
-                  item_id: item.item_id, item_name: item.item_name, item_type: 'damaged' as const,
-                  quantity: item.quantity, charge_amount: item.damage_cost || 0, damage_type: item.damage_type,
-                })),
-                // items_consumed excluded — already tracked via chargeable_consumptions
-              ]
-              
-              const totalDamageCharge = damageItems.reduce((sum, item) => sum + item.charge_amount * item.quantity, 0)
-              
-              let hourlyOvertimeCharge = 0
-              if (bType === 'hourly' && updatedBooking.hourly_end_time) {
-                const scheduledEnd = new Date(updatedBooking.hourly_end_time)
-                const overtimeMinutes = (now.getTime() - scheduledEnd.getTime()) / (1000 * 60)
-                if (overtimeMinutes > 0) hourlyOvertimeCharge = Math.ceil(overtimeMinutes / 60) * (updatedBooking.hourly_rate || 0)
-              }
-              
-              const costBreakdown = calculateBookingCost({
-                bookingType: bType,
-                roomPrice, nights,
-                earlyCheckinCharge: bType === 'daily' ? ((updatedBooking as any).early_checkin_charge || 0) : 0,
-                lateCheckoutCharge: bType === 'daily' ? calculatedLateCharge : 0,
-                hourlyRate: updatedBooking.hourly_rate || 0,
-                hours: updatedBooking.booking_hours || 0,
-                hourlyOvertimeCharge,
-                monthlyRate: updatedBooking.monthly_rate || 0,
-                months: updatedBooking.booking_months || 0,
-                serviceCharges,
-                extraCharges: (updatedBooking as any).extra_charges || 0,
-                damageCharges: totalDamageCharge,
-                damageItems,
-                vatRate: (updatedBooking as any).vat_rate ?? DEFAULT_PRICING_RULES.vatRate,
-                serviceFeeRate: (updatedBooking as any).service_fee_rate ?? DEFAULT_PRICING_RULES.serviceFeeRate,
-                depositAmount: (updatedBooking as any).deposit_amount || 0,
-                amountPaid: (updatedBooking as any).amount_paid || 0,
-              })
-              
-              setCheckoutDamageItems(damageItems)
-              setCheckoutServiceDetails(serviceDetails)
-              setCheckoutCostBreakdown(costBreakdown)
-              setShowCheckoutSummary(true)
+              await computeAndOpenCheckoutSummary(updatedBooking, { effectiveCheckOutDate: todayStr })
             } catch (error: any) {
               toast({ variant: 'destructive', title: 'Lỗi tính toán', description: getFriendlyError(error) })
               setActionBooking(null)
