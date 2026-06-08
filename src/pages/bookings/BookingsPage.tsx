@@ -429,6 +429,8 @@ export function BookingsPage() {
     placeholderData: (prev) => prev,
     staleTime: 30_000,
   })
+
+  const isAtQueryLimit = (bookings?.length ?? 0) >= (statusFilter === 'checked_in' || statusFilter === 'conflict' || statusFilter === 'overdue' ? 1000 : 500)
   
   // Get group booking counts for badge display
   const groupIds = useMemo(() => 
