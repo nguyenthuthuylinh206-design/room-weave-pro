@@ -212,26 +212,8 @@ export function GroupPaymentDialog({
 
     setIsProcessing(true)
     try {
-      // Create group payment record (using first booking as reference)
-      const firstBooking = groupData.bookings[0]
-      await createPayment.mutateAsync({
-        tenant_id: tenantId,
-        hotel_id: hotelId,
-        booking_id: firstBooking.id,
-        amount: finalAmount,
-        payment_method: 'cash',
-        metadata: {
-          is_group_payment: true,
-          booking_group_id: bookingGroupId,
-          booking_ids: groupData.bookings.map(b => b.id),
-          guest_name: groupData.guestName,
-          room_numbers: groupData.bookings.map(b => b.room?.room_number).join(', '),
-          room_costs_by_booking: roomCostsByBooking || [],
-        },
-      })
-
-      // Distribute payment to individual bookings
-      await distributePayment(finalAmount, groupData.bookings)
+      // Distribute payment to individual bookings (mỗi booking có record + amount_paid riêng)
+      await distributePayment(finalAmount, groupData.bookings, 'cash')
 
       setStep('success')
       toast.success(`Đã nhận ${formatVNCurrency(finalAmount)} tiền mặt cho ${groupData.roomCount} phòng`)
