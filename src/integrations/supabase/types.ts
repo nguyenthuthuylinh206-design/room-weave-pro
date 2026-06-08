@@ -14589,6 +14589,10 @@ export type Database = {
         Args: { _emoji: string; _message_id: string }
         Returns: boolean
       }
+      transfer_booking_room: {
+        Args: { p_booking_id: string; p_new_room_id: string; p_reason?: string }
+        Returns: Json
+      }
       transition_adjustment_status: {
         Args: {
           _adjustment_id: string
