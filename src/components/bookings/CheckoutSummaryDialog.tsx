@@ -131,6 +131,7 @@ export function CheckoutSummaryDialog({
   const [adjustedLateCharge, setAdjustedLateCharge] = useState(costBreakdown.lateCheckoutCharge)
   const [adjustmentNote, setAdjustmentNote] = useState('')
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
+  const [showDebtConfirm, setShowDebtConfirm] = useState(false)
   
   // Damage charge states
   const [adjustedDamageItems, setAdjustedDamageItems] = useState<DamageChargeItem[]>(initialDamageItems)
@@ -795,9 +796,50 @@ export function CheckoutSummaryDialog({
             <AlertDialogCancel disabled={isLoading} className="w-full sm:w-auto h-9">Hủy</AlertDialogCancel>
             {hasOutstandingBalance ? (
               <>
-                <Button variant="outline" onClick={handleConfirm} disabled={isLoading || !canProceed} className="w-full sm:w-auto h-9 text-sm">
-                  Nợ ({formatCurrency(adjustedCostBreakdown.remainingAmount)})
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowDebtConfirm(true)}
+                    disabled={isLoading || !canProceed}
+                    className="w-full sm:w-auto h-9 text-sm border-amber-300 text-amber-700 hover:bg-amber-50"
+                  >
+                    Nợ ({formatCurrency(adjustedCostBreakdown.remainingAmount)})
+                  </Button>
+                  <AlertDialog open={showDebtConfirm} onOpenChange={setShowDebtConfirm}>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5 text-amber-500" />
+                          Xác nhận cho nợ?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Khách <b>{guestName || 'Khách'}</b> chưa thanh toán{' '}
+                          <span className="font-semibold text-red-600">
+                            {formatCurrency(adjustedCostBreakdown.remainingAmount)}
+                          </span>
+                          . Xác nhận checkout và ghi nhận khoản nợ này?
+                          <br />
+                          <span className="text-xs text-muted-foreground mt-1 block">
+                            Khoản nợ sẽ được ghi vào lịch sử booking. Hành động này không thể hoàn tác.
+                          </span>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Quay lại thu tiền</AlertDialogCancel>
+                        <Button
+                          variant="destructive"
+                          onClick={() => {
+                            setShowDebtConfirm(false)
+                            handleConfirm()
+                          }}
+                          disabled={isLoading}
+                        >
+                          Xác nhận cho nợ
+                        </Button>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
                 <Button onClick={handlePayAndCheckout} disabled={isLoading || !canProceed} className="gap-2 w-full sm:w-auto h-9 text-sm">
                   <CreditCard className="h-4 w-4" />
                   Thu tiền & Trả phòng
