@@ -13060,6 +13060,15 @@ export type Database = {
       }
       get_current_user_role: { Args: never; Returns: string }
       get_current_user_tenant_id: { Args: never; Returns: string }
+      get_daily_occupancy_trend: {
+        Args: {
+          p_end_date?: string
+          p_hotel_id?: string
+          p_start_date?: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
       get_dashboard_stats: {
         Args: { p_hotel_id?: string; p_tenant_id: string }
         Returns: Json
