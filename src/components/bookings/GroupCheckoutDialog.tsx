@@ -28,6 +28,7 @@ import { useOnShiftStaffList, OnShiftStaffMember } from '@/hooks/useOnShiftStaff
 import { supabase } from '@/integrations/supabase/client'
 import { cn } from '@/lib/utils'
 import { createInvoiceAfterCheckout } from '@/lib/invoiceHelpers'
+import { PrintReceiptDialog } from '@/components/invoices/PrintReceiptDialog'
 import { GroupPaymentDialog } from './GroupPaymentDialog'
 import { useUser } from '@/hooks/useUser'
 import { useGroupCheckoutCalculations, GroupBookingCostData } from '@/hooks/useGroupCheckoutCalculations'
