@@ -51,6 +51,13 @@ export function RoomTransferDialog({
   const [hourlyValidRoomIds, setHourlyValidRoomIds] = useState<Set<string> | null>(null)
   const [hourlyChecking, setHourlyChecking] = useState(false)
 
+  useEffect(() => {
+    if (!open) {
+      setSelectedRoomId(null)
+      setReason('')
+    }
+  }, [open])
+
   const isHourly = booking.booking_type === 'hourly'
 
   const checkIn = useMemo(() => new Date(booking.check_in_date), [booking.check_in_date])
@@ -140,8 +147,6 @@ export function RoomTransferDialog({
       queryClient.invalidateQueries({ queryKey: ['bookings'] })
       onSuccess?.()
       onOpenChange(false)
-      setSelectedRoomId(null)
-      setReason('')
     } catch (err: any) {
       toast.error(mapDbError(err?.message ?? String(err)))
     } finally {
