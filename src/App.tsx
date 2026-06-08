@@ -194,6 +194,7 @@ const TenantsPage = lazyNamed(() => import("./pages/admin/TenantsPage"), "Tenant
 const AnalyticsPage = lazyNamed(() => import("./pages/admin/AnalyticsPage"), "AnalyticsPage");
 const PromoCodesPage = lazyNamed(() => import("./pages/admin/PromoCodesPage"), "PromoCodesPage");
 const MarketingCampaignsPage = lazyNamed(() => import("./pages/admin/MarketingCampaignsPage"), "MarketingCampaignsPage");
+const NewCampaignPage = lazyNamed(() => import("./pages/admin/NewCampaignPage"), "NewCampaignPage");
 const RenewalRemindersPage = lazyNamed(() => import("./pages/admin/RenewalRemindersPage"), "RenewalRemindersPage");
 const PricingPlansPage = lazyNamed(() => import("./pages/admin/PricingPlansPage"), "PricingPlansPage");
 const PaymentSettingsPage = lazyNamed(() => import("./pages/admin/PaymentSettingsPage"), "PaymentSettingsPage");
