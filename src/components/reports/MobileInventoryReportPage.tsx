@@ -24,6 +24,26 @@ export const MobileInventoryReportPage = () => {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
 
+  const dateRange = useMemo(() => {
+    if (dateFrom && dateTo) {
+      return { start: new Date(dateFrom), end: new Date(dateTo) }
+    }
+    const end = new Date()
+    const start = subDays(end, 30)
+    return { start, end }
+  }, [dateFrom, dateTo])
+
+  const { data: reportData, isLoading: isReportLoading } = useInventoryReport(dateRange)
+  const { data: abcData, isLoading: isABCLoading } = useABCAnalysis()
+
+  const abcCounts = useMemo(() => {
+    if (!abcData) return { a: 0, b: 0, c: 0, total: 0 }
+    const a = abcData.filter(i => i.abc_class === 'A').length
+    const b = abcData.filter(i => i.abc_class === 'B').length
+    const c = abcData.filter(i => i.abc_class === 'C').length
+    return { a, b, c, total: abcData.length }
+  }, [abcData])
+
   const { exportToExcel, isExporting } = useReportExport()
 
   const handleExport = () => {
@@ -46,6 +66,8 @@ export const MobileInventoryReportPage = () => {
       setReportType(typeId)
     }
   }
+
+  const isLoading = isReportLoading || isABCLoading
 
   return (
     <div className="min-h-screen bg-background pb-20">
