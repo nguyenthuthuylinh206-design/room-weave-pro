@@ -154,6 +154,7 @@ export function BookingsPage() {
   
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<BookingStatus>('all')
+  const [dateRangeFilter, setDateRangeFilter] = useState<'7d' | '30d' | '90d' | 'all'>('30d')
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [selectedBooking, setSelectedBooking] = useState<BookingWithRoom | null>(null)
