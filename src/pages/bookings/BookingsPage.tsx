@@ -771,6 +771,7 @@ export function BookingsPage() {
       },
       groupCounts,
       now,
+      isGroupCountsReady: groupCountsQuery.isSuccess,
     })
 
     if (action === 'group') {
