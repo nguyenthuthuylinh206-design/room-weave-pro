@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { useBackupLogs } from '@/hooks/useBackupLogs'
+import { useBackupLogs, BackupLog } from '@/hooks/useBackupLogs'
 import { formatDistanceToNow } from 'date-fns'
 import { CheckCircle, XCircle, Clock, Download, FileArchive, Loader2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
