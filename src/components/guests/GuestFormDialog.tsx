@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
@@ -59,6 +60,7 @@ export function GuestFormDialog({ open, onOpenChange, guest }: Props) {
     if (!form.full_name.trim()) return
     if (isEdit && guest) {
       await update.mutateAsync({ id: guest.id, ...form } as any)
+      toast.success('Đã cập nhật thông tin khách')
     } else if (tenant?.id) {
       await create.mutateAsync({
         tenant_id: tenant.id,
@@ -75,6 +77,7 @@ export function GuestFormDialog({ open, onOpenChange, guest }: Props) {
         notes: form.notes || null,
         id_image_url: null,
       } as any)
+      toast.success('Đã thêm khách mới')
     }
     onOpenChange(false)
   }
@@ -124,7 +127,7 @@ export function GuestFormDialog({ open, onOpenChange, guest }: Props) {
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Ngày sinh</Label>
-            <Input type="date" className="h-8" value={form.date_of_birth} onChange={(e) => set('date_of_birth', e.target.value)} />
+            <Input type="date" className="h-8" max={new Date().toISOString().split('T')[0]} value={form.date_of_birth} onChange={(e) => set('date_of_birth', e.target.value)} />
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Quốc tịch</Label>

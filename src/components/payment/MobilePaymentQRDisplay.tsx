@@ -1,4 +1,4 @@
-import { X, Copy, Check } from 'lucide-react';
+import { X, Copy, Check, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -32,6 +32,8 @@ export function MobilePaymentQRDisplay({
 }: MobilePaymentQRDisplayProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [qrLoaded, setQrLoaded] = useState(false);
+  const [qrError, setQrError] = useState(false);
   const { isExpired } = useQRExpiry(`${open}-${refreshKey}`);
 
   const qrCodeUrl = `https://qr.sepay.vn/img?acc=${qrData.accountNumber}&bank=${qrData.bankCode}&amount=${qrData.amount}&des=${encodeURIComponent(qrData.paymentContent)}&template=compact`;
@@ -75,14 +77,30 @@ export function MobilePaymentQRDisplay({
               transition={{ delay: 0.1 }}
               className="bg-white p-4 rounded-2xl shadow-xl border-2 border-primary/10"
             >
-              <img
-                src={qrCodeUrl}
-                alt="QR Code thanh toán"
-                className={cn(
-                  'w-[280px] h-[280px] sm:w-[320px] sm:h-[320px] object-contain transition-all',
-                  isExpired && 'opacity-20 blur-sm',
+              <div className="relative w-[280px] h-[280px] sm:w-[320px] sm:h-[320px]">
+                {!qrLoaded && !qrError && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted animate-pulse rounded-lg">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
                 )}
-              />
+                {qrError && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted/50 rounded-lg">
+                    <AlertCircle className="h-8 w-8 text-destructive mb-2" />
+                    <p className="text-sm text-center text-muted-foreground">Không tải được QR<br/>Kiểm tra kết nối mạng</p>
+                  </div>
+                )}
+                <img
+                  src={qrCodeUrl}
+                  alt="QR Code thanh toán"
+                  className={cn(
+                    'w-full h-full object-contain transition-all',
+                    isExpired && 'opacity-20 blur-sm',
+                    (!qrLoaded || qrError) && 'opacity-0',
+                  )}
+                  onLoad={() => setQrLoaded(true)}
+                  onError={() => setQrError(true)}
+                />
+              </div>
             </motion.div>
 
             {/* Countdown / Expiry */}

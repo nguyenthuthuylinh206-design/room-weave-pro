@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
@@ -54,6 +55,7 @@ export function MarkNoShowDialog({
       reason: reason.trim(),
       refundDeposit: refund === 'refund',
     })
+    toast.success(`Đã đánh dấu no-show: ${guestName}`)
     onOpenChange(false)
     onSuccess?.()
   }
