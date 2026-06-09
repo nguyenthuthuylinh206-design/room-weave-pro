@@ -29,6 +29,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   MoreHorizontal, 
@@ -56,6 +66,7 @@ export function PromoCodesTable() {
   const [selectedCode, setSelectedCode] = useState<PromotionalCode | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [usageDialogOpen, setUsageDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const { data: promoCodes = [], isLoading } = usePromoCodes();
   const deletePromoCode = useDeletePromoCode();
@@ -236,7 +247,7 @@ export function PromoCodesTable() {
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-red-600"
-                onClick={() => deletePromoCode.mutate(promoCode.id)}
+                onClick={() => setDeleteTarget(promoCode.id)}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete
@@ -381,6 +392,30 @@ export function PromoCodesTable() {
         open={usageDialogOpen}
         onOpenChange={setUsageDialogOpen}
       />
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xóa mã khuyến mãi?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Hành động này không thể hoàn tác. Mã đang dùng trong chiến dịch sẽ bị vô hiệu hóa.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteTarget) {
+                  deletePromoCode.mutate(deleteTarget);
+                }
+                setDeleteTarget(null);
+              }}
+            >
+              Xóa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
