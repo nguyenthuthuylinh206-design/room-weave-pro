@@ -18,9 +18,15 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="RoomQc" />
-    <meta name="apple-mobile-web-app-title" content="RoomQc" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- Content Security Policy — phòng thủ lớp 2 chống XSS.
+         - script-src: cho phép self + inline (Vite cần) + Lovable preview tagger
+         - connect-src: Supabase + Lovable + Sepay webhook + fonts
+         - frame-ancestors 'self' → chống clickjacking
+         - img-src cho phép data: (QR code), blob: (preview), https: (avatars/CDN) -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.gpteng.co https://*.lovable.dev https://*.lovable.app; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' https://ehjtoajnlnuvuiwkpmbp.supabase.co wss://ehjtoajnlnuvuiwkpmbp.supabase.co https://*.lovable.app https://*.lovable.dev https://api.sepay.vn https://fonts.googleapis.com https://fonts.gstatic.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self';" />
 
     <!-- Performance: preconnect Supabase backend so first auth/session call doesn't pay DNS+TLS cost -->
     <link rel="preconnect" href="https://ehjtoajnlnuvuiwkpmbp.supabase.co" crossorigin />
