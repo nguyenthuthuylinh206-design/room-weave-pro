@@ -17,7 +17,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { formatCurrency, cn } from '@/lib/utils'
-import { cn } from '@/lib/utils'
 import { useBookingConflictCheck } from '@/hooks/useBookingConflicts'
 import { ConflictWarningSection } from './ConflictWarningSection'
 import { getFriendlyError } from '@/lib/errorMessage'

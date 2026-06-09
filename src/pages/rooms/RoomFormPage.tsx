@@ -295,7 +295,7 @@ export function RoomFormPage() {
                 <Label htmlFor="max_guests">{t('rooms:form.maxGuests')} *</Label>
                 <Input
                   id="max_guests"
-                  type="number" min={0}
+                  type="number" min={1}
                   {...register('max_guests', { valueAsNumber: true })}
                 />
                 {errors.max_guests && (
