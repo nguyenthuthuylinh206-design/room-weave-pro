@@ -54,30 +54,34 @@ Deno.serve(async (req) => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
-    // Verify user is authenticated and is owner/super_admin
+    // Require authentication unconditionally; require owner or super_admin.
     const authHeader = req.headers.get('Authorization');
-    if (authHeader) {
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-      
-      if (authError || !user) {
-        console.log('Auth error or no user:', authError?.message);
-      } else {
-        // Check user level
-        const { data: userData } = await supabase
-          .from('users')
-          .select('user_level_code')
-          .eq('id', user.id)
-          .single();
-        
-        if (userData && !['super_admin', 'tenant_owner'].includes(userData.user_level_code)) {
-          return new Response(
-            JSON.stringify({ success: false, error: 'Unauthorized - Owner or Super Admin required' }),
-            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-      }
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+    const token = authHeader.replace(/^Bearer\s+/i, '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const { data: userData } = await supabase
+      .from('users')
+      .select('user_level_code')
+      .eq('id', user.id)
+      .single();
+    if (!userData || !['super_admin', 'tenant_owner'].includes(userData.user_level_code)) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Forbidden: Owner or Super Admin required' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
 
     // Get pending bank transfer payments
     const { data: pendingPayments, error: queryError } = await supabase

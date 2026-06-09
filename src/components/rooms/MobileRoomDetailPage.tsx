@@ -56,6 +56,14 @@ import { formatCurrency } from '@/lib/utils'
 import { canCreateHousekeepingTask } from '@/lib/userAccess'
 import type { RoomStatus, CheckType } from '@/types/rooms.types'
 
+const escHtml = (s: unknown): string =>
+  String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+
 const handlePrintItemList = (roomNumber: string | undefined, items: any[], t: any) => {
   const printWindow = window.open('', '_blank')
   if (!printWindow) return
@@ -65,7 +73,7 @@ const handlePrintItemList = (roomNumber: string | undefined, items: any[], t: an
   printWindow.document.write(`
     <html>
       <head>
-        <title>${t('print.itemListTitle', { roomNumber })}</title>
+        <title>${escHtml(t('print.itemListTitle', { roomNumber }))}</title>
         <style>
           body { font-family: Arial, sans-serif; padding: 20px; }
           h1 { font-size: 18px; margin-bottom: 20px; }
@@ -77,23 +85,24 @@ const handlePrintItemList = (roomNumber: string | undefined, items: any[], t: an
         </style>
       </head>
       <body>
-        <h1>${t('print.itemListTitle', { roomNumber })}</h1>
+        <h1>${escHtml(t('print.itemListTitle', { roomNumber }))}</h1>
         <table>
           <thead>
             <tr>
-              <th>${t('print.columns.index')}</th>
-              <th>${t('print.columns.itemName')}</th>
-              <th>${t('print.columns.required')}</th>
-              <th>${t('print.columns.current')}</th>
-              <th>${t('print.columns.missing')}</th>
-              <th>${t('print.columns.status')}</th>
+              <th>${escHtml(t('print.columns.index'))}</th>
+              <th>${escHtml(t('print.columns.itemName'))}</th>
+              <th>${escHtml(t('print.columns.required'))}</th>
+              <th>${escHtml(t('print.columns.current'))}</th>
+              <th>${escHtml(t('print.columns.missing'))}</th>
+              <th>${escHtml(t('print.columns.status'))}</th>
             </tr>
           </thead>
           <tbody>
             ${standardItems.map((item, idx) => `
               <tr>
                 <td>${idx + 1}</td>
-                <td>${item.item_name}</td>
+                <td>${escHtml(item.item_name)}</td>
+
                 <td>${item.standard_quantity}</td>
                 <td>${item.current_quantity}</td>
                 <td class="${item.missing_quantity > 0 ? 'missing' : ''}">${item.missing_quantity}</td>
@@ -104,11 +113,12 @@ const handlePrintItemList = (roomNumber: string | undefined, items: any[], t: an
             `).join('')}
           </tbody>
         </table>
-        <p style="margin-top: 20px; font-size: 12px;">${t('print.printDate', { date: new Date().toLocaleString('vi-VN') })}</p>
+        <p style="margin-top: 20px; font-size: 12px;">${escHtml(t('print.printDate', { date: new Date().toLocaleString('vi-VN') }))}</p>
       </body>
     </html>
   `)
   printWindow.document.close()
+
   printWindow.print()
 }
 

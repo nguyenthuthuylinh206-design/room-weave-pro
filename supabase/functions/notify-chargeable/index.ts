@@ -43,8 +43,30 @@ app.post('/', async (c) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+    // Require authenticated caller whose tenant matches the supplied tenant_id.
+    const authHeader = c.req.header('Authorization') ?? c.req.header('authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return c.json({ error: 'Unauthorized' }, { status: 401, headers: buildCorsHeaders(c.req.raw) })
+    }
+    const token = authHeader.replace(/^Bearer\s+/i, '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !user) {
+      return c.json({ error: 'Unauthorized' }, { status: 401, headers: buildCorsHeaders(c.req.raw) })
+    }
+
     const payload: ChargeableNotificationPayload = await c.req.json()
     const { tenant_id, hotel_id, booking_id, room_id, room_number, items, total_amount, recorded_by_name, lost_items, damaged_items, lost_total, damaged_total } = payload
+
+    // Verify caller belongs to the supplied tenant
+    const { data: callerRow } = await supabase
+      .from('users')
+      .select('tenant_id')
+      .eq('id', user.id)
+      .maybeSingle()
+    if (!callerRow || callerRow.tenant_id !== tenant_id) {
+      return c.json({ error: 'Forbidden: tenant mismatch' }, { status: 403, headers: buildCorsHeaders(c.req.raw) })
+    }
+
 
     // Allow notification if there are items OR lost/damaged items
     const hasChargeableItems = items && items.length > 0
