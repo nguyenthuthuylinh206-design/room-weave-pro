@@ -1,10 +1,13 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { BankQRCode } from './BankQRCode';
+import { QRCountdown, useQRExpiry } from './QRCountdown';
 import { useBankPaymentSettings } from '@/hooks/useBankPaymentSettings';
 import { Loader2, AlertTriangle, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { formatVNCurrency } from '@/lib/pricing';
+import { cn } from '@/lib/utils';
+import { useState } from 'react';
 import type { PendingPayment } from '@/hooks/usePendingPayments';
 
 interface ViewPaymentQRDialogProps {
@@ -21,6 +24,8 @@ export function ViewPaymentQRDialog({
   hotelId,
 }: ViewPaymentQRDialogProps) {
   const { data: bankSettings, isLoading: isLoadingSettings } = useBankPaymentSettings(hotelId);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const { isExpired } = useQRExpiry(`${open}-${payment?.id ?? ''}-${refreshKey}`);
 
   if (!payment) return null;
 
@@ -134,14 +139,21 @@ export function ViewPaymentQRDialog({
                 </span>
               </div>
 
-              <BankQRCode
-                bankCode={bankSettings.bank_code}
-                bankName={bankSettings.bank_name}
-                accountNumber={bankSettings.account_number}
-                accountHolder={bankSettings.account_holder}
-                amount={payment.amount}
-                paymentContent={payment.transaction_reference || ''}
-                qrTemplate={bankSettings.qr_template}
+              <div className={cn('transition-all', isExpired && 'opacity-30 blur-sm pointer-events-none')}>
+                <BankQRCode
+                  bankCode={bankSettings.bank_code}
+                  bankName={bankSettings.bank_name}
+                  accountNumber={bankSettings.account_number}
+                  accountHolder={bankSettings.account_holder}
+                  amount={payment.amount}
+                  paymentContent={payment.transaction_reference || ''}
+                  qrTemplate={bankSettings.qr_template}
+                />
+              </div>
+
+              <QRCountdown
+                resetKey={`${open}-${payment.id}-${refreshKey}`}
+                onRefresh={() => setRefreshKey((k) => k + 1)}
               />
             </>
           )}
