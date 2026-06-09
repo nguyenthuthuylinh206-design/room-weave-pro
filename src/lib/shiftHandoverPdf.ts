@@ -123,17 +123,26 @@ export async function fetchShiftHandoverData(shiftId: string): Promise<ShiftHand
   }
 }
 
+function esc(s: string | number | null | undefined): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export function buildShiftHandoverHTML(data: ShiftHandoverData): string {
   const rows = data.transactions.length
     ? data.transactions.map((t, i) => `
       <tr>
         <td style="padding:6px 4px;border-bottom:1px solid #eee;text-align:center;">${i + 1}</td>
-        <td style="padding:6px 4px;border-bottom:1px solid #eee;font-family:monospace;">${formatDateTime(t.paid_at)}</td>
-        <td style="padding:6px 4px;border-bottom:1px solid #eee;">${t.invoice_number || '-'}</td>
-        <td style="padding:6px 4px;border-bottom:1px solid #eee;">${t.guest_name || '-'}</td>
-        <td style="padding:6px 4px;border-bottom:1px solid #eee;text-align:center;">${t.room_number || '-'}</td>
-        <td style="padding:6px 4px;border-bottom:1px solid #eee;">${PAYMENT_METHOD_LABEL[t.payment_method] || t.payment_method}</td>
-        <td style="padding:6px 4px;border-bottom:1px solid #eee;text-align:right;font-family:monospace;">${formatVND(t.amount)}</td>
+        <td style="padding:6px 4px;border-bottom:1px solid #eee;font-family:monospace;">${esc(formatDateTime(t.paid_at))}</td>
+        <td style="padding:6px 4px;border-bottom:1px solid #eee;">${esc(t.invoice_number || '-')}</td>
+        <td style="padding:6px 4px;border-bottom:1px solid #eee;">${esc(t.guest_name || '-')}</td>
+        <td style="padding:6px 4px;border-bottom:1px solid #eee;text-align:center;">${esc(t.room_number || '-')}</td>
+        <td style="padding:6px 4px;border-bottom:1px solid #eee;">${esc(PAYMENT_METHOD_LABEL[t.payment_method] || t.payment_method)}</td>
+        <td style="padding:6px 4px;border-bottom:1px solid #eee;text-align:right;font-family:monospace;">${esc(formatVND(t.amount))}</td>
       </tr>
     `).join('')
     : `<tr><td colspan="7" style="padding:20px;text-align:center;color:#999;">Không có giao dịch trong ca</td></tr>`
@@ -141,26 +150,26 @@ export function buildShiftHandoverHTML(data: ShiftHandoverData): string {
   return `
     <div id="shift-handover-pdf" style="width:780px;padding:32px;font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:12px;color:#111;background:#fff;">
       <div style="text-align:center;margin-bottom:16px;">
-        <div style="font-size:14px;color:#555;">${data.hotelName}</div>
+        <div style="font-size:14px;color:#555;">${esc(data.hotelName)}</div>
         <div style="font-size:20px;font-weight:700;margin-top:4px;">BÁO CÁO BÀN GIAO CUỐI CA</div>
       </div>
 
       <table style="width:100%;margin-bottom:16px;border-collapse:collapse;">
         <tr>
           <td style="padding:4px 0;width:25%;color:#666;">Lễ tân:</td>
-          <td style="padding:4px 0;font-weight:600;">${data.staffName}</td>
+          <td style="padding:4px 0;font-weight:600;">${esc(data.staffName)}</td>
           <td style="padding:4px 0;width:20%;color:#666;">Mã ca:</td>
-          <td style="padding:4px 0;font-family:monospace;font-size:11px;">${data.shiftId.slice(0, 8)}</td>
+          <td style="padding:4px 0;font-family:monospace;font-size:11px;">${esc(data.shiftId.slice(0, 8))}</td>
         </tr>
         <tr>
           <td style="padding:4px 0;color:#666;">Bắt đầu ca:</td>
-          <td style="padding:4px 0;">${formatDateTime(data.startAt)}</td>
+          <td style="padding:4px 0;">${esc(formatDateTime(data.startAt))}</td>
           <td style="padding:4px 0;color:#666;">Kết thúc ca:</td>
-          <td style="padding:4px 0;">${formatDateTime(data.endAt)}</td>
+          <td style="padding:4px 0;">${esc(formatDateTime(data.endAt))}</td>
         </tr>
         <tr>
           <td style="padding:4px 0;color:#666;">Thời lượng:</td>
-          <td style="padding:4px 0;" colspan="3">${formatDuration(data.durationMinutes)}</td>
+          <td style="padding:4px 0;" colspan="3">${esc(formatDuration(data.durationMinutes))}</td>
         </tr>
       </table>
 
@@ -208,7 +217,7 @@ export function buildShiftHandoverHTML(data: ShiftHandoverData): string {
       ${data.notes ? `
       <div style="margin-top:16px;padding:8px 12px;background:#fafafa;border-left:3px solid #999;">
         <div style="font-size:11px;color:#666;margin-bottom:4px;">Ghi chú ca:</div>
-        <div>${data.notes}</div>
+        <div>${esc(data.notes)}</div>
       </div>` : ''}
 
       <div style="display:flex;justify-content:space-between;margin-top:48px;text-align:center;">
@@ -216,7 +225,7 @@ export function buildShiftHandoverHTML(data: ShiftHandoverData): string {
           <div style="font-weight:600;">Lễ tân giao ca</div>
           <div style="font-size:10px;color:#888;margin-top:4px;">(Ký, ghi rõ họ tên)</div>
           <div style="height:60px;"></div>
-          <div style="border-top:1px solid #333;padding-top:4px;font-size:11px;">${data.staffName}</div>
+          <div style="border-top:1px solid #333;padding-top:4px;font-size:11px;">${esc(data.staffName)}</div>
         </div>
         <div style="width:33%;">
           <div style="font-weight:600;">Lễ tân nhận ca</div>
@@ -233,7 +242,7 @@ export function buildShiftHandoverHTML(data: ShiftHandoverData): string {
       </div>
 
       <div style="margin-top:24px;text-align:center;font-size:10px;color:#999;">
-        Báo cáo được sinh tự động lúc ${formatDateTime(new Date().toISOString())}
+        Báo cáo được sinh tự động lúc ${esc(formatDateTime(new Date().toISOString()))}
       </div>
     </div>
   `

@@ -3,6 +3,7 @@
 // (owners + hotel_managers with email_dead_stock_digest = true) with the
 // list of dead-stock items (≥ 90 days idle) for their tenant.
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { requireCronAuth } from '../_shared/cronAuth.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')?.trim()
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -77,6 +78,9 @@ function buildHtml(tenantName: string, rows: any[], totalValue: number) {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+
+  const denied = requireCronAuth(req, corsHeaders)
+  if (denied) return denied
 
   try {
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY)

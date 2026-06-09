@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { buildCorsHeaders } from '../_shared/cors.ts'
+import { requireCronAuth } from '../_shared/cronAuth.ts'
 
 interface WorkflowTrigger {
   trigger_type: string
@@ -21,6 +22,16 @@ interface Workflow {
   status: string
 }
 
+// Whitelist of tables that the `update_record` action may write to.
+// Anything outside this list is rejected to prevent arbitrary writes via the service role.
+const UPDATE_RECORD_TABLE_WHITELIST = new Set<string>([
+  'room_bookings',
+  'rooms',
+  'housekeeping_tasks',
+  'maintenance_requests',
+  'in_app_notifications',
+])
+
 Deno.serve(async (req) => {
   const corsHeaders = buildCorsHeaders(req)
   // Handle CORS
@@ -36,6 +47,40 @@ Deno.serve(async (req) => {
     const payload: WorkflowTrigger = await req.json()
     const { trigger_type, event_data, tenant_id, hotel_id } = payload
 
+    // ---- AuthZ ------------------------------------------------------------
+    // Allow either (a) cron / service-role internal callers, or
+    // (b) an authenticated user whose tenant matches the supplied tenant_id.
+    const cronDenied = requireCronAuth(req, corsHeaders)
+    if (cronDenied) {
+      const authHeader = req.headers.get('Authorization') ?? req.headers.get('authorization')
+      if (!authHeader?.startsWith('Bearer ')) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Unauthorized' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
+      const token = authHeader.replace(/^Bearer\s+/i, '')
+      const { data: claims, error: claimsErr } = await supabase.auth.getClaims(token)
+      if (claimsErr || !claims?.claims?.sub) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Unauthorized' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
+      const userId = claims.claims.sub
+      const { data: userRow } = await supabase
+        .from('users')
+        .select('tenant_id')
+        .eq('id', userId)
+        .maybeSingle()
+      if (!userRow || userRow.tenant_id !== tenant_id) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Forbidden: tenant mismatch' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
+    }
+
     console.log(`[execute-workflow] Received trigger: ${trigger_type}`, { event_data, tenant_id, hotel_id })
 
     if (!trigger_type || !tenant_id) {
@@ -44,6 +89,7 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
 
     // Fetch active workflows matching the trigger type
     const { data: workflows, error: workflowError } = await supabase
@@ -499,11 +545,16 @@ async function executeAction(
         }
         
         if (table && recordId && Object.keys(updates).length > 0) {
+          if (!UPDATE_RECORD_TABLE_WHITELIST.has(String(table))) {
+            console.warn(`[execute-workflow] update_record rejected: table '${table}' not in whitelist`)
+            return { success: false, error: `Table '${table}' not allowed for update_record` }
+          }
           const { error } = await supabase
             .from(table)
             .update(updates)
             .eq('id', recordId)
-          
+            .eq('tenant_id', tenantId)
+
           if (error) throw error
         }
         
