@@ -79,6 +79,9 @@ function buildHtml(tenantName: string, rows: any[], totalValue: number) {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
+  const denied = requireCronAuth(req, corsHeaders)
+  if (denied) return denied
+
   try {
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
     const url = new URL(req.url)

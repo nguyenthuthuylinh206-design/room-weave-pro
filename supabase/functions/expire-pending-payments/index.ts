@@ -12,6 +12,9 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const denied = requireCronAuth(req, corsHeaders)
+  if (denied) return denied
+
   try {
     console.log("[expire-pending-payments] Starting cleanup job...");
 
