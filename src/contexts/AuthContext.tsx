@@ -1,5 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react'
-import { User as AuthUser, Session } from '@supabase/supabase-js'
+import type {
+  User as AuthUser,
+  Session,
+  AuthError,
+  AuthResponse,
+  AuthTokenResponsePassword,
+} from '@supabase/supabase-js'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
@@ -9,16 +15,24 @@ import { useQueryClient } from '@tanstack/react-query'
 // Silent refresh interval: 30 minutes
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000
 
+type SignInResult =
+  | { data: AuthTokenResponsePassword['data']; error: null }
+  | { data: null; error: AuthError }
+
+type SignUpResult =
+  | { data: AuthResponse['data']; error: null }
+  | { data: null; error: AuthError }
+
 interface AuthContextType {
   user: AuthUser | null
   session: Session | null
   loading: boolean
   isAuthenticated: boolean
-  signIn: (email: string, password: string) => Promise<{ data: any; error: any }>
-  signUp: (email: string, password: string, fullName: string) => Promise<{ data: any; error: any }>
+  signIn: (email: string, password: string) => Promise<SignInResult>
+  signUp: (email: string, password: string, fullName: string) => Promise<SignUpResult>
   signOut: () => Promise<void>
-  resetPassword: (email: string) => Promise<{ error: any }>
-  updatePassword: (newPassword: string) => Promise<{ error: any }>
+  resetPassword: (email: string) => Promise<{ error: AuthError | null }>
+  updatePassword: (newPassword: string) => Promise<{ error: AuthError | null }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
