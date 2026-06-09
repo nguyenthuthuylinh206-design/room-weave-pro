@@ -100,10 +100,13 @@ Deno.serve(async (req) => {
       throw new Error('Email này đã được sử dụng trong hệ thống')
     }
 
-    // Check if email exists in auth.users (orphaned user)
-    const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers()
-    const orphanedAuthUser = authUsers.users.find(u => u.email?.toLowerCase() === email.toLowerCase())
-    
+    // Check if email exists in auth.users (orphaned user) — query trực tiếp theo email
+    const normalizedEmail = email.toLowerCase().trim()
+    const { data: orphanedLookup } = await supabaseAdmin.auth.admin
+      .getUserByEmail(normalizedEmail)
+      .catch(() => ({ data: null }))
+    const orphanedAuthUser = orphanedLookup?.user ?? null
+
     if (orphanedAuthUser) {
       console.log('Found orphaned auth user, deleting:', orphanedAuthUser.id)
       await supabaseAdmin.auth.admin.deleteUser(orphanedAuthUser.id)
