@@ -307,7 +307,7 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
 
       {/* Install App Button - Always visible */}
       <div className="px-4 py-2 border-t">
-        <button
+        <button aria-label="Xác nhận"
           onClick={handleInstallApp}
           disabled={isInstalled}
           className={cn(

@@ -164,7 +164,7 @@ export const MobileSettingsPage = () => {
         {/* Logout Button */}
         <Card>
           <CardContent className="p-0">
-            <button
+            <button aria-label="Đăng xuất"
               onClick={handleLogout}
               className="w-full flex items-center gap-3 p-4 text-left hover:bg-accent transition-colors text-destructive"
             >

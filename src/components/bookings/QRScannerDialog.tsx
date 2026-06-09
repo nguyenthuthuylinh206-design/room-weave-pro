@@ -374,7 +374,7 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
       )}
 
       {/* Close button */}
-      <button
+      <button aria-label="Đóng"
         onClick={handleClose}
         className="absolute top-4 right-4 z-[101] w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white"
       >
@@ -383,7 +383,7 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
 
       {/* Flash toggle */}
       {hasTorch && !isLoading && (
-        <button
+        <button aria-label="Tắt đèn flash"
           type="button"
           onClick={toggleFlash}
           className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[101] w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white"

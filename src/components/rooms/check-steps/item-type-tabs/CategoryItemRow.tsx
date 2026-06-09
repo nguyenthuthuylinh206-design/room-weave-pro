@@ -293,7 +293,7 @@ export function CategoryItemRow({
         )}
       >
         {/* Status circle */}
-        <button
+        <button aria-label="Xác nhận"
           type="button"
           onClick={isPending ? handleMarkOk : undefined}
           disabled={!isPending}
