@@ -123,6 +123,15 @@ export async function fetchShiftHandoverData(shiftId: string): Promise<ShiftHand
   }
 }
 
+function esc(s: string | number | null | undefined): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export function buildShiftHandoverHTML(data: ShiftHandoverData): string {
   const rows = data.transactions.length
     ? data.transactions.map((t, i) => `
