@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
-    const { data: isSA } = await adminClient.rpc('is_super_admin', { _user_id: claims.claims.sub })
+    const { data: isSA } = await adminClient.rpc('is_super_admin', { p_user_id: claims.claims.sub })
     if (!isSA) {
       return new Response(JSON.stringify({ error: 'Forbidden: super_admin required' }), {
         status: 403,
