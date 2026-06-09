@@ -137,12 +137,12 @@ export function buildShiftHandoverHTML(data: ShiftHandoverData): string {
     ? data.transactions.map((t, i) => `
       <tr>
         <td style="padding:6px 4px;border-bottom:1px solid #eee;text-align:center;">${i + 1}</td>
-        <td style="padding:6px 4px;border-bottom:1px solid #eee;font-family:monospace;">${formatDateTime(t.paid_at)}</td>
-        <td style="padding:6px 4px;border-bottom:1px solid #eee;">${t.invoice_number || '-'}</td>
-        <td style="padding:6px 4px;border-bottom:1px solid #eee;">${t.guest_name || '-'}</td>
-        <td style="padding:6px 4px;border-bottom:1px solid #eee;text-align:center;">${t.room_number || '-'}</td>
-        <td style="padding:6px 4px;border-bottom:1px solid #eee;">${PAYMENT_METHOD_LABEL[t.payment_method] || t.payment_method}</td>
-        <td style="padding:6px 4px;border-bottom:1px solid #eee;text-align:right;font-family:monospace;">${formatVND(t.amount)}</td>
+        <td style="padding:6px 4px;border-bottom:1px solid #eee;font-family:monospace;">${esc(formatDateTime(t.paid_at))}</td>
+        <td style="padding:6px 4px;border-bottom:1px solid #eee;">${esc(t.invoice_number || '-')}</td>
+        <td style="padding:6px 4px;border-bottom:1px solid #eee;">${esc(t.guest_name || '-')}</td>
+        <td style="padding:6px 4px;border-bottom:1px solid #eee;text-align:center;">${esc(t.room_number || '-')}</td>
+        <td style="padding:6px 4px;border-bottom:1px solid #eee;">${esc(PAYMENT_METHOD_LABEL[t.payment_method] || t.payment_method)}</td>
+        <td style="padding:6px 4px;border-bottom:1px solid #eee;text-align:right;font-family:monospace;">${esc(formatVND(t.amount))}</td>
       </tr>
     `).join('')
     : `<tr><td colspan="7" style="padding:20px;text-align:center;color:#999;">Không có giao dịch trong ca</td></tr>`
@@ -150,7 +150,7 @@ export function buildShiftHandoverHTML(data: ShiftHandoverData): string {
   return `
     <div id="shift-handover-pdf" style="width:780px;padding:32px;font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:12px;color:#111;background:#fff;">
       <div style="text-align:center;margin-bottom:16px;">
-        <div style="font-size:14px;color:#555;">${data.hotelName}</div>
+        <div style="font-size:14px;color:#555;">${esc(data.hotelName)}</div>
         <div style="font-size:20px;font-weight:700;margin-top:4px;">BÁO CÁO BÀN GIAO CUỐI CA</div>
       </div>
 
