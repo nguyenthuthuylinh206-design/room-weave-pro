@@ -60,6 +60,7 @@ import {
 import { cn, formatCurrency } from '@/lib/utils'
 import type { ItemWithCategory } from '@/types/items.types'
 import { getFriendlyError } from '@/lib/errorMessage'
+import { generateQRDataURL } from '@/lib/qrCode'
 
 interface ItemTableProps {
   items: ItemWithCategory[]
