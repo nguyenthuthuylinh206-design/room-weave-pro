@@ -325,7 +325,7 @@ export function MobileRoomFormPage() {
                     <Label htmlFor="max_guests">Số khách tối đa *</Label>
                     <Input
                       id="max_guests"
-                      type="number" min={0}
+                      type="number" min={1}
                       {...register('max_guests', { valueAsNumber: true })}
                       className="h-12 text-base"
                     />
