@@ -32,6 +32,8 @@ export function MobilePaymentQRDisplay({
 }: MobilePaymentQRDisplayProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [qrLoaded, setQrLoaded] = useState(false);
+  const [qrError, setQrError] = useState(false);
   const { isExpired } = useQRExpiry(`${open}-${refreshKey}`);
 
   const qrCodeUrl = `https://qr.sepay.vn/img?acc=${qrData.accountNumber}&bank=${qrData.bankCode}&amount=${qrData.amount}&des=${encodeURIComponent(qrData.paymentContent)}&template=compact`;
