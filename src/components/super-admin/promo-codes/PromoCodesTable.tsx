@@ -66,6 +66,7 @@ export function PromoCodesTable() {
   const [selectedCode, setSelectedCode] = useState<PromotionalCode | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [usageDialogOpen, setUsageDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const { data: promoCodes = [], isLoading } = usePromoCodes();
   const deletePromoCode = useDeletePromoCode();
