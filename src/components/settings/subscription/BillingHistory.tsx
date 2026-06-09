@@ -200,60 +200,62 @@ export function BillingHistory() {
               </p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Ngày giao dịch</TableHead>
-                  <TableHead>Mã hóa đơn</TableHead>
-                  <TableHead>Nội dung</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead className="text-right">Số tiền</TableHead>
-                  <TableHead className="text-right">Chi tiết</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {completedTransactions.map((transaction) => {
-                  const invoice = getInvoiceForTransaction(transaction.invoice_id);
-                  const description = typeof transaction.metadata === 'object' && transaction.metadata !== null 
-                    ? (transaction.metadata as any).description || 'Thanh toán đăng ký'
-                    : 'Thanh toán đăng ký';
-                  
-                  return (
-                    <TableRow key={transaction.id}>
-                      <TableCell>
-                        {transaction.payment_date
-                          ? formatDate(new Date(transaction.payment_date), 'dd/MM/yyyy HH:mm', { locale: vi })
-                          : formatDate(new Date(transaction.created_at), 'dd/MM/yyyy HH:mm', { locale: vi })
-                        }
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {invoice?.invoice_number || '-'}
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate">
-                        {description}
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(transaction.payment_status)}
-                      </TableCell>
-                      <TableCell className="text-right font-semibold">
-                        {formatVNCurrency(transaction.amount)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {invoice && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSelectedInvoice(invoice)}
-                          >
-                            <FileText className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Ngày giao dịch</TableHead>
+                    <TableHead>Mã hóa đơn</TableHead>
+                    <TableHead>Nội dung</TableHead>
+                    <TableHead>Trạng thái</TableHead>
+                    <TableHead className="text-right">Số tiền</TableHead>
+                    <TableHead className="text-right">Chi tiết</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {completedTransactions.map((transaction) => {
+                    const invoice = getInvoiceForTransaction(transaction.invoice_id);
+                    const description = typeof transaction.metadata === 'object' && transaction.metadata !== null 
+                      ? (transaction.metadata as any).description || 'Thanh toán đăng ký'
+                      : 'Thanh toán đăng ký';
+                    
+                    return (
+                      <TableRow key={transaction.id}>
+                        <TableCell>
+                          {transaction.payment_date
+                            ? formatDate(new Date(transaction.payment_date), 'dd/MM/yyyy HH:mm', { locale: vi })
+                            : formatDate(new Date(transaction.created_at), 'dd/MM/yyyy HH:mm', { locale: vi })
+                          }
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {invoice?.invoice_number || '-'}
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate">
+                          {description}
+                        </TableCell>
+                        <TableCell>
+                          {getStatusBadge(transaction.payment_status)}
+                        </TableCell>
+                        <TableCell className="text-right font-semibold">
+                          {formatVNCurrency(transaction.amount)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {invoice && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedInvoice(invoice)}
+                            >
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

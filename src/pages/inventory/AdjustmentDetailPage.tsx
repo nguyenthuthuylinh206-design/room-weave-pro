@@ -520,117 +520,119 @@ function ItemsTable({
   return (
     <>
       <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Đồ dùng</TableHead>
-              <TableHead className="text-center">Hệ thống</TableHead>
-              <TableHead className="text-center">Thực tế</TableHead>
-              <TableHead className="text-center">Chênh lệch</TableHead>
-              <TableHead>Lý do</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              {showActions && <TableHead className="text-right">Thao tác</TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item: any) => {
-              const discrepancy = item.actual_quantity - item.system_quantity
-              const hasDiscrepancy = discrepancy !== 0
-              const isInvestigating = item.investigation_status === 'investigating'
-              const isApproved = item.status === 'approved'
-              const isPending = item.status === 'pending' && item.investigation_status !== 'investigating'
-              
-              return (
-                <TableRow
-                  key={item.id}
-                  className={cn(
-                    highlightDiscrepancy && hasDiscrepancy && 'bg-orange-50',
-                    isInvestigating && 'bg-amber-50'
-                  )}
-                >
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {item.item?.item_images?.[0] && (
-                        <img
-                          src={item.item.item_images[0].url}
-                          alt={item.item.name}
-                          className="h-8 w-8 rounded object-cover"
-                        />
-                      )}
-                      <div>
-                        <p className="font-medium">{item.item?.name}</p>
-                        <p className="text-xs text-muted-foreground">{item.item?.code}</p>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Đồ dùng</TableHead>
+                <TableHead className="text-center">Hệ thống</TableHead>
+                <TableHead className="text-center">Thực tế</TableHead>
+                <TableHead className="text-center">Chênh lệch</TableHead>
+                <TableHead>Lý do</TableHead>
+                <TableHead>Trạng thái</TableHead>
+                {showActions && <TableHead className="text-right">Thao tác</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((item: any) => {
+                const discrepancy = item.actual_quantity - item.system_quantity
+                const hasDiscrepancy = discrepancy !== 0
+                const isInvestigating = item.investigation_status === 'investigating'
+                const isApproved = item.status === 'approved'
+                const isPending = item.status === 'pending' && item.investigation_status !== 'investigating'
+                
+                return (
+                  <TableRow
+                    key={item.id}
+                    className={cn(
+                      highlightDiscrepancy && hasDiscrepancy && 'bg-orange-50',
+                      isInvestigating && 'bg-amber-50'
+                    )}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {item.item?.item_images?.[0] && (
+                          <img
+                            src={item.item.item_images[0].url}
+                            alt={item.item.name}
+                            className="h-8 w-8 rounded object-cover"
+                          />
+                        )}
+                        <div>
+                          <p className="font-medium">{item.item?.name}</p>
+                          <p className="text-xs text-muted-foreground">{item.item?.code}</p>
+                        </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center font-medium">
-                    {item.system_quantity}
-                  </TableCell>
-                  <TableCell className="text-center font-medium">
-                    {item.actual_quantity}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {hasDiscrepancy ? (
-                      <span className={cn(
-                        'font-bold',
-                        discrepancy > 0 ? 'text-green-600' : 'text-red-600'
-                      )}>
-                        {discrepancy > 0 ? '+' : ''}{discrepancy}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {item.discrepancy_reason ? (
-                      <p className="text-sm line-clamp-2">{item.discrepancy_reason}</p>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={
-                      isApproved ? 'default' : 
-                      isInvestigating ? 'outline' : 
-                      'secondary'
-                    }>
-                      {isPending && 'Chờ duyệt'}
-                      {isInvestigating && '🔍 Đang điều tra'}
-                      {isApproved && '✓ Đã duyệt'}
-                    </Badge>
-                  </TableCell>
-                  {showActions && (
-                    <TableCell className="text-right">
-                      {isPending && !hasDiscrepancy && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleApproveItem(item)}
-                          disabled={isApproving}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Duyệt
-                        </Button>
-                      )}
-                      {(isPending || isInvestigating) && hasDiscrepancy && (
-                        <Button
-                          size="sm"
-                          variant={isInvestigating ? 'default' : 'outline'}
-                          onClick={() => handleInvestigate(item)}
-                        >
-                          {isInvestigating ? 'Xử lý' : 'Điều tra'}
-                        </Button>
-                      )}
-                      {isApproved && (
-                        <span className="text-xs text-muted-foreground">Đã xong</span>
+                    </TableCell>
+                    <TableCell className="text-center font-medium">
+                      {item.system_quantity}
+                    </TableCell>
+                    <TableCell className="text-center font-medium">
+                      {item.actual_quantity}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {hasDiscrepancy ? (
+                        <span className={cn(
+                          'font-bold',
+                          discrepancy > 0 ? 'text-green-600' : 'text-red-600'
+                        )}>
+                          {discrepancy > 0 ? '+' : ''}{discrepancy}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                  )}
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
+                    <TableCell>
+                      {item.discrepancy_reason ? (
+                        <p className="text-sm line-clamp-2">{item.discrepancy_reason}</p>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={
+                        isApproved ? 'default' : 
+                        isInvestigating ? 'outline' : 
+                        'secondary'
+                      }>
+                        {isPending && 'Chờ duyệt'}
+                        {isInvestigating && '🔍 Đang điều tra'}
+                        {isApproved && '✓ Đã duyệt'}
+                      </Badge>
+                    </TableCell>
+                    {showActions && (
+                      <TableCell className="text-right">
+                        {isPending && !hasDiscrepancy && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleApproveItem(item)}
+                            disabled={isApproving}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Duyệt
+                          </Button>
+                        )}
+                        {(isPending || isInvestigating) && hasDiscrepancy && (
+                          <Button
+                            size="sm"
+                            variant={isInvestigating ? 'default' : 'outline'}
+                            onClick={() => handleInvestigate(item)}
+                          >
+                            {isInvestigating ? 'Xử lý' : 'Điều tra'}
+                          </Button>
+                        )}
+                        {isApproved && (
+                          <span className="text-xs text-muted-foreground">Đã xong</span>
+                        )}
+                      </TableCell>
+                    )}
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </div>
       </div>
       
       {selectedItem && (

@@ -79,49 +79,51 @@ export function TenantListTable() {
       </CardHeader>
       <CardContent>
         <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Tên Tenant</TableHead>
-                <TableHead>Gói</TableHead>
-                <TableHead>Trạng thái</TableHead>
-                <TableHead>Ngày tạo</TableHead>
-                <TableHead>Hết hạn</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tenants?.length === 0 ? (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">
-                    Chưa có tenant nào
-                  </TableCell>
+                  <TableHead>Tên Tenant</TableHead>
+                  <TableHead>Gói</TableHead>
+                  <TableHead>Trạng thái</TableHead>
+                  <TableHead>Ngày tạo</TableHead>
+                  <TableHead>Hết hạn</TableHead>
                 </TableRow>
-              ) : (
-                tenants?.map((tenant: any) => (
-                  <TableRow key={tenant.id}>
-                    <TableCell className="font-medium">{tenant.name}</TableCell>
-                    <TableCell>
-                      {getTierBadge(tenant.subscription_plan?.code || 'free')}
-                    </TableCell>
-                    <TableCell>
-                      {getStatusBadge(tenant.subscription_status)}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatDate(tenant.created_at)}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {tenant.current_period_end 
-                        ? formatDate(tenant.current_period_end)
-                        : tenant.trial_ends_at 
-                        ? formatDate(tenant.trial_ends_at)
-                        : '-'
-                      }
+              </TableHeader>
+              <TableBody>
+                {tenants?.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-muted-foreground">
+                      Chưa có tenant nào
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  tenants?.map((tenant: any) => (
+                    <TableRow key={tenant.id}>
+                      <TableCell className="font-medium">{tenant.name}</TableCell>
+                      <TableCell>
+                        {getTierBadge(tenant.subscription_plan?.code || 'free')}
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(tenant.subscription_status)}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {formatDate(tenant.created_at)}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {tenant.current_period_end 
+                          ? formatDate(tenant.current_period_end)
+                          : tenant.trial_ends_at 
+                          ? formatDate(tenant.trial_ends_at)
+                          : '-'
+                        }
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </CardContent>
     </Card>

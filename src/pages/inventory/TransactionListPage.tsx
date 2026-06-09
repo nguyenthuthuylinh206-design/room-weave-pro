@@ -315,79 +315,81 @@ export function TransactionListPage() {
             <p className="text-sm text-muted-foreground">{t('noTransactions')}</p>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-xs">{t('table.code')}</TableHead>
-                <TableHead className="text-xs">{t('table.type')}</TableHead>
-                <TableHead className="text-xs">{t('table.item')}</TableHead>
-                <TableHead className="text-xs">{t('table.quantity')}</TableHead>
-                <TableHead className="text-xs">{t('table.location')}</TableHead>
-                <TableHead className="text-xs">{t('table.creator')}</TableHead>
-                <TableHead className="text-xs">{t('table.date')}</TableHead>
-                <TableHead className="text-xs text-right">{t('table.actions')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {transactions.map((transaction) => (
-                <TableRow key={transaction.id} className="hover:bg-muted/30">
-                  <TableCell className="font-mono text-xs py-2">
-                    {transaction.transaction_code}
-                  </TableCell>
-                  <TableCell className="py-2">
-                    <TransactionTypeBadge type={transaction.transaction_type === 'adjustment' ? 'adjust' : transaction.transaction_type as TransactionType} />
-                  </TableCell>
-                  <TableCell className="py-2">
-                    <div className="flex items-center gap-2">
-                      {transaction.item_images?.[0] && (
-                        <img 
-                          src={transaction.item_images[0]} 
-                          alt={transaction.item_name}
-                          className="h-6 w-6 rounded object-cover"
-                        />
-                      )}
-                      <div>
-                        <p className="text-sm">{transaction.item_name}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-2">
-                    <span className={transaction.transaction_type === 'in' ? 'text-green-600 font-medium text-sm' : 'text-amber-600 font-medium text-sm'}>
-                      {transaction.transaction_type === 'in' ? '+' : '-'}{Math.abs(transaction.quantity)}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-xs py-2">
-                    {transaction.from_location && <div>{transaction.from_location}</div>}
-                    {transaction.to_location && <div>→ {transaction.to_location}</div>}
-                  </TableCell>
-                  <TableCell className="py-2">
-                    <div className="flex items-center gap-1.5">
-                      <Avatar className="h-5 w-5">
-                        <AvatarImage src={transaction.created_by_avatar} />
-                        <AvatarFallback className="text-[10px]">
-                          {transaction.created_by_name?.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-xs">{transaction.created_by_name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-xs py-2">
-                    {transaction.created_at ? format(new Date(transaction.created_at), 'dd/MM HH:mm', { locale: dateLocale }) : 'N/A'}
-                  </TableCell>
-                  <TableCell className="text-right py-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => setSelectedTransaction(transaction.id)}
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                    </Button>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs">{t('table.code')}</TableHead>
+                  <TableHead className="text-xs">{t('table.type')}</TableHead>
+                  <TableHead className="text-xs">{t('table.item')}</TableHead>
+                  <TableHead className="text-xs">{t('table.quantity')}</TableHead>
+                  <TableHead className="text-xs">{t('table.location')}</TableHead>
+                  <TableHead className="text-xs">{t('table.creator')}</TableHead>
+                  <TableHead className="text-xs">{t('table.date')}</TableHead>
+                  <TableHead className="text-xs text-right">{t('table.actions')}</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {transactions.map((transaction) => (
+                  <TableRow key={transaction.id} className="hover:bg-muted/30">
+                    <TableCell className="font-mono text-xs py-2">
+                      {transaction.transaction_code}
+                    </TableCell>
+                    <TableCell className="py-2">
+                      <TransactionTypeBadge type={transaction.transaction_type === 'adjustment' ? 'adjust' : transaction.transaction_type as TransactionType} />
+                    </TableCell>
+                    <TableCell className="py-2">
+                      <div className="flex items-center gap-2">
+                        {transaction.item_images?.[0] && (
+                          <img 
+                            src={transaction.item_images[0]} 
+                            alt={transaction.item_name}
+                            className="h-6 w-6 rounded object-cover"
+                          />
+                        )}
+                        <div>
+                          <p className="text-sm">{transaction.item_name}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-2">
+                      <span className={transaction.transaction_type === 'in' ? 'text-green-600 font-medium text-sm' : 'text-amber-600 font-medium text-sm'}>
+                        {transaction.transaction_type === 'in' ? '+' : '-'}{Math.abs(transaction.quantity)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-xs py-2">
+                      {transaction.from_location && <div>{transaction.from_location}</div>}
+                      {transaction.to_location && <div>→ {transaction.to_location}</div>}
+                    </TableCell>
+                    <TableCell className="py-2">
+                      <div className="flex items-center gap-1.5">
+                        <Avatar className="h-5 w-5">
+                          <AvatarImage src={transaction.created_by_avatar} />
+                          <AvatarFallback className="text-[10px]">
+                            {transaction.created_by_name?.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-xs">{transaction.created_by_name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs py-2">
+                      {transaction.created_at ? format(new Date(transaction.created_at), 'dd/MM HH:mm', { locale: dateLocale }) : 'N/A'}
+                    </TableCell>
+                    <TableCell className="text-right py-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => setSelectedTransaction(transaction.id)}
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
       

@@ -147,118 +147,120 @@ export function ItemTable({
   
   return (
     <div className="space-y-3">
-      <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="w-10 py-2">
-              <Checkbox
-                checked={selectedItems.length === items.length && items.length > 0}
-                onCheckedChange={handleSelectAll}
-              />
-            </TableHead>
-            <TableHead className="w-12 py-2 text-xs">Ảnh</TableHead>
-            <TableHead className="py-2 text-xs">Tên / Mã</TableHead>
-            <TableHead className="py-2 text-xs">Danh mục</TableHead>
-            <TableHead className="py-2 text-xs text-right">Giá</TableHead>
-            <TableHead className="py-2 text-xs text-center">Kho</TableHead>
-            <TableHead className="py-2 text-xs text-center">Phân bổ</TableHead>
-            <TableHead className="py-2 text-xs text-center">Dùng</TableHead>
-            <TableHead className="py-2 text-xs">Trạng thái</TableHead>
-            <TableHead className="w-10 py-2"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {items.map((item) => (
-            <TableRow
-              key={item.id}
-              className="cursor-pointer hover:bg-muted/30"
-              onClick={() => navigate(`/items/${item.id}`)}
-            >
-              <TableCell className="py-2" onClick={(e) => e.stopPropagation()}>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="w-10 py-2">
                 <Checkbox
-                  checked={selectedItems.includes(item.id)}
-                  onCheckedChange={(checked) => 
-                    handleSelectItem(item.id, checked as boolean)
-                  }
+                  checked={selectedItems.length === items.length && items.length > 0}
+                  onCheckedChange={handleSelectAll}
                 />
-              </TableCell>
-              <TableCell className="py-2">
-                {item.item_images?.[0]?.url ? (
-                  <img
-                    src={item.item_images[0].url}
-                    alt={item.name}
-                    className="h-9 w-9 rounded object-cover"
-                  />
-                ) : (
-                  <div className="flex h-9 w-9 items-center justify-center rounded bg-muted">
-                    <Package className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                )}
-              </TableCell>
-              <TableCell className="py-2">
-                <div>
-                  <p className="text-sm font-medium leading-tight">{item.name}</p>
-                  <p className="text-xs text-muted-foreground">{item.code}</p>
-                </div>
-              </TableCell>
-              <TableCell className="py-2">
-                {item.category_name && (
-                  <span 
-                    className="text-xs font-medium"
-                    style={{ color: item.category_color || undefined }}
-                  >
-                    {item.category_name}
-                  </span>
-                )}
-              </TableCell>
-              <TableCell className="py-2 text-right text-sm">
-                {formatCurrency(item.unit_price)}
-              </TableCell>
-              <TableCell className="py-2 text-center text-sm font-medium">
-                {item.quantity_in_stock}
-              </TableCell>
-              <TableCell className="py-2 text-center" onClick={(e) => e.stopPropagation()}>
-                {item.warehouse_breakdown && item.warehouse_breakdown.length > 0 ? (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
-                        <Warehouse className="h-3 w-3 mr-1" />
-                        {item.warehouse_breakdown.length}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-52 p-2" align="center">
-                      <div className="space-y-1.5">
-                        <p className="text-xs font-medium text-muted-foreground mb-2">Phân bổ theo kho</p>
-                        {item.warehouse_breakdown.map((wb) => (
-                          <div key={wb.warehouse_id} className="flex justify-between items-center text-sm py-1 border-b last:border-0">
-                            <span className="text-muted-foreground truncate max-w-[120px]" title={wb.warehouse_name}>
-                              {wb.warehouse_name}
-                            </span>
-                            <span className="font-medium">{wb.quantity}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                ) : (
-                  <span className="text-xs text-muted-foreground">-</span>
-                )}
-              </TableCell>
-              <TableCell className="py-2 text-center text-sm text-muted-foreground">
-                {item.quantity_in_use}
-              </TableCell>
-              <TableCell className="py-2">
-                <span className={cn('text-xs font-medium', getStockColor(item.stock_status))}>
-                  {getStockLabel(item.stock_status)}
-                </span>
-              </TableCell>
-              <TableCell className="py-2" onClick={(e) => e.stopPropagation()}>
-                <ItemActions item={item} />
-              </TableCell>
+              </TableHead>
+              <TableHead className="w-12 py-2 text-xs">Ảnh</TableHead>
+              <TableHead className="py-2 text-xs">Tên / Mã</TableHead>
+              <TableHead className="py-2 text-xs">Danh mục</TableHead>
+              <TableHead className="py-2 text-xs text-right">Giá</TableHead>
+              <TableHead className="py-2 text-xs text-center">Kho</TableHead>
+              <TableHead className="py-2 text-xs text-center">Phân bổ</TableHead>
+              <TableHead className="py-2 text-xs text-center">Dùng</TableHead>
+              <TableHead className="py-2 text-xs">Trạng thái</TableHead>
+              <TableHead className="w-10 py-2"></TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {items.map((item) => (
+              <TableRow
+                key={item.id}
+                className="cursor-pointer hover:bg-muted/30"
+                onClick={() => navigate(`/items/${item.id}`)}
+              >
+                <TableCell className="py-2" onClick={(e) => e.stopPropagation()}>
+                  <Checkbox
+                    checked={selectedItems.includes(item.id)}
+                    onCheckedChange={(checked) => 
+                      handleSelectItem(item.id, checked as boolean)
+                    }
+                  />
+                </TableCell>
+                <TableCell className="py-2">
+                  {item.item_images?.[0]?.url ? (
+                    <img
+                      src={item.item_images[0].url}
+                      alt={item.name}
+                      className="h-9 w-9 rounded object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-9 w-9 items-center justify-center rounded bg-muted">
+                      <Package className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell className="py-2">
+                  <div>
+                    <p className="text-sm font-medium leading-tight">{item.name}</p>
+                    <p className="text-xs text-muted-foreground">{item.code}</p>
+                  </div>
+                </TableCell>
+                <TableCell className="py-2">
+                  {item.category_name && (
+                    <span 
+                      className="text-xs font-medium"
+                      style={{ color: item.category_color || undefined }}
+                    >
+                      {item.category_name}
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell className="py-2 text-right text-sm">
+                  {formatCurrency(item.unit_price)}
+                </TableCell>
+                <TableCell className="py-2 text-center text-sm font-medium">
+                  {item.quantity_in_stock}
+                </TableCell>
+                <TableCell className="py-2 text-center" onClick={(e) => e.stopPropagation()}>
+                  {item.warehouse_breakdown && item.warehouse_breakdown.length > 0 ? (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
+                          <Warehouse className="h-3 w-3 mr-1" />
+                          {item.warehouse_breakdown.length}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-52 p-2" align="center">
+                        <div className="space-y-1.5">
+                          <p className="text-xs font-medium text-muted-foreground mb-2">Phân bổ theo kho</p>
+                          {item.warehouse_breakdown.map((wb) => (
+                            <div key={wb.warehouse_id} className="flex justify-between items-center text-sm py-1 border-b last:border-0">
+                              <span className="text-muted-foreground truncate max-w-[120px]" title={wb.warehouse_name}>
+                                {wb.warehouse_name}
+                              </span>
+                              <span className="font-medium">{wb.quantity}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">-</span>
+                  )}
+                </TableCell>
+                <TableCell className="py-2 text-center text-sm text-muted-foreground">
+                  {item.quantity_in_use}
+                </TableCell>
+                <TableCell className="py-2">
+                  <span className={cn('text-xs font-medium', getStockColor(item.stock_status))}>
+                    {getStockLabel(item.stock_status)}
+                  </span>
+                </TableCell>
+                <TableCell className="py-2" onClick={(e) => e.stopPropagation()}>
+                  <ItemActions item={item} />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
       
       {/* Pagination */}
       <div className="flex items-center justify-between border-t pt-3">

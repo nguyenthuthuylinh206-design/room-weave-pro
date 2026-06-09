@@ -225,56 +225,58 @@ export function LaundryBatchesPage() {
           ) : (
             <>
               <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t('fields.batchCode')}</TableHead>
-                      <TableHead>{t('fields.vendor')}</TableHead>
-                      <TableHead>{t('fields.deliveryDate')}</TableHead>
-                      <TableHead>{t('fields.expectedReturnDate')}</TableHead>
-                      <TableHead className="text-center">{t('fields.totalItems')}</TableHead>
-                      <TableHead className="text-right">{t('fields.estimatedCost')}</TableHead>
-                      <TableHead>{t('fields.status')}</TableHead>
-                      <TableHead className="w-12"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {batches.map((batch) => (
-                      <TableRow
-                        key={batch.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => navigate(`/laundry/batches/${batch.id}`)}
-                      >
-                        <TableCell className="font-medium">{batch.batch_code}</TableCell>
-                        <TableCell>{(batch as any).vendor_name || 'N/A'}</TableCell>
-                        <TableCell>{formatDate(batch.delivery_date)}</TableCell>
-                        <TableCell>{formatDate(batch.expected_return_date)}</TableCell>
-                        <TableCell className="text-center">{batch.total_items}</TableCell>
-                        <TableCell className="text-right">
-                          {(batch.actual_cost || batch.estimated_cost) > 0
-                            ? formatCurrency(batch.actual_cost || batch.estimated_cost)
-                            : <span className="text-muted-foreground italic">{t('batchDetail.notUpdated')}</span>
-                          }
-                        </TableCell>
-                        <TableCell>
-                          <BatchStatusBadge status={batch.status as any} />
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              navigate(`/laundry/batches/${batch.id}`)
-                            }}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t('fields.batchCode')}</TableHead>
+                        <TableHead>{t('fields.vendor')}</TableHead>
+                        <TableHead>{t('fields.deliveryDate')}</TableHead>
+                        <TableHead>{t('fields.expectedReturnDate')}</TableHead>
+                        <TableHead className="text-center">{t('fields.totalItems')}</TableHead>
+                        <TableHead className="text-right">{t('fields.estimatedCost')}</TableHead>
+                        <TableHead>{t('fields.status')}</TableHead>
+                        <TableHead className="w-12"></TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {batches.map((batch) => (
+                        <TableRow
+                          key={batch.id}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => navigate(`/laundry/batches/${batch.id}`)}
+                        >
+                          <TableCell className="font-medium">{batch.batch_code}</TableCell>
+                          <TableCell>{(batch as any).vendor_name || 'N/A'}</TableCell>
+                          <TableCell>{formatDate(batch.delivery_date)}</TableCell>
+                          <TableCell>{formatDate(batch.expected_return_date)}</TableCell>
+                          <TableCell className="text-center">{batch.total_items}</TableCell>
+                          <TableCell className="text-right">
+                            {(batch.actual_cost || batch.estimated_cost) > 0
+                              ? formatCurrency(batch.actual_cost || batch.estimated_cost)
+                              : <span className="text-muted-foreground italic">{t('batchDetail.notUpdated')}</span>
+                            }
+                          </TableCell>
+                          <TableCell>
+                            <BatchStatusBadge status={batch.status as any} />
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                navigate(`/laundry/batches/${batch.id}`)
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
               
               {/* Pagination */}

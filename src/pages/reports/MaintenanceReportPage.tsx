@@ -411,30 +411,32 @@ export function MaintenanceReportPage() {
                 </p>
               ) : (
                 <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>#</TableHead>
-                        <TableHead>Vấn đề</TableHead>
-                        <TableHead className="text-center">Số lần</TableHead>
-                        <TableHead className="text-center">Thời gian TB (h)</TableHead>
-                        <TableHead className="text-right">Tổng chi phí</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {recurringIssues.map((issue, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">{index + 1}</TableCell>
-                          <TableCell>{issue.issue}</TableCell>
-                          <TableCell className="text-center">
-                            <Badge variant="secondary">{issue.count}</Badge>
-                          </TableCell>
-                          <TableCell className="text-center">{issue.avg_time}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(issue.total_cost)}</TableCell>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>#</TableHead>
+                          <TableHead>Vấn đề</TableHead>
+                          <TableHead className="text-center">Số lần</TableHead>
+                          <TableHead className="text-center">Thời gian TB (h)</TableHead>
+                          <TableHead className="text-right">Tổng chi phí</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {recurringIssues.map((issue, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">{index + 1}</TableCell>
+                            <TableCell>{issue.issue}</TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant="secondary">{issue.count}</Badge>
+                            </TableCell>
+                            <TableCell className="text-center">{issue.avg_time}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(issue.total_cost)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               )}
             </CardContent>

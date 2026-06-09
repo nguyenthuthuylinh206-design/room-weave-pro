@@ -1580,327 +1580,329 @@ export function BookingsPage() {
               </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Khách</TableHead>
-                  <TableHead>Phòng</TableHead>
-                  <TableHead>Thời gian</TableHead>
-                  <TableHead>Thời hạn</TableHead>
-                  <TableHead>Tổng tiền</TableHead>
-                  <TableHead>Thanh toán</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead>Thao tác</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredBookings.map((booking) => {
-                  const nights = differenceInDays(
-                    new Date(booking.check_out_date),
-                    new Date(booking.check_in_date)
-                  )
-                  
-                  return (
-                    <TableRow 
-                      key={booking.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => {
-                        setSelectedBooking(booking)
-                        setShowEditDialog(true)
-                      }}
-                    >
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
-                            <User className="h-4 w-4 text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-medium">{booking.guest_name}</p>
-                            {booking.guest_phone && (
-                              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Phone className="h-3 w-3" />
-                                {booking.guest_phone}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">{booking.room?.room_number}</p>
-                            {/* Booking type badge */}
-                            {booking.booking_type === 'hourly' && (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-blue-300 text-blue-600">
-                                Giờ
-                              </Badge>
-                            )}
-                            {booking.booking_type === 'monthly' && (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-purple-300 text-purple-600">
-                                Tháng
-                              </Badge>
-                            )}
-                            {/* Group booking badge with tooltip */}
-                            {booking.booking_group_id && groupCounts && groupCounts[booking.booking_group_id] > 1 && (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Badge 
-                                      variant="outline" 
-                                      className="text-xs px-1.5 py-0 h-5 gap-1 cursor-help bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800"
-                                    >
-                                      <Users className="h-3 w-3" />
-                                      Nhóm {groupCounts[booking.booking_group_id]}
-                                    </Badge>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="font-medium">Đặt phòng nhóm</p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {groupCounts[booking.booking_group_id]} phòng • Bấm "TT Nhóm" để thanh toán chung
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground capitalize">
-                            {booking.room?.room_type} • Tầng {booking.room?.floor}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {/* For hourly bookings, show time range */}
-                        {booking.booking_type === 'hourly' && booking.hourly_start_time ? (
-                          <div>
-                            <p className={isToday(new Date(booking.check_in_date)) ? 'text-blue-600 font-medium' : ''}>
-                              {format(new Date(booking.check_in_date), 'dd/MM', { locale: vi })}
-                            </p>
-                            <p className="text-xs text-blue-600 font-medium">
-                              {format(new Date(booking.hourly_start_time), 'HH:mm')} - {booking.hourly_end_time ? format(new Date(booking.hourly_end_time), 'HH:mm') : ''}
-                            </p>
-                          </div>
-                        ) : (
-                          <div>
-                            <p className={isToday(new Date(booking.check_in_date)) ? 'text-blue-600 font-medium' : ''}>
-                              {format(new Date(booking.check_in_date), 'dd/MM/yyyy', { locale: vi })}
-                            </p>
-                            {booking.actual_check_in && (
-                              <p className="text-xs text-muted-foreground">
-                                {format(new Date(booking.actual_check_in), 'HH:mm')}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {/* For hourly bookings, show duration instead */}
-                        {booking.booking_type === 'hourly' ? (
-                          <div>
-                            <p className="text-sm font-medium">{booking.booking_hours || 0}h</p>
-                          </div>
-                        ) : booking.booking_type === 'monthly' ? (
-                          <div>
-                            <p className="text-sm">{booking.booking_months || 1} tháng</p>
-                            <p className="text-xs text-muted-foreground">
-                              → {format(new Date(booking.check_out_date), 'dd/MM/yy', { locale: vi })}
-                            </p>
-                          </div>
-                        ) : (
-                          <div>
-                            <p className={isToday(new Date(booking.check_out_date)) ? 'text-orange-600 font-medium' : ''}>
-                              {format(new Date(booking.check_out_date), 'dd/MM/yyyy', { locale: vi })}
-                            </p>
-                            {booking.actual_check_out && (
-                              <p className="text-xs text-muted-foreground">
-                                {format(new Date(booking.actual_check_out), 'HH:mm')}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <p className="font-mono text-sm font-medium">
-                          {formatCurrency(booking.total_amount || 0)}
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        {(() => {
-                          const remaining = (booking.total_amount || 0) - (booking.amount_paid || 0)
-                          const paymentStatus = booking.payment_status || 'pending'
-                          const isOta = booking.booking_source && OTA_SOURCES.includes(booking.booking_source)
-                          const otaLabel = BOOKING_SOURCES.find(s => s.value === booking.booking_source)?.label || ''
-                          
-                          // OTA Prepaid - show special badge
-                          if (isOta && booking.ota_payment_type === 'prepaid') {
-                            return (
-                              <div>
-                                <span className="text-xs font-medium text-green-600">Đã TT</span>
-                                <p className="text-xs text-blue-600">{otaLabel}</p>
-                              </div>
-                            )
-                          }
-                          
-                          if (paymentStatus === 'paid' || remaining <= 0) {
-                            return (
-                              <div>
-                                <span className="text-xs font-medium text-green-600">Đã TT</span>
-                                {isOta && <p className="text-xs text-blue-600">{otaLabel}</p>}
-                              </div>
-                            )
-                          } else if ((booking.amount_paid || 0) > 0) {
-                            return (
-                              <div>
-                                <span className="text-xs font-medium text-amber-600">1 phần</span>
-                                <p className="text-xs text-muted-foreground font-mono">
-                                  Còn: {new Intl.NumberFormat('vi-VN', { notation: 'compact' }).format(remaining)}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Khách</TableHead>
+                    <TableHead>Phòng</TableHead>
+                    <TableHead>Thời gian</TableHead>
+                    <TableHead>Thời hạn</TableHead>
+                    <TableHead>Tổng tiền</TableHead>
+                    <TableHead>Thanh toán</TableHead>
+                    <TableHead>Trạng thái</TableHead>
+                    <TableHead>Thao tác</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredBookings.map((booking) => {
+                    const nights = differenceInDays(
+                      new Date(booking.check_out_date),
+                      new Date(booking.check_in_date)
+                    )
+                    
+                    return (
+                      <TableRow 
+                        key={booking.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => {
+                          setSelectedBooking(booking)
+                          setShowEditDialog(true)
+                        }}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
+                              <User className="h-4 w-4 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium">{booking.guest_name}</p>
+                              {booking.guest_phone && (
+                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Phone className="h-3 w-3" />
+                                  {booking.guest_phone}
                                 </p>
-                                {isOta && <p className="text-xs text-blue-600">{otaLabel}</p>}
-                              </div>
-                            )
-                          } else {
-                            return (
-                              <div>
-                                <span className="text-xs text-muted-foreground">Chờ TT</span>
-                                {isOta && <p className="text-xs text-blue-600">{otaLabel}</p>}
-                              </div>
-                            )
-                          }
-                        })()}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          {getStatusBadge(booking.status, booking.check_out_date)}
-                          {booking.status === 'confirmed' && overdueCheckinMap.has(booking.id) && (
-                            <span className={`text-xs font-medium ${
-                              overdueCheckinMap.get(booking.id)! >= 24 ? 'text-red-600' : 'text-amber-600'
-                            }`}>
-                              Quá {overdueCheckinMap.get(booking.id)!.toFixed(1)}h
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-1">
-                          {/* Check-in button for confirmed bookings */}
-                          {booking.status === 'confirmed' && (
-                            <>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                className="h-7 text-xs text-blue-600 border-blue-200 hover:bg-blue-50"
-                                disabled={isActionLoading && actionBooking?.id === booking.id}
-                                onClick={() => handleCheckInClick(booking)}
-                              >
-                                {isActionLoading && actionBooking?.id === booking.id ? (
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                ) : (
-                                  <>
-                                    <LogIn className="h-3 w-3 mr-1" />
-                                    Check-in
-                                  </>
-                                )}
-                              </Button>
-                              {overdueCheckinMap.has(booking.id) ? (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button type="button" size="sm" variant="ghost" className="h-7 w-7 p-0">
-                                      <MoreVertical className="h-3.5 w-3.5" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-48">
-                                    {booking.guest_phone && (
-                                      <DropdownMenuItem asChild>
-                                        <a href={`tel:${booking.guest_phone}`}>
-                                          <PhoneCall className="h-3.5 w-3.5 mr-2" />
-                                          Gọi khách
-                                        </a>
-                                      </DropdownMenuItem>
-                                    )}
-                                    <DropdownMenuItem onClick={() => setRescheduleBooking(booking)}>
-                                      <CalendarClock className="h-3.5 w-3.5 mr-2" />
-                                      Dời ngày check-in
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                      className="text-red-600 focus:text-red-600"
-                                      onClick={() => setNoShowBooking(booking)}
-                                    >
-                                      <UserX className="h-3.5 w-3.5 mr-2" />
-                                      Đánh dấu No-Show
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      className="text-red-600 focus:text-red-600"
-                                      onClick={() => setCancelBooking(booking)}
-                                    >
-                                      <XCircle className="h-3.5 w-3.5 mr-2" />
-                                      Hủy đặt phòng
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              ) : (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button type="button" size="sm" variant="ghost" className="h-7 w-7 p-0">
-                                      <MoreVertical className="h-3.5 w-3.5" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-48">
-                                    {booking.guest_phone && (
-                                      <DropdownMenuItem asChild>
-                                        <a href={`tel:${booking.guest_phone}`}>
-                                          <PhoneCall className="h-3.5 w-3.5 mr-2" />
-                                          Gọi khách
-                                        </a>
-                                      </DropdownMenuItem>
-                                    )}
-                                    <DropdownMenuItem onClick={() => setRescheduleBooking(booking)}>
-                                      <CalendarClock className="h-3.5 w-3.5 mr-2" />
-                                      Dời ngày check-in
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                      className="text-red-600 focus:text-red-600"
-                                      onClick={() => setCancelBooking(booking)}
-                                    >
-                                      <XCircle className="h-3.5 w-3.5 mr-2" />
-                                      Hủy đặt phòng
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
                               )}
-                            </>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">{booking.room?.room_number}</p>
+                              {/* Booking type badge */}
+                              {booking.booking_type === 'hourly' && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-blue-300 text-blue-600">
+                                  Giờ
+                                </Badge>
+                              )}
+                              {booking.booking_type === 'monthly' && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-purple-300 text-purple-600">
+                                  Tháng
+                                </Badge>
+                              )}
+                              {/* Group booking badge with tooltip */}
+                              {booking.booking_group_id && groupCounts && groupCounts[booking.booking_group_id] > 1 && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge 
+                                        variant="outline" 
+                                        className="text-xs px-1.5 py-0 h-5 gap-1 cursor-help bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800"
+                                      >
+                                        <Users className="h-3 w-3" />
+                                        Nhóm {groupCounts[booking.booking_group_id]}
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="font-medium">Đặt phòng nhóm</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {groupCounts[booking.booking_group_id]} phòng • Bấm "TT Nhóm" để thanh toán chung
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground capitalize">
+                              {booking.room?.room_type} • Tầng {booking.room?.floor}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {/* For hourly bookings, show time range */}
+                          {booking.booking_type === 'hourly' && booking.hourly_start_time ? (
+                            <div>
+                              <p className={isToday(new Date(booking.check_in_date)) ? 'text-blue-600 font-medium' : ''}>
+                                {format(new Date(booking.check_in_date), 'dd/MM', { locale: vi })}
+                              </p>
+                              <p className="text-xs text-blue-600 font-medium">
+                                {format(new Date(booking.hourly_start_time), 'HH:mm')} - {booking.hourly_end_time ? format(new Date(booking.hourly_end_time), 'HH:mm') : ''}
+                              </p>
+                            </div>
+                          ) : (
+                            <div>
+                              <p className={isToday(new Date(booking.check_in_date)) ? 'text-blue-600 font-medium' : ''}>
+                                {format(new Date(booking.check_in_date), 'dd/MM/yyyy', { locale: vi })}
+                              </p>
+                              {booking.actual_check_in && (
+                                <p className="text-xs text-muted-foreground">
+                                  {format(new Date(booking.actual_check_in), 'HH:mm')}
+                                </p>
+                              )}
+                            </div>
                           )}
-                          {/* Check-out and group actions for checked_in bookings */}
-                          {booking.status === 'checked_in' && (
-                            <>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                className="h-7 text-xs text-orange-600 border-orange-200 hover:bg-orange-50"
-                                disabled={isActionLoading && actionBooking?.id === booking.id}
-                                onClick={() => handleCheckOutClick(booking)}
-                              >
-                                {isActionLoading && actionBooking?.id === booking.id ? (
-                                  <Loader2 className="h-3 w-3 animate-spin" />
+                        </TableCell>
+                        <TableCell>
+                          {/* For hourly bookings, show duration instead */}
+                          {booking.booking_type === 'hourly' ? (
+                            <div>
+                              <p className="text-sm font-medium">{booking.booking_hours || 0}h</p>
+                            </div>
+                          ) : booking.booking_type === 'monthly' ? (
+                            <div>
+                              <p className="text-sm">{booking.booking_months || 1} tháng</p>
+                              <p className="text-xs text-muted-foreground">
+                                → {format(new Date(booking.check_out_date), 'dd/MM/yy', { locale: vi })}
+                              </p>
+                            </div>
+                          ) : (
+                            <div>
+                              <p className={isToday(new Date(booking.check_out_date)) ? 'text-orange-600 font-medium' : ''}>
+                                {format(new Date(booking.check_out_date), 'dd/MM/yyyy', { locale: vi })}
+                              </p>
+                              {booking.actual_check_out && (
+                                <p className="text-xs text-muted-foreground">
+                                  {format(new Date(booking.actual_check_out), 'HH:mm')}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <p className="font-mono text-sm font-medium">
+                            {formatCurrency(booking.total_amount || 0)}
+                          </p>
+                        </TableCell>
+                        <TableCell>
+                          {(() => {
+                            const remaining = (booking.total_amount || 0) - (booking.amount_paid || 0)
+                            const paymentStatus = booking.payment_status || 'pending'
+                            const isOta = booking.booking_source && OTA_SOURCES.includes(booking.booking_source)
+                            const otaLabel = BOOKING_SOURCES.find(s => s.value === booking.booking_source)?.label || ''
+                            
+                            // OTA Prepaid - show special badge
+                            if (isOta && booking.ota_payment_type === 'prepaid') {
+                              return (
+                                <div>
+                                  <span className="text-xs font-medium text-green-600">Đã TT</span>
+                                  <p className="text-xs text-blue-600">{otaLabel}</p>
+                                </div>
+                              )
+                            }
+                            
+                            if (paymentStatus === 'paid' || remaining <= 0) {
+                              return (
+                                <div>
+                                  <span className="text-xs font-medium text-green-600">Đã TT</span>
+                                  {isOta && <p className="text-xs text-blue-600">{otaLabel}</p>}
+                                </div>
+                              )
+                            } else if ((booking.amount_paid || 0) > 0) {
+                              return (
+                                <div>
+                                  <span className="text-xs font-medium text-amber-600">1 phần</span>
+                                  <p className="text-xs text-muted-foreground font-mono">
+                                    Còn: {new Intl.NumberFormat('vi-VN', { notation: 'compact' }).format(remaining)}
+                                  </p>
+                                  {isOta && <p className="text-xs text-blue-600">{otaLabel}</p>}
+                                </div>
+                              )
+                            } else {
+                              return (
+                                <div>
+                                  <span className="text-xs text-muted-foreground">Chờ TT</span>
+                                  {isOta && <p className="text-xs text-blue-600">{otaLabel}</p>}
+                                </div>
+                              )
+                            }
+                          })()}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            {getStatusBadge(booking.status, booking.check_out_date)}
+                            {booking.status === 'confirmed' && overdueCheckinMap.has(booking.id) && (
+                              <span className={`text-xs font-medium ${
+                                overdueCheckinMap.get(booking.id)! >= 24 ? 'text-red-600' : 'text-amber-600'
+                              }`}>
+                                Quá {overdueCheckinMap.get(booking.id)!.toFixed(1)}h
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center gap-1">
+                            {/* Check-in button for confirmed bookings */}
+                            {booking.status === 'confirmed' && (
+                              <>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs text-blue-600 border-blue-200 hover:bg-blue-50"
+                                  disabled={isActionLoading && actionBooking?.id === booking.id}
+                                  onClick={() => handleCheckInClick(booking)}
+                                >
+                                  {isActionLoading && actionBooking?.id === booking.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <LogIn className="h-3 w-3 mr-1" />
+                                      Check-in
+                                    </>
+                                  )}
+                                </Button>
+                                {overdueCheckinMap.has(booking.id) ? (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button type="button" size="sm" variant="ghost" className="h-7 w-7 p-0">
+                                        <MoreVertical className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-48">
+                                      {booking.guest_phone && (
+                                        <DropdownMenuItem asChild>
+                                          <a href={`tel:${booking.guest_phone}`}>
+                                            <PhoneCall className="h-3.5 w-3.5 mr-2" />
+                                            Gọi khách
+                                          </a>
+                                        </DropdownMenuItem>
+                                      )}
+                                      <DropdownMenuItem onClick={() => setRescheduleBooking(booking)}>
+                                        <CalendarClock className="h-3.5 w-3.5 mr-2" />
+                                        Dời ngày check-in
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem
+                                        className="text-red-600 focus:text-red-600"
+                                        onClick={() => setNoShowBooking(booking)}
+                                      >
+                                        <UserX className="h-3.5 w-3.5 mr-2" />
+                                        Đánh dấu No-Show
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        className="text-red-600 focus:text-red-600"
+                                        onClick={() => setCancelBooking(booking)}
+                                      >
+                                        <XCircle className="h-3.5 w-3.5 mr-2" />
+                                        Hủy đặt phòng
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 ) : (
-                                  <>
-                                    <LogOut className="h-3 w-3 mr-1" />
-                                    Check-out
-                                  </>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button type="button" size="sm" variant="ghost" className="h-7 w-7 p-0">
+                                        <MoreVertical className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-48">
+                                      {booking.guest_phone && (
+                                        <DropdownMenuItem asChild>
+                                          <a href={`tel:${booking.guest_phone}`}>
+                                            <PhoneCall className="h-3.5 w-3.5 mr-2" />
+                                            Gọi khách
+                                          </a>
+                                        </DropdownMenuItem>
+                                      )}
+                                      <DropdownMenuItem onClick={() => setRescheduleBooking(booking)}>
+                                        <CalendarClock className="h-3.5 w-3.5 mr-2" />
+                                        Dời ngày check-in
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem
+                                        className="text-red-600 focus:text-red-600"
+                                        onClick={() => setCancelBooking(booking)}
+                                      >
+                                        <XCircle className="h-3.5 w-3.5 mr-2" />
+                                        Hủy đặt phòng
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 )}
-                              </Button>
-                            </>
-                          )}
-                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
+                              </>
+                            )}
+                            {/* Check-out and group actions for checked_in bookings */}
+                            {booking.status === 'checked_in' && (
+                              <>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs text-orange-600 border-orange-200 hover:bg-orange-50"
+                                  disabled={isActionLoading && actionBooking?.id === booking.id}
+                                  onClick={() => handleCheckOutClick(booking)}
+                                >
+                                  {isActionLoading && actionBooking?.id === booking.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <LogOut className="h-3 w-3 mr-1" />
+                                      Check-out
+                                    </>
+                                  )}
+                                </Button>
+                              </>
+                            )}
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

@@ -59,70 +59,72 @@ export function VendorPerformanceTable() {
           </div>
         ) : (
           <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('vendorPerformance.columns.vendor')}</TableHead>
-                  <TableHead>{t('vendorPerformance.columns.type')}</TableHead>
-                  <TableHead>{t('vendorPerformance.columns.rating')}</TableHead>
-                  <TableHead className="w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {activeVendors.map((vendor) => (
-                  <TableRow
-                    key={vendor.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => navigate(`/laundry/vendors/${vendor.id}`)}
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={(vendor.contract_info as any)?.logo_url || undefined} />
-                          <AvatarFallback>
-                            {vendor.name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="font-medium">{vendor.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {vendor.type === 'external' ? t('vendorPerformance.typeExternal') : t('vendorPerformance.typeInternal')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="flex">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`h-3 w-3 ${
-                                i < Math.floor(vendor.rating || 0)
-                                  ? 'fill-yellow-400 text-yellow-400'
-                                  : 'text-muted'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-sm font-medium">
-                          {(vendor.rating || 0).toFixed(1)}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate(`/laundry/vendors/${vendor.id}`)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('vendorPerformance.columns.vendor')}</TableHead>
+                    <TableHead>{t('vendorPerformance.columns.type')}</TableHead>
+                    <TableHead>{t('vendorPerformance.columns.rating')}</TableHead>
+                    <TableHead className="w-12"></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {activeVendors.map((vendor) => (
+                    <TableRow
+                      key={vendor.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => navigate(`/laundry/vendors/${vendor.id}`)}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={(vendor.contract_info as any)?.logo_url || undefined} />
+                            <AvatarFallback>
+                              {vendor.name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium">{vendor.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {vendor.type === 'external' ? t('vendorPerformance.typeExternal') : t('vendorPerformance.typeInternal')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="flex">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`h-3 w-3 ${
+                                  i < Math.floor(vendor.rating || 0)
+                                    ? 'fill-yellow-400 text-yellow-400'
+                                    : 'text-muted'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-sm font-medium">
+                            {(vendor.rating || 0).toFixed(1)}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/laundry/vendors/${vendor.id}`)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         )}
       </CardContent>

@@ -183,134 +183,136 @@ export function AdjustmentListPage() {
       
       {/* Table */}
       <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-xs">{t('adjustment.table.code')}</TableHead>
-              <TableHead className="text-xs">{t('adjustment.table.type')}</TableHead>
-              <TableHead className="text-xs">{t('adjustment.table.date')}</TableHead>
-              <TableHead className="text-xs">{t('adjustment.table.creator')}</TableHead>
-              <TableHead className="text-xs">{t('adjustment.table.assignee')}</TableHead>
-              <TableHead className="text-xs text-center">{t('adjustment.table.totalItems')}</TableHead>
-              <TableHead className="text-xs text-center">{t('adjustment.table.discrepancy')}</TableHead>
-              <TableHead className="text-xs text-right">{t('adjustment.table.valueDiff')}</TableHead>
-              <TableHead className="text-xs">{t('adjustment.table.status')}</TableHead>
-              <TableHead className="w-16"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-8">
-                  <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
-                </TableCell>
+                <TableHead className="text-xs">{t('adjustment.table.code')}</TableHead>
+                <TableHead className="text-xs">{t('adjustment.table.type')}</TableHead>
+                <TableHead className="text-xs">{t('adjustment.table.date')}</TableHead>
+                <TableHead className="text-xs">{t('adjustment.table.creator')}</TableHead>
+                <TableHead className="text-xs">{t('adjustment.table.assignee')}</TableHead>
+                <TableHead className="text-xs text-center">{t('adjustment.table.totalItems')}</TableHead>
+                <TableHead className="text-xs text-center">{t('adjustment.table.discrepancy')}</TableHead>
+                <TableHead className="text-xs text-right">{t('adjustment.table.valueDiff')}</TableHead>
+                <TableHead className="text-xs">{t('adjustment.table.status')}</TableHead>
+                <TableHead className="w-16"></TableHead>
               </TableRow>
-            ) : adjustments.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground text-sm">
-                  {t('adjustment.noAdjustments')}
-                </TableCell>
-              </TableRow>
-            ) : (
-              adjustments.map((adjustment: any) => {
-                const statusInfo = statusConfig[adjustment.status as keyof typeof statusConfig]
-                const StatusIcon = statusInfo?.icon || Clock
-                const typeKey = `adjustment.type.${adjustment.adjustment_type}` as const
-                
-                return (
-                  <TableRow
-                    key={adjustment.id}
-                    className={cn(
-                      "cursor-pointer hover:bg-muted/50",
-                      adjustment.status === 'completed' && "bg-yellow-50 dark:bg-yellow-950/20"
-                    )}
-                    onClick={() => navigate(`/inventory/adjustments/${adjustment.id}`)}
-                  >
-                    <TableCell className="font-medium text-sm py-2">
-                      {adjustment.adjustment_code}
-                    </TableCell>
-                    <TableCell className="text-sm py-2">
-                      {t(typeKey)}
-                    </TableCell>
-                    <TableCell className="text-sm py-2">
-                      {adjustment.scheduled_date && format(new Date(adjustment.scheduled_date), 'dd/MM/yyyy', { locale: vi })}
-                    </TableCell>
-                    <TableCell className="text-sm py-2">
-                      {adjustment.created_by_name || 'N/A'}
-                    </TableCell>
-                    <TableCell className="py-2">
-                      <div className="flex -space-x-1.5">
-                        {adjustment.assigned_to?.slice(0, 3).map((userId: string, i: number) => (
-                          <Avatar key={i} className="h-5 w-5 border border-background">
-                            <AvatarFallback className="text-[10px]">
-                              {userId.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                        ))}
-                        {adjustment.assigned_to && adjustment.assigned_to.length > 3 && (
-                          <div className="flex h-5 w-5 items-center justify-center rounded-full border border-background bg-muted text-[10px]">
-                            +{adjustment.assigned_to.length - 3}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center text-sm py-2">
-                      <span className="font-medium">{adjustment.total_items_checked || 0}</span>
-                      <span className="text-muted-foreground">/{adjustment.total_items || 0}</span>
-                    </TableCell>
-                    <TableCell className="text-center py-2">
-                      {adjustment.total_discrepancies > 0 ? (
-                        <span className="text-red-600 font-medium text-sm">{adjustment.total_discrepancies}</span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={10} className="text-center py-8">
+                    <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
+                  </TableCell>
+                </TableRow>
+              ) : adjustments.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={10} className="text-center py-8 text-muted-foreground text-sm">
+                    {t('adjustment.noAdjustments')}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                adjustments.map((adjustment: any) => {
+                  const statusInfo = statusConfig[adjustment.status as keyof typeof statusConfig]
+                  const StatusIcon = statusInfo?.icon || Clock
+                  const typeKey = `adjustment.type.${adjustment.adjustment_type}` as const
+                  
+                  return (
+                    <TableRow
+                      key={adjustment.id}
+                      className={cn(
+                        "cursor-pointer hover:bg-muted/50",
+                        adjustment.status === 'completed' && "bg-yellow-50 dark:bg-yellow-950/20"
                       )}
-                    </TableCell>
-                    <TableCell className="text-right py-2">
-                      {adjustment.total_value_difference !== 0 ? (
-                        <span className={cn(
-                          'font-medium text-sm',
-                          adjustment.total_value_difference > 0 ? 'text-green-600' : 'text-red-600'
-                        )}>
-                          {adjustment.total_value_difference > 0 ? '+' : ''}
-                          {formatCurrency(Math.abs(adjustment.total_value_difference))}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="py-2">
-                      <div className={cn('flex items-center gap-1 text-xs', statusInfo?.color)}>
-                        <StatusIcon className="h-3 w-3" />
-                        {statusInfo?.label || adjustment.status}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          if (adjustment.status === 'draft' || adjustment.status === 'in_progress') {
-                            navigate(`/inventory/adjustments/${adjustment.id}/check`)
-                          } else {
-                            navigate(`/inventory/adjustments/${adjustment.id}`)
-                          }
-                        }}
-                      >
-                        {adjustment.status === 'draft' || adjustment.status === 'in_progress' ? (
-                          <ClipboardCheck className="h-4 w-4" />
+                      onClick={() => navigate(`/inventory/adjustments/${adjustment.id}`)}
+                    >
+                      <TableCell className="font-medium text-sm py-2">
+                        {adjustment.adjustment_code}
+                      </TableCell>
+                      <TableCell className="text-sm py-2">
+                        {t(typeKey)}
+                      </TableCell>
+                      <TableCell className="text-sm py-2">
+                        {adjustment.scheduled_date && format(new Date(adjustment.scheduled_date), 'dd/MM/yyyy', { locale: vi })}
+                      </TableCell>
+                      <TableCell className="text-sm py-2">
+                        {adjustment.created_by_name || 'N/A'}
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <div className="flex -space-x-1.5">
+                          {adjustment.assigned_to?.slice(0, 3).map((userId: string, i: number) => (
+                            <Avatar key={i} className="h-5 w-5 border border-background">
+                              <AvatarFallback className="text-[10px]">
+                                {userId.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                          ))}
+                          {adjustment.assigned_to && adjustment.assigned_to.length > 3 && (
+                            <div className="flex h-5 w-5 items-center justify-center rounded-full border border-background bg-muted text-[10px]">
+                              +{adjustment.assigned_to.length - 3}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center text-sm py-2">
+                        <span className="font-medium">{adjustment.total_items_checked || 0}</span>
+                        <span className="text-muted-foreground">/{adjustment.total_items || 0}</span>
+                      </TableCell>
+                      <TableCell className="text-center py-2">
+                        {adjustment.total_discrepancies > 0 ? (
+                          <span className="text-red-600 font-medium text-sm">{adjustment.total_discrepancies}</span>
                         ) : (
-                          <Eye className="h-4 w-4" />
+                          <span className="text-muted-foreground">-</span>
                         )}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )
-              })
-            )}
-          </TableBody>
-        </Table>
+                      </TableCell>
+                      <TableCell className="text-right py-2">
+                        {adjustment.total_value_difference !== 0 ? (
+                          <span className={cn(
+                            'font-medium text-sm',
+                            adjustment.total_value_difference > 0 ? 'text-green-600' : 'text-red-600'
+                          )}>
+                            {adjustment.total_value_difference > 0 ? '+' : ''}
+                            {formatCurrency(Math.abs(adjustment.total_value_difference))}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <div className={cn('flex items-center gap-1 text-xs', statusInfo?.color)}>
+                          <StatusIcon className="h-3 w-3" />
+                          {statusInfo?.label || adjustment.status}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (adjustment.status === 'draft' || adjustment.status === 'in_progress') {
+                              navigate(`/inventory/adjustments/${adjustment.id}/check`)
+                            } else {
+                              navigate(`/inventory/adjustments/${adjustment.id}`)
+                            }
+                          }}
+                        >
+                          {adjustment.status === 'draft' || adjustment.status === 'in_progress' ? (
+                            <ClipboardCheck className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </div>
   )

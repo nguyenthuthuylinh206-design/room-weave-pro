@@ -157,94 +157,96 @@ const POReceiveForm: React.FC<POReceiveFormProps> = ({ po, open, onClose }) => {
           </div>
 
           <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Sản phẩm</TableHead>
-                  <TableHead className="text-right">Đã đặt</TableHead>
-                  <TableHead className="text-right">Đã nhận</TableHead>
-                  <TableHead className="text-right">Còn lại</TableHead>
-                  <TableHead className="text-right">Nhận lần này</TableHead>
-                  <TableHead>Ghi chú</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {po.items?.map((poItem) => {
-                  const remaining = poItem.quantity_ordered - poItem.quantity_received;
-                  const receiveItem = receiveItems.find(
-                    item => item.item_id === poItem.item_id
-                  );
-                  const isFullyReceived = remaining === 0;
-
-                  return (
-                    <TableRow
-                      key={poItem.id}
-                      className={isFullyReceived ? 'bg-green-50' : ''}
-                    >
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div>
-                            <div className="font-medium">{poItem.item?.name}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {poItem.item?.code}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Sản phẩm</TableHead>
+                    <TableHead className="text-right">Đã đặt</TableHead>
+                    <TableHead className="text-right">Đã nhận</TableHead>
+                    <TableHead className="text-right">Còn lại</TableHead>
+                    <TableHead className="text-right">Nhận lần này</TableHead>
+                    <TableHead>Ghi chú</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {po.items?.map((poItem) => {
+                    const remaining = poItem.quantity_ordered - poItem.quantity_received;
+                    const receiveItem = receiveItems.find(
+                      item => item.item_id === poItem.item_id
+                    );
+                    const isFullyReceived = remaining === 0;
+  
+                    return (
+                      <TableRow
+                        key={poItem.id}
+                        className={isFullyReceived ? 'bg-green-50' : ''}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <div className="font-medium">{poItem.item?.name}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {poItem.item?.code}
+                              </div>
                             </div>
+                            {isFullyReceived && (
+                              <CheckCircle2 className="w-4 h-4 text-green-600" />
+                            )}
                           </div>
-                          {isFullyReceived && (
-                            <CheckCircle2 className="w-4 h-4 text-green-600" />
-                          )}
-                        </div>
-                      </TableCell>
-
-                      <TableCell className="text-right font-medium">
-                        {poItem.quantity_ordered}
-                      </TableCell>
-
-                      <TableCell className="text-right">
-                        <span className={poItem.quantity_received > 0 ? 'text-green-600 font-medium' : ''}>
-                          {poItem.quantity_received}
-                        </span>
-                      </TableCell>
-
-                      <TableCell className="text-right">
-                        <Badge
-                          variant={remaining === 0 ? 'default' : 'secondary'}
-                        >
-                          {remaining}
-                        </Badge>
-                      </TableCell>
-
-                      <TableCell className="text-right">
-                        <Input
-                          type="number"
-                          min="0"
-                          max={remaining}
-                          value={receiveItem?.quantity_to_receive || 0}
-                          onChange={(e) =>
-                            handleQuantityChange(
-                              poItem.item_id,
-                              parseInt(e.target.value) || 0
-                            )
-                          }
-                          className="w-24 text-right"
-                          disabled={isFullyReceived}
-                        />
-                      </TableCell>
-
-                      <TableCell>
-                        <Input
-                          placeholder="Ghi chú..."
-                          value={receiveItem?.notes || ''}
-                          onChange={(e) =>
-                            handleNotesChange(poItem.item_id, e.target.value)
-                          }
-                          disabled={isFullyReceived}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                        </TableCell>
+  
+                        <TableCell className="text-right font-medium">
+                          {poItem.quantity_ordered}
+                        </TableCell>
+  
+                        <TableCell className="text-right">
+                          <span className={poItem.quantity_received > 0 ? 'text-green-600 font-medium' : ''}>
+                            {poItem.quantity_received}
+                          </span>
+                        </TableCell>
+  
+                        <TableCell className="text-right">
+                          <Badge
+                            variant={remaining === 0 ? 'default' : 'secondary'}
+                          >
+                            {remaining}
+                          </Badge>
+                        </TableCell>
+  
+                        <TableCell className="text-right">
+                          <Input
+                            type="number"
+                            min="0"
+                            max={remaining}
+                            value={receiveItem?.quantity_to_receive || 0}
+                            onChange={(e) =>
+                              handleQuantityChange(
+                                poItem.item_id,
+                                parseInt(e.target.value) || 0
+                              )
+                            }
+                            className="w-24 text-right"
+                            disabled={isFullyReceived}
+                          />
+                        </TableCell>
+  
+                        <TableCell>
+                          <Input
+                            placeholder="Ghi chú..."
+                            value={receiveItem?.notes || ''}
+                            onChange={(e) =>
+                              handleNotesChange(poItem.item_id, e.target.value)
+                            }
+                            disabled={isFullyReceived}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </div>
 
           <div className="p-4 bg-muted rounded-lg">

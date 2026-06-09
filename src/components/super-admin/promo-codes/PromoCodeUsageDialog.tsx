@@ -70,60 +70,62 @@ export function PromoCodeUsageDialog({
 
           {/* Usage Table */}
           <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tenant</TableHead>
-                  <TableHead>Used At</TableHead>
-                  <TableHead>Original Amount</TableHead>
-                  <TableHead>Discount Applied</TableHead>
-                  <TableHead>Final Amount</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <>
-                    {[...Array(3)].map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tenant</TableHead>
+                    <TableHead>Used At</TableHead>
+                    <TableHead>Original Amount</TableHead>
+                    <TableHead>Discount Applied</TableHead>
+                    <TableHead>Final Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <>
+                      {[...Array(3)].map((_, i) => (
+                        <TableRow key={i}>
+                          <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                          <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                          <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                          <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                        </TableRow>
+                      ))}
+                    </>
+                  ) : usage && usage.length > 0 ? (
+                    usage.map((record: any) => (
+                      <TableRow key={record.id}>
+                        <TableCell>
+                          <div className="font-medium">{record.tenant?.name || 'N/A'}</div>
+                        </TableCell>
+                        <TableCell>
+                          {new Date(record.used_at).toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          ${record.original_amount.toFixed(2)}
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-semibold text-green-600">
+                            -${record.discount_applied.toFixed(2)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          ${record.final_amount.toFixed(2)}
+                        </TableCell>
                       </TableRow>
-                    ))}
-                  </>
-                ) : usage && usage.length > 0 ? (
-                  usage.map((record: any) => (
-                    <TableRow key={record.id}>
-                      <TableCell>
-                        <div className="font-medium">{record.tenant?.name || 'N/A'}</div>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(record.used_at).toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        ${record.original_amount.toFixed(2)}
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-semibold text-green-600">
-                          -${record.discount_applied.toFixed(2)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        ${record.final_amount.toFixed(2)}
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                        No usage history yet
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                      No usage history yet
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </div>
       </DialogContent>

@@ -83,135 +83,137 @@ export function UserTable({ users, onEdit, onManagePermissions }: UserTableProps
   return (
     <>
       <div className="rounded-lg border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('users:tabs.users')}</TableHead>
-              <TableHead>{t('users:fields.userLevel')}</TableHead>
-              <TableHead>{t('users:fields.position')}</TableHead>
-              <TableHead>{t('users:fields.hotel')}</TableHead>
-              <TableHead>{t('common:createdBy')}</TableHead>
-              <TableHead>{t('users:fields.status')}</TableHead>
-              <TableHead>{t('users:fields.lastLogin')}</TableHead>
-              <TableHead className="text-right">{t('common:actions')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.map((user) => {
-              const LevelIcon = userLevelIcons[user.user_level_code || 'staff']
-              
-              return (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <UserAvatar user={user} />
-                      <div>
-                        <div className="font-medium flex items-center gap-2">
-                          {user.full_name}
-                          {user.is_primary_owner && (
-                            <Badge variant="default" className="bg-yellow-500 text-xs">
-                              {t('common:primary')}
-                            </Badge>
-                          )}
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('users:tabs.users')}</TableHead>
+                <TableHead>{t('users:fields.userLevel')}</TableHead>
+                <TableHead>{t('users:fields.position')}</TableHead>
+                <TableHead>{t('users:fields.hotel')}</TableHead>
+                <TableHead>{t('common:createdBy')}</TableHead>
+                <TableHead>{t('users:fields.status')}</TableHead>
+                <TableHead>{t('users:fields.lastLogin')}</TableHead>
+                <TableHead className="text-right">{t('common:actions')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => {
+                const LevelIcon = userLevelIcons[user.user_level_code || 'staff']
+                
+                return (
+                  <TableRow key={user.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <UserAvatar user={user} />
+                        <div>
+                          <div className="font-medium flex items-center gap-2">
+                            {user.full_name}
+                            {user.is_primary_owner && (
+                              <Badge variant="default" className="bg-yellow-500 text-xs">
+                                {t('common:primary')}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-sm text-muted-foreground">{user.email}</div>
                         </div>
-                        <div className="text-sm text-muted-foreground">{user.email}</div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant="outline" 
-                      className={userLevelColors[user.user_level_code || 'staff']}
-                    >
-                      {LevelIcon && <LevelIcon className="h-3 w-3 mr-1" />}
-                      {getUserLevelLabel(user.user_level_code || 'staff')}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {user.position?.name ? (
-                      <Badge variant="secondary">{user.position.name}</Badge>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {user.hotel?.name ? (
-                      <span className="text-sm">{user.hotel.name}</span>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm">{getCreatorName(user.created_by)}</span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
-                      {user.status === 'active' ? t('users:status.active') : t('users:status.inactive')}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {user.last_login_at ? (
-                      <span className="text-sm text-muted-foreground">
-                        {formatDistanceToNow(new Date(user.last_login_at), {
-                          addSuffix: true,
-                          locale: dateLocale,
-                        })}
-                      </span>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">{t('common:neverLoggedIn')}</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">{t('common:openMenu')}</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>{t('common:actions')}</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <PermissionGate module="users" action="update">
-                          {onEdit && (
-                            <DropdownMenuItem onClick={() => onEdit(user)}>
-                              <Pencil className="h-4 w-4 mr-2" />
-                              {t('common:edit')}
-                            </DropdownMenuItem>
-                          )}
-                          {onManagePermissions && (
-                            <DropdownMenuItem onClick={() => onManagePermissions(user.id)}>
-                              <Shield className="h-4 w-4 mr-2" />
-                              {t('users:permissions.title')}
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem onClick={() => setRolesUser(user)}>
-                            <UsersIcon className="h-4 w-4 mr-2" />
-                            Quản lý vai trò
-                          </DropdownMenuItem>
-                        </PermissionGate>
-                        <PermissionGate module="users" action="delete">
-                          {!user.is_primary_owner && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => handleDeleteClick(user)}
-                                className="text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                {t('common:delete')}
+                    </TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant="outline" 
+                        className={userLevelColors[user.user_level_code || 'staff']}
+                      >
+                        {LevelIcon && <LevelIcon className="h-3 w-3 mr-1" />}
+                        {getUserLevelLabel(user.user_level_code || 'staff')}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {user.position?.name ? (
+                        <Badge variant="secondary">{user.position.name}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {user.hotel?.name ? (
+                        <span className="text-sm">{user.hotel.name}</span>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{getCreatorName(user.created_by)}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
+                        {user.status === 'active' ? t('users:status.active') : t('users:status.inactive')}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {user.last_login_at ? (
+                        <span className="text-sm text-muted-foreground">
+                          {formatDistanceToNow(new Date(user.last_login_at), {
+                            addSuffix: true,
+                            locale: dateLocale,
+                          })}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">{t('common:neverLoggedIn')}</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">{t('common:openMenu')}</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>{t('common:actions')}</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <PermissionGate module="users" action="update">
+                            {onEdit && (
+                              <DropdownMenuItem onClick={() => onEdit(user)}>
+                                <Pencil className="h-4 w-4 mr-2" />
+                                {t('common:edit')}
                               </DropdownMenuItem>
-                            </>
-                          )}
-                        </PermissionGate>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
+                            )}
+                            {onManagePermissions && (
+                              <DropdownMenuItem onClick={() => onManagePermissions(user.id)}>
+                                <Shield className="h-4 w-4 mr-2" />
+                                {t('users:permissions.title')}
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onClick={() => setRolesUser(user)}>
+                              <UsersIcon className="h-4 w-4 mr-2" />
+                              Quản lý vai trò
+                            </DropdownMenuItem>
+                          </PermissionGate>
+                          <PermissionGate module="users" action="delete">
+                            {!user.is_primary_owner && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteClick(user)}
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  {t('common:delete')}
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </PermissionGate>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       <DeleteUserDialog

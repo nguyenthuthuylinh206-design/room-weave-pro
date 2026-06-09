@@ -132,79 +132,81 @@ export function CreateBatchStep2({ initialData, step1Data, onComplete, onBack }:
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[300px]">{t('createBatch.step2.item')} *</TableHead>
-                    <TableHead className="w-24 text-center">{t('createBatch.step2.stock')}</TableHead>
-                    <TableHead className="w-32">{t('createBatch.step2.quantity')} *</TableHead>
-                    <TableHead className="w-32">{t('createBatch.step2.weight')} *</TableHead>
-                    <TableHead>{t('createBatch.step2.conditionNote')}</TableHead>
-                    <TableHead className="w-12"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {fields.map((field, index) => (
-                    <TableRow key={field.id}>
-                      <TableCell>
-                        <FormField control={form.control} name={`items.${index}.item_id`} render={({ field }) => (
-                          <FormItem>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl><SelectTrigger><SelectValue placeholder={t('createBatch.step2.selectItem')} /></SelectTrigger></FormControl>
-                      <SelectContent>
-                                {itemsQuery.isLoading || isLoadingCategories ? (
-                                  <SelectItem value="__loading__" disabled>
-                                    {t('common:loading', 'Đang tải...')}
-                                  </SelectItem>
-                                ) : availableItems.length === 0 ? (
-                                  <SelectItem value="__empty__" disabled>
-                                    {t('createBatch.step2.noLaunderableItems', 'Không có đồ vải có thể giặt trong kho')}
-                                  </SelectItem>
-                                ) : (
-                                  availableItems.map((item) => (
-                                    <SelectItem key={item.id} value={item.id}>
-                                      <div className="flex justify-between items-center w-full gap-3">
-                                        <span>{item.name} ({item.code})</span>
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-xs text-muted-foreground">{t('createBatch.step2.stockLabel')}: {item.quantity_in_stock} {item.unit}</span>
-                                          {(item.quantity_in_stock || 0) < 10 && <Badge variant="secondary" className="text-xs">{t('createBatch.step2.lowStock')}</Badge>}
-                                        </div>
-                                      </div>
-                                    </SelectItem>
-                                  ))
-                                )}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {(() => {
-                          const selectedItem = availableItems.find(i => i.id === form.watch(`items.${index}.item_id`))
-                          return selectedItem ? <span className={cn("font-medium", (selectedItem.quantity_in_stock || 0) < 10 && "text-orange-600")}>{selectedItem.quantity_in_stock} {selectedItem.unit}</span> : '-'
-                        })()}
-                      </TableCell>
-                      <TableCell>
-                        <FormField control={form.control} name={`items.${index}.quantity`} render={({ field }) => (
-                          <FormItem><FormControl><Input type="number" min="1" {...field} onChange={(e) => field.onChange(parseInt(e.target.value) || 0)} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                      </TableCell>
-                      <TableCell>
-                        <FormField control={form.control} name={`items.${index}.weight_kg`} render={({ field }) => (
-                          <FormItem><FormControl><Input type="number" step="0.1" min="0.1" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                      </TableCell>
-                      <TableCell>
-                        <FormField control={form.control} name={`items.${index}.condition_note`} render={({ field }) => (
-                          <FormItem><FormControl><Input {...field} placeholder={t('createBatch.step2.conditionPlaceholder')} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                      </TableCell>
-                      <TableCell>{fields.length > 1 && <Button type="button" variant="ghost" size="sm" onClick={() => remove(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}</TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[300px]">{t('createBatch.step2.item')} *</TableHead>
+                      <TableHead className="w-24 text-center">{t('createBatch.step2.stock')}</TableHead>
+                      <TableHead className="w-32">{t('createBatch.step2.quantity')} *</TableHead>
+                      <TableHead className="w-32">{t('createBatch.step2.weight')} *</TableHead>
+                      <TableHead>{t('createBatch.step2.conditionNote')}</TableHead>
+                      <TableHead className="w-12"></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {fields.map((field, index) => (
+                      <TableRow key={field.id}>
+                        <TableCell>
+                          <FormField control={form.control} name={`items.${index}.item_id`} render={({ field }) => (
+                            <FormItem>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl><SelectTrigger><SelectValue placeholder={t('createBatch.step2.selectItem')} /></SelectTrigger></FormControl>
+                        <SelectContent>
+                                  {itemsQuery.isLoading || isLoadingCategories ? (
+                                    <SelectItem value="__loading__" disabled>
+                                      {t('common:loading', 'Đang tải...')}
+                                    </SelectItem>
+                                  ) : availableItems.length === 0 ? (
+                                    <SelectItem value="__empty__" disabled>
+                                      {t('createBatch.step2.noLaunderableItems', 'Không có đồ vải có thể giặt trong kho')}
+                                    </SelectItem>
+                                  ) : (
+                                    availableItems.map((item) => (
+                                      <SelectItem key={item.id} value={item.id}>
+                                        <div className="flex justify-between items-center w-full gap-3">
+                                          <span>{item.name} ({item.code})</span>
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-xs text-muted-foreground">{t('createBatch.step2.stockLabel')}: {item.quantity_in_stock} {item.unit}</span>
+                                            {(item.quantity_in_stock || 0) < 10 && <Badge variant="secondary" className="text-xs">{t('createBatch.step2.lowStock')}</Badge>}
+                                          </div>
+                                        </div>
+                                      </SelectItem>
+                                    ))
+                                  )}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )} />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {(() => {
+                            const selectedItem = availableItems.find(i => i.id === form.watch(`items.${index}.item_id`))
+                            return selectedItem ? <span className={cn("font-medium", (selectedItem.quantity_in_stock || 0) < 10 && "text-orange-600")}>{selectedItem.quantity_in_stock} {selectedItem.unit}</span> : '-'
+                          })()}
+                        </TableCell>
+                        <TableCell>
+                          <FormField control={form.control} name={`items.${index}.quantity`} render={({ field }) => (
+                            <FormItem><FormControl><Input type="number" min="1" {...field} onChange={(e) => field.onChange(parseInt(e.target.value) || 0)} /></FormControl><FormMessage /></FormItem>
+                          )} />
+                        </TableCell>
+                        <TableCell>
+                          <FormField control={form.control} name={`items.${index}.weight_kg`} render={({ field }) => (
+                            <FormItem><FormControl><Input type="number" step="0.1" min="0.1" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)} /></FormControl><FormMessage /></FormItem>
+                          )} />
+                        </TableCell>
+                        <TableCell>
+                          <FormField control={form.control} name={`items.${index}.condition_note`} render={({ field }) => (
+                            <FormItem><FormControl><Input {...field} placeholder={t('createBatch.step2.conditionPlaceholder')} /></FormControl><FormMessage /></FormItem>
+                          )} />
+                        </TableCell>
+                        <TableCell>{fields.length > 1 && <Button type="button" variant="ghost" size="sm" onClick={() => remove(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           </CardContent>
         </Card>

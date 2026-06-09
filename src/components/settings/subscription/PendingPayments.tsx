@@ -205,67 +205,69 @@ export function PendingPayments() {
                 <p>Không có giao dịch nào đang chờ xác nhận</p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Mã đơn hàng</TableHead>
-                    <TableHead>Số tiền</TableHead>
-                    <TableHead>Nội dung CK</TableHead>
-                    <TableHead>Ngày tạo</TableHead>
-                    <TableHead>Trạng thái</TableHead>
-                    <TableHead className="text-right">Hành động</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pendingPayments.map((payment) => (
-                    <TableRow key={payment.id} className="transition-colors hover:bg-muted/50">
-                      <TableCell className="font-mono text-sm">
-                        {payment.invoice?.invoice_number || payment.id.slice(0, 8)}
-                      </TableCell>
-                      <TableCell className="font-semibold text-primary">
-                        {formatVNCurrency(payment.amount)}
-                      </TableCell>
-                      <TableCell className="font-mono">
-                        {payment.transaction_reference}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(payment.created_at).toLocaleString('vi-VN')}
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(payment.payment_status)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {payment.invoice_id && (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Mã đơn hàng</TableHead>
+                      <TableHead>Số tiền</TableHead>
+                      <TableHead>Nội dung CK</TableHead>
+                      <TableHead>Ngày tạo</TableHead>
+                      <TableHead>Trạng thái</TableHead>
+                      <TableHead className="text-right">Hành động</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingPayments.map((payment) => (
+                      <TableRow key={payment.id} className="transition-colors hover:bg-muted/50">
+                        <TableCell className="font-mono text-sm">
+                          {payment.invoice?.invoice_number || payment.id.slice(0, 8)}
+                        </TableCell>
+                        <TableCell className="font-semibold text-primary">
+                          {formatVNCurrency(payment.amount)}
+                        </TableCell>
+                        <TableCell className="font-mono">
+                          {payment.transaction_reference}
+                        </TableCell>
+                        <TableCell>
+                          {new Date(payment.created_at).toLocaleString('vi-VN')}
+                        </TableCell>
+                        <TableCell>
+                          {getStatusBadge(payment.payment_status)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {payment.invoice_id && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleGoToPayment(payment)}
+                              >
+                                <CreditCard className="h-4 w-4 mr-2" />
+                                Thanh toán
+                              </Button>
+                            )}
                             <Button
                               size="sm"
-                              onClick={() => handleGoToPayment(payment)}
+                              variant="outline"
+                              onClick={() => handleViewQR(payment)}
                             >
-                              <CreditCard className="h-4 w-4 mr-2" />
-                              Thanh toán
+                              <QrCode className="h-4 w-4" />
                             </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleViewQR(payment)}
-                          >
-                            <QrCode className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => setCancelPayment(payment)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => setCancelPayment(payment)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

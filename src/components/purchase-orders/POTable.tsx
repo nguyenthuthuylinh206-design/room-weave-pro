@@ -100,257 +100,259 @@ const POTable: React.FC<POTableProps> = ({
 
   return (
     <div className="border rounded-lg">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-12">
-              <Checkbox
-                checked={selectedPOs.length === purchaseOrders.length && purchaseOrders.length > 0}
-                onCheckedChange={handleSelectAll}
-              />
-            </TableHead>
-            <TableHead>Mã đơn</TableHead>
-            <TableHead>Ngày tạo</TableHead>
-            <TableHead>Nhà cung cấp</TableHead>
-            <TableHead>Sản phẩm</TableHead>
-            <TableHead className="text-right">Tổng giá trị</TableHead>
-            <TableHead>Người tạo</TableHead>
-            <TableHead>Người duyệt</TableHead>
-            <TableHead>Ngày giao DK</TableHead>
-            <TableHead>Trạng thái</TableHead>
-            <TableHead className="w-12"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {purchaseOrders.length === 0 ? (
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
-                Không có đơn đặt hàng nào
-              </TableCell>
+              <TableHead className="w-12">
+                <Checkbox
+                  checked={selectedPOs.length === purchaseOrders.length && purchaseOrders.length > 0}
+                  onCheckedChange={handleSelectAll}
+                />
+              </TableHead>
+              <TableHead>Mã đơn</TableHead>
+              <TableHead>Ngày tạo</TableHead>
+              <TableHead>Nhà cung cấp</TableHead>
+              <TableHead>Sản phẩm</TableHead>
+              <TableHead className="text-right">Tổng giá trị</TableHead>
+              <TableHead>Người tạo</TableHead>
+              <TableHead>Người duyệt</TableHead>
+              <TableHead>Ngày giao DK</TableHead>
+              <TableHead>Trạng thái</TableHead>
+              <TableHead className="w-12"></TableHead>
             </TableRow>
-          ) : (
-            purchaseOrders.map(po => {
-              const statusBadge = getStatusBadge(po.status);
-              const overdue = isOverdue(po);
-              const dueSoon = isDueSoon(po);
-
-              return (
-                <TableRow
-                  key={po.id}
-                  className={`
-                    ${overdue ? 'border-l-4 border-l-red-500' : ''}
-                    ${dueSoon ? 'bg-yellow-50 dark:bg-yellow-950/20' : ''}
-                    cursor-pointer hover:bg-accent
-                  `}
-                  onClick={() => navigate(`/purchase-orders/${po.id}`)}
-                >
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      checked={selectedPOs.includes(po.id)}
-                      onCheckedChange={(checked) => handleSelectOne(po.id, checked as boolean)}
-                    />
-                  </TableCell>
-
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-medium">{po.po_code}</span>
-                      {overdue && (
-                        <AlertCircle className="w-4 h-4 text-red-500" />
-                      )}
-                    </div>
-                  </TableCell>
-
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{formatDate(po.order_date)}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {formatRelativeTime(po.order_date)}
+          </TableHeader>
+          <TableBody>
+            {purchaseOrders.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                  Không có đơn đặt hàng nào
+                </TableCell>
+              </TableRow>
+            ) : (
+              purchaseOrders.map(po => {
+                const statusBadge = getStatusBadge(po.status);
+                const overdue = isOverdue(po);
+                const dueSoon = isDueSoon(po);
+  
+                return (
+                  <TableRow
+                    key={po.id}
+                    className={`
+                      ${overdue ? 'border-l-4 border-l-red-500' : ''}
+                      ${dueSoon ? 'bg-yellow-50 dark:bg-yellow-950/20' : ''}
+                      cursor-pointer hover:bg-accent
+                    `}
+                    onClick={() => navigate(`/purchase-orders/${po.id}`)}
+                  >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedPOs.includes(po.id)}
+                        onCheckedChange={(checked) => handleSelectOne(po.id, checked as boolean)}
+                      />
+                    </TableCell>
+  
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-medium">{po.po_code}</span>
+                        {overdue && (
+                          <AlertCircle className="w-4 h-4 text-red-500" />
+                        )}
                       </div>
-                    </div>
-                  </TableCell>
-
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {po.vendor?.logo_url && (
-                        <Avatar className="w-8 h-8">
-                          <AvatarImage src={po.vendor.logo_url} />
-                          <AvatarFallback>
-                            {po.vendor.name.substring(0, 2)}
-                          </AvatarFallback>
-                        </Avatar>
-                      )}
+                    </TableCell>
+  
+                    <TableCell>
                       <div>
-                        <div className="font-medium">{po.vendor?.name || 'N/A'}</div>
+                        <div className="font-medium">{formatDate(po.order_date)}</div>
                         <div className="text-xs text-muted-foreground">
-                          {po.vendor?.code || ''}
+                          {formatRelativeTime(po.order_date)}
                         </div>
                       </div>
-                    </div>
-                  </TableCell>
-
-                  <TableCell>
-                    <div className="text-sm">
-                      {po.items?.length || 0} items
-                    </div>
-                  </TableCell>
-
-                  <TableCell className="text-right">
-                    <div className="font-semibold">{formatCurrency(po.total_amount)}</div>
-                    <div className="text-xs text-muted-foreground">
-                      ST: {formatCurrency(po.subtotal)}
-                    </div>
-                  </TableCell>
-
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Avatar className="w-6 h-6">
-                        <AvatarFallback className="text-xs">
-                          {po.requested_by?.substring(0, 2).toUpperCase() || 'NA'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm">{po.requested_by || 'N/A'}</span>
-                    </div>
-                  </TableCell>
-
-                  <TableCell>
-                    {po.approved_by ? (
+                    </TableCell>
+  
+                    <TableCell>
                       <div className="flex items-center gap-2">
-                        <Avatar className="w-6 h-6">
-                          <AvatarFallback className="text-xs">
-                            {po.approved_by.substring(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
+                        {po.vendor?.logo_url && (
+                          <Avatar className="w-8 h-8">
+                            <AvatarImage src={po.vendor.logo_url} />
+                            <AvatarFallback>
+                              {po.vendor.name.substring(0, 2)}
+                            </AvatarFallback>
+                          </Avatar>
+                        )}
                         <div>
-                          <div className="text-sm">{po.approved_by}</div>
+                          <div className="font-medium">{po.vendor?.name || 'N/A'}</div>
                           <div className="text-xs text-muted-foreground">
-                            {po.approved_at && formatDate(po.approved_at)}
+                            {po.vendor?.code || ''}
                           </div>
                         </div>
                       </div>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">
-                        {formatDate(po.expected_delivery_date)}
+                    </TableCell>
+  
+                    <TableCell>
+                      <div className="text-sm">
+                        {po.items?.length || 0} items
                       </div>
-                      {overdue ? (
-                        <div className="text-xs text-red-500 font-medium">
-                          Quá hạn
-                        </div>
-                      ) : dueSoon ? (
-                        <div className="text-xs text-yellow-600 font-medium">
-                          Còn {differenceInDays(new Date(po.expected_delivery_date), new Date())} ngày
+                    </TableCell>
+  
+                    <TableCell className="text-right">
+                      <div className="font-semibold">{formatCurrency(po.total_amount)}</div>
+                      <div className="text-xs text-muted-foreground">
+                        ST: {formatCurrency(po.subtotal)}
+                      </div>
+                    </TableCell>
+  
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="w-6 h-6">
+                          <AvatarFallback className="text-xs">
+                            {po.requested_by?.substring(0, 2).toUpperCase() || 'NA'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm">{po.requested_by || 'N/A'}</span>
+                      </div>
+                    </TableCell>
+  
+                    <TableCell>
+                      {po.approved_by ? (
+                        <div className="flex items-center gap-2">
+                          <Avatar className="w-6 h-6">
+                            <AvatarFallback className="text-xs">
+                              {po.approved_by.substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="text-sm">{po.approved_by}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {po.approved_at && formatDate(po.approved_at)}
+                            </div>
+                          </div>
                         </div>
                       ) : (
-                        <div className="text-xs text-muted-foreground">
-                          {formatRelativeTime(po.expected_delivery_date)}
-                        </div>
+                        <span className="text-muted-foreground">-</span>
                       )}
-                    </div>
-                  </TableCell>
-
-                  <TableCell>
-                    <Badge variant={statusBadge.variant}>
-                      {statusBadge.label}
-                    </Badge>
-                  </TableCell>
-
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => navigate(`/purchase-orders/${po.id}`)}
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          Xem chi tiết
-                        </DropdownMenuItem>
-
-                        {po.status === 'draft' && (
-                          <>
-                            <PermissionGate module="purchase_orders" action="update">
-                              <DropdownMenuItem
-                                onClick={() => navigate(`/purchase-orders/${po.id}/edit`)}
-                              >
-                                <Edit className="w-4 h-4 mr-2" />
-                                Sửa
-                              </DropdownMenuItem>
-                            </PermissionGate>
-                            <PermissionGate module="purchase_orders" action="update">
-                              <DropdownMenuItem>
-                                <Send className="w-4 h-4 mr-2" />
-                                Gửi duyệt
-                              </DropdownMenuItem>
-                            </PermissionGate>
-                          </>
+                    </TableCell>
+  
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">
+                          {formatDate(po.expected_delivery_date)}
+                        </div>
+                        {overdue ? (
+                          <div className="text-xs text-red-500 font-medium">
+                            Quá hạn
+                          </div>
+                        ) : dueSoon ? (
+                          <div className="text-xs text-yellow-600 font-medium">
+                            Còn {differenceInDays(new Date(po.expected_delivery_date), new Date())} ngày
+                          </div>
+                        ) : (
+                          <div className="text-xs text-muted-foreground">
+                            {formatRelativeTime(po.expected_delivery_date)}
+                          </div>
                         )}
-
-                        {po.status === 'submitted' && (
-                          <>
-                            <PermissionGate module="purchase_orders" action="approve">
+                      </div>
+                    </TableCell>
+  
+                    <TableCell>
+                      <Badge variant={statusBadge.variant}>
+                        {statusBadge.label}
+                      </Badge>
+                    </TableCell>
+  
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => navigate(`/purchase-orders/${po.id}`)}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            Xem chi tiết
+                          </DropdownMenuItem>
+  
+                          {po.status === 'draft' && (
+                            <>
+                              <PermissionGate module="purchase_orders" action="update">
+                                <DropdownMenuItem
+                                  onClick={() => navigate(`/purchase-orders/${po.id}/edit`)}
+                                >
+                                  <Edit className="w-4 h-4 mr-2" />
+                                  Sửa
+                                </DropdownMenuItem>
+                              </PermissionGate>
+                              <PermissionGate module="purchase_orders" action="update">
+                                <DropdownMenuItem>
+                                  <Send className="w-4 h-4 mr-2" />
+                                  Gửi duyệt
+                                </DropdownMenuItem>
+                              </PermissionGate>
+                            </>
+                          )}
+  
+                          {po.status === 'submitted' && (
+                            <>
+                              <PermissionGate module="purchase_orders" action="approve">
+                                <DropdownMenuItem>
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  Duyệt
+                                </DropdownMenuItem>
+                              </PermissionGate>
+                              <PermissionGate module="purchase_orders" action="approve">
+                                <DropdownMenuItem>
+                                  <XCircle className="w-4 h-4 mr-2" />
+                                  Từ chối
+                                </DropdownMenuItem>
+                              </PermissionGate>
+                            </>
+                          )}
+  
+                          {(po.status === 'ordered' || po.status === 'partial') && (
+                            <PermissionGate module="purchase_orders" action="update">
                               <DropdownMenuItem>
                                 <CheckCircle className="w-4 h-4 mr-2" />
-                                Duyệt
+                                Nhận hàng
                               </DropdownMenuItem>
                             </PermissionGate>
-                            <PermissionGate module="purchase_orders" action="approve">
-                              <DropdownMenuItem>
-                                <XCircle className="w-4 h-4 mr-2" />
-                                Từ chối
-                              </DropdownMenuItem>
-                            </PermissionGate>
-                          </>
-                        )}
-
-                        {(po.status === 'ordered' || po.status === 'partial') && (
-                          <PermissionGate module="purchase_orders" action="update">
-                            <DropdownMenuItem>
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              Nhận hàng
-                            </DropdownMenuItem>
-                          </PermissionGate>
-                        )}
-
-                        <DropdownMenuSeparator />
-
-                        <DropdownMenuItem>
-                          <Printer className="w-4 h-4 mr-2" />
-                          In đơn
-                        </DropdownMenuItem>
-
-                        <DropdownMenuItem>
-                          <Copy className="w-4 h-4 mr-2" />
-                          Sao chép
-                        </DropdownMenuItem>
-
-                        {(po.status === 'draft' || po.status === 'submitted') && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <PermissionGate module="purchase_orders" action="delete">
-                              <DropdownMenuItem className="text-red-600">
-                                <Trash className="w-4 h-4 mr-2" />
-                                Xóa
-                              </DropdownMenuItem>
-                            </PermissionGate>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              );
-            })
-          )}
-        </TableBody>
-      </Table>
+                          )}
+  
+                          <DropdownMenuSeparator />
+  
+                          <DropdownMenuItem>
+                            <Printer className="w-4 h-4 mr-2" />
+                            In đơn
+                          </DropdownMenuItem>
+  
+                          <DropdownMenuItem>
+                            <Copy className="w-4 h-4 mr-2" />
+                            Sao chép
+                          </DropdownMenuItem>
+  
+                          {(po.status === 'draft' || po.status === 'submitted') && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <PermissionGate module="purchase_orders" action="delete">
+                                <DropdownMenuItem className="text-red-600">
+                                  <Trash className="w-4 h-4 mr-2" />
+                                  Xóa
+                                </DropdownMenuItem>
+                              </PermissionGate>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 };

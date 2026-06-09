@@ -202,39 +202,41 @@ export function ABCAnalysisTab() {
           </Alert>
           
           <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Đồ dùng</TableHead>
-                  <TableHead>Danh mục</TableHead>
-                  <TableHead className="text-right">Giá trị</TableHead>
-                  <TableHead className="text-right">% Giá trị</TableHead>
-                  <TableHead className="text-right">% Tích lũy</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {classA.map((item) => (
-                  <TableRow key={item.item_id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{item.item_name}</p>
-                        <p className="text-xs text-muted-foreground">{item.item_code}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>{item.category_name}</TableCell>
-                    <TableCell className="text-right font-bold">
-                      {formatCurrency(item.total_value)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {item.percentage.toFixed(1)}%
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {item.cumulative_percentage.toFixed(1)}%
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Đồ dùng</TableHead>
+                    <TableHead>Danh mục</TableHead>
+                    <TableHead className="text-right">Giá trị</TableHead>
+                    <TableHead className="text-right">% Giá trị</TableHead>
+                    <TableHead className="text-right">% Tích lũy</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {classA.map((item) => (
+                    <TableRow key={item.item_id}>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{item.item_name}</p>
+                          <p className="text-xs text-muted-foreground">{item.item_code}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>{item.category_name}</TableCell>
+                      <TableCell className="text-right font-bold">
+                        {formatCurrency(item.total_value)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {item.percentage.toFixed(1)}%
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {item.cumulative_percentage.toFixed(1)}%
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </CardContent>
       </Card>

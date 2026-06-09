@@ -182,51 +182,53 @@ export default function ItemDetailPage() {
                     {t('items:detail.noTransactions')}
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{t('items:detail.transactionCode')}</TableHead>
-                        <TableHead>{t('items:detail.type')}</TableHead>
-                        <TableHead className="text-right">{t('items:fields.quantity')}</TableHead>
-                        <TableHead>{t('items:detail.performer')}</TableHead>
-                        <TableHead>{t('items:detail.time')}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {recentTransactions.map((txn: any) => {
-                        const isInbound = txn.transaction_type === 'in'
-                        return (
-                          <TableRow key={txn.id}>
-                            <TableCell className="font-mono text-xs">
-                              {txn.transaction_code}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="font-normal">
-                                {txn.transaction_category
-                                  ? t(`inventory:category.${txn.transaction_category}`, { defaultValue: txn.transaction_category })
-                                  : t(`inventory:type.${txn.transaction_type}`, { defaultValue: txn.transaction_type })}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <span className={cn(
-                                'font-medium',
-                                isInbound ? 'text-green-600' : 'text-amber-600'
-                              )}>
-                                {isInbound ? '+' : '-'}{txn.quantity}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-sm">{txn.created_by_name}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {formatDistanceToNow(new Date(txn.transaction_date), {
-                                addSuffix: true,
-                                locale: vi,
-                              })}
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })}
-                    </TableBody>
-                  </Table>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{t('items:detail.transactionCode')}</TableHead>
+                          <TableHead>{t('items:detail.type')}</TableHead>
+                          <TableHead className="text-right">{t('items:fields.quantity')}</TableHead>
+                          <TableHead>{t('items:detail.performer')}</TableHead>
+                          <TableHead>{t('items:detail.time')}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {recentTransactions.map((txn: any) => {
+                          const isInbound = txn.transaction_type === 'in'
+                          return (
+                            <TableRow key={txn.id}>
+                              <TableCell className="font-mono text-xs">
+                                {txn.transaction_code}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="font-normal">
+                                  {txn.transaction_category
+                                    ? t(`inventory:category.${txn.transaction_category}`, { defaultValue: txn.transaction_category })
+                                    : t(`inventory:type.${txn.transaction_type}`, { defaultValue: txn.transaction_type })}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <span className={cn(
+                                  'font-medium',
+                                  isInbound ? 'text-green-600' : 'text-amber-600'
+                                )}>
+                                  {isInbound ? '+' : '-'}{txn.quantity}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-sm">{txn.created_by_name}</TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {formatDistanceToNow(new Date(txn.transaction_date), {
+                                  addSuffix: true,
+                                  locale: vi,
+                                })}
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </div>
             </TabsContent>
@@ -238,76 +240,78 @@ export default function ItemDetailPage() {
                     {t('items:detail.noRoomAllocation')}
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{t('items:detail.room')}</TableHead>
-                        <TableHead>{t('items:detail.roomType')}</TableHead>
-                        <TableHead className="text-center">{t('items:fields.quantity')}</TableHead>
-                        <TableHead>{t('items:detail.lastChecked', { defaultValue: 'Lần kiểm tra cuối' })}</TableHead>
-                        <TableHead>{t('items:detail.recentIssues', { defaultValue: 'Vấn đề gần đây' })}</TableHead>
-                        <TableHead>{t('items:detail.allocatedAt')}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {roomAllocations.map((allocation: any) => {
-                        const lastChecked = allocation.last_checked_at
-                          ? new Date(allocation.last_checked_at)
-                          : null
-                        const daysSinceCheck = lastChecked
-                          ? Math.floor((Date.now() - lastChecked.getTime()) / (1000 * 60 * 60 * 24))
-                          : null
-                        const checkColor =
-                          !lastChecked ? 'text-muted-foreground' :
-                          daysSinceCheck! > 30 ? 'text-amber-600' :
-                          'text-foreground'
-                        const issuesCount = allocation.recent_issues_count || 0
-                        return (
-                          <TableRow key={allocation.id}>
-                            <TableCell>
-                              <Link
-                                to={`/rooms/${allocation.room_id}`}
-                                className="font-medium hover:underline"
-                              >
-                                {allocation.room_number}
-                              </Link>
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {allocation.room_type}
-                            </TableCell>
-                            <TableCell className="text-center font-medium">
-                              {allocation.quantity}
-                            </TableCell>
-                            <TableCell>
-                              <span className={cn('text-sm', checkColor)}>
-                                {lastChecked
-                                  ? formatDistanceToNow(lastChecked, { addSuffix: true, locale: vi })
-                                  : t('items:detail.neverChecked', { defaultValue: 'Chưa kiểm tra' })}
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              {issuesCount > 0 ? (
-                                <span className="text-sm text-red-600 font-medium">
-                                  {t('items:detail.issuesCount', {
-                                    count: issuesCount,
-                                    defaultValue: `${issuesCount} lần hỏng/mất`,
-                                  })}
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{t('items:detail.room')}</TableHead>
+                          <TableHead>{t('items:detail.roomType')}</TableHead>
+                          <TableHead className="text-center">{t('items:fields.quantity')}</TableHead>
+                          <TableHead>{t('items:detail.lastChecked', { defaultValue: 'Lần kiểm tra cuối' })}</TableHead>
+                          <TableHead>{t('items:detail.recentIssues', { defaultValue: 'Vấn đề gần đây' })}</TableHead>
+                          <TableHead>{t('items:detail.allocatedAt')}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {roomAllocations.map((allocation: any) => {
+                          const lastChecked = allocation.last_checked_at
+                            ? new Date(allocation.last_checked_at)
+                            : null
+                          const daysSinceCheck = lastChecked
+                            ? Math.floor((Date.now() - lastChecked.getTime()) / (1000 * 60 * 60 * 24))
+                            : null
+                          const checkColor =
+                            !lastChecked ? 'text-muted-foreground' :
+                            daysSinceCheck! > 30 ? 'text-amber-600' :
+                            'text-foreground'
+                          const issuesCount = allocation.recent_issues_count || 0
+                          return (
+                            <TableRow key={allocation.id}>
+                              <TableCell>
+                                <Link
+                                  to={`/rooms/${allocation.room_id}`}
+                                  className="font-medium hover:underline"
+                                >
+                                  {allocation.room_number}
+                                </Link>
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {allocation.room_type}
+                              </TableCell>
+                              <TableCell className="text-center font-medium">
+                                {allocation.quantity}
+                              </TableCell>
+                              <TableCell>
+                                <span className={cn('text-sm', checkColor)}>
+                                  {lastChecked
+                                    ? formatDistanceToNow(lastChecked, { addSuffix: true, locale: vi })
+                                    : t('items:detail.neverChecked', { defaultValue: 'Chưa kiểm tra' })}
                                 </span>
-                              ) : (
-                                <span className="text-sm text-muted-foreground">—</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {formatDistanceToNow(new Date(allocation.assigned_at), {
-                                addSuffix: true,
-                                locale: vi,
-                              })}
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })}
-                    </TableBody>
-                  </Table>
+                              </TableCell>
+                              <TableCell>
+                                {issuesCount > 0 ? (
+                                  <span className="text-sm text-red-600 font-medium">
+                                    {t('items:detail.issuesCount', {
+                                      count: issuesCount,
+                                      defaultValue: `${issuesCount} lần hỏng/mất`,
+                                    })}
+                                  </span>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {formatDistanceToNow(new Date(allocation.assigned_at), {
+                                  addSuffix: true,
+                                  locale: vi,
+                                })}
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </div>
             </TabsContent>

@@ -135,77 +135,79 @@ export function ManagerRoomChecksView() {
               ))}
             </div>
           ) : checks && checks.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Ngày giờ</TableHead>
-                  <TableHead>Phòng</TableHead>
-                  <TableHead>Loại kiểm tra</TableHead>
-                  <TableHead>Người kiểm tra</TableHead>
-                  <TableHead>Điểm sạch</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead className="text-right">Thao tác</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {checks.map((check) => (
-                  <TableRow key={check.id}>
-                    <TableCell>
-                      <div className="text-sm">
-                        <div className="font-medium">
-                          {format(new Date(check.checked_at), 'dd/MM/yyyy', { locale: vi })}
-                        </div>
-                        <div className="text-muted-foreground">
-                          {format(new Date(check.checked_at), 'HH:mm')}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">
-                        P{check.room?.room_number}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Tầng {check.room?.floor}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getCheckTypeColor(check.check_type as CheckType)}>
-                        {getCheckTypeLabel(check.check_type as CheckType)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {check.checked_by?.full_name || 'N/A'}
-                    </TableCell>
-                    <TableCell>
-                      {check.cleanliness_score ? (
-                        <Badge variant={check.cleanliness_score >= 8 ? 'default' : 'secondary'}>
-                          {check.cleanliness_score}/10
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {check.items_complete ? (
-                        <Badge variant="default" className="bg-green-500">
-                          Đầy đủ
-                        </Badge>
-                      ) : (
-                        <Badge variant="destructive">
-                          Thiếu {Array.isArray(check.items_missing) ? check.items_missing.length : 0} vật phẩm
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4 mr-2" />
-                        Chi tiết
-                      </Button>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Ngày giờ</TableHead>
+                    <TableHead>Phòng</TableHead>
+                    <TableHead>Loại kiểm tra</TableHead>
+                    <TableHead>Người kiểm tra</TableHead>
+                    <TableHead>Điểm sạch</TableHead>
+                    <TableHead>Trạng thái</TableHead>
+                    <TableHead className="text-right">Thao tác</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {checks.map((check) => (
+                    <TableRow key={check.id}>
+                      <TableCell>
+                        <div className="text-sm">
+                          <div className="font-medium">
+                            {format(new Date(check.checked_at), 'dd/MM/yyyy', { locale: vi })}
+                          </div>
+                          <div className="text-muted-foreground">
+                            {format(new Date(check.checked_at), 'HH:mm')}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">
+                          P{check.room?.room_number}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Tầng {check.room?.floor}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getCheckTypeColor(check.check_type as CheckType)}>
+                          {getCheckTypeLabel(check.check_type as CheckType)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {check.checked_by?.full_name || 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        {check.cleanliness_score ? (
+                          <Badge variant={check.cleanliness_score >= 8 ? 'default' : 'secondary'}>
+                            {check.cleanliness_score}/10
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {check.items_complete ? (
+                          <Badge variant="default" className="bg-green-500">
+                            Đầy đủ
+                          </Badge>
+                        ) : (
+                          <Badge variant="destructive">
+                            Thiếu {Array.isArray(check.items_missing) ? check.items_missing.length : 0} vật phẩm
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4 mr-2" />
+                          Chi tiết
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           ) : (
             <div className="text-center py-12 text-muted-foreground">
               Không có lịch sử kiểm tra nào trong khoảng thời gian này

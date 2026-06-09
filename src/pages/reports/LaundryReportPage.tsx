@@ -290,41 +290,43 @@ export function LaundryReportPage() {
           <div className="p-4 border-b">
             <h3 className="text-sm font-medium">Hiệu suất nhà cung cấp</h3>
           </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nhà cung cấp</TableHead>
-                <TableHead className="text-right">Số lô</TableHead>
-                <TableHead className="text-right">Items</TableHead>
-                <TableHead className="text-right">Chi phí</TableHead>
-                <TableHead className="text-right">₫/kg</TableHead>
-                <TableHead className="text-right">Chất lượng</TableHead>
-                <TableHead className="text-right">Đúng hạn</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {by_vendor.map((vendor: any) => (
-                <TableRow key={vendor.vendor_id}>
-                  <TableCell className="font-medium">{vendor.vendor_name}</TableCell>
-                  <TableCell className="text-right">{vendor.total_batches}</TableCell>
-                  <TableCell className="text-right">{(vendor.total_items || 0).toLocaleString()}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(vendor.total_cost || 0)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(vendor.avg_cost_per_kg || 0)}</TableCell>
-                  <TableCell className="text-right">
-                    <span className="flex items-center justify-end gap-1">
-                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                      {(vendor.avg_quality_rating || 0).toFixed(1)}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span className={(vendor.on_time_rate || 0) >= 90 ? 'text-green-600' : (vendor.on_time_rate || 0) >= 70 ? 'text-amber-600' : 'text-red-600'}>
-                      {(vendor.on_time_rate || 0).toFixed(0)}%
-                    </span>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nhà cung cấp</TableHead>
+                  <TableHead className="text-right">Số lô</TableHead>
+                  <TableHead className="text-right">Items</TableHead>
+                  <TableHead className="text-right">Chi phí</TableHead>
+                  <TableHead className="text-right">₫/kg</TableHead>
+                  <TableHead className="text-right">Chất lượng</TableHead>
+                  <TableHead className="text-right">Đúng hạn</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {by_vendor.map((vendor: any) => (
+                  <TableRow key={vendor.vendor_id}>
+                    <TableCell className="font-medium">{vendor.vendor_name}</TableCell>
+                    <TableCell className="text-right">{vendor.total_batches}</TableCell>
+                    <TableCell className="text-right">{(vendor.total_items || 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(vendor.total_cost || 0)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(vendor.avg_cost_per_kg || 0)}</TableCell>
+                    <TableCell className="text-right">
+                      <span className="flex items-center justify-end gap-1">
+                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                        {(vendor.avg_quality_rating || 0).toFixed(1)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className={(vendor.on_time_rate || 0) >= 90 ? 'text-green-600' : (vendor.on_time_rate || 0) >= 70 ? 'text-amber-600' : 'text-red-600'}>
+                        {(vendor.on_time_rate || 0).toFixed(0)}%
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
 
