@@ -217,7 +217,7 @@ export function buildShiftHandoverHTML(data: ShiftHandoverData): string {
       ${data.notes ? `
       <div style="margin-top:16px;padding:8px 12px;background:#fafafa;border-left:3px solid #999;">
         <div style="font-size:11px;color:#666;margin-bottom:4px;">Ghi chú ca:</div>
-        <div>${data.notes}</div>
+        <div>${esc(data.notes)}</div>
       </div>` : ''}
 
       <div style="display:flex;justify-content:space-between;margin-top:48px;text-align:center;">
@@ -225,7 +225,7 @@ export function buildShiftHandoverHTML(data: ShiftHandoverData): string {
           <div style="font-weight:600;">Lễ tân giao ca</div>
           <div style="font-size:10px;color:#888;margin-top:4px;">(Ký, ghi rõ họ tên)</div>
           <div style="height:60px;"></div>
-          <div style="border-top:1px solid #333;padding-top:4px;font-size:11px;">${data.staffName}</div>
+          <div style="border-top:1px solid #333;padding-top:4px;font-size:11px;">${esc(data.staffName)}</div>
         </div>
         <div style="width:33%;">
           <div style="font-weight:600;">Lễ tân nhận ca</div>
@@ -242,7 +242,7 @@ export function buildShiftHandoverHTML(data: ShiftHandoverData): string {
       </div>
 
       <div style="margin-top:24px;text-align:center;font-size:10px;color:#999;">
-        Báo cáo được sinh tự động lúc ${formatDateTime(new Date().toISOString())}
+        Báo cáo được sinh tự động lúc ${esc(formatDateTime(new Date().toISOString()))}
       </div>
     </div>
   `
