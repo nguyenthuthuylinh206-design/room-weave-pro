@@ -243,7 +243,7 @@ export function DistributionOrderQuickDialog({ orderId, open, onOpenChange }: Pr
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-5xl w-[92vw] h-[88vh] flex flex-col p-6 gap-3">
+        <DialogContent className="max-w-5xl w-[92vw] h-[88vh] flex flex-col p-6 gap-3 max-h-[90dvh] overflow-y-auto">
           <DialogHeader className="space-y-0">
             <DialogTitle className="sr-only">Chi tiết phiếu giao hàng</DialogTitle>
             <Header />

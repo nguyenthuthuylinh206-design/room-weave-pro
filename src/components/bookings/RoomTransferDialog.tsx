@@ -156,7 +156,7 @@ export function RoomTransferDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Chuyển phòng — {booking.guest_name}</DialogTitle>
           <DialogDescription>
