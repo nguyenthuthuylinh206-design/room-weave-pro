@@ -102,24 +102,34 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Get user ID from auth
-    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.listUsers()
-    
+    // Get user ID from auth — query trực tiếp theo email thay vì listUsers() (tránh DoS + leak)
+    const { data: userByEmail, error: authError } = await supabaseAdmin.auth.admin
+      .getUserByEmail(normalizedEmail)
+      .catch(async () => {
+        // Fallback nếu SDK chưa hỗ trợ getUserByEmail: query bảng users đã đồng bộ trong public
+        const { data } = await supabaseAdmin
+          .from('users')
+          .select('id')
+          .ilike('email', normalizedEmail)
+          .maybeSingle()
+        return { data: data ? { user: { id: data.id } } : null, error: null }
+      })
+
     if (authError) {
-      console.error('Error listing users:', authError)
+      console.error('Error fetching user:', authError)
       return new Response(
         JSON.stringify({ error: 'Đã xảy ra lỗi. Vui lòng thử lại.' }),
         { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       )
     }
 
-    const user = authUser.users.find(u => u.email?.toLowerCase() === normalizedEmail)
-    
+    const user = userByEmail?.user
+
     if (!user) {
       console.log('User not found in auth:', normalizedEmail)
       return new Response(
-        JSON.stringify({ 
-          success: false, 
+        JSON.stringify({
+          success: false,
           error: 'Không tìm thấy người dùng',
           code: 'USER_NOT_FOUND'
         }),
