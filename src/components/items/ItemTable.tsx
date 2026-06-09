@@ -342,14 +342,30 @@ function ItemActions({ item }: { item: ItemWithCategory }) {
     }
   }
   
-  const handlePrintQR = () => {
-    // Open QR code in new window for printing
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(item.qr_code || item.code)}`
-    const printWindow = window.open(qrUrl, '_blank', 'width=400,height=400')
-    if (printWindow) {
-      printWindow.onload = () => {
+  const handlePrintQR = async () => {
+    try {
+      const qrData = item.qr_code || item.code
+      const src = await generateQRDataURL(qrData, 300)
+      const printWindow = window.open('', '_blank', 'width=400,height=400')
+      if (printWindow) {
+        printWindow.document.write(`
+          <html>
+            <head><title>QR Code</title></head>
+            <body style="display:flex;justify-content:center;align-items:center;height:100vh;margin:0;">
+              <img src="${src}" style="max-width:100%;" />
+            </body>
+          </html>
+        `)
+        printWindow.document.close()
+        printWindow.focus()
         printWindow.print()
       }
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi tạo QR',
+        description: error.message || 'Không thể tạo mã QR. Vui lòng thử lại.',
+        variant: 'destructive',
+      })
     }
   }
   
