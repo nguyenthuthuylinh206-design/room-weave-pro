@@ -142,6 +142,7 @@ serve(async (req) => {
       return jsonResponse(
         { error: "imageBase64 and documentType are required" },
         400,
+        corsHeaders,
       );
     }
 
