@@ -111,7 +111,7 @@ serve(async (req) => {
       ? authHeader.slice(7).trim()
       : "";
     if (!token) {
-      return jsonResponse({ error: "Yêu cầu đăng nhập" }, 401);
+      return jsonResponse({ error: "Yêu cầu đăng nhập" }, 401, corsHeaders);
     }
 
     const authClient = createClient(SUPABASE_URL, ANON_KEY, {
@@ -119,7 +119,7 @@ serve(async (req) => {
     });
     const { data: userResp, error: userErr } = await authClient.auth.getUser(token);
     if (userErr || !userResp?.user) {
-      return jsonResponse({ error: "Phiên đăng nhập không hợp lệ" }, 401);
+      return jsonResponse({ error: "Phiên đăng nhập không hợp lệ" }, 401, corsHeaders);
     }
     const authUserId = userResp.user.id;
 
@@ -132,7 +132,7 @@ serve(async (req) => {
       .eq("id", authUserId)
       .maybeSingle();
     if (profileErr || !profile?.tenant_id) {
-      return jsonResponse({ error: "Không xác định được tenant của người dùng" }, 403);
+      return jsonResponse({ error: "Không xác định được tenant của người dùng" }, 403, corsHeaders);
     }
     const tenantId = profile.tenant_id as string;
 
