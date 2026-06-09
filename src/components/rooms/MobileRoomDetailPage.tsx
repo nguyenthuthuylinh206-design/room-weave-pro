@@ -113,11 +113,12 @@ const handlePrintItemList = (roomNumber: string | undefined, items: any[], t: an
             `).join('')}
           </tbody>
         </table>
-        <p style="margin-top: 20px; font-size: 12px;">${t('print.printDate', { date: new Date().toLocaleString('vi-VN') })}</p>
+        <p style="margin-top: 20px; font-size: 12px;">${escHtml(t('print.printDate', { date: new Date().toLocaleString('vi-VN') }))}</p>
       </body>
     </html>
   `)
   printWindow.document.close()
+
   printWindow.print()
 }
 
