@@ -78,9 +78,20 @@ export function MobilePaymentQRDisplay({
               <img
                 src={qrCodeUrl}
                 alt="QR Code thanh toán"
-                className="w-[280px] h-[280px] sm:w-[320px] sm:h-[320px] object-contain"
+                className={cn(
+                  'w-[280px] h-[280px] sm:w-[320px] sm:h-[320px] object-contain transition-all',
+                  isExpired && 'opacity-20 blur-sm',
+                )}
               />
             </motion.div>
+
+            {/* Countdown / Expiry */}
+            <div className="mt-4">
+              <QRCountdown
+                resetKey={`${open}-${refreshKey}`}
+                onRefresh={() => setRefreshKey((k) => k + 1)}
+              />
+            </div>
 
             {/* Amount - Prominent Display */}
             <motion.div
