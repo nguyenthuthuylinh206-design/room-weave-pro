@@ -225,7 +225,7 @@ export function PlanEditor({ plan, open, onOpenChange }: PlanEditorProps) {
                         <FormLabel>Monthly Price ($)</FormLabel>
                         <FormControl>
                           <Input
-                            type="number"
+                            type="number" min={0}
                             step="0.01"
                             placeholder="29.99"
                             {...field}
@@ -245,7 +245,7 @@ export function PlanEditor({ plan, open, onOpenChange }: PlanEditorProps) {
                         <FormLabel>Yearly Price ($)</FormLabel>
                         <FormControl>
                           <Input
-                            type="number"
+                            type="number" min={0}
                             step="0.01"
                             placeholder="299.99"
                             {...field}
@@ -272,7 +272,7 @@ export function PlanEditor({ plan, open, onOpenChange }: PlanEditorProps) {
                         <FormLabel>Display Order</FormLabel>
                         <FormControl>
                           <Input
-                            type="number"
+                            type="number" min={0}
                             {...field}
                             onChange={(e) => field.onChange(Number(e.target.value))}
                           />
@@ -316,7 +316,7 @@ export function PlanEditor({ plan, open, onOpenChange }: PlanEditorProps) {
                         <FormLabel>Max Hotels</FormLabel>
                         <FormControl>
                           <Input
-                            type="number"
+                            type="number" min={0}
                             {...field}
                             onChange={(e) => field.onChange(Number(e.target.value))}
                           />
@@ -334,7 +334,7 @@ export function PlanEditor({ plan, open, onOpenChange }: PlanEditorProps) {
                         <FormLabel>Max Users</FormLabel>
                         <FormControl>
                           <Input
-                            type="number"
+                            type="number" min={0}
                             {...field}
                             onChange={(e) => field.onChange(Number(e.target.value))}
                           />
@@ -352,7 +352,7 @@ export function PlanEditor({ plan, open, onOpenChange }: PlanEditorProps) {
                         <FormLabel>Storage Limit (GB)</FormLabel>
                         <FormControl>
                           <Input
-                            type="number"
+                            type="number" min={0}
                             step="0.1"
                             {...field}
                             onChange={(e) => field.onChange(Number(e.target.value))}

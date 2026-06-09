@@ -385,7 +385,7 @@ export function ItemFormPage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="unit_price" className="text-xs">{t('items:fields.unitPrice')} *</Label>
-                    <Input id="unit_price" type="number" step="0.01" {...register('unit_price', { valueAsNumber: true })} className="h-10" />
+                    <Input id="unit_price" type="number" min={0} step="0.01" {...register('unit_price', { valueAsNumber: true })} className="h-10" />
                     {errors.unit_price && <p className="text-xs text-destructive">{errors.unit_price.message}</p>}
                   </div>
                 </div>
@@ -393,11 +393,11 @@ export function ItemFormPage() {
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1.5">
                     <Label htmlFor="minimum_stock" className="text-xs">{t('items:fields.minimumStock')} *</Label>
-                    <Input id="minimum_stock" type="number" {...register('minimum_stock', { valueAsNumber: true })} className="h-10" />
+                    <Input id="minimum_stock" type="number" min={0} {...register('minimum_stock', { valueAsNumber: true })} className="h-10" />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="reorder_point" className="text-xs">{t('items:fields.reorderPoint')} *</Label>
-                    <Input id="reorder_point" type="number" {...register('reorder_point', { valueAsNumber: true })} className="h-10" />
+                    <Input id="reorder_point" type="number" min={0} {...register('reorder_point', { valueAsNumber: true })} className="h-10" />
                   </div>
                 </div>
 
@@ -434,7 +434,7 @@ export function ItemFormPage() {
                         </Label>
                         <Input
                           id="charge_price"
-                          type="number"
+                          type="number" min={0}
                           placeholder={`Mặc định: ${watch('unit_price')?.toLocaleString() || 0}`}
                           {...register('charge_price', { valueAsNumber: true })}
                           className="h-10"
@@ -553,19 +553,19 @@ export function ItemFormPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="unit_price" className="text-xs">{t('items:fields.unitPrice')} *</Label>
-              <Input id="unit_price" type="number" step="0.01" {...register('unit_price', { valueAsNumber: true })} className="h-9" />
+              <Input id="unit_price" type="number" min={0} step="0.01" {...register('unit_price', { valueAsNumber: true })} className="h-9" />
               {errors.unit_price && <p className="text-xs text-destructive">{errors.unit_price.message}</p>}
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="minimum_stock" className="text-xs">{t('items:fields.minimumStock')} *</Label>
-              <Input id="minimum_stock" type="number" {...register('minimum_stock', { valueAsNumber: true })} className="h-9" />
+              <Input id="minimum_stock" type="number" min={0} {...register('minimum_stock', { valueAsNumber: true })} className="h-9" />
               {errors.minimum_stock && <p className="text-xs text-destructive">{errors.minimum_stock.message}</p>}
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="reorder_point" className="text-xs">{t('items:fields.reorderPoint')} *</Label>
-              <Input id="reorder_point" type="number" {...register('reorder_point', { valueAsNumber: true })} className="h-9" />
+              <Input id="reorder_point" type="number" min={0} {...register('reorder_point', { valueAsNumber: true })} className="h-9" />
               {errors.reorder_point && <p className="text-xs text-destructive">{errors.reorder_point.message}</p>}
             </div>
           </div>
@@ -622,7 +622,7 @@ export function ItemFormPage() {
                     </Label>
                     <Input
                       id="charge_price_desktop"
-                      type="number"
+                      type="number" min={0}
                       placeholder={`Mặc định: ${watch('unit_price')?.toLocaleString() || 0}`}
                       {...register('charge_price', { valueAsNumber: true })}
                       className="h-9"

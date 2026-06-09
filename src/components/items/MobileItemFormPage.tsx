@@ -335,7 +335,7 @@ export const MobileItemFormPage = () => {
                 <div className="space-y-2">
                   <Label>{t('items:fields.unitPrice')} *</Label>
                   <Input
-                    type="number"
+                    type="number" min={0}
                     placeholder="0"
                     {...form.register('unit_price', { valueAsNumber: true })}
                   />
@@ -349,7 +349,7 @@ export const MobileItemFormPage = () => {
                 <div className="space-y-2">
                   <Label>{t('items:fields.minimumStock')} *</Label>
                   <Input
-                    type="number"
+                    type="number" min={0}
                     placeholder="0"
                     {...form.register('minimum_stock', { valueAsNumber: true })}
                   />

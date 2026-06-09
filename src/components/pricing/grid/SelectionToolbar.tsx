@@ -165,7 +165,7 @@ export function SelectionToolbar({
       ) : (
         <div className="flex items-center gap-1.5">
           <Input
-            type="number"
+            type="number" min={0}
             inputMode="numeric"
             value={qtyVal}
             onChange={(e) => setQtyVal(e.target.value)}

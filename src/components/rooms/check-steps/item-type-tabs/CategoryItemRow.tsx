@@ -498,7 +498,7 @@ export function CategoryItemRow({
                 <Minus className="h-4 w-4" />
               </Button>
               <Input
-                type="number"
+                type="number" min={0}
                 value={quantity}
                 onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 1)}
                 className={cn(

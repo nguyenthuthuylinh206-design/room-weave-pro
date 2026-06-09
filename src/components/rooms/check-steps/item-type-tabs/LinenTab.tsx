@@ -308,7 +308,7 @@ export function LinenTab({
                             <Minus className="h-3 w-3" />
                           </Button>
                           <Input
-                            type="number"
+                            type="number" min={0}
                             value={qty}
                             onChange={(e) => handleQuantityChange(item, parseInt(e.target.value) || 1)}
                             className={`w-12 h-7 text-center text-sm px-1 ${isOverStock ? 'border-amber-500' : ''}`}

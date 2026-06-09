@@ -199,7 +199,7 @@ export function CreateItemCategoryDialog({ open, onOpenChange }: CreateItemCateg
                     <FormItem>
                       <FormLabel>Min Stock</FormLabel>
                       <FormControl>
-                        <Input {...field} type="number" placeholder="100" />
+                        <Input {...field} type="number" min={0} placeholder="100" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -213,7 +213,7 @@ export function CreateItemCategoryDialog({ open, onOpenChange }: CreateItemCateg
                     <FormItem>
                       <FormLabel>Max Stock</FormLabel>
                       <FormControl>
-                        <Input {...field} type="number" placeholder="500" />
+                        <Input {...field} type="number" min={0} placeholder="500" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -227,7 +227,7 @@ export function CreateItemCategoryDialog({ open, onOpenChange }: CreateItemCateg
                     <FormItem>
                       <FormLabel>Reorder Point</FormLabel>
                       <FormControl>
-                        <Input {...field} type="number" placeholder="150" />
+                        <Input {...field} type="number" min={0} placeholder="150" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

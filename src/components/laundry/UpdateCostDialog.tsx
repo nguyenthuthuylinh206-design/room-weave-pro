@@ -104,7 +104,7 @@ export function UpdateCostDialog({
                   <FormLabel>Cân nặng thực tế (kg)</FormLabel>
                   <FormControl>
                     <Input
-                      type="number"
+                      type="number" min={0}
                       step="0.1"
                       placeholder="0"
                       {...field}
@@ -124,7 +124,7 @@ export function UpdateCostDialog({
                   <FormLabel>Đơn giá (VND/kg)</FormLabel>
                   <FormControl>
                     <Input
-                      type="number"
+                      type="number" min={0}
                       step="1000"
                       placeholder="0"
                       {...field}

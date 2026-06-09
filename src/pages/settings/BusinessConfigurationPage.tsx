@@ -186,7 +186,7 @@ export function BusinessConfigurationPage() {
                 <Label htmlFor="approval-threshold">Ngưỡng phê duyệt</Label>
                 <Input
                   id="approval-threshold"
-                  type="number"
+                  type="number" min={0}
                   {...register('inventory.approval_threshold', { valueAsNumber: true })}
                   placeholder="100"
                 />
@@ -274,7 +274,7 @@ export function BusinessConfigurationPage() {
                 <div className="flex items-center gap-2">
                   <Input
                     id="turnaround-hours"
-                    type="number"
+                    type="number" min={0}
                     {...register('laundry.expected_turnaround_hours', { valueAsNumber: true })}
                     className="w-24"
                   />
@@ -408,7 +408,7 @@ export function BusinessConfigurationPage() {
                   </Label>
                   <Input
                     id="sla-high"
-                    type="number"
+                    type="number" min={0}
                     {...register('maintenance.sla_hours.high', { valueAsNumber: true })}
                     className="h-9"
                   />
@@ -419,7 +419,7 @@ export function BusinessConfigurationPage() {
                   </Label>
                   <Input
                     id="sla-medium"
-                    type="number"
+                    type="number" min={0}
                     {...register('maintenance.sla_hours.medium', { valueAsNumber: true })}
                     className="h-9"
                   />
@@ -430,7 +430,7 @@ export function BusinessConfigurationPage() {
                   </Label>
                   <Input
                     id="sla-low"
-                    type="number"
+                    type="number" min={0}
                     {...register('maintenance.sla_hours.low', { valueAsNumber: true })}
                     className="h-9"
                   />
@@ -485,7 +485,7 @@ export function BusinessConfigurationPage() {
                 <div className="flex items-center gap-2">
                   <Input
                     id="po-threshold"
-                    type="number"
+                    type="number" min={0}
                     {...register('purchase_orders.approval_threshold', { valueAsNumber: true })}
                   />
                   <span className="text-sm text-muted-foreground">₫</span>

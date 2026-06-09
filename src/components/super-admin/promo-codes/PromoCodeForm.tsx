@@ -181,7 +181,7 @@ export function PromoCodeForm({ promoCode, open, onOpenChange }: PromoCodeFormPr
                   <FormItem>
                     <FormLabel>Discount Value</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="20" {...field} />
+                      <Input type="number" min={0} placeholder="20" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -197,7 +197,7 @@ export function PromoCodeForm({ promoCode, open, onOpenChange }: PromoCodeFormPr
                   <FormItem>
                     <FormLabel>Max Total Uses (Optional)</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="100" {...field} value={field.value || ''} />
+                      <Input type="number" min={0} placeholder="100" {...field} value={field.value || ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -211,7 +211,7 @@ export function PromoCodeForm({ promoCode, open, onOpenChange }: PromoCodeFormPr
                   <FormItem>
                     <FormLabel>Max Uses Per Tenant</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="1" {...field} />
+                      <Input type="number" min={0} placeholder="1" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -262,7 +262,7 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
                         <FormLabel>Thứ tự hiển thị</FormLabel>
                         <FormControl>
                           <Input
-                            type="number"
+                            type="number" min={0}
                             {...field}
                             onChange={(e) => field.onChange(Number(e.target.value))}
                           />

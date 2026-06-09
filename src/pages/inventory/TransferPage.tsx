@@ -243,7 +243,7 @@ export default function TransferPage() {
                               </div>
                               <FormControl>
                                 <Input
-                                  type="number"
+                                  type="number" min={0}
                                   placeholder="0"
                                   className={cn('h-9', isOverstock && 'border-destructive')}
                                   {...field}

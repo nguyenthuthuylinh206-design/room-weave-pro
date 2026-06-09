@@ -274,7 +274,7 @@ export function QuickOutboundDialog({ open, onOpenChange }: QuickOutboundDialogP
                       <FormItem>
                         <FormControl>
                           <Input
-                            type="number"
+                            type="number" min={0}
                             placeholder="Số lượng xuất"
                             className={cn(
                               isMobile && 'min-h-[48px]',

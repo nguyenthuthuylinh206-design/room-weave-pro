@@ -128,7 +128,7 @@ export const UpdateProgressDialog = ({
                   <FormLabel>Chi phí phát sinh (VNĐ)</FormLabel>
                   <FormControl>
                     <Input
-                      type="number"
+                      type="number" min={0}
                       {...field}
                       onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                       value={field.value || ''}

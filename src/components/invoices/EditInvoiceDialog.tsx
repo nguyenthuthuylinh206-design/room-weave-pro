@@ -188,7 +188,7 @@ export default function EditInvoiceDialog({ invoice, open, onOpenChange }: Props
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1">
                 <span className="text-muted-foreground">VAT</span>
-                <Input className="h-6 w-14 text-xs text-center" type="number" value={form.vat_rate} onChange={e => setForm(p => ({ ...p, vat_rate: Number(e.target.value) }))} />
+                <Input className="h-6 w-14 text-xs text-center" type="number" min={0} value={form.vat_rate} onChange={e => setForm(p => ({ ...p, vat_rate: Number(e.target.value) }))} />
                 <span className="text-xs text-muted-foreground">%</span>
               </div>
               <span className="font-mono">{formatCurrency(vatAmount)}</span>
@@ -196,7 +196,7 @@ export default function EditInvoiceDialog({ invoice, open, onOpenChange }: Props
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1">
                 <span className="text-muted-foreground">Phí DV</span>
-                <Input className="h-6 w-14 text-xs text-center" type="number" value={form.service_fee_rate} onChange={e => setForm(p => ({ ...p, service_fee_rate: Number(e.target.value) }))} />
+                <Input className="h-6 w-14 text-xs text-center" type="number" min={0} value={form.service_fee_rate} onChange={e => setForm(p => ({ ...p, service_fee_rate: Number(e.target.value) }))} />
                 <span className="text-xs text-muted-foreground">%</span>
               </div>
               <span className="font-mono">{formatCurrency(serviceFeeAmount)}</span>
@@ -207,11 +207,11 @@ export default function EditInvoiceDialog({ invoice, open, onOpenChange }: Props
             </div>
             <div className="flex items-center justify-between gap-2">
               <span className="text-muted-foreground">Đã cọc</span>
-              <Input className="h-7 w-28 text-xs font-mono text-right" type="number" value={form.deposit_amount} onChange={e => setForm(p => ({ ...p, deposit_amount: Number(e.target.value) }))} />
+              <Input className="h-7 w-28 text-xs font-mono text-right" type="number" min={0} value={form.deposit_amount} onChange={e => setForm(p => ({ ...p, deposit_amount: Number(e.target.value) }))} />
             </div>
             <div className="flex items-center justify-between gap-2">
               <span className="text-muted-foreground">Đã thanh toán</span>
-              <Input className="h-7 w-28 text-xs font-mono text-right" type="number" value={form.amount_paid} onChange={e => setForm(p => ({ ...p, amount_paid: Number(e.target.value) }))} />
+              <Input className="h-7 w-28 text-xs font-mono text-right" type="number" min={0} value={form.amount_paid} onChange={e => setForm(p => ({ ...p, amount_paid: Number(e.target.value) }))} />
             </div>
           </div>
 

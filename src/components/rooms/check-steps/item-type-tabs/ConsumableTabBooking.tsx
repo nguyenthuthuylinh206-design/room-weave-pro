@@ -318,7 +318,7 @@ export function ConsumableTabBooking({
                             <Minus className="h-3 w-3" />
                           </Button>
                           <Input
-                            type="number"
+                            type="number" min={0}
                             value={displaySeen}
                             onChange={(e) => updateSeen(item.item_id, parseInt(e.target.value) || 0)}
                             className="w-10 h-7 text-center text-sm px-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
