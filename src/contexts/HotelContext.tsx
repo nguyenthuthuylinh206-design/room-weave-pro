@@ -191,47 +191,29 @@ export function HotelProvider({ children }: { children: ReactNode }) {
     }
   }, [availableHotels, hotelId, userPreference, hotelsLoading, preferenceLoading, canViewAllHotels, assignedLoading])
 
+  // Centralized cache invalidation when hotel context changes.
+  // Add new keys here so both setSelectedHotel & setAllHotelsMode stay in sync.
+  const invalidateHotelScopedQueries = () => {
+    const keys = [
+      'users', 'items', 'rooms', 'floor-plan', 'laundry-batches',
+      'maintenance-requests', 'vendors', 'purchase-orders',
+      'inventory-transactions', 'dashboard-stats', 'hotels-breakdown-stats',
+      'categories',
+    ]
+    keys.forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }))
+  }
+
   const setSelectedHotel = (hotel: Hotel) => {
     setSelectedHotelState(hotel)
     setAllHotelsMode(false)
-    
-    // Save to database
     savePreferenceMutation.mutate({ hotelId: hotel.id, isAllHotels: false })
-    
-    // Invalidate ALL queries to refresh data with new hotel context
-    queryClient.invalidateQueries({ queryKey: ['users'] })
-    queryClient.invalidateQueries({ queryKey: ['items'] })
-    queryClient.invalidateQueries({ queryKey: ['rooms'] })
-    queryClient.invalidateQueries({ queryKey: ['floor-plan'] })
-    queryClient.invalidateQueries({ queryKey: ['laundry-batches'] })
-    queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] })
-    queryClient.invalidateQueries({ queryKey: ['vendors'] })
-    queryClient.invalidateQueries({ queryKey: ['purchase-orders'] })
-    queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] })
-    queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
-    queryClient.invalidateQueries({ queryKey: ['hotels-breakdown-stats'] })
-    queryClient.invalidateQueries({ queryKey: ['categories'] })
+    invalidateHotelScopedQueries()
   }
 
   const handleSetAllHotelsMode = (enabled: boolean) => {
     setAllHotelsMode(enabled)
-    
-    // Save to database
     savePreferenceMutation.mutate({ hotelId: null, isAllHotels: enabled })
-    
-    // Invalidate ALL queries to refresh data
-    queryClient.invalidateQueries({ queryKey: ['users'] })
-    queryClient.invalidateQueries({ queryKey: ['items'] })
-    queryClient.invalidateQueries({ queryKey: ['rooms'] })
-    queryClient.invalidateQueries({ queryKey: ['floor-plan'] })
-    queryClient.invalidateQueries({ queryKey: ['laundry-batches'] })
-    queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] })
-    queryClient.invalidateQueries({ queryKey: ['vendors'] })
-    queryClient.invalidateQueries({ queryKey: ['purchase-orders'] })
-    queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] })
-    queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
-    queryClient.invalidateQueries({ queryKey: ['hotels-breakdown-stats'] })
-    queryClient.invalidateQueries({ queryKey: ['categories'] })
+    invalidateHotelScopedQueries()
   }
 
   const isLoading = hotelsLoading || preferenceLoading || (!canViewAllHotels && assignedLoading)
