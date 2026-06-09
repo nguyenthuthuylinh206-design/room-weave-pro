@@ -1,12 +1,8 @@
 import { Hono } from 'https://deno.land/x/hono@v3.4.1/mod.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { buildCorsHeaders } from '../_shared/cors.ts'
 
 const app = new Hono()
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
 
 interface ChargeableNotificationPayload {
   tenant_id: string

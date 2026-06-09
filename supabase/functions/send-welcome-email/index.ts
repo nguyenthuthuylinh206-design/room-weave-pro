@@ -1,3 +1,4 @@
+import { buildCorsHeaders } from '../_shared/cors.ts'
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')?.trim()
 
 type ResendSendEmailParams = {
@@ -36,11 +37,6 @@ async function sendEmailViaResend(params: ResendSendEmailParams): Promise<{ id?:
 
   const id = json?.id ?? json?.data?.id
   return { id }
-}
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
 interface WelcomeEmailRequest {
