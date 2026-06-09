@@ -44,6 +44,31 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
+    // Require super_admin
+    const authHeader = req.headers.get('Authorization') ?? req.headers.get('authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const token = authHeader.replace(/^Bearer\s+/i, '')
+    const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE)
+    const { data: claims, error: claimsErr } = await adminClient.auth.getClaims(token)
+    if (claimsErr || !claims?.claims?.sub) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const { data: isSA } = await adminClient.rpc('is_super_admin', { _user_id: claims.claims.sub })
+    if (!isSA) {
+      return new Response(JSON.stringify({ error: 'Forbidden: super_admin required' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     const { campaign_id } = (await req.json()) as Body
     if (!campaign_id) {
       return new Response(JSON.stringify({ error: 'campaign_id required' }), {
