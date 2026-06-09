@@ -93,7 +93,7 @@ export function MobileBatchDetail() {
       <div className="sticky top-0 z-10 bg-background border-b">
         <div className="flex items-center gap-3 p-4">
           <Link to="/laundry">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" aria-label="Quay lại">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>

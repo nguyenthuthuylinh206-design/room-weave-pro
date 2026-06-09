@@ -70,7 +70,7 @@ export function CompactActionBar({ onInbound, onOutbound }: CompactActionBarProp
                   size="icon"
                   className={`h-8 w-8 ${action.className}`}
                   onClick={action.onClick}
-                >
+                 aria-label="Thao tác">
                   <action.icon className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>

@@ -169,7 +169,7 @@ export function TelegramGroupCard({ group, tenantId, onToggle, onDelete, onEdit 
             onClick={handleTestMessage}
             disabled={isTesting || !group.is_active}
             title="Gửi tin nhắn test"
-          >
+           aria-label="Đang tải">
             {isTesting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (

@@ -338,7 +338,7 @@ function DeviceItem({ device, onDelete, isCurrentDevice }: { device: PushDevice;
         </div>
       </div>
       <PermissionGate module="settings" action="delete">
-        <Button variant="ghost" size="icon" onClick={onDelete} className="text-destructive hover:text-destructive">
+        <Button variant="ghost" size="icon" onClick={onDelete} className="text-destructive hover:text-destructive" aria-label="Xóa">
           <Trash2 className="h-4 w-4" />
         </Button>
       </PermissionGate>

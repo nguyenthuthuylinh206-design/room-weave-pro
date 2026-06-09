@@ -162,7 +162,7 @@ export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHi
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" aria-label="Thêm tùy chọn">
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>

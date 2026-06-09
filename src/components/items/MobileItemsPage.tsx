@@ -97,7 +97,7 @@ export function MobileItemsPage() {
                 size="icon"
                 onClick={clearCategoryFilter}
                 className="shrink-0 h-9 w-9"
-              >
+               aria-label="Quay lại">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             )}

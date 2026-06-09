@@ -227,7 +227,7 @@ export function SelectionToolbar({
         <Button type="button" size="icon" variant="ghost"
           className="h-7 w-7 text-primary-foreground hover:bg-primary-foreground/15"
           onClick={onClear} title="Bỏ chọn (Esc)"
-        >
+         aria-label="Đóng">
           <X className="h-3.5 w-3.5" />
         </Button>
       )}

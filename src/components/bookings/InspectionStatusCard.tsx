@@ -371,7 +371,7 @@ function StaffInfoLine({
             size="icon"
             className="h-6 w-6 text-blue-500 hover:text-blue-600"
             onClick={handleTelegram}
-          >
+           aria-label="Gửi">
             <Send className="h-3 w-3" />
           </Button>
         )}
@@ -382,7 +382,7 @@ function StaffInfoLine({
             size="icon"
             className="h-6 w-6"
             onClick={handleCall}
-          >
+           aria-label="Gọi điện">
             <Phone className="h-3 w-3" />
           </Button>
         )}

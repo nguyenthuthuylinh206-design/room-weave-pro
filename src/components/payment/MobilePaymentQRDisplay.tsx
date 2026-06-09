@@ -64,7 +64,7 @@ export function MobilePaymentQRDisplay({
               <h2 className="font-semibold text-lg">Thanh toán phòng {bookingInfo.roomNumber}</h2>
               <p className="text-sm text-muted-foreground">{bookingInfo.guestName}</p>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <Button variant="ghost" size="icon" onClick={onClose} aria-label="Đóng">
               <X className="h-5 w-5" />
             </Button>
           </div>

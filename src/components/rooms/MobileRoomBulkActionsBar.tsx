@@ -97,7 +97,7 @@ export function MobileRoomBulkActionsBar({ selectedIds, onClearSelection, rooms 
               size="icon"
               className="h-8 w-8"
               onClick={onClearSelection}
-            >
+             aria-label="Đóng">
               <X className="h-4 w-4" />
             </Button>
           </div>

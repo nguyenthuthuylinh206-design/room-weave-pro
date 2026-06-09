@@ -42,7 +42,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
           {/* Header */}
           <div className="flex h-16 items-center justify-between border-b px-4">
             <span className="font-semibold">Menu</span>
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <Button variant="ghost" size="icon" onClick={onClose} aria-label="Đóng">
               <X className="h-5 w-5" />
             </Button>
           </div>

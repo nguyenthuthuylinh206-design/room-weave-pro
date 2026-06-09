@@ -187,7 +187,7 @@ export default function RoomReplenishLeanPage() {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b">
         <div className="mx-auto max-w-2xl flex items-center gap-2 p-3">
-          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={handleBack}>
+          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={handleBack} aria-label="Quay lại">
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <div className="min-w-0">

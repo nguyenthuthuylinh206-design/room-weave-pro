@@ -41,7 +41,7 @@ function KV({ label, value, copyable }: { label: string; value?: string | null; 
       <div className="text-xs text-muted-foreground w-32 flex-shrink-0">{label}</div>
       <div className="text-sm flex-1 break-words">{display}</div>
       {canCopy && (
-        <Button type="button" variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={handleCopy}>
+        <Button type="button" variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={handleCopy} aria-label="Sao chép">
           <Copy className="h-3 w-3" />
         </Button>
       )}
