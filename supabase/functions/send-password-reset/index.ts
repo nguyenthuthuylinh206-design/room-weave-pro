@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { checkRateLimit, rateLimitedResponse } from '../_shared/rateLimit.ts'
+import { buildCorsHeaders } from '../_shared/cors.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')?.trim()
 
@@ -39,11 +40,6 @@ async function sendEmailViaResend(params: ResendSendEmailParams): Promise<{ id?:
 
   const id = json?.id ?? json?.data?.id
   return { id }
-}
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
 interface PasswordResetRequest {
@@ -157,6 +153,7 @@ Trân trọng,
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req)
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })

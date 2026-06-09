@@ -1,12 +1,8 @@
 import { Hono } from 'https://deno.land/x/hono@v3.4.1/mod.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { buildCorsHeaders } from '../_shared/cors.ts'
 
 const app = new Hono()
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
 
 interface ChargeableNotificationPayload {
   tenant_id: string
@@ -38,7 +34,7 @@ interface ChargeableNotificationPayload {
 }
 
 app.options('*', (c) => {
-  return c.json({}, { headers: corsHeaders })
+  return c.json({}, { headers: buildCorsHeaders(c.req.raw) })
 })
 
 app.post('/', async (c) => {
@@ -56,7 +52,7 @@ app.post('/', async (c) => {
     const hasDamagedItems = damaged_items && damaged_items.length > 0
     
     if (!tenant_id || !hotel_id || (!hasChargeableItems && !hasLostItems && !hasDamagedItems)) {
-      return c.json({ error: 'Missing required fields or no items to notify' }, { status: 400, headers: corsHeaders })
+      return c.json({ error: 'Missing required fields or no items to notify' }, { status: 400, headers: buildCorsHeaders(c.req.raw) })
     }
 
     // Format message
@@ -101,7 +97,7 @@ app.post('/', async (c) => {
 
     if (!usersToNotify || usersToNotify.length === 0) {
       console.log('No users to notify')
-      return c.json({ success: true, notified: 0 }, { headers: corsHeaders })
+      return c.json({ success: true, notified: 0 }, { headers: buildCorsHeaders(c.req.raw) })
     }
 
     // Create in-app notifications
@@ -163,12 +159,12 @@ app.post('/', async (c) => {
       success: true, 
       notified: usersToNotify.length,
       telegram_groups: telegramGroups?.length || 0,
-    }, { headers: corsHeaders })
+    }, { headers: buildCorsHeaders(c.req.raw) })
 
   } catch (error: unknown) {
     console.error('Error in notify-chargeable:', error)
     const message = error instanceof Error ? error.message : 'Unknown error'
-    return c.json({ error: message }, { status: 500, headers: corsHeaders })
+    return c.json({ error: message }, { status: 500, headers: buildCorsHeaders(c.req.raw) })
   }
 })
 

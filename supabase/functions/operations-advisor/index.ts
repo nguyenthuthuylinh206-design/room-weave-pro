@@ -1,7 +1,6 @@
+import { buildCorsHeaders } from '../_shared/cors.ts'
 // Edge function: operations-advisor
 // Nhận snapshot KPI + findings rule-based, gọi Lovable AI Gateway, trả advice tiếng Việt.
-
-import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
 
 interface Finding {
   id: string
@@ -26,6 +25,7 @@ Tránh thuật ngữ tiếng Anh trừ khi cần (ADR, RevPAR, GOP có thể gi�
 Tổng hợp các finding liên quan thành 1 lời khuyên — không lặp nguyên văn.`
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req)
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   try {
     const apiKey = Deno.env.get('LOVABLE_API_KEY')

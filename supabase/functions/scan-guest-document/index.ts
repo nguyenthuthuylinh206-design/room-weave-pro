@@ -1,13 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildCorsHeaders } from '../_shared/cors.ts';
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
-function jsonResponse(body: unknown, status = 200) {
+function jsonResponse(body: unknown, status = 200, corsHeaders: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -94,6 +89,7 @@ async function callBeeknoeeWithFallback(
 }
 
 serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -115,7 +111,7 @@ serve(async (req) => {
       ? authHeader.slice(7).trim()
       : "";
     if (!token) {
-      return jsonResponse({ error: "Yêu cầu đăng nhập" }, 401);
+      return jsonResponse({ error: "Yêu cầu đăng nhập" }, 401, corsHeaders);
     }
 
     const authClient = createClient(SUPABASE_URL, ANON_KEY, {
@@ -123,7 +119,7 @@ serve(async (req) => {
     });
     const { data: userResp, error: userErr } = await authClient.auth.getUser(token);
     if (userErr || !userResp?.user) {
-      return jsonResponse({ error: "Phiên đăng nhập không hợp lệ" }, 401);
+      return jsonResponse({ error: "Phiên đăng nhập không hợp lệ" }, 401, corsHeaders);
     }
     const authUserId = userResp.user.id;
 
@@ -136,7 +132,7 @@ serve(async (req) => {
       .eq("id", authUserId)
       .maybeSingle();
     if (profileErr || !profile?.tenant_id) {
-      return jsonResponse({ error: "Không xác định được tenant của người dùng" }, 403);
+      return jsonResponse({ error: "Không xác định được tenant của người dùng" }, 403, corsHeaders);
     }
     const tenantId = profile.tenant_id as string;
 
@@ -146,6 +142,7 @@ serve(async (req) => {
       return jsonResponse(
         { error: "imageBase64 and documentType are required" },
         400,
+        corsHeaders,
       );
     }
 
