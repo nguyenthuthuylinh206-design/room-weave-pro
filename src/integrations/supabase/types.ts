@@ -12969,6 +12969,10 @@ export type Database = {
           token: string
         }[]
       }
+      exec_cron_update: {
+        Args: { _command: string; _jobname: string }
+        Returns: undefined
+      }
       fn_can_user_transition_room: {
         Args: { _from: string; _to: string; _user_id: string }
         Returns: boolean
