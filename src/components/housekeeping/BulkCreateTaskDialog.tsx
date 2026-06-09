@@ -154,7 +154,7 @@ export function BulkCreateTaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Tạo yêu cầu cho {rooms.length} phòng</DialogTitle>
         </DialogHeader>

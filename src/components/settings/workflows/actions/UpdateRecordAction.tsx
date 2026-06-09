@@ -160,7 +160,7 @@ export const UpdateRecordAction = ({ config, onChange }: UpdateRecordActionProps
                 
                 {update.update_mode === 'increment' && (
                   <Input
-                    type="number"
+                    type="number" min={0}
                     value={update.increment_by || 0}
                     onChange={(e) => updateField(index, 'increment_by', parseInt(e.target.value))}
                     className="w-24"

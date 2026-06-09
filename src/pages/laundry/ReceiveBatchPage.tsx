@@ -398,7 +398,7 @@ export function ReceiveBatchPage() {
                     <FormLabel>Chi phí thực tế *</FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
+                        type="number" min={0}
                         {...field}
                         onChange={(e) => field.onChange(parseFloat(e.target.value))}
                       />

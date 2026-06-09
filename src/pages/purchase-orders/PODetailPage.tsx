@@ -119,35 +119,37 @@ const PODetailPage: React.FC = () => {
           <Card>
             <CardHeader><CardTitle>Chi tiết sản phẩm</CardTitle></CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>#</TableHead>
-                    <TableHead>Sản phẩm</TableHead>
-                    <TableHead className="text-right">SL đặt</TableHead>
-                    <TableHead className="text-right">Đơn giá</TableHead>
-                    <TableHead className="text-right">Thành tiền</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {po.items?.map((item, index) => (
-                    <TableRow key={item.id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>
-                        <Link 
-                          to={`/items/${item.item_id}`}
-                          className="font-medium hover:underline"
-                        >
-                          {item.item?.name || 'N/A'}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-right font-medium">{item.quantity_ordered}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(item.unit_price)}</TableCell>
-                      <TableCell className="text-right font-semibold">{formatCurrency(item.total_price)}</TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>#</TableHead>
+                      <TableHead>Sản phẩm</TableHead>
+                      <TableHead className="text-right">SL đặt</TableHead>
+                      <TableHead className="text-right">Đơn giá</TableHead>
+                      <TableHead className="text-right">Thành tiền</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {po.items?.map((item, index) => (
+                      <TableRow key={item.id}>
+                        <TableCell>{index + 1}</TableCell>
+                        <TableCell>
+                          <Link 
+                            to={`/items/${item.item_id}`}
+                            className="font-medium hover:underline"
+                          >
+                            {item.item?.name || 'N/A'}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="text-right font-medium">{item.quantity_ordered}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(item.unit_price)}</TableCell>
+                        <TableCell className="text-right font-semibold">{formatCurrency(item.total_price)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
               <div className="mt-6 flex justify-end">
                 <div className="w-80 space-y-2">
                   <div className="flex justify-between text-sm">

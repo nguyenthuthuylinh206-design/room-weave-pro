@@ -125,138 +125,140 @@ export const MaintenanceRequestTable = ({ requests, isLoading }: MaintenanceRequ
 
   return (
     <div className="border rounded-lg">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="text-xs">Mã yêu cầu</TableHead>
-            <TableHead className="text-xs">Độ ưu tiên</TableHead>
-            <TableHead className="text-xs">Loại</TableHead>
-            <TableHead className="text-xs">Tiêu đề</TableHead>
-            <TableHead className="text-xs">Vị trí</TableHead>
-            <TableHead className="text-xs">Người báo cáo</TableHead>
-            <TableHead className="text-xs">Thời gian</TableHead>
-            <TableHead className="text-xs">Trạng thái</TableHead>
-            <TableHead className="text-xs text-right">Thao tác</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {requests.map((request: any) => {
-            const priority = priorityConfig[request.priority] || priorityConfig.medium
-            const status = statusConfig[request.status] || statusConfig.pending
-            
-            return (
-              <TableRow key={request.id} className="hover:bg-muted/30">
-                <TableCell className="py-2">
-                  <Link
-                    to={`/maintenance/requests/${request.id}`}
-                    className="font-mono text-xs font-medium hover:underline"
-                  >
-                    {request.request_code}
-                  </Link>
-                </TableCell>
-                <TableCell className="py-2">
-                  <span className={`flex items-center gap-1.5 text-xs ${priority.color}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${priority.dot}`} />
-                    {priority.label}
-                  </span>
-                </TableCell>
-                <TableCell className="py-2 text-xs">
-                  {issueTypeLabels[request.issue_type] || request.issue_type}
-                </TableCell>
-                <TableCell className="py-2 max-w-[180px]">
-                  <p className="text-sm truncate">{request.title}</p>
-                </TableCell>
-                <TableCell className="py-2 text-xs">
-                  {request.room ? `P.${request.room.room_number}` : request.location}
-                </TableCell>
-                <TableCell className="py-2 text-xs">
-                  {request.reporter?.full_name || 'N/A'}
-                </TableCell>
-                <TableCell className="py-2 text-xs text-muted-foreground">
-                  {formatDistanceToNow(new Date(request.reported_at), { addSuffix: true, locale: vi })}
-                </TableCell>
-                <TableCell className="py-2">
-                  <span className={`flex items-center gap-1.5 text-xs ${status.color}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
-                    {status.label}
-                  </span>
-                </TableCell>
-                <TableCell className="py-2 text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-7 w-7"
-                      asChild
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-xs">Mã yêu cầu</TableHead>
+              <TableHead className="text-xs">Độ ưu tiên</TableHead>
+              <TableHead className="text-xs">Loại</TableHead>
+              <TableHead className="text-xs">Tiêu đề</TableHead>
+              <TableHead className="text-xs">Vị trí</TableHead>
+              <TableHead className="text-xs">Người báo cáo</TableHead>
+              <TableHead className="text-xs">Thời gian</TableHead>
+              <TableHead className="text-xs">Trạng thái</TableHead>
+              <TableHead className="text-xs text-right">Thao tác</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {requests.map((request: any) => {
+              const priority = priorityConfig[request.priority] || priorityConfig.medium
+              const status = statusConfig[request.status] || statusConfig.pending
+              
+              return (
+                <TableRow key={request.id} className="hover:bg-muted/30">
+                  <TableCell className="py-2">
+                    <Link
+                      to={`/maintenance/requests/${request.id}`}
+                      className="font-mono text-xs font-medium hover:underline"
                     >
-                      <Link to={`/maintenance/requests/${request.id}`}>
-                        <Eye className="h-3.5 w-3.5" />
-                      </Link>
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7">
-                          <MoreHorizontal className="h-3.5 w-3.5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem asChild>
-                          <Link to={`/maintenance/requests/${request.id}`}>Xem chi tiết</Link>
-                        </DropdownMenuItem>
-                        {request.status === 'waiting' && (
-                          <>
-                            <DropdownMenuItem onClick={() => handleAcceptRequest(request.id)}>
-                              Tiếp nhận
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link to={`/maintenance/requests/edit/${request.id}`}>Sửa</Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={() => handleOpenCancelDialog(request.id)}
-                            >
-                              Hủy
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                        {request.status === 'pending' && (
-                          <>
-                            <DropdownMenuItem onClick={() => handleStartRequest(request.id)}>
-                              Bắt đầu kiểm tra
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link to={`/maintenance/requests/edit/${request.id}`}>Sửa</Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={() => handleOpenCancelDialog(request.id)}
-                            >
-                              Hủy
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                        {request.status === 'in_progress' && (
-                          <>
-                            <DropdownMenuItem onClick={() => handleOpenCompleteDialog(request.id)}>
-                              Hoàn thành
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={() => handleOpenCancelDialog(request.id)}
-                            >
-                              Hủy
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </TableCell>
-              </TableRow>
-            )
-          })}
-        </TableBody>
-      </Table>
+                      {request.request_code}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="py-2">
+                    <span className={`flex items-center gap-1.5 text-xs ${priority.color}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${priority.dot}`} />
+                      {priority.label}
+                    </span>
+                  </TableCell>
+                  <TableCell className="py-2 text-xs">
+                    {issueTypeLabels[request.issue_type] || request.issue_type}
+                  </TableCell>
+                  <TableCell className="py-2 max-w-[180px]">
+                    <p className="text-sm truncate">{request.title}</p>
+                  </TableCell>
+                  <TableCell className="py-2 text-xs">
+                    {request.room ? `P.${request.room.room_number}` : request.location}
+                  </TableCell>
+                  <TableCell className="py-2 text-xs">
+                    {request.reporter?.full_name || 'N/A'}
+                  </TableCell>
+                  <TableCell className="py-2 text-xs text-muted-foreground">
+                    {formatDistanceToNow(new Date(request.reported_at), { addSuffix: true, locale: vi })}
+                  </TableCell>
+                  <TableCell className="py-2">
+                    <span className={`flex items-center gap-1.5 text-xs ${status.color}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
+                      {status.label}
+                    </span>
+                  </TableCell>
+                  <TableCell className="py-2 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-7 w-7"
+                        asChild
+                      >
+                        <Link to={`/maintenance/requests/${request.id}`}>
+                          <Eye className="h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link to={`/maintenance/requests/${request.id}`}>Xem chi tiết</Link>
+                          </DropdownMenuItem>
+                          {request.status === 'waiting' && (
+                            <>
+                              <DropdownMenuItem onClick={() => handleAcceptRequest(request.id)}>
+                                Tiếp nhận
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link to={`/maintenance/requests/edit/${request.id}`}>Sửa</Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="text-destructive"
+                                onClick={() => handleOpenCancelDialog(request.id)}
+                              >
+                                Hủy
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          {request.status === 'pending' && (
+                            <>
+                              <DropdownMenuItem onClick={() => handleStartRequest(request.id)}>
+                                Bắt đầu kiểm tra
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link to={`/maintenance/requests/edit/${request.id}`}>Sửa</Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="text-destructive"
+                                onClick={() => handleOpenCancelDialog(request.id)}
+                              >
+                                Hủy
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          {request.status === 'in_progress' && (
+                            <>
+                              <DropdownMenuItem onClick={() => handleOpenCompleteDialog(request.id)}>
+                                Hoàn thành
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="text-destructive"
+                                onClick={() => handleOpenCancelDialog(request.id)}
+                              >
+                                Hủy
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </div>
 
       {/* Dialogs */}
       {selectedRequestId && (

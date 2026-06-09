@@ -110,80 +110,82 @@ const VendorComparison: React.FC = () => {
           <CardTitle>Hiệu suất</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableBody>
-              <TableRow>
-                <TableCell className="font-medium w-48">Rating</TableCell>
-                {vendors.map(vendor => {
-                  const isBest = vendor.rating === getBestValue('rating');
-                  return (
-                    <TableCell key={vendor.id}>
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1">
-                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          <span className="font-semibold">{vendor.rating.toFixed(1)}/5</span>
-                        </div>
-                        {isBest && <CheckCircle className="w-4 h-4 text-green-600" />}
-                      </div>
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-
-              <TableRow>
-                <TableCell className="font-medium">Tổng đơn</TableCell>
-                {vendors.map(vendor => (
-                  <TableCell key={vendor.id}>
-                    <span className="font-semibold">{vendor.total_orders}</span>
-                  </TableCell>
-                ))}
-              </TableRow>
-
-              <TableRow>
-                <TableCell className="font-medium">Tổng GT</TableCell>
-                {vendors.map(vendor => (
-                  <TableCell key={vendor.id}>
-                    <span className="font-semibold">
-                      {formatCurrency(vendor.total_value)}
-                    </span>
-                  </TableCell>
-                ))}
-              </TableRow>
-
-              <TableRow>
-                <TableCell className="font-medium">On-time</TableCell>
-                {vendors.map(vendor => {
-                  const isBest = vendor.on_time_delivery_rate === getBestValue('on_time');
-                  return (
-                    <TableCell key={vendor.id}>
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-semibold">
-                              {vendor.on_time_delivery_rate}%
-                            </span>
-                            {isBest && <CheckCircle className="w-4 h-4 text-green-600" />}
+          <div className="overflow-x-auto">
+            <Table>
+              <TableBody>
+                <TableRow>
+                  <TableCell className="font-medium w-48">Rating</TableCell>
+                  {vendors.map(vendor => {
+                    const isBest = vendor.rating === getBestValue('rating');
+                    return (
+                      <TableCell key={vendor.id}>
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <span className="font-semibold">{vendor.rating.toFixed(1)}/5</span>
                           </div>
-                          <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full ${
-                                vendor.on_time_delivery_rate >= 95
-                                  ? 'bg-green-500'
-                                  : vendor.on_time_delivery_rate >= 90
-                                  ? 'bg-yellow-500'
-                                  : 'bg-red-500'
-                              }`}
-                              style={{ width: `${vendor.on_time_delivery_rate}%` }}
-                            />
+                          {isBest && <CheckCircle className="w-4 h-4 text-green-600" />}
+                        </div>
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+  
+                <TableRow>
+                  <TableCell className="font-medium">Tổng đơn</TableCell>
+                  {vendors.map(vendor => (
+                    <TableCell key={vendor.id}>
+                      <span className="font-semibold">{vendor.total_orders}</span>
+                    </TableCell>
+                  ))}
+                </TableRow>
+  
+                <TableRow>
+                  <TableCell className="font-medium">Tổng GT</TableCell>
+                  {vendors.map(vendor => (
+                    <TableCell key={vendor.id}>
+                      <span className="font-semibold">
+                        {formatCurrency(vendor.total_value)}
+                      </span>
+                    </TableCell>
+                  ))}
+                </TableRow>
+  
+                <TableRow>
+                  <TableCell className="font-medium">On-time</TableCell>
+                  {vendors.map(vendor => {
+                    const isBest = vendor.on_time_delivery_rate === getBestValue('on_time');
+                    return (
+                      <TableCell key={vendor.id}>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-semibold">
+                                {vendor.on_time_delivery_rate}%
+                              </span>
+                              {isBest && <CheckCircle className="w-4 h-4 text-green-600" />}
+                            </div>
+                            <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full ${
+                                  vendor.on_time_delivery_rate >= 95
+                                    ? 'bg-green-500'
+                                    : vendor.on_time_delivery_rate >= 90
+                                    ? 'bg-yellow-500'
+                                    : 'bg-red-500'
+                                }`}
+                                style={{ width: `${vendor.on_time_delivery_rate}%` }}
+                              />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-            </TableBody>
-          </Table>
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

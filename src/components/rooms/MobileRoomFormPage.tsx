@@ -301,7 +301,7 @@ export function MobileRoomFormPage() {
                   <Label htmlFor="floor">Tầng *</Label>
                   <Input
                     id="floor"
-                    type="number"
+                    type="number" min={0}
                     {...register('floor', { valueAsNumber: true })}
                     className="h-12 text-base"
                   />
@@ -325,7 +325,7 @@ export function MobileRoomFormPage() {
                     <Label htmlFor="max_guests">Số khách tối đa *</Label>
                     <Input
                       id="max_guests"
-                      type="number"
+                      type="number" min={0}
                       {...register('max_guests', { valueAsNumber: true })}
                       className="h-12 text-base"
                     />
@@ -338,7 +338,7 @@ export function MobileRoomFormPage() {
                     <Label htmlFor="area_sqm">Diện tích (m²)</Label>
                     <Input
                       id="area_sqm"
-                      type="number"
+                      type="number" min={0}
                       step="0.01"
                       {...register('area_sqm', { valueAsNumber: true })}
                       className="h-12 text-base"
@@ -350,7 +350,7 @@ export function MobileRoomFormPage() {
                   <Label htmlFor="base_price">Giá cơ bản (₫) *</Label>
                   <Input
                     id="base_price"
-                    type="number"
+                    type="number" min={0}
                     {...register('base_price', { valueAsNumber: true })}
                     className="h-12 text-base"
                   />

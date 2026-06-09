@@ -240,7 +240,7 @@ export function QuickInboundDialog({ open, onOpenChange }: QuickInboundDialogPro
                       <FormItem>
                         <FormControl>
                           <Input
-                            type="number"
+                            type="number" min={0}
                             placeholder="Số lượng"
                             className={isMobile ? 'min-h-[48px]' : ''}
                             {...field}
@@ -259,7 +259,7 @@ export function QuickInboundDialog({ open, onOpenChange }: QuickInboundDialogPro
                       <FormItem>
                         <FormControl>
                           <Input
-                            type="number"
+                            type="number" min={0}
                             placeholder="Đơn giá"
                             className={isMobile ? 'min-h-[48px]' : ''}
                             {...field}

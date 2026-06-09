@@ -80,7 +80,7 @@ export function StandardItemsFields({ form }: Props) {
                       <FormLabel className="text-xs">{t('inventory:outbound.quantityToOutbound')} *</FormLabel>
                       <FormControl>
                         <Input
-                          type="number"
+                          type="number" min={0}
                           className={cn('h-9', hasError && 'border-destructive')}
                           {...field}
                           onChange={e => field.onChange(parseInt(e.target.value) || 0)}

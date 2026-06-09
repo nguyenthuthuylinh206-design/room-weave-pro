@@ -126,7 +126,7 @@ export function AutomationRuleDialog({ rule, open, onOpenChange }: AutomationRul
                 <FormField control={form.control} name="triggerValue" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Số ngày</FormLabel>
-                    <FormControl><Input type="number" placeholder="7" {...field} className="h-8" /></FormControl>
+                    <FormControl><Input type="number" min={0} placeholder="7" {...field} className="h-8" /></FormControl>
                     <FormDescription className="text-xs">Gửi nhắc nhở trước ngày hết hạn</FormDescription>
                     <FormMessage />
                   </FormItem>

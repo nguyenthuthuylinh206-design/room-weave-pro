@@ -99,118 +99,120 @@ export function RoomTable({ rooms, isLoading, selectedIds, onSelectionChange }: 
   
   return (
     <div className="rounded-md border" style={{ fontSize: styles.bodyStyle.fontSize }}>
-      <Table data-density={densityState.preset} className={densityState.preset === 'sm' ? '[&_td]:py-1.5 [&_th]:py-2' : densityState.preset === 'lg' ? '[&_td]:py-4 [&_th]:py-3' : ''}>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-12">
-              <Checkbox
-                checked={isAllSelected}
-                ref={(el) => {
-                  if (el) (el as any).indeterminate = isSomeSelected
-                }}
-                onCheckedChange={handleSelectAll}
-              />
-            </TableHead>
-            <TableHead>{t('table.roomNumber')}</TableHead>
-            <TableHead>{t('table.floor')}</TableHead>
-            <TableHead>{t('table.roomType')}</TableHead>
-            <TableHead>{t('table.status')}</TableHead>
-            <TableHead>{t('table.area')}</TableHead>
-            <TableHead className="text-right">Giá đêm hôm nay</TableHead>
-            <TableHead>{t('table.items')}</TableHead>
-            <TableHead>{t('table.lastCheck')}</TableHead>
-            <TableHead className="w-12"></TableHead>
-          </TableRow>
-
-        </TableHeader>
-        <TableBody>
-          {rooms.map((room) => (
-            <TableRow
-              key={room.id}
-              className={`cursor-pointer hover:bg-muted/50 ${
-                selectedIds.includes(room.id) ? 'bg-primary/5' : ''
-              }`}
-              onClick={() => navigate(`/rooms/${room.id}`)}
-            >
-              <TableCell onClick={(e) => e.stopPropagation()}>
+      <div className="overflow-x-auto">
+        <Table data-density={densityState.preset} className={densityState.preset === 'sm' ? '[&_td]:py-1.5 [&_th]:py-2' : densityState.preset === 'lg' ? '[&_td]:py-4 [&_th]:py-3' : ''}>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12">
                 <Checkbox
-                  checked={selectedIds.includes(room.id)}
-                  onCheckedChange={(checked) => handleSelectRoom(room.id, !!checked)}
+                  checked={isAllSelected}
+                  ref={(el) => {
+                    if (el) (el as any).indeterminate = isSomeSelected
+                  }}
+                  onCheckedChange={handleSelectAll}
                 />
-              </TableCell>
-              <TableCell className="font-medium">{room.room_number}</TableCell>
-              <TableCell>{t('detail.floorNumber', { number: room.floor })}</TableCell>
-              <TableCell className="capitalize">{t(`roomTypes.${room.room_type}`, { defaultValue: room.room_type })}</TableCell>
-              <TableCell>
-                <RoomStatusBadge status={room.status as import('@/types/rooms.types').RoomStatus} />
-              </TableCell>
-              <TableCell>{room.area_sqm ? `${room.area_sqm} m²` : '-'}</TableCell>
-              <TableCell className="text-right">
-                {(() => {
-                  const tp = todayPrices?.get((room.room_type ?? '').toLowerCase())
-                  if (!tp) {
+              </TableHead>
+              <TableHead>{t('table.roomNumber')}</TableHead>
+              <TableHead>{t('table.floor')}</TableHead>
+              <TableHead>{t('table.roomType')}</TableHead>
+              <TableHead>{t('table.status')}</TableHead>
+              <TableHead>{t('table.area')}</TableHead>
+              <TableHead className="text-right">Giá đêm hôm nay</TableHead>
+              <TableHead>{t('table.items')}</TableHead>
+              <TableHead>{t('table.lastCheck')}</TableHead>
+              <TableHead className="w-12"></TableHead>
+            </TableRow>
+  
+          </TableHeader>
+          <TableBody>
+            {rooms.map((room) => (
+              <TableRow
+                key={room.id}
+                className={`cursor-pointer hover:bg-muted/50 ${
+                  selectedIds.includes(room.id) ? 'bg-primary/5' : ''
+                }`}
+                onClick={() => navigate(`/rooms/${room.id}`)}
+              >
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  <Checkbox
+                    checked={selectedIds.includes(room.id)}
+                    onCheckedChange={(checked) => handleSelectRoom(room.id, !!checked)}
+                  />
+                </TableCell>
+                <TableCell className="font-medium">{room.room_number}</TableCell>
+                <TableCell>{t('detail.floorNumber', { number: room.floor })}</TableCell>
+                <TableCell className="capitalize">{t(`roomTypes.${room.room_type}`, { defaultValue: room.room_type })}</TableCell>
+                <TableCell>
+                  <RoomStatusBadge status={room.status as import('@/types/rooms.types').RoomStatus} />
+                </TableCell>
+                <TableCell>{room.area_sqm ? `${room.area_sqm} m²` : '-'}</TableCell>
+                <TableCell className="text-right">
+                  {(() => {
+                    const tp = todayPrices?.get((room.room_type ?? '').toLowerCase())
+                    if (!tp) {
+                      return (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); navigate('/settings/pricing?tab=default') }}
+                          className="text-xs text-blue-600 hover:underline"
+                        >
+                          Cấu hình giá
+                        </button>
+                      )
+                    }
+                    if (tp.is_closed) return <span className="text-red-600 text-xs">Đóng bán</span>
                     return (
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); navigate('/settings/pricing?tab=default') }}
-                        className="text-xs text-blue-600 hover:underline"
-                      >
-                        Cấu hình giá
-                      </button>
-                    )
-                  }
-                  if (tp.is_closed) return <span className="text-red-600 text-xs">Đóng bán</span>
-                  return (
-                    <div className="flex flex-col items-end gap-0.5">
-                      <span className="font-medium">{formatCurrency(tp.final_price)}</span>
-                      {(tp.has_seasonal || tp.has_override) && tp.base_price !== tp.final_price && (
-                        <span className="text-[10px] text-muted-foreground line-through">{formatCurrency(tp.base_price)}</span>
-                      )}
-                      <div className="flex gap-1">
-                        {tp.has_seasonal && <span className="text-amber-600 text-[10px]" title="Áp quy tắc mùa">● Mùa</span>}
-                        {tp.has_override && <span className="text-blue-600 text-[10px]" title="Giá ghi đè theo ngày">● Ngày</span>}
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span className="font-medium">{formatCurrency(tp.final_price)}</span>
+                        {(tp.has_seasonal || tp.has_override) && tp.base_price !== tp.final_price && (
+                          <span className="text-[10px] text-muted-foreground line-through">{formatCurrency(tp.base_price)}</span>
+                        )}
+                        <div className="flex gap-1">
+                          {tp.has_seasonal && <span className="text-amber-600 text-[10px]" title="Áp quy tắc mùa">● Mùa</span>}
+                          {tp.has_override && <span className="text-blue-600 text-[10px]" title="Giá ghi đè theo ngày">● Ngày</span>}
+                        </div>
                       </div>
-                    </div>
-                  )
-                })()}
-              </TableCell>
-
-              <TableCell>
-                <div className="space-y-1 text-xs">
-                  <div>{t('table.total')}: {room.total_items}</div>
-                  {room.missing_items > 0 && (
-                    <div className="text-red-600">
-                      {t('table.missing')}: {room.missing_items}
-                    </div>
-                  )}
-                  {room.items_in_laundry > 0 && (
-                    <div className="text-cyan-600">
-                      {t('table.laundry')}: {room.items_in_laundry}
-                    </div>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell>
-                {room.last_check_at ? (
+                    )
+                  })()}
+                </TableCell>
+  
+                <TableCell>
                   <div className="space-y-1 text-xs">
-                    <div>{formatDistanceToNow(new Date(room.last_check_at), { addSuffix: true, locale: dateLocale })}</div>
-                    {room.last_check_score && (
-                      <div className="text-muted-foreground">
-                        {t('table.score', { score: room.last_check_score })}
+                    <div>{t('table.total')}: {room.total_items}</div>
+                    {room.missing_items > 0 && (
+                      <div className="text-red-600">
+                        {t('table.missing')}: {room.missing_items}
+                      </div>
+                    )}
+                    {room.items_in_laundry > 0 && (
+                      <div className="text-cyan-600">
+                        {t('table.laundry')}: {room.items_in_laundry}
                       </div>
                     )}
                   </div>
-                ) : (
-                  <span className="text-muted-foreground text-xs">{t('table.notChecked')}</span>
-                )}
-              </TableCell>
-              <TableCell onClick={(e) => e.stopPropagation()}>
-                <RoomActions room={room} />
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                </TableCell>
+                <TableCell>
+                  {room.last_check_at ? (
+                    <div className="space-y-1 text-xs">
+                      <div>{formatDistanceToNow(new Date(room.last_check_at), { addSuffix: true, locale: dateLocale })}</div>
+                      {room.last_check_score && (
+                        <div className="text-muted-foreground">
+                          {t('table.score', { score: room.last_check_score })}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">{t('table.notChecked')}</span>
+                  )}
+                </TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  <RoomActions room={room} />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

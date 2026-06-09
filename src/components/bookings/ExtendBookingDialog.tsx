@@ -16,7 +16,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, cn } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { useBookingConflictCheck } from '@/hooks/useBookingConflicts'
 import { ConflictWarningSection } from './ConflictWarningSection'
@@ -167,7 +167,7 @@ export function ExtendBookingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn("max-w-md", hasConflict && "max-w-lg")}>
+      <DialogContent className={cn(cn("max-w-md", hasConflict && "max-w-lg"), "max-h-[90dvh] overflow-y-auto")}>
         <DialogHeader>
           <DialogTitle>
             Gia hạn phòng {booking.room?.room_number}

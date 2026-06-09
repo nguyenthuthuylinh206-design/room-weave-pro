@@ -248,58 +248,60 @@ export function TenantBillingDialog({
                     <p className="text-muted-foreground">No payment transactions found</p>
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Method</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {payments.map((payment: any) => (
-                        <TableRow key={payment.id}>
-                          <TableCell>
-                            {payment.payment_date 
-                              ? new Date(payment.payment_date).toLocaleDateString()
-                              : new Date(payment.created_at).toLocaleDateString()
-                            }
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium text-foreground">
-                                {payment.description || `${payment.subscription_plan?.name || 'Subscription'} Payment`}
-                              </div>
-                              {payment.invoice_number && (
-                                <div className="text-xs text-muted-foreground">
-                                  Invoice: {payment.invoice_number}
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-medium text-foreground">
-                            {formatCurrency(payment.amount)}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {payment.payment_method || 'N/A'}
-                          </TableCell>
-                          <TableCell>
-                            {getPaymentStatusBadge(payment.payment_status)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {payment.receipt_url && (
-                              <Button variant="ghost" size="sm">
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </TableCell>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Method</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {payments.map((payment: any) => (
+                          <TableRow key={payment.id}>
+                            <TableCell>
+                              {payment.payment_date 
+                                ? new Date(payment.payment_date).toLocaleDateString()
+                                : new Date(payment.created_at).toLocaleDateString()
+                              }
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <div className="font-medium text-foreground">
+                                  {payment.description || `${payment.subscription_plan?.name || 'Subscription'} Payment`}
+                                </div>
+                                {payment.invoice_number && (
+                                  <div className="text-xs text-muted-foreground">
+                                    Invoice: {payment.invoice_number}
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-medium text-foreground">
+                              {formatCurrency(payment.amount)}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {payment.payment_method || 'N/A'}
+                            </TableCell>
+                            <TableCell>
+                              {getPaymentStatusBadge(payment.payment_status)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {payment.receipt_url && (
+                                <Button variant="ghost" size="sm">
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </div>
             </ScrollArea>
@@ -321,53 +323,55 @@ export function TenantBillingDialog({
                     <p className="text-muted-foreground">No invoices found</p>
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Invoice #</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Due Date</TableHead>
-                        <TableHead>Plan</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {invoices.map((invoice: any) => (
-                        <TableRow key={invoice.id}>
-                          <TableCell className="font-mono text-sm text-foreground">
-                            {invoice.invoice_number}
-                          </TableCell>
-                          <TableCell>
-                            {new Date(invoice.invoice_date).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            {new Date(invoice.due_date).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {invoice.subscription_plan?.name || 'N/A'}
-                          </TableCell>
-                          <TableCell className="font-medium text-foreground">
-                            {formatCurrency(invoice.total_amount)}
-                          </TableCell>
-                          <TableCell>
-                            {getInvoiceStatusBadge(invoice.status)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button variant="ghost" size="sm">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm">
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Invoice #</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Due Date</TableHead>
+                          <TableHead>Plan</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {invoices.map((invoice: any) => (
+                          <TableRow key={invoice.id}>
+                            <TableCell className="font-mono text-sm text-foreground">
+                              {invoice.invoice_number}
+                            </TableCell>
+                            <TableCell>
+                              {new Date(invoice.invoice_date).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>
+                              {new Date(invoice.due_date).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {invoice.subscription_plan?.name || 'N/A'}
+                            </TableCell>
+                            <TableCell className="font-medium text-foreground">
+                              {formatCurrency(invoice.total_amount)}
+                            </TableCell>
+                            <TableCell>
+                              {getInvoiceStatusBadge(invoice.status)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button variant="ghost" size="sm">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="sm">
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </div>
             </ScrollArea>

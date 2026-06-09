@@ -301,100 +301,102 @@ export function PaymentSettingsPage() {
                   Không có giao dịch nào chờ xác nhận
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Mã giao dịch</TableHead>
-                      <TableHead>Tenant</TableHead>
-                      <TableHead>Số tiền</TableHead>
-                      <TableHead>Nội dung CK</TableHead>
-                      <TableHead>Ngày tạo</TableHead>
-                      <TableHead>Trạng thái</TableHead>
-                      <TableHead className="text-right">Hành động</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredPayments?.map((payment) => (
-                      <TableRow key={payment.id}>
-                        <TableCell className="font-mono text-sm">
-                          {payment.invoice?.invoice_number || payment.id.slice(0, 8)}
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{payment.tenant?.name}</div>
-                            <div className="text-sm text-muted-foreground">{payment.tenant?.email}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-semibold text-primary">
-                          {formatVNCurrency(payment.amount)}
-                        </TableCell>
-                        <TableCell className="font-mono">
-                          {payment.transaction_reference}
-                        </TableCell>
-                        <TableCell>
-                          {new Date(payment.created_at).toLocaleString('vi-VN')}
-                        </TableCell>
-                        <TableCell>
-                          {getStatusBadge(payment.payment_status)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button size="sm" variant="default">
-                                  <CheckCircle className="h-4 w-4 mr-1" />
-                                  Xác nhận
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Xác nhận thanh toán</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Bạn đã kiểm tra và xác nhận tenant đã chuyển khoản {formatVNCurrency(payment.amount)} với nội dung "{payment.transaction_reference}"?
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Hủy</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => confirmPaymentMutation.mutate(payment.id)}
-                                  >
-                                    Xác nhận
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button size="sm" variant="destructive">
-                                  <XCircle className="h-4 w-4 mr-1" />
-                                  Từ chối
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Từ chối thanh toán</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Bạn có chắc chắn muốn từ chối giao dịch này? Đơn hàng sẽ bị hủy.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Hủy</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => rejectPaymentMutation.mutate(payment.id)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  >
-                                    Từ chối
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Mã giao dịch</TableHead>
+                        <TableHead>Tenant</TableHead>
+                        <TableHead>Số tiền</TableHead>
+                        <TableHead>Nội dung CK</TableHead>
+                        <TableHead>Ngày tạo</TableHead>
+                        <TableHead>Trạng thái</TableHead>
+                        <TableHead className="text-right">Hành động</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredPayments?.map((payment) => (
+                        <TableRow key={payment.id}>
+                          <TableCell className="font-mono text-sm">
+                            {payment.invoice?.invoice_number || payment.id.slice(0, 8)}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{payment.tenant?.name}</div>
+                              <div className="text-sm text-muted-foreground">{payment.tenant?.email}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-semibold text-primary">
+                            {formatVNCurrency(payment.amount)}
+                          </TableCell>
+                          <TableCell className="font-mono">
+                            {payment.transaction_reference}
+                          </TableCell>
+                          <TableCell>
+                            {new Date(payment.created_at).toLocaleString('vi-VN')}
+                          </TableCell>
+                          <TableCell>
+                            {getStatusBadge(payment.payment_status)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button size="sm" variant="default">
+                                    <CheckCircle className="h-4 w-4 mr-1" />
+                                    Xác nhận
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Xác nhận thanh toán</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Bạn đã kiểm tra và xác nhận tenant đã chuyển khoản {formatVNCurrency(payment.amount)} với nội dung "{payment.transaction_reference}"?
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => confirmPaymentMutation.mutate(payment.id)}
+                                    >
+                                      Xác nhận
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+  
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button size="sm" variant="destructive">
+                                    <XCircle className="h-4 w-4 mr-1" />
+                                    Từ chối
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Từ chối thanh toán</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Bạn có chắc chắn muốn từ chối giao dịch này? Đơn hàng sẽ bị hủy.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => rejectPaymentMutation.mutate(payment.id)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Từ chối
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -430,47 +432,49 @@ export function PaymentSettingsPage() {
                   Không có giao dịch nào
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Mã giao dịch</TableHead>
-                      <TableHead>Tenant</TableHead>
-                      <TableHead>Số tiền</TableHead>
-                      <TableHead>Nội dung CK</TableHead>
-                      <TableHead>Ngày thanh toán</TableHead>
-                      <TableHead>Trạng thái</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredPayments?.map((payment) => (
-                      <TableRow key={payment.id}>
-                        <TableCell className="font-mono text-sm">
-                          {payment.invoice?.invoice_number || payment.id.slice(0, 8)}
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{payment.tenant?.name}</div>
-                            <div className="text-sm text-muted-foreground">{payment.tenant?.email}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-semibold text-primary">
-                          {formatVNCurrency(payment.amount)}
-                        </TableCell>
-                        <TableCell className="font-mono">
-                          {payment.transaction_reference}
-                        </TableCell>
-                        <TableCell>
-                          {payment.payment_date 
-                            ? new Date(payment.payment_date).toLocaleString('vi-VN')
-                            : '-'}
-                        </TableCell>
-                        <TableCell>
-                          {getStatusBadge(payment.payment_status)}
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Mã giao dịch</TableHead>
+                        <TableHead>Tenant</TableHead>
+                        <TableHead>Số tiền</TableHead>
+                        <TableHead>Nội dung CK</TableHead>
+                        <TableHead>Ngày thanh toán</TableHead>
+                        <TableHead>Trạng thái</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredPayments?.map((payment) => (
+                        <TableRow key={payment.id}>
+                          <TableCell className="font-mono text-sm">
+                            {payment.invoice?.invoice_number || payment.id.slice(0, 8)}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{payment.tenant?.name}</div>
+                              <div className="text-sm text-muted-foreground">{payment.tenant?.email}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-semibold text-primary">
+                            {formatVNCurrency(payment.amount)}
+                          </TableCell>
+                          <TableCell className="font-mono">
+                            {payment.transaction_reference}
+                          </TableCell>
+                          <TableCell>
+                            {payment.payment_date 
+                              ? new Date(payment.payment_date).toLocaleString('vi-VN')
+                              : '-'}
+                          </TableCell>
+                          <TableCell>
+                            {getStatusBadge(payment.payment_status)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </CardContent>
           </Card>

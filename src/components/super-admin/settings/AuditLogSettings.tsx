@@ -97,59 +97,61 @@ export function AuditLogSettings() {
 
       {/* Activities Table */}
       <div className="border rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-xs w-[150px]">{t('settings.audit.time')}</TableHead>
-              <TableHead className="text-xs w-[150px]">{t('settings.audit.admin')}</TableHead>
-              <TableHead className="text-xs w-[100px]">{t('settings.audit.action')}</TableHead>
-              <TableHead className="text-xs w-[150px]">{t('settings.audit.entity')}</TableHead>
-              <TableHead className="text-xs">{t('settings.audit.details')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredActivities?.length === 0 ? (
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                  <FileJson className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Không có hoạt động nào</p>
-                </TableCell>
+                <TableHead className="text-xs w-[150px]">{t('settings.audit.time')}</TableHead>
+                <TableHead className="text-xs w-[150px]">{t('settings.audit.admin')}</TableHead>
+                <TableHead className="text-xs w-[100px]">{t('settings.audit.action')}</TableHead>
+                <TableHead className="text-xs w-[150px]">{t('settings.audit.entity')}</TableHead>
+                <TableHead className="text-xs">{t('settings.audit.details')}</TableHead>
               </TableRow>
-            ) : (
-              filteredActivities?.map((activity) => (
-                <TableRow key={activity.id}>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {format(new Date(activity.created_at), 'dd/MM/yyyy HH:mm', { locale: vi })}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    <div>
-                      <span className="font-medium">{activity.user_name || 'N/A'}</span>
-                      {activity.user_role && (
-                        <span className="text-xs text-muted-foreground ml-1">
-                          ({activity.user_role})
-                        </span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getActionBadgeVariant(activity.action)} className="text-xs">
-                      {activity.action}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-muted-foreground">{activity.entity_type}:</span>
-                      <span className="font-mono text-xs">{activity.entity_name || activity.entity_id}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground max-w-[300px] truncate">
-                    {activity.description}
+            </TableHeader>
+            <TableBody>
+              {filteredActivities?.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <FileJson className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Không có hoạt động nào</p>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                filteredActivities?.map((activity) => (
+                  <TableRow key={activity.id}>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {format(new Date(activity.created_at), 'dd/MM/yyyy HH:mm', { locale: vi })}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      <div>
+                        <span className="font-medium">{activity.user_name || 'N/A'}</span>
+                        {activity.user_role && (
+                          <span className="text-xs text-muted-foreground ml-1">
+                            ({activity.user_role})
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getActionBadgeVariant(activity.action)} className="text-xs">
+                        {activity.action}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-muted-foreground">{activity.entity_type}:</span>
+                        <span className="font-mono text-xs">{activity.entity_name || activity.entity_id}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground max-w-[300px] truncate">
+                      {activity.description}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       {filteredActivities && filteredActivities.length > 0 && (

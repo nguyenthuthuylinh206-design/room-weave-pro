@@ -94,7 +94,7 @@ export function PricingPlansTable() {
             {isEditingPrice ? (
               <div className="flex items-center gap-2">
                 <Input
-                  type="number"
+                  type="number" min={0}
                   value={newPrice}
                   onChange={(e) => setNewPrice(Number(e.target.value))}
                   className="w-28 h-8 text-lg font-bold"

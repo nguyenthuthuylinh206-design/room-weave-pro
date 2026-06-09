@@ -176,47 +176,49 @@ export function InventoryOverviewTab({ data, isLoading, chartRefs }: InventoryOv
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Danh mục</TableHead>
-                    <TableHead className="text-center">Loại</TableHead>
-                    <TableHead className="text-center">Items</TableHead>
-                    <TableHead className="text-right">Giá trị</TableHead>
-                    <TableHead className="text-right">%</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {by_category.map((cat) => (
-                    <TableRow key={cat.category_id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="h-3 w-3 rounded-full"
-                            style={{ backgroundColor: cat.category_color }}
-                          />
-                          <span className="font-medium">{cat.category_name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">{cat.item_count}</TableCell>
-                      <TableCell className="text-center">{cat.total_stock}</TableCell>
-                      <TableCell className="text-right font-medium">
-                        {formatCurrency(cat.total_value)}
-                      </TableCell>
-                      <TableCell className="text-right">{cat.percentage}%</TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Danh mục</TableHead>
+                      <TableHead className="text-center">Loại</TableHead>
+                      <TableHead className="text-center">Items</TableHead>
+                      <TableHead className="text-right">Giá trị</TableHead>
+                      <TableHead className="text-right">%</TableHead>
                     </TableRow>
-                  ))}
-                  <TableRow className="font-bold bg-muted/50">
-                    <TableCell>TỔNG</TableCell>
-                    <TableCell className="text-center">{summary.total_types}</TableCell>
-                    <TableCell className="text-center">{summary.total_items}</TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(summary.total_value)}
-                    </TableCell>
-                    <TableCell className="text-right">100%</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {by_category.map((cat) => (
+                      <TableRow key={cat.category_id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="h-3 w-3 rounded-full"
+                              style={{ backgroundColor: cat.category_color }}
+                            />
+                            <span className="font-medium">{cat.category_name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">{cat.item_count}</TableCell>
+                        <TableCell className="text-center">{cat.total_stock}</TableCell>
+                        <TableCell className="text-right font-medium">
+                          {formatCurrency(cat.total_value)}
+                        </TableCell>
+                        <TableCell className="text-right">{cat.percentage}%</TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow className="font-bold bg-muted/50">
+                      <TableCell>TỔNG</TableCell>
+                      <TableCell className="text-center">{summary.total_types}</TableCell>
+                      <TableCell className="text-center">{summary.total_items}</TableCell>
+                      <TableCell className="text-right">
+                        {formatCurrency(summary.total_value)}
+                      </TableCell>
+                      <TableCell className="text-right">100%</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -261,41 +263,43 @@ export function InventoryOverviewTab({ data, isLoading, chartRefs }: InventoryOv
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">#</TableHead>
-                  <TableHead>Đồ dùng</TableHead>
-                  <TableHead>Danh mục</TableHead>
-                  <TableHead className="text-center">Tồn kho</TableHead>
-                  <TableHead className="text-right">Đơn giá</TableHead>
-                  <TableHead className="text-right">Tổng giá trị</TableHead>
-                  <TableHead className="text-right">% Tổng kho</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {top_items_by_value.map((item, index) => (
-                  <TableRow key={item.item_id}>
-                    <TableCell className="font-medium">{index + 1}</TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{item.item_name}</p>
-                        <p className="text-xs text-muted-foreground">{item.item_code}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>{item.category}</TableCell>
-                    <TableCell className="text-center">{item.quantity}</TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(item.unit_price)}
-                    </TableCell>
-                    <TableCell className="text-right font-bold">
-                      {formatCurrency(item.total_value)}
-                    </TableCell>
-                    <TableCell className="text-right">{item.percentage}%</TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">#</TableHead>
+                    <TableHead>Đồ dùng</TableHead>
+                    <TableHead>Danh mục</TableHead>
+                    <TableHead className="text-center">Tồn kho</TableHead>
+                    <TableHead className="text-right">Đơn giá</TableHead>
+                    <TableHead className="text-right">Tổng giá trị</TableHead>
+                    <TableHead className="text-right">% Tổng kho</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {top_items_by_value.map((item, index) => (
+                    <TableRow key={item.item_id}>
+                      <TableCell className="font-medium">{index + 1}</TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{item.item_name}</p>
+                          <p className="text-xs text-muted-foreground">{item.item_code}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>{item.category}</TableCell>
+                      <TableCell className="text-center">{item.quantity}</TableCell>
+                      <TableCell className="text-right">
+                        {formatCurrency(item.unit_price)}
+                      </TableCell>
+                      <TableCell className="text-right font-bold">
+                        {formatCurrency(item.total_value)}
+                      </TableCell>
+                      <TableCell className="text-right">{item.percentage}%</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </CardContent>
       </Card>

@@ -433,7 +433,7 @@ export function CheckAdjustmentPage() {
                 />
               </div>
               <Input
-                type="number"
+                type="number" min={0}
                 value={actualQuantity}
                 onChange={(e) => {
                   setFormData({

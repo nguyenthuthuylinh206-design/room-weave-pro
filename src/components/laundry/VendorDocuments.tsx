@@ -140,53 +140,55 @@ export function VendorDocuments({ vendorId }: VendorDocumentsProps) {
           </div>
         ) : (
           <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tên file</TableHead>
-                  <TableHead>Loại</TableHead>
-                  <TableHead>Kích thước</TableHead>
-                  <TableHead>Ngày tải lên</TableHead>
-                  <TableHead>Người tải</TableHead>
-                  <TableHead className="w-32"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {documents.map((doc) => (
-                  <TableRow key={doc.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{doc.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={documentTypes[doc.type].className}>
-                        {documentTypes[doc.type].label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{doc.size}</TableCell>
-                    <TableCell>
-                      {format(doc.uploadedAt, 'dd/MM/yyyy', { locale: vi })}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{doc.uploadedBy}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Download className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tên file</TableHead>
+                    <TableHead>Loại</TableHead>
+                    <TableHead>Kích thước</TableHead>
+                    <TableHead>Ngày tải lên</TableHead>
+                    <TableHead>Người tải</TableHead>
+                    <TableHead className="w-32"></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {documents.map((doc) => (
+                    <TableRow key={doc.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">{doc.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={documentTypes[doc.type].className}>
+                          {documentTypes[doc.type].label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{doc.size}</TableCell>
+                      <TableCell>
+                        {format(doc.uploadedAt, 'dd/MM/yyyy', { locale: vi })}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{doc.uploadedBy}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         )}
       </CardContent>

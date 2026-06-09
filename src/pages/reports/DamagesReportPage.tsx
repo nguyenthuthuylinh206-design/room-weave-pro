@@ -335,57 +335,59 @@ export function DamagesReportPage() {
             <span className="text-sm font-medium">Sự cố gần đây</span>
           </div>
           {data?.records && data.records.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-xs">Phòng</TableHead>
-                  <TableHead className="text-xs">Loại</TableHead>
-                  <TableHead className="text-xs">Vật phẩm & nguyên nhân</TableHead>
-                  <TableHead className="text-xs text-center">Hỏng</TableHead>
-                  <TableHead className="text-xs text-center">Mất</TableHead>
-                  <TableHead className="text-xs text-right">Giá trị</TableHead>
-                  <TableHead className="text-xs text-right">Ngày</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.records.slice(0, 20).map((record) => {
-                  const damagedQty = totalQty(record.items_damaged)
-                  const lostQty = totalQty(record.items_lost)
-                  return (
-                    <TableRow key={record.id}>
-                      <TableCell className="text-sm font-medium">{record.room_number}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {checkTypeLabels[record.check_type] || record.check_type}
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        <div className="space-y-0.5">
-                          {record.items_damaged.map((it, i) => (
-                            <div key={`d-${i}`} className="text-orange-600">
-                              {it.item_name || it.item_code || it.item_id || 'Không tên'}
-                              {it.notes ? <span className="text-muted-foreground"> — {it.notes}</span> : null}
-                            </div>
-                          ))}
-                          {record.items_lost.map((it, i) => (
-                            <div key={`l-${i}`} className="text-red-600">
-                              {it.item_name || it.item_code || it.item_id || 'Không tên'}
-                              {it.notes ? <span className="text-muted-foreground"> — {it.notes}</span> : null}
-                            </div>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center text-orange-600 text-sm">{damagedQty}</TableCell>
-                      <TableCell className="text-center text-red-600 text-sm">{lostQty}</TableCell>
-                      <TableCell className="text-right text-red-600 text-sm">
-                        {formatCurrency(record.estimated_value)}
-                      </TableCell>
-                      <TableCell className="text-right text-xs text-muted-foreground">
-                        {format(new Date(record.created_at), 'dd/MM/yyyy')}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Phòng</TableHead>
+                    <TableHead className="text-xs">Loại</TableHead>
+                    <TableHead className="text-xs">Vật phẩm & nguyên nhân</TableHead>
+                    <TableHead className="text-xs text-center">Hỏng</TableHead>
+                    <TableHead className="text-xs text-center">Mất</TableHead>
+                    <TableHead className="text-xs text-right">Giá trị</TableHead>
+                    <TableHead className="text-xs text-right">Ngày</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.records.slice(0, 20).map((record) => {
+                    const damagedQty = totalQty(record.items_damaged)
+                    const lostQty = totalQty(record.items_lost)
+                    return (
+                      <TableRow key={record.id}>
+                        <TableCell className="text-sm font-medium">{record.room_number}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {checkTypeLabels[record.check_type] || record.check_type}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          <div className="space-y-0.5">
+                            {record.items_damaged.map((it, i) => (
+                              <div key={`d-${i}`} className="text-orange-600">
+                                {it.item_name || it.item_code || it.item_id || 'Không tên'}
+                                {it.notes ? <span className="text-muted-foreground"> — {it.notes}</span> : null}
+                              </div>
+                            ))}
+                            {record.items_lost.map((it, i) => (
+                              <div key={`l-${i}`} className="text-red-600">
+                                {it.item_name || it.item_code || it.item_id || 'Không tên'}
+                                {it.notes ? <span className="text-muted-foreground"> — {it.notes}</span> : null}
+                              </div>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center text-orange-600 text-sm">{damagedQty}</TableCell>
+                        <TableCell className="text-center text-red-600 text-sm">{lostQty}</TableCell>
+                        <TableCell className="text-right text-red-600 text-sm">
+                          {formatCurrency(record.estimated_value)}
+                        </TableCell>
+                        <TableCell className="text-right text-xs text-muted-foreground">
+                          {format(new Date(record.created_at), 'dd/MM/yyyy')}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-8">
               Không có sự cố nào trong khoảng thời gian này

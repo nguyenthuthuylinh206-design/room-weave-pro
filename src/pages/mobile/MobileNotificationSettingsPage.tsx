@@ -367,7 +367,7 @@ export default function MobileNotificationSettingsPage() {
                   <div className="space-y-2">
                     <Label>Ngưỡng tồn kho thấp (%)</Label>
                     <Input
-                      type="number"
+                      type="number" min={0}
                       value={localPrefs?.low_stock_threshold || 20}
                       onChange={(e) => handleChange('low_stock_threshold', parseInt(e.target.value))}
                     />
@@ -375,7 +375,7 @@ export default function MobileNotificationSettingsPage() {
                   <div className="space-y-2">
                     <Label>Ngưỡng tồn kho nguy hiểm (%)</Label>
                     <Input
-                      type="number"
+                      type="number" min={0}
                       value={localPrefs?.critical_stock_threshold || 10}
                       onChange={(e) => handleChange('critical_stock_threshold', parseInt(e.target.value))}
                     />
@@ -383,7 +383,7 @@ export default function MobileNotificationSettingsPage() {
                   <div className="space-y-2">
                     <Label>Ngưỡng bảo trì quá hạn (ngày)</Label>
                     <Input
-                      type="number"
+                      type="number" min={0}
                       value={localPrefs?.overdue_maintenance_days || 3}
                       onChange={(e) => handleChange('overdue_maintenance_days', parseInt(e.target.value))}
                     />

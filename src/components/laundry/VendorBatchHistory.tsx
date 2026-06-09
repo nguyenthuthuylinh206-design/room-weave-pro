@@ -112,68 +112,70 @@ export function VendorBatchHistory({ vendorId }: VendorBatchHistoryProps) {
           </p>
         ) : (
           <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('laundry:batchHistory.columns.batchCode')}</TableHead>
-                  <TableHead>{t('laundry:batchHistory.columns.deliveryDate')}</TableHead>
-                  <TableHead>{t('laundry:batchHistory.columns.returnDate')}</TableHead>
-                  <TableHead className="text-center">{t('laundry:batchHistory.columns.items')}</TableHead>
-                  <TableHead className="text-right">{t('laundry:batchHistory.columns.cost')}</TableHead>
-                  <TableHead className="text-center">{t('laundry:batchHistory.columns.rating')}</TableHead>
-                  <TableHead>{t('laundry:batchHistory.columns.status')}</TableHead>
-                  <TableHead className="w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {batches.map((batch) => (
-                  <TableRow
-                    key={batch.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => navigate(`/laundry/batches/${batch.id}`)}
-                  >
-                    <TableCell className="font-medium">{batch.batch_code}</TableCell>
-                    <TableCell>
-                      {format(new Date(batch.delivery_date), 'dd/MM/yyyy', { locale: vi })}
-                    </TableCell>
-                    <TableCell>
-                      {batch.actual_return_date
-                        ? format(new Date(batch.actual_return_date), 'dd/MM/yyyy', { locale: vi })
-                        : '-'}
-                    </TableCell>
-                    <TableCell className="text-center">{batch.total_items}</TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(batch.actual_cost || batch.estimated_cost)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {batch.quality_rating ? (
-                        <div className="flex items-center justify-center gap-1">
-                          <span className="text-yellow-400">★</span>
-                          <span>{batch.quality_rating.toFixed(1)}</span>
-                        </div>
-                      ) : (
-                        '-'
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <BatchStatusBadge status={batch.status as any} />
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          navigate(`/laundry/batches/${batch.id}`)
-                        }}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('laundry:batchHistory.columns.batchCode')}</TableHead>
+                    <TableHead>{t('laundry:batchHistory.columns.deliveryDate')}</TableHead>
+                    <TableHead>{t('laundry:batchHistory.columns.returnDate')}</TableHead>
+                    <TableHead className="text-center">{t('laundry:batchHistory.columns.items')}</TableHead>
+                    <TableHead className="text-right">{t('laundry:batchHistory.columns.cost')}</TableHead>
+                    <TableHead className="text-center">{t('laundry:batchHistory.columns.rating')}</TableHead>
+                    <TableHead>{t('laundry:batchHistory.columns.status')}</TableHead>
+                    <TableHead className="w-12"></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {batches.map((batch) => (
+                    <TableRow
+                      key={batch.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => navigate(`/laundry/batches/${batch.id}`)}
+                    >
+                      <TableCell className="font-medium">{batch.batch_code}</TableCell>
+                      <TableCell>
+                        {format(new Date(batch.delivery_date), 'dd/MM/yyyy', { locale: vi })}
+                      </TableCell>
+                      <TableCell>
+                        {batch.actual_return_date
+                          ? format(new Date(batch.actual_return_date), 'dd/MM/yyyy', { locale: vi })
+                          : '-'}
+                      </TableCell>
+                      <TableCell className="text-center">{batch.total_items}</TableCell>
+                      <TableCell className="text-right">
+                        {formatCurrency(batch.actual_cost || batch.estimated_cost)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {batch.quality_rating ? (
+                          <div className="flex items-center justify-center gap-1">
+                            <span className="text-yellow-400">★</span>
+                            <span>{batch.quality_rating.toFixed(1)}</span>
+                          </div>
+                        ) : (
+                          '-'
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <BatchStatusBadge status={batch.status as any} />
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            navigate(`/laundry/batches/${batch.id}`)
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         )}
       </CardContent>

@@ -652,44 +652,46 @@ export function RoomsReportPage() {
                 <Skeleton className="h-[200px] w-full" />
               ) : (
                 <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Loại phòng</TableHead>
-                        <TableHead className="text-center">Tổng</TableHead>
-                        <TableHead className="text-center">Đang dùng</TableHead>
-                        <TableHead className="text-center">Trống</TableHead>
-                        <TableHead className="text-center">Tỷ lệ</TableHead>
-                        <TableHead className="text-right">Doanh thu</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data?.utilizationByType && data.utilizationByType.length > 0 ? (
-                        data.utilizationByType.map((room) => (
-                          <TableRow key={room.room_type_id}>
-                            <TableCell className="font-medium">{room.room_type}</TableCell>
-                            <TableCell className="text-center">{room.total}</TableCell>
-                            <TableCell className="text-center text-blue-600">{room.occupied}</TableCell>
-                            <TableCell className="text-center text-green-600">{room.vacant}</TableCell>
-                            <TableCell className="text-center">
-                              <Badge variant={room.rate >= 80 ? 'default' : 'secondary'}>
-                                {room.rate}%
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right font-medium">
-                              {formatCurrency(room.revenue)}
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Loại phòng</TableHead>
+                          <TableHead className="text-center">Tổng</TableHead>
+                          <TableHead className="text-center">Đang dùng</TableHead>
+                          <TableHead className="text-center">Trống</TableHead>
+                          <TableHead className="text-center">Tỷ lệ</TableHead>
+                          <TableHead className="text-right">Doanh thu</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {data?.utilizationByType && data.utilizationByType.length > 0 ? (
+                          data.utilizationByType.map((room) => (
+                            <TableRow key={room.room_type_id}>
+                              <TableCell className="font-medium">{room.room_type}</TableCell>
+                              <TableCell className="text-center">{room.total}</TableCell>
+                              <TableCell className="text-center text-blue-600">{room.occupied}</TableCell>
+                              <TableCell className="text-center text-green-600">{room.vacant}</TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant={room.rate >= 80 ? 'default' : 'secondary'}>
+                                  {room.rate}%
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right font-medium">
+                                {formatCurrency(room.revenue)}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                              Không có dữ liệu
                             </TableCell>
                           </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                            Không có dữ liệu
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -815,45 +817,47 @@ export function RoomsReportPage() {
                 <Skeleton className="h-[250px] w-full" />
               ) : (
                 <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Phòng</TableHead>
-                        <TableHead>Loại</TableHead>
-                        <TableHead className="text-center">Số booking</TableHead>
-                        <TableHead className="text-center">Ngày sử dụng</TableHead>
-                        <TableHead className="text-right">Doanh thu</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data?.revenueByRoom && data.revenueByRoom.length > 0 ? (
-                        data.revenueByRoom.map((room, index) => (
-                          <TableRow key={room.room_id}>
-                            <TableCell className="font-bold">
-                              <div className="flex items-center gap-2">
-                                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
-                                  {index + 1}
-                                </span>
-                                {room.room_number}
-                              </div>
-                            </TableCell>
-                            <TableCell>{room.room_type || '-'}</TableCell>
-                            <TableCell className="text-center">{room.total_bookings}</TableCell>
-                            <TableCell className="text-center">{room.occupancy_days}</TableCell>
-                            <TableCell className="text-right font-bold text-green-600">
-                              {formatCurrency(room.total_revenue)}
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Phòng</TableHead>
+                          <TableHead>Loại</TableHead>
+                          <TableHead className="text-center">Số booking</TableHead>
+                          <TableHead className="text-center">Ngày sử dụng</TableHead>
+                          <TableHead className="text-right">Doanh thu</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {data?.revenueByRoom && data.revenueByRoom.length > 0 ? (
+                          data.revenueByRoom.map((room, index) => (
+                            <TableRow key={room.room_id}>
+                              <TableCell className="font-bold">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
+                                    {index + 1}
+                                  </span>
+                                  {room.room_number}
+                                </div>
+                              </TableCell>
+                              <TableCell>{room.room_type || '-'}</TableCell>
+                              <TableCell className="text-center">{room.total_bookings}</TableCell>
+                              <TableCell className="text-center">{room.occupancy_days}</TableCell>
+                              <TableCell className="text-right font-bold text-green-600">
+                                {formatCurrency(room.total_revenue)}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                              Không có dữ liệu doanh thu
                             </TableCell>
                           </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                            Không có dữ liệu doanh thu
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -907,58 +911,60 @@ export function RoomsReportPage() {
                 <Skeleton className="h-[200px] w-full" />
               ) : (
                 <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Phòng</TableHead>
-                        <TableHead>Loại</TableHead>
-                        <TableHead className="text-center">Thiếu</TableHead>
-                        <TableHead className="text-center">Hỏng</TableHead>
-                        <TableHead className="text-center">Mất</TableHead>
-                        <TableHead className="text-center">Tổng</TableHead>
-                        <TableHead>Kiểm tra gần nhất</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data?.deficiencies && data.deficiencies.length > 0 ? (
-                        data.deficiencies.map((room) => (
-                          <TableRow key={room.room_id}>
-                            <TableCell className="font-bold">{room.room_number}</TableCell>
-                            <TableCell>{room.room_type || '-'}</TableCell>
-                            <TableCell className="text-center">
-                              {room.missing_count > 0 && (
-                                <Badge variant="secondary">{room.missing_count}</Badge>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              {room.damaged_count > 0 && (
-                                <Badge variant="outline" className="border-orange-500 text-orange-600">
-                                  {room.damaged_count}
-                                </Badge>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              {room.lost_count > 0 && (
-                                <Badge variant="destructive">{room.lost_count}</Badge>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-center font-bold">
-                              {room.total_issues}
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {room.last_check_date ? format(new Date(room.last_check_date), 'dd/MM/yyyy') : '-'}
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Phòng</TableHead>
+                          <TableHead>Loại</TableHead>
+                          <TableHead className="text-center">Thiếu</TableHead>
+                          <TableHead className="text-center">Hỏng</TableHead>
+                          <TableHead className="text-center">Mất</TableHead>
+                          <TableHead className="text-center">Tổng</TableHead>
+                          <TableHead>Kiểm tra gần nhất</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {data?.deficiencies && data.deficiencies.length > 0 ? (
+                          data.deficiencies.map((room) => (
+                            <TableRow key={room.room_id}>
+                              <TableCell className="font-bold">{room.room_number}</TableCell>
+                              <TableCell>{room.room_type || '-'}</TableCell>
+                              <TableCell className="text-center">
+                                {room.missing_count > 0 && (
+                                  <Badge variant="secondary">{room.missing_count}</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {room.damaged_count > 0 && (
+                                  <Badge variant="outline" className="border-orange-500 text-orange-600">
+                                    {room.damaged_count}
+                                  </Badge>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {room.lost_count > 0 && (
+                                  <Badge variant="destructive">{room.lost_count}</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-center font-bold">
+                                {room.total_issues}
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {room.last_check_date ? format(new Date(room.last_check_date), 'dd/MM/yyyy') : '-'}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                              Không có phòng nào thiếu/hỏng đồ dùng
                             </TableCell>
                           </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                            Không có phòng nào thiếu/hỏng đồ dùng
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -974,46 +980,48 @@ export function RoomsReportPage() {
                 <Skeleton className="h-[200px] w-full" />
               ) : (
                 <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Tên item</TableHead>
-                        <TableHead>Loại vấn đề</TableHead>
-                        <TableHead className="text-center">Số lần</TableHead>
-                        <TableHead className="text-right">Đơn giá</TableHead>
-                        <TableHead className="text-right">Tổng thiệt hại</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data?.topIssues && data.topIssues.length > 0 ? (
-                        data.topIssues.map((issue, index) => (
-                          <TableRow key={index}>
-                            <TableCell className="font-medium">{issue.item_name || 'Không xác định'}</TableCell>
-                            <TableCell>
-                              <Badge variant={
-                                issue.issue_type === 'lost' ? 'destructive' :
-                                issue.issue_type === 'damaged' ? 'outline' : 'secondary'
-                              }>
-                                {issue.issue_type === 'missing' ? 'Thiếu' :
-                                 issue.issue_type === 'damaged' ? 'Hỏng' : 'Mất'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-center font-bold">{issue.count}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(issue.unit_price)}</TableCell>
-                            <TableCell className="text-right font-bold text-red-600">
-                              {formatCurrency(issue.total_value)}
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Tên item</TableHead>
+                          <TableHead>Loại vấn đề</TableHead>
+                          <TableHead className="text-center">Số lần</TableHead>
+                          <TableHead className="text-right">Đơn giá</TableHead>
+                          <TableHead className="text-right">Tổng thiệt hại</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {data?.topIssues && data.topIssues.length > 0 ? (
+                          data.topIssues.map((issue, index) => (
+                            <TableRow key={index}>
+                              <TableCell className="font-medium">{issue.item_name || 'Không xác định'}</TableCell>
+                              <TableCell>
+                                <Badge variant={
+                                  issue.issue_type === 'lost' ? 'destructive' :
+                                  issue.issue_type === 'damaged' ? 'outline' : 'secondary'
+                                }>
+                                  {issue.issue_type === 'missing' ? 'Thiếu' :
+                                   issue.issue_type === 'damaged' ? 'Hỏng' : 'Mất'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center font-bold">{issue.count}</TableCell>
+                              <TableCell className="text-right">{formatCurrency(issue.unit_price)}</TableCell>
+                              <TableCell className="text-right font-bold text-red-600">
+                                {formatCurrency(issue.total_value)}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                              Không có dữ liệu
                             </TableCell>
                           </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                            Không có dữ liệu
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -1107,38 +1115,40 @@ export function RoomsReportPage() {
                 <Skeleton className="h-[200px] w-full" />
               ) : (
                 <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nhân viên</TableHead>
-                        <TableHead className="text-center">Số lần kiểm tra</TableHead>
-                        <TableHead className="text-center">Điểm TB</TableHead>
-                        <TableHead className="text-center">Vấn đề phát hiện</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data?.staffPerformance && data.staffPerformance.length > 0 ? (
-                        data.staffPerformance.map((staff) => (
-                          <TableRow key={staff.user_id}>
-                            <TableCell className="font-medium">{staff.user_name || 'Không xác định'}</TableCell>
-                            <TableCell className="text-center">{staff.checks_count}</TableCell>
-                            <TableCell className="text-center">
-                              <Badge variant={staff.avg_score >= 80 ? 'default' : 'secondary'}>
-                                {staff.avg_score}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-center">{staff.issues_found}</TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                            Không có dữ liệu hiệu suất
-                          </TableCell>
+                          <TableHead>Nhân viên</TableHead>
+                          <TableHead className="text-center">Số lần kiểm tra</TableHead>
+                          <TableHead className="text-center">Điểm TB</TableHead>
+                          <TableHead className="text-center">Vấn đề phát hiện</TableHead>
                         </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {data?.staffPerformance && data.staffPerformance.length > 0 ? (
+                          data.staffPerformance.map((staff) => (
+                            <TableRow key={staff.user_id}>
+                              <TableCell className="font-medium">{staff.user_name || 'Không xác định'}</TableCell>
+                              <TableCell className="text-center">{staff.checks_count}</TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant={staff.avg_score >= 80 ? 'default' : 'secondary'}>
+                                  {staff.avg_score}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center">{staff.issues_found}</TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                              Không có dữ liệu hiệu suất
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               )}
             </CardContent>

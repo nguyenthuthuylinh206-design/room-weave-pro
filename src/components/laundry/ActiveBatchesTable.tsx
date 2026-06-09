@@ -64,116 +64,118 @@ export function ActiveBatchesTable({ batches, isLoading }: ActiveBatchesTablePro
           </div>
         ) : (
           <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('activeBatches.table.batchCode')}</TableHead>
-                  <TableHead>{t('activeBatches.table.vendor')}</TableHead>
-                  <TableHead>{t('activeBatches.table.deliveryDate')}</TableHead>
-                  <TableHead>{t('activeBatches.table.expectedReturn')}</TableHead>
-                  <TableHead className="text-right">{t('activeBatches.table.items')}</TableHead>
-                  <TableHead className="text-right">{t('activeBatches.table.weight')}</TableHead>
-                  <TableHead className="text-right">{t('activeBatches.table.cost')}</TableHead>
-                  <TableHead>{t('activeBatches.table.status')}</TableHead>
-                  <TableHead className="w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {batches.map((batch) => {
-                  const isOverdue = batch.expected_return_date && 
-                    new Date(batch.expected_return_date) < new Date() &&
-                    batch.status !== 'received'
-                  
-                  return (
-                    <TableRow
-                      key={batch.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => navigate(`/laundry/batches/${batch.id}`)}
-                    >
-                      <TableCell className="font-medium">
-                        {batch.batch_code}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={batch.vendor_logo || undefined} />
-                            <AvatarFallback>
-                              {batch.vendor_name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium text-sm">{batch.vendor_name}</p>
-                            <div className="flex items-center gap-1">
-                              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                              <span className="text-xs text-muted-foreground">
-                                {batch.vendor_rating.toFixed(1)}
-                              </span>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('activeBatches.table.batchCode')}</TableHead>
+                    <TableHead>{t('activeBatches.table.vendor')}</TableHead>
+                    <TableHead>{t('activeBatches.table.deliveryDate')}</TableHead>
+                    <TableHead>{t('activeBatches.table.expectedReturn')}</TableHead>
+                    <TableHead className="text-right">{t('activeBatches.table.items')}</TableHead>
+                    <TableHead className="text-right">{t('activeBatches.table.weight')}</TableHead>
+                    <TableHead className="text-right">{t('activeBatches.table.cost')}</TableHead>
+                    <TableHead>{t('activeBatches.table.status')}</TableHead>
+                    <TableHead className="w-12"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {batches.map((batch) => {
+                    const isOverdue = batch.expected_return_date && 
+                      new Date(batch.expected_return_date) < new Date() &&
+                      batch.status !== 'received'
+                    
+                    return (
+                      <TableRow
+                        key={batch.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => navigate(`/laundry/batches/${batch.id}`)}
+                      >
+                        <TableCell className="font-medium">
+                          {batch.batch_code}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={batch.vendor_logo || undefined} />
+                              <AvatarFallback>
+                                {batch.vendor_name.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium text-sm">{batch.vendor_name}</p>
+                              <div className="flex items-center gap-1">
+                                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                <span className="text-xs text-muted-foreground">
+                                  {batch.vendor_rating.toFixed(1)}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(batch.delivery_date).toLocaleDateString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')}
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(batch.delivery_date).toLocaleTimeString(i18n.language === 'vi' ? 'vi-VN' : 'en-US', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {batch.expected_return_date ? (
-                          <>
-                            {new Date(batch.expected_return_date).toLocaleDateString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')}
-                            {isOverdue && (
-                              <Badge variant="destructive" className="ml-2 text-xs">
-                                {t('activeBatches.overdue')}
-                              </Badge>
-                            )}
-                          </>
-                        ) : (
-                          '-'
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {batch.total_items}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {batch.total_weight_kg} kg
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {(batch.actual_cost || batch.estimated_cost) > 0
-                          ? formatCurrency(batch.actual_cost || batch.estimated_cost)
-                          : <span className="text-muted-foreground italic">{t('activeBatches.costNotUpdated')}</span>
-                        }
-                      </TableCell>
-                      <TableCell>
-                        <BatchStatusBadge status={batch.status as BatchStatus} />
-                      </TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        {batch.status === 'ready' ? (
-                          <Button
-                            size="sm"
-                            onClick={() => navigate(`/laundry/batches/${batch.id}/receive`)}
-                          >
-                            <CheckCircle className="mr-1 h-3 w-3" />
-                            {t('activeBatches.receive')}
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/laundry/batches/${batch.id}`)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
+                        </TableCell>
+                        <TableCell>
+                          {new Date(batch.delivery_date).toLocaleDateString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')}
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(batch.delivery_date).toLocaleTimeString(i18n.language === 'vi' ? 'vi-VN' : 'en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {batch.expected_return_date ? (
+                            <>
+                              {new Date(batch.expected_return_date).toLocaleDateString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')}
+                              {isOverdue && (
+                                <Badge variant="destructive" className="ml-2 text-xs">
+                                  {t('activeBatches.overdue')}
+                                </Badge>
+                              )}
+                            </>
+                          ) : (
+                            '-'
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {batch.total_items}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {batch.total_weight_kg} kg
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {(batch.actual_cost || batch.estimated_cost) > 0
+                            ? formatCurrency(batch.actual_cost || batch.estimated_cost)
+                            : <span className="text-muted-foreground italic">{t('activeBatches.costNotUpdated')}</span>
+                          }
+                        </TableCell>
+                        <TableCell>
+                          <BatchStatusBadge status={batch.status as BatchStatus} />
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          {batch.status === 'ready' ? (
+                            <Button
+                              size="sm"
+                              onClick={() => navigate(`/laundry/batches/${batch.id}/receive`)}
+                            >
+                              <CheckCircle className="mr-1 h-3 w-3" />
+                              {t('activeBatches.receive')}
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigate(`/laundry/batches/${batch.id}`)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         )}
       </CardContent>

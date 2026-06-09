@@ -263,7 +263,7 @@ export default function SeasonalRulesPage() {
                       ? 'Phần trăm (âm = giảm)'
                       : 'Số tiền (âm = giảm)'}
                 </Label>
-                <Input type="number" value={form.adjust_value}
+                <Input type="number" min={0} value={form.adjust_value}
                   onChange={e => setForm({ ...form, adjust_value: Number(e.target.value) })} />
                 {form.adjust_type === 'set_rate' && (
                   <p className="text-[11px] text-muted-foreground mt-1">
@@ -273,7 +273,7 @@ export default function SeasonalRulesPage() {
               </div>
               <div>
                 <Label className="text-xs">Ưu tiên (số nhỏ = áp trước)</Label>
-                <Input type="number" value={form.priority}
+                <Input type="number" min={0} value={form.priority}
                   onChange={e => setForm({ ...form, priority: Number(e.target.value) })} />
               </div>
             </div>

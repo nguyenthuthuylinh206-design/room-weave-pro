@@ -38,7 +38,7 @@ export function TaskQcReviewDialog({ task, open, onOpenChange, defaultMode = 'ap
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{mode === 'approve' ? 'Duyệt công việc' : 'Trả về làm lại'}</DialogTitle>
           <DialogDescription>

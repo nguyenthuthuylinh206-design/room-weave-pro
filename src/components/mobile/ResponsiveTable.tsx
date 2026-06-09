@@ -58,26 +58,28 @@ export function ResponsiveTable<T extends Record<string, any>>({
   // Desktop: Table
   return (
     <div className={className}>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {columns.map((col) => (
-              <TableHead key={col.key}>{col.label}</TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((item, index) => (
-            <TableRow key={index}>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
               {columns.map((col) => (
-                <TableCell key={col.key}>
-                  {col.render ? col.render(item) : item[col.key]}
-                </TableCell>
+                <TableHead key={col.key}>{col.label}</TableHead>
               ))}
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {data.map((item, index) => (
+              <TableRow key={index}>
+                {columns.map((col) => (
+                  <TableCell key={col.key}>
+                    {col.render ? col.render(item) : item[col.key]}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

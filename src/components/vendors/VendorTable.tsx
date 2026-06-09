@@ -107,129 +107,131 @@ export function VendorTable({ vendors, selectedVendors, onSelectionChange }: Ven
   return (
     <>
       <div className="rounded-md border">
-        <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-12">
-              <Checkbox
-                checked={selectedVendors.length === vendors.length}
-                onCheckedChange={handleSelectAll}
-              />
-            </TableHead>
-            <TableHead>{t('table.vendor')}</TableHead>
-            <TableHead>{t('table.type')}</TableHead>
-            <TableHead>{t('table.contact')}</TableHead>
-            <TableHead className="text-center">{t('table.rating')}</TableHead>
-            <TableHead className="text-right">{t('table.orders')}</TableHead>
-            <TableHead className="text-right">{t('table.totalValue')}</TableHead>
-            <TableHead className="text-center">{t('table.onTime')}</TableHead>
-            <TableHead className="text-center">{t('table.status')}</TableHead>
-            <TableHead className="text-right">{t('table.actions')}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {vendors.map((vendor) => (
-            <TableRow key={vendor.id}>
-              <TableCell>
+        <div className="overflow-x-auto">
+          <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12">
                 <Checkbox
-                  checked={selectedVendors.includes(vendor.id)}
-                  onCheckedChange={(checked) => handleSelectOne(vendor.id, checked as boolean)}
+                  checked={selectedVendors.length === vendors.length}
+                  onCheckedChange={handleSelectAll}
                 />
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-3">
-                  <Avatar className="w-10 h-10">
-                    <AvatarImage src={vendor.logo_url} />
-                    <AvatarFallback>
-                      {vendor.name.substring(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="font-medium">{vendor.name}</div>
-                    <div className="text-xs text-muted-foreground">{vendor.code}</div>
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell>
-                <Badge variant={
-                  vendor.category === 'supplier' ? 'default' :
-                  vendor.category === 'service_provider' ? 'secondary' : 'outline'
-                }>
-                  {getCategoryLabel(vendor.category)}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <div className="text-sm">
-                  <div>{vendor.contact_person}</div>
-                  <div className="text-muted-foreground">{vendor.phone}</div>
-                </div>
-              </TableCell>
-              <TableCell className="text-center">
-                <div className="flex items-center justify-center gap-1">
-                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  <span className="font-medium">{vendor.rating.toFixed(1)}</span>
-                </div>
-              </TableCell>
-              <TableCell className="text-right font-medium">
-                {vendor.total_orders}
-              </TableCell>
-              <TableCell className="text-right font-medium">
-                {formatCurrency(vendor.total_value)}
-              </TableCell>
-              <TableCell className="text-center">
-                <Badge variant={
-                  vendor.on_time_delivery_rate >= 95 ? 'default' :
-                  vendor.on_time_delivery_rate >= 90 ? 'secondary' : 'destructive'
-                }>
-                  {vendor.on_time_delivery_rate}%
-                </Badge>
-              </TableCell>
-              <TableCell className="text-center">
-                <Badge variant={
-                  vendor.status === 'active' ? 'default' :
-                  vendor.status === 'inactive' ? 'secondary' : 'destructive'
-                }>
-                  {getStatusLabel(vendor.status)}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <MoreVertical className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => navigate(`/vendors/${vendor.id}`)}>
-                      <Eye className="mr-2 w-4 h-4" />
-                      {t('actions.viewDetail')}
-                    </DropdownMenuItem>
-                    <PermissionGate module="vendors" action="update">
-                      <DropdownMenuItem onClick={() => navigate(`/vendors/${vendor.id}/edit`)}>
-                        <Edit className="mr-2 w-4 h-4" />
-                        {t('actions.edit')}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleToggleStatus(vendor)}>
-                        {vendor.status === 'active' ? t('actions.deactivate') : t('actions.activate')}
-                      </DropdownMenuItem>
-                    </PermissionGate>
-                    <PermissionGate module="vendors" action="delete">
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        onClick={() => handleDelete(vendor)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="mr-2 w-4 h-4" />
-                        {t('actions.delete')}
-                      </DropdownMenuItem>
-                    </PermissionGate>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
+              </TableHead>
+              <TableHead>{t('table.vendor')}</TableHead>
+              <TableHead>{t('table.type')}</TableHead>
+              <TableHead>{t('table.contact')}</TableHead>
+              <TableHead className="text-center">{t('table.rating')}</TableHead>
+              <TableHead className="text-right">{t('table.orders')}</TableHead>
+              <TableHead className="text-right">{t('table.totalValue')}</TableHead>
+              <TableHead className="text-center">{t('table.onTime')}</TableHead>
+              <TableHead className="text-center">{t('table.status')}</TableHead>
+              <TableHead className="text-right">{t('table.actions')}</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {vendors.map((vendor) => (
+              <TableRow key={vendor.id}>
+                <TableCell>
+                  <Checkbox
+                    checked={selectedVendors.includes(vendor.id)}
+                    onCheckedChange={(checked) => handleSelectOne(vendor.id, checked as boolean)}
+                  />
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-3">
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={vendor.logo_url} />
+                      <AvatarFallback>
+                        {vendor.name.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="font-medium">{vendor.name}</div>
+                      <div className="text-xs text-muted-foreground">{vendor.code}</div>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={
+                    vendor.category === 'supplier' ? 'default' :
+                    vendor.category === 'service_provider' ? 'secondary' : 'outline'
+                  }>
+                    {getCategoryLabel(vendor.category)}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="text-sm">
+                    <div>{vendor.contact_person}</div>
+                    <div className="text-muted-foreground">{vendor.phone}</div>
+                  </div>
+                </TableCell>
+                <TableCell className="text-center">
+                  <div className="flex items-center justify-center gap-1">
+                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    <span className="font-medium">{vendor.rating.toFixed(1)}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="text-right font-medium">
+                  {vendor.total_orders}
+                </TableCell>
+                <TableCell className="text-right font-medium">
+                  {formatCurrency(vendor.total_value)}
+                </TableCell>
+                <TableCell className="text-center">
+                  <Badge variant={
+                    vendor.on_time_delivery_rate >= 95 ? 'default' :
+                    vendor.on_time_delivery_rate >= 90 ? 'secondary' : 'destructive'
+                  }>
+                    {vendor.on_time_delivery_rate}%
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-center">
+                  <Badge variant={
+                    vendor.status === 'active' ? 'default' :
+                    vendor.status === 'inactive' ? 'secondary' : 'destructive'
+                  }>
+                    {getStatusLabel(vendor.status)}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => navigate(`/vendors/${vendor.id}`)}>
+                        <Eye className="mr-2 w-4 h-4" />
+                        {t('actions.viewDetail')}
+                      </DropdownMenuItem>
+                      <PermissionGate module="vendors" action="update">
+                        <DropdownMenuItem onClick={() => navigate(`/vendors/${vendor.id}/edit`)}>
+                          <Edit className="mr-2 w-4 h-4" />
+                          {t('actions.edit')}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleToggleStatus(vendor)}>
+                          {vendor.status === 'active' ? t('actions.deactivate') : t('actions.activate')}
+                        </DropdownMenuItem>
+                      </PermissionGate>
+                      <PermissionGate module="vendors" action="delete">
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => handleDelete(vendor)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="mr-2 w-4 h-4" />
+                          {t('actions.delete')}
+                        </DropdownMenuItem>
+                      </PermissionGate>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        </div>
     </div>
     <AlertDialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
       <AlertDialogContent>

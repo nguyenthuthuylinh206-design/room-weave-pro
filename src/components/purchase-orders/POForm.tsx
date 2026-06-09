@@ -401,57 +401,59 @@ const POForm: React.FC = () => {
                     </div>
 
                     <div className="border rounded-lg">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>{t('form.product')}</TableHead>
-                            <TableHead>{t('form.code')}</TableHead>
-                            <TableHead>{t('form.stock')}</TableHead>
-                            <TableHead>{t('form.unit')}</TableHead>
-                            <TableHead className="text-right">{t('form.lastPrice')}</TableHead>
-                            <TableHead className="w-24"></TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredItems?.map(item => (
-                            <TableRow key={item.id}>
-                              <TableCell>
-                                <div className="font-medium">{item.name}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  {item.description}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <span className="font-mono text-sm">{item.code}</span>
-                              </TableCell>
-                              <TableCell>
-                                <span className={
-                                  item.quantity_in_stock < item.minimum_stock
-                                    ? 'text-red-600 font-medium'
-                                    : ''
-                                }>
-                                  {item.quantity_in_stock}
-                                </span>
-                              </TableCell>
-                              <TableCell>{item.unit}</TableCell>
-                              <TableCell className="text-right">
-                                {item.unit_price ? formatCurrency(item.unit_price) : '-'}
-                              </TableCell>
-                              <TableCell>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleAddToCart(item)}
-                                  disabled={cart.some(c => c.item_id === item.id)}
-                                >
-                                  <Plus className="w-4 h-4" />
-                                </Button>
-                              </TableCell>
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>{t('form.product')}</TableHead>
+                              <TableHead>{t('form.code')}</TableHead>
+                              <TableHead>{t('form.stock')}</TableHead>
+                              <TableHead>{t('form.unit')}</TableHead>
+                              <TableHead className="text-right">{t('form.lastPrice')}</TableHead>
+                              <TableHead className="w-24"></TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredItems?.map(item => (
+                              <TableRow key={item.id}>
+                                <TableCell>
+                                  <div className="font-medium">{item.name}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {item.description}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <span className="font-mono text-sm">{item.code}</span>
+                                </TableCell>
+                                <TableCell>
+                                  <span className={
+                                    item.quantity_in_stock < item.minimum_stock
+                                      ? 'text-red-600 font-medium'
+                                      : ''
+                                  }>
+                                    {item.quantity_in_stock}
+                                  </span>
+                                </TableCell>
+                                <TableCell>{item.unit}</TableCell>
+                                <TableCell className="text-right">
+                                  {item.unit_price ? formatCurrency(item.unit_price) : '-'}
+                                </TableCell>
+                                <TableCell>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleAddToCart(item)}
+                                    disabled={cart.some(c => c.item_id === item.id)}
+                                  >
+                                    <Plus className="w-4 h-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </div>
                   </TabsContent>
 
@@ -711,30 +713,32 @@ const POForm: React.FC = () => {
 
             <div>
               <h3 className="font-semibold mb-2">{t('form.productsCount', { count: cart.length })}</h3>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('table.product')}</TableHead>
-                    <TableHead className="text-right">{t('table.qty')}</TableHead>
-                    <TableHead className="text-right">{t('table.unitPrice')}</TableHead>
-                    <TableHead className="text-right">{t('table.amount')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {cart.map(item => (
-                    <TableRow key={item.item_id}>
-                      <TableCell>{item.item.name}</TableCell>
-                      <TableCell className="text-right">{item.quantity}</TableCell>
-                      <TableCell className="text-right">
-                        {formatCurrency(item.unit_price)}
-                      </TableCell>
-                      <TableCell className="text-right font-semibold">
-                        {formatCurrency(item.quantity * item.unit_price)}
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('table.product')}</TableHead>
+                      <TableHead className="text-right">{t('table.qty')}</TableHead>
+                      <TableHead className="text-right">{t('table.unitPrice')}</TableHead>
+                      <TableHead className="text-right">{t('table.amount')}</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {cart.map(item => (
+                      <TableRow key={item.item_id}>
+                        <TableCell>{item.item.name}</TableCell>
+                        <TableCell className="text-right">{item.quantity}</TableCell>
+                        <TableCell className="text-right">
+                          {formatCurrency(item.unit_price)}
+                        </TableCell>
+                        <TableCell className="text-right font-semibold">
+                          {formatCurrency(item.quantity * item.unit_price)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
 
             <div>

@@ -393,7 +393,7 @@ export function StopCard({
 
       {/* Cannot Access Dialog */}
       <Dialog open={showCannotAccessDialog} onOpenChange={setShowCannotAccessDialog}>
-        <DialogContent>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Không vào được phòng {stop.room_number}</DialogTitle>
             <DialogDescription>
@@ -449,7 +449,7 @@ export function StopCard({
 
       {/* Handover Dialog */}
       <Dialog open={showHandoverDialog} onOpenChange={setShowHandoverDialog}>
-        <DialogContent>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Bàn giao phòng {stop.room_number}</DialogTitle>
             <DialogDescription>

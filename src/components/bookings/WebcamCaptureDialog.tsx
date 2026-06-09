@@ -105,7 +105,7 @@ export function WebcamCaptureDialog({ open, onOpenChange, onCapture }: WebcamCap
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg p-4">
+      <DialogContent className="sm:max-w-lg p-4 max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-sm">Chụp ảnh giấy tờ</DialogTitle>
         </DialogHeader>

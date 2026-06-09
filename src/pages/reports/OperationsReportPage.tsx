@@ -226,40 +226,42 @@ export function OperationsReportPage() {
               <h3 className="text-sm font-medium">{t('operations.topItems.title')}</h3>
             </div>
             {reportData?.topMovingItems && reportData.topMovingItems.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-xs h-9 w-12">#</TableHead>
-                    <TableHead className="text-xs h-9">{t('operations.topItems.item')}</TableHead>
-                    <TableHead className="text-xs h-9 text-center w-20">{t('operations.topItems.inbound')}</TableHead>
-                    <TableHead className="text-xs h-9 text-center w-20">{t('operations.topItems.outbound')}</TableHead>
-                    <TableHead className="text-xs h-9 text-center w-24">{t('operations.topItems.turnover')}</TableHead>
-                    <TableHead className="text-xs h-9 w-28">{t('operations.topItems.trend')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {reportData.topMovingItems.map((item, index) => {
-                    const maxTurnover = reportData.topMovingItems[0]?.turnover || 1
-                    return (
-                      <TableRow key={item.item_id} className="hover:bg-muted/30">
-                        <TableCell className="text-xs py-2 font-medium text-muted-foreground">{index + 1}</TableCell>
-                        <TableCell className="py-2">
-                          <p className="text-sm font-medium">{item.item_name}</p>
-                          <p className="text-[10px] text-muted-foreground font-mono">{item.item_code}</p>
-                        </TableCell>
-                        <TableCell className="text-xs py-2 text-center text-green-600 font-medium">+{item.inbound}</TableCell>
-                        <TableCell className="text-xs py-2 text-center text-blue-600 font-medium">-{item.outbound}</TableCell>
-                        <TableCell className="text-xs py-2 text-center">
-                          <span className="font-semibold">{item.turnover}</span>
-                        </TableCell>
-                        <TableCell className="py-2">
-                          <Progress value={(item.turnover / maxTurnover) * 100} className="h-1.5" />
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="text-xs h-9 w-12">#</TableHead>
+                      <TableHead className="text-xs h-9">{t('operations.topItems.item')}</TableHead>
+                      <TableHead className="text-xs h-9 text-center w-20">{t('operations.topItems.inbound')}</TableHead>
+                      <TableHead className="text-xs h-9 text-center w-20">{t('operations.topItems.outbound')}</TableHead>
+                      <TableHead className="text-xs h-9 text-center w-24">{t('operations.topItems.turnover')}</TableHead>
+                      <TableHead className="text-xs h-9 w-28">{t('operations.topItems.trend')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {reportData.topMovingItems.map((item, index) => {
+                      const maxTurnover = reportData.topMovingItems[0]?.turnover || 1
+                      return (
+                        <TableRow key={item.item_id} className="hover:bg-muted/30">
+                          <TableCell className="text-xs py-2 font-medium text-muted-foreground">{index + 1}</TableCell>
+                          <TableCell className="py-2">
+                            <p className="text-sm font-medium">{item.item_name}</p>
+                            <p className="text-[10px] text-muted-foreground font-mono">{item.item_code}</p>
+                          </TableCell>
+                          <TableCell className="text-xs py-2 text-center text-green-600 font-medium">+{item.inbound}</TableCell>
+                          <TableCell className="text-xs py-2 text-center text-blue-600 font-medium">-{item.outbound}</TableCell>
+                          <TableCell className="text-xs py-2 text-center">
+                            <span className="font-semibold">{item.turnover}</span>
+                          </TableCell>
+                          <TableCell className="py-2">
+                            <Progress value={(item.turnover / maxTurnover) * 100} className="h-1.5" />
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             ) : (
               <div className="p-6 text-center text-sm text-muted-foreground">
                 Không có dữ liệu giao dịch trong kỳ này
@@ -299,36 +301,38 @@ export function OperationsReportPage() {
               <h3 className="text-sm font-medium">{t('operations.stocktake.recentResults')}</h3>
             </div>
             {reportData?.stocktake?.recent && reportData.stocktake.recent.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs h-9">Mã kiểm kê</TableHead>
-                    <TableHead className="text-xs h-9">Ngày</TableHead>
-                    <TableHead className="text-xs h-9 text-center">Tổng SP</TableHead>
-                    <TableHead className="text-xs h-9 text-center">Khớp</TableHead>
-                    <TableHead className="text-xs h-9 text-center">Thừa</TableHead>
-                    <TableHead className="text-xs h-9 text-center">Thiếu</TableHead>
-                    <TableHead className="text-xs h-9">Trạng thái</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {reportData.stocktake.recent.map(adj => (
-                    <TableRow key={adj.id}>
-                      <TableCell className="text-xs font-mono">{adj.adjustment_code}</TableCell>
-                      <TableCell className="text-xs">{format(new Date(adj.created_at), 'dd/MM/yyyy')}</TableCell>
-                      <TableCell className="text-xs text-center">{adj.total_items}</TableCell>
-                      <TableCell className="text-xs text-center text-green-600">{adj.matched}</TableCell>
-                      <TableCell className="text-xs text-center text-blue-600">{adj.over}</TableCell>
-                      <TableCell className="text-xs text-center text-red-600">{adj.short}</TableCell>
-                      <TableCell>
-                        <Badge variant={adj.status === 'completed' ? 'default' : 'secondary'} className="text-[10px]">
-                          {adj.status === 'completed' ? 'Hoàn thành' : adj.status === 'draft' ? 'Nháp' : adj.status}
-                        </Badge>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs h-9">Mã kiểm kê</TableHead>
+                      <TableHead className="text-xs h-9">Ngày</TableHead>
+                      <TableHead className="text-xs h-9 text-center">Tổng SP</TableHead>
+                      <TableHead className="text-xs h-9 text-center">Khớp</TableHead>
+                      <TableHead className="text-xs h-9 text-center">Thừa</TableHead>
+                      <TableHead className="text-xs h-9 text-center">Thiếu</TableHead>
+                      <TableHead className="text-xs h-9">Trạng thái</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {reportData.stocktake.recent.map(adj => (
+                      <TableRow key={adj.id}>
+                        <TableCell className="text-xs font-mono">{adj.adjustment_code}</TableCell>
+                        <TableCell className="text-xs">{format(new Date(adj.created_at), 'dd/MM/yyyy')}</TableCell>
+                        <TableCell className="text-xs text-center">{adj.total_items}</TableCell>
+                        <TableCell className="text-xs text-center text-green-600">{adj.matched}</TableCell>
+                        <TableCell className="text-xs text-center text-blue-600">{adj.over}</TableCell>
+                        <TableCell className="text-xs text-center text-red-600">{adj.short}</TableCell>
+                        <TableCell>
+                          <Badge variant={adj.status === 'completed' ? 'default' : 'secondary'} className="text-[10px]">
+                            {adj.status === 'completed' ? 'Hoàn thành' : adj.status === 'draft' ? 'Nháp' : adj.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             ) : (
               <div className="p-6 text-center text-sm text-muted-foreground">
                 {t('operations.stocktake.noData')}

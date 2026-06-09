@@ -258,7 +258,7 @@ export function InboundPage() {
                           <FormLabel className="text-xs">{t('inventory:fields.quantity')} *</FormLabel>
                           <FormControl>
                             <Input
-                              type="number"
+                              type="number" min={0}
                               placeholder="0"
                               className="h-9"
                               {...field}

@@ -271,7 +271,7 @@ export function RoomFormPage() {
                 <Label htmlFor="floor">{t('rooms:form.floor')} *</Label>
                 <Input
                   id="floor"
-                  type="number"
+                  type="number" min={0}
                   {...register('floor', { valueAsNumber: true })}
                 />
                 {errors.floor && (
@@ -285,7 +285,7 @@ export function RoomFormPage() {
                 <Label htmlFor="area_sqm">{t('rooms:form.area')}</Label>
                 <Input
                   id="area_sqm"
-                  type="number"
+                  type="number" min={0}
                   step="0.01"
                   {...register('area_sqm', { valueAsNumber: true })}
                 />
@@ -295,7 +295,7 @@ export function RoomFormPage() {
                 <Label htmlFor="max_guests">{t('rooms:form.maxGuests')} *</Label>
                 <Input
                   id="max_guests"
-                  type="number"
+                  type="number" min={0}
                   {...register('max_guests', { valueAsNumber: true })}
                 />
                 {errors.max_guests && (
@@ -307,7 +307,7 @@ export function RoomFormPage() {
                 <Label htmlFor="base_price">{t('rooms:form.basePrice')} *</Label>
                 <Input
                   id="base_price"
-                  type="number"
+                  type="number" min={0}
                   step="0.01"
                   {...register('base_price', { valueAsNumber: true })}
                 />

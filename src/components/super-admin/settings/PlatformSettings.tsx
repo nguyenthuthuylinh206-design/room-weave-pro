@@ -81,7 +81,7 @@ export function PlatformSettings() {
                 <FormItem>
                   <FormLabel className="text-xs">{t('settings.platform.trialPeriod')}</FormLabel>
                   <FormControl>
-                    <Input type="number" className="h-9" {...field} />
+                    <Input type="number" min={0} className="h-9" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -95,7 +95,7 @@ export function PlatformSettings() {
                 <FormItem>
                   <FormLabel className="text-xs">{t('settings.platform.gracePeriod')}</FormLabel>
                   <FormControl>
-                    <Input type="number" className="h-9" {...field} />
+                    <Input type="number" min={0} className="h-9" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -109,7 +109,7 @@ export function PlatformSettings() {
                 <FormItem>
                   <FormLabel className="text-xs">{t('settings.platform.defaultRooms')}</FormLabel>
                   <FormControl>
-                    <Input type="number" className="h-9" {...field} />
+                    <Input type="number" min={0} className="h-9" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -123,7 +123,7 @@ export function PlatformSettings() {
                 <FormItem>
                   <FormLabel className="text-xs">{t('settings.platform.pricePerRoom')}</FormLabel>
                   <FormControl>
-                    <Input type="number" className="h-9" {...field} />
+                    <Input type="number" min={0} className="h-9" {...field} />
                   </FormControl>
                   <FormDescription className="text-xs">
                     VND / phòng / ngày

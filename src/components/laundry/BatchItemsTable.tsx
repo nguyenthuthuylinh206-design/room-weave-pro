@@ -86,112 +86,114 @@ function ItemsTableContent({
   
   return (
     <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-16">{t('batchItems.table.image')}</TableHead>
-            <TableHead>{t('batchItems.table.item')}</TableHead>
-            <TableHead className="text-center">{t('batchItems.table.deliveryQty')}</TableHead>
-            <TableHead className="text-center">{t('batchItems.table.weight')}</TableHead>
-            <TableHead>{t('batchItems.table.deliveryCondition')}</TableHead>
-            {batchStatus === 'received' && (
-              <>
-                <TableHead className="text-center">{t('batchItems.table.receivedQty')}</TableHead>
-                <TableHead className="text-center">{t('batchItems.table.lost')}</TableHead>
-                <TableHead className="text-center">{t('batchItems.table.damaged')}</TableHead>
-                <TableHead>{t('batchItems.table.receiveCondition')}</TableHead>
-              </>
-            )}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {items.map((item) => {
-            const hasIssue = item.quantity_lost > 0 || item.quantity_damaged > 0
-            
-            return (
-              <TableRow
-                key={item.id}
-                className={cn(
-                  highlightIssues && hasIssue && 'bg-red-50'
-                )}
-              >
-                <TableCell>
-                  {item.item_thumbnail ? (
-                    <img
-                      src={item.item_thumbnail}
-                      alt={item.item_name}
-                      className="h-10 w-10 rounded object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-10 w-10 items-center justify-center rounded bg-muted">
-                      <Package className="h-5 w-5 text-muted-foreground" />
-                    </div>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-16">{t('batchItems.table.image')}</TableHead>
+              <TableHead>{t('batchItems.table.item')}</TableHead>
+              <TableHead className="text-center">{t('batchItems.table.deliveryQty')}</TableHead>
+              <TableHead className="text-center">{t('batchItems.table.weight')}</TableHead>
+              <TableHead>{t('batchItems.table.deliveryCondition')}</TableHead>
+              {batchStatus === 'received' && (
+                <>
+                  <TableHead className="text-center">{t('batchItems.table.receivedQty')}</TableHead>
+                  <TableHead className="text-center">{t('batchItems.table.lost')}</TableHead>
+                  <TableHead className="text-center">{t('batchItems.table.damaged')}</TableHead>
+                  <TableHead>{t('batchItems.table.receiveCondition')}</TableHead>
+                </>
+              )}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.map((item) => {
+              const hasIssue = item.quantity_lost > 0 || item.quantity_damaged > 0
+              
+              return (
+                <TableRow
+                  key={item.id}
+                  className={cn(
+                    highlightIssues && hasIssue && 'bg-red-50'
                   )}
-                </TableCell>
-                <TableCell>
-                  <div className="space-y-1">
-                    <Link 
-                      to={`/items/${item.item_id}`}
-                      className="font-medium hover:underline"
-                    >
-                      {item.item_name}
-                    </Link>
-                    <p className="text-xs text-muted-foreground">{item.item_code}</p>
-                    {item.category_name && (
-                      <Badge variant="outline" className="text-xs">
-                        {item.category_name}
-                      </Badge>
+                >
+                  <TableCell>
+                    {item.item_thumbnail ? (
+                      <img
+                        src={item.item_thumbnail}
+                        alt={item.item_name}
+                        className="h-10 w-10 rounded object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-10 w-10 items-center justify-center rounded bg-muted">
+                        <Package className="h-5 w-5 text-muted-foreground" />
+                      </div>
                     )}
-                  </div>
-                </TableCell>
-                <TableCell className="text-center font-medium">
-                  {item.quantity_delivered}
-                </TableCell>
-                <TableCell className="text-center">
-                  {item.weight_kg} kg
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">{item.condition_note || t('batchItems.condition.normal')}</Badge>
-                </TableCell>
-                {batchStatus === 'received' && (
-                  <>
-                    <TableCell className="text-center font-medium">
-                      {item.quantity_returned}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {item.quantity_lost > 0 ? (
-                        <span className="font-medium text-red-600">
-                          {item.quantity_lost}
-                        </span>
-                      ) : (
-                        '-'
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {item.quantity_damaged > 0 ? (
-                        <span className="font-medium text-orange-600">
-                          {item.quantity_damaged}
-                        </span>
-                      ) : (
-                        '-'
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          item.return_condition === t('batchItems.condition.good') ? 'default' : 'secondary'
-                        }
+                  </TableCell>
+                  <TableCell>
+                    <div className="space-y-1">
+                      <Link 
+                        to={`/items/${item.item_id}`}
+                        className="font-medium hover:underline"
                       >
-                        {item.return_condition || t('batchItems.condition.notChecked')}
-                      </Badge>
-                    </TableCell>
-                  </>
-                )}
-              </TableRow>
-            )
-          })}
-        </TableBody>
-      </Table>
+                        {item.item_name}
+                      </Link>
+                      <p className="text-xs text-muted-foreground">{item.item_code}</p>
+                      {item.category_name && (
+                        <Badge variant="outline" className="text-xs">
+                          {item.category_name}
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center font-medium">
+                    {item.quantity_delivered}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {item.weight_kg} kg
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{item.condition_note || t('batchItems.condition.normal')}</Badge>
+                  </TableCell>
+                  {batchStatus === 'received' && (
+                    <>
+                      <TableCell className="text-center font-medium">
+                        {item.quantity_returned}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {item.quantity_lost > 0 ? (
+                          <span className="font-medium text-red-600">
+                            {item.quantity_lost}
+                          </span>
+                        ) : (
+                          '-'
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {item.quantity_damaged > 0 ? (
+                          <span className="font-medium text-orange-600">
+                            {item.quantity_damaged}
+                          </span>
+                        ) : (
+                          '-'
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            item.return_condition === t('batchItems.condition.good') ? 'default' : 'secondary'
+                          }
+                        >
+                          {item.return_condition || t('batchItems.condition.notChecked')}
+                        </Badge>
+                      </TableCell>
+                    </>
+                  )}
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

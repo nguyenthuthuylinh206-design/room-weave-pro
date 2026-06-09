@@ -409,7 +409,7 @@ export function NotificationSettingsPage() {
                 <div className="flex items-center gap-2">
                   <Input
                     id="low-stock"
-                    type="number"
+                    type="number" min={0}
                     value={localPrefs.low_stock_threshold ?? 20}
                     onChange={(e) => handleChange('low_stock_threshold', parseInt(e.target.value) || 0)}
                     className="w-24"
@@ -423,7 +423,7 @@ export function NotificationSettingsPage() {
                 <div className="flex items-center gap-2">
                   <Input
                     id="critical-stock"
-                    type="number"
+                    type="number" min={0}
                     value={localPrefs.critical_stock_threshold ?? 5}
                     onChange={(e) => handleChange('critical_stock_threshold', parseInt(e.target.value) || 0)}
                     className="w-24"
@@ -437,7 +437,7 @@ export function NotificationSettingsPage() {
                 <div className="flex items-center gap-2">
                   <Input
                     id="overdue-maintenance"
-                    type="number"
+                    type="number" min={0}
                     value={localPrefs.overdue_maintenance_days ?? 3}
                     onChange={(e) => handleChange('overdue_maintenance_days', parseInt(e.target.value) || 0)}
                     className="w-24"
@@ -451,7 +451,7 @@ export function NotificationSettingsPage() {
                 <div className="flex items-center gap-2">
                   <Input
                     id="laundry-delay"
-                    type="number"
+                    type="number" min={0}
                     value={localPrefs.laundry_delay_hours ?? 24}
                     onChange={(e) => handleChange('laundry_delay_hours', parseInt(e.target.value) || 0)}
                     className="w-24"

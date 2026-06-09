@@ -28,7 +28,7 @@ export function IgnoreSuggestionDialog({ open, onOpenChange, suggestionId, itemN
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Bỏ qua đề xuất</DialogTitle>
         </DialogHeader>

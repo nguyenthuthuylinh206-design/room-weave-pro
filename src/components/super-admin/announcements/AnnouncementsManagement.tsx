@@ -129,78 +129,80 @@ export function AnnouncementsManagement() {
       </Tabs>
 
       <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Tiêu đề</TableHead>
-              <TableHead className="hidden md:table-cell">Loại</TableHead>
-              <TableHead className="hidden md:table-cell">Vị trí</TableHead>
-              <TableHead className="hidden lg:table-cell">Đối tượng</TableHead>
-              <TableHead className="hidden sm:table-cell">Trạng thái</TableHead>
-              <TableHead className="hidden lg:table-cell">Ưu tiên</TableHead>
-              <TableHead className="text-right">Hành động</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8 text-sm">
-                  Đang tải...
-                </TableCell>
+                <TableHead>Tiêu đề</TableHead>
+                <TableHead className="hidden md:table-cell">Loại</TableHead>
+                <TableHead className="hidden md:table-cell">Vị trí</TableHead>
+                <TableHead className="hidden lg:table-cell">Đối tượng</TableHead>
+                <TableHead className="hidden sm:table-cell">Trạng thái</TableHead>
+                <TableHead className="hidden lg:table-cell">Ưu tiên</TableHead>
+                <TableHead className="text-right">Hành động</TableHead>
               </TableRow>
-            ) : filtered.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8 text-sm">
-                  <Megaphone className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                  Chưa có thông báo nào. Nhấn "Tạo thông báo" để thêm mới.
-                </TableCell>
-              </TableRow>
-            ) : (
-              filtered.map((a) => (
-                <TableRow key={a.id}>
-                  <TableCell>
-                    <div className="font-medium text-sm">{a.title}</div>
-                    {a.body && (
-                      <div className="text-xs text-muted-foreground line-clamp-1">{a.body}</div>
-                    )}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell text-xs">
-                    <Badge variant="secondary">{ANNOUNCEMENT_KIND_LABEL[a.kind]}</Badge>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
-                    {ANNOUNCEMENT_PLACEMENT_LABEL[a.placement]}
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
-                    {ANNOUNCEMENT_AUDIENCE_LABEL[a.audience]}
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell">{statusBadge(a)}</TableCell>
-                  <TableCell className="hidden lg:table-cell text-xs">{a.priority}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => {
-                        setEditing(a);
-                        setFormOpen(true);
-                      }}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-red-600 hover:text-red-700"
-                      onClick={() => setConfirmDelete(a)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8 text-sm">
+                    Đang tải...
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8 text-sm">
+                    <Megaphone className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                    Chưa có thông báo nào. Nhấn "Tạo thông báo" để thêm mới.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filtered.map((a) => (
+                  <TableRow key={a.id}>
+                    <TableCell>
+                      <div className="font-medium text-sm">{a.title}</div>
+                      {a.body && (
+                        <div className="text-xs text-muted-foreground line-clamp-1">{a.body}</div>
+                      )}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell text-xs">
+                      <Badge variant="secondary">{ANNOUNCEMENT_KIND_LABEL[a.kind]}</Badge>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
+                      {ANNOUNCEMENT_PLACEMENT_LABEL[a.placement]}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
+                      {ANNOUNCEMENT_AUDIENCE_LABEL[a.audience]}
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">{statusBadge(a)}</TableCell>
+                    <TableCell className="hidden lg:table-cell text-xs">{a.priority}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => {
+                          setEditing(a);
+                          setFormOpen(true);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-600 hover:text-red-700"
+                        onClick={() => setConfirmDelete(a)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       <AnnouncementFormDialog open={formOpen} onOpenChange={setFormOpen} editing={editing} />

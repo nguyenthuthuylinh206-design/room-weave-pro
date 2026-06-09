@@ -85,103 +85,105 @@ export default function WarehouseListPage() {
       </PageHeader>
 
       <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[100px]">Mã kho</TableHead>
-              <TableHead>Tên kho</TableHead>
-              <TableHead className="w-[120px]">Loại</TableHead>
-              <TableHead className="w-[100px] text-center">Mặc định</TableHead>
-              <TableHead className="w-[100px] text-center">Hoạt động</TableHead>
-              <TableHead className="w-[80px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-8 mx-auto" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-8 mx-auto" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-8" /></TableCell>
-                </TableRow>
-              ))
-            ) : warehouses?.length === 0 ? (
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center">
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                    <Package className="h-8 w-8 opacity-50" />
-                    <p>Chưa có kho nào được tạo</p>
-                    <Button variant="outline" size="sm" onClick={() => setIsFormOpen(true)}>
-                      <Plus className="h-4 w-4 mr-1" />
-                      Thêm kho đầu tiên
-                    </Button>
-                  </div>
-                </TableCell>
+                <TableHead className="w-[100px]">Mã kho</TableHead>
+                <TableHead>Tên kho</TableHead>
+                <TableHead className="w-[120px]">Loại</TableHead>
+                <TableHead className="w-[100px] text-center">Mặc định</TableHead>
+                <TableHead className="w-[100px] text-center">Hoạt động</TableHead>
+                <TableHead className="w-[80px]"></TableHead>
               </TableRow>
-            ) : (
-              warehouses?.map((warehouse) => (
-                <TableRow key={warehouse.id}>
-                  <TableCell>
-                    <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">
-                      {warehouse.code}
-                    </code>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Warehouse className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{warehouse.name}</span>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-8 mx-auto" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-8 mx-auto" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+                  </TableRow>
+                ))
+              ) : warehouses?.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-32 text-center">
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <Package className="h-8 w-8 opacity-50" />
+                      <p>Chưa có kho nào được tạo</p>
+                      <Button variant="outline" size="sm" onClick={() => setIsFormOpen(true)}>
+                        <Plus className="h-4 w-4 mr-1" />
+                        Thêm kho đầu tiên
+                      </Button>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <span className="text-sm text-muted-foreground">
-                      {WAREHOUSE_LOCATION_TYPE_LABELS[warehouse.location_type]}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {warehouse.is_default && (
-                      <Badge variant="secondary" className="text-xs">
-                        Mặc định
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Switch
-                      checked={warehouse.is_active}
-                      onCheckedChange={() => handleToggleActive(warehouse)}
-                      disabled={warehouse.is_default}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(warehouse)}>
-                          <Pencil className="h-4 w-4 mr-2" />
-                          Chỉnh sửa
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setDeletingWarehouse(warehouse)}
-                          disabled={warehouse.is_default}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Xóa
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                warehouses?.map((warehouse) => (
+                  <TableRow key={warehouse.id}>
+                    <TableCell>
+                      <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">
+                        {warehouse.code}
+                      </code>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Warehouse className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{warehouse.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-muted-foreground">
+                        {WAREHOUSE_LOCATION_TYPE_LABELS[warehouse.location_type]}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {warehouse.is_default && (
+                        <Badge variant="secondary" className="text-xs">
+                          Mặc định
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Switch
+                        checked={warehouse.is_active}
+                        onCheckedChange={() => handleToggleActive(warehouse)}
+                        disabled={warehouse.is_default}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEdit(warehouse)}>
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Chỉnh sửa
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setDeletingWarehouse(warehouse)}
+                            disabled={warehouse.is_default}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Xóa
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       {/* Create/Edit Dialog */}

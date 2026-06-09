@@ -184,7 +184,7 @@ export function CategoryFormSheet({
             <Label htmlFor="sort_order" className="text-base">{t('items:categories.fields.sortOrder')}</Label>
             <Input
               id="sort_order"
-              type="number"
+              type="number" min={0}
               value={formData.sort_order}
               onChange={(e) => setFormData(prev => ({ 
                 ...prev, 
