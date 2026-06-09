@@ -545,11 +545,16 @@ async function executeAction(
         }
         
         if (table && recordId && Object.keys(updates).length > 0) {
+          if (!UPDATE_RECORD_TABLE_WHITELIST.has(String(table))) {
+            console.warn(`[execute-workflow] update_record rejected: table '${table}' not in whitelist`)
+            return { success: false, error: `Table '${table}' not allowed for update_record` }
+          }
           const { error } = await supabase
             .from(table)
             .update(updates)
             .eq('id', recordId)
-          
+            .eq('tenant_id', tenantId)
+
           if (error) throw error
         }
         
