@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import { formatVNCurrency } from '@/lib/pricing';
 import { getBankName } from '@/lib/vietnam-banks';
 import { motion, AnimatePresence } from 'framer-motion';
+import { QRCountdown, useQRExpiry } from './QRCountdown';
+import { cn } from '@/lib/utils';
 
 interface MobilePaymentQRDisplayProps {
   open: boolean;
@@ -29,6 +31,8 @@ export function MobilePaymentQRDisplay({
   bookingInfo,
 }: MobilePaymentQRDisplayProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const { isExpired } = useQRExpiry(`${open}-${refreshKey}`);
 
   const qrCodeUrl = `https://qr.sepay.vn/img?acc=${qrData.accountNumber}&bank=${qrData.bankCode}&amount=${qrData.amount}&des=${encodeURIComponent(qrData.paymentContent)}&template=compact`;
 
