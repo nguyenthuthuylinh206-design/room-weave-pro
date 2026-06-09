@@ -143,7 +143,7 @@ export function MobileItemsPage() {
                 className="h-9 pl-8 pr-8 text-sm"
               />
               {filters.search && (
-                <button
+                <button aria-label="Đóng"
                   onClick={clearSearch}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2"
                 >

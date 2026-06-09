@@ -169,7 +169,7 @@ function BannerPreview({
         )}
       </div>
       {isDismissible && (
-        <button
+        <button aria-label="Đóng"
           type="button"
           className="h-6 w-6 shrink-0 inline-flex items-center justify-center opacity-60"
           disabled

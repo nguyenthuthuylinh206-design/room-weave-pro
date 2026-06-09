@@ -52,7 +52,7 @@ export function MobileHotelSwitcher({ children, className }: MobileHotelSwitcher
   if (isLoading || availableHotels.length === 0) return null
 
   const trigger = children ?? (
-    <button
+    <button aria-label="Mở rộng"
       type="button"
       className={cn(
         'flex items-center gap-1 min-w-0 max-w-full text-left',

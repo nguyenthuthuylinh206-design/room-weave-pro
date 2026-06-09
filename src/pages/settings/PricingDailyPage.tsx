@@ -588,7 +588,7 @@ export default function PricingDailyPage() {
                               initialIsClosed={isClosed}
                               onSaved={refresh}
                             >
-                              <button type="button" className="w-full h-full px-1 py-2 hover:bg-primary/5 transition-colors cursor-pointer">
+                              <button aria-label="Lock" type="button" className="w-full h-full px-1 py-2 hover:bg-primary/5 transition-colors cursor-pointer">
                                 {isClosed ? (
                                   <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-destructive">
                                     <Lock className="h-2.5 w-2.5" /> Đóng

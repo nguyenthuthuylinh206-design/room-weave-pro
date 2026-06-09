@@ -289,7 +289,7 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
                       </Avatar>
                     </label>
                     {logoUrl && !isUploadingLogo && (
-                      <button
+                      <button aria-label="Đóng"
                         type="button"
                         onClick={handleRemoveLogo}
                         className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"

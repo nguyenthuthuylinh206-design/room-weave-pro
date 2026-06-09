@@ -29,7 +29,7 @@ interface Props {
 
 function SortHeader({ active, dir, children, onClick, className }: any) {
   return (
-    <button
+    <button aria-label="ArrowUp"
       type="button"
       onClick={onClick}
       className={cn('inline-flex items-center gap-1 hover:text-foreground transition-colors', className)}

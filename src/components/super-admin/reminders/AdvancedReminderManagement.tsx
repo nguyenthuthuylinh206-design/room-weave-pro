@@ -122,7 +122,7 @@ function QuickActionButton({ icon: Icon, label, description, onClick }: {
   icon: any; label: string; description: string; onClick?: () => void;
 }) {
   return (
-    <button
+    <button aria-label="Icon"
       type="button"
       onClick={onClick}
       className="w-full flex items-center gap-3 p-3 rounded-md border hover:bg-accent transition-colors text-left"
