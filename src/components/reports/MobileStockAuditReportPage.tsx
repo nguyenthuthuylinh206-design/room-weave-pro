@@ -46,7 +46,7 @@ export function MobileStockAuditReportPage() {
             </Button>
             <h1 className="font-semibold">{t('stockAudit.pageTitle')}</h1>
           </div>
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" aria-label="Tải xuống">
             <Download className="h-5 w-5" />
           </Button>
         </div>

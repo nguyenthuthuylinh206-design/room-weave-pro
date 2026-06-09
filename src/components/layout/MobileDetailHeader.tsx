@@ -101,7 +101,7 @@ export const MobileDetailHeader = ({
               size="icon"
               className="h-9 w-9 flex-shrink-0"
               onClick={handleBack}
-            >
+             aria-label="Quay lại">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}

@@ -182,7 +182,7 @@ export default function DistributionOrdersPage() {
           <div className="flex items-center justify-between">
             <h1 className="text-base font-semibold">Phiếu giao hàng</h1>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleRefresh} disabled={isRefreshing}>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleRefresh} disabled={isRefreshing} aria-label="Làm mới">
                 <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
               </Button>
             </div>
@@ -248,7 +248,7 @@ export default function DistributionOrdersPage() {
           <p className="text-sm text-muted-foreground">Quản lý các phiếu giao đồ đến phòng</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleRefresh} disabled={isRefreshing}>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleRefresh} disabled={isRefreshing} aria-label="Làm mới">
             <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
           </Button>
         </div>

@@ -77,7 +77,7 @@ export function PhotoGallery({ photos, className }: PhotoGalleryProps) {
                       size="icon"
                       className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-background/80 hover:bg-background"
                       onClick={handlePrevious}
-                    >
+                     aria-label="Quay lại">
                       <ChevronLeft className="h-6 w-6" />
                     </Button>
                     
@@ -86,7 +86,7 @@ export function PhotoGallery({ photos, className }: PhotoGalleryProps) {
                       size="icon"
                       className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-background/80 hover:bg-background"
                       onClick={handleNext}
-                    >
+                     aria-label="Tiếp theo">
                       <ChevronRight className="h-6 w-6" />
                     </Button>
                     

@@ -84,7 +84,7 @@ export function AdjustmentListPage() {
             </Button>
             <h1 className="text-base font-semibold">{t('adjustment.title')}</h1>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleRefresh} disabled={isRefreshing}>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleRefresh} disabled={isRefreshing} aria-label="Làm mới">
                 <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
               </Button>
               <Button size="icon" className="h-8 w-8" onClick={() => navigate('/inventory/adjustments/new')}>

@@ -101,7 +101,7 @@ export function MobileDamagesReportPage({
             onChange={onDateRangeChange}
             className="flex-1"
           />
-          <Button variant="outline" size="icon" className="h-9 w-9">
+          <Button variant="outline" size="icon" className="h-9 w-9" aria-label="Tải xuống">
             <Download className="h-4 w-4" />
           </Button>
         </div>

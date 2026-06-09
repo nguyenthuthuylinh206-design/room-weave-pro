@@ -448,7 +448,7 @@ export function CheckoutSummaryDialog({
                 className="h-7 w-7"
                 onClick={onMinimize}
                 title="Thu nhỏ"
-              >
+               aria-label="Thu nhỏ">
                 <Minimize2 className="h-3.5 w-3.5" />
               </Button>
             )}

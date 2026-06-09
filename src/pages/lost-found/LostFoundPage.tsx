@@ -195,7 +195,7 @@ export default function LostFoundPage() {
               {item.status === 'stored' && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button type="button" variant="outline" size="icon" className="h-7 w-7">
+                    <Button type="button" variant="outline" size="icon" className="h-7 w-7" aria-label="Thêm tùy chọn">
                       <MoreHorizontal className="h-3.5 w-3.5" />
                     </Button>
                   </DropdownMenuTrigger>

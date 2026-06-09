@@ -183,7 +183,7 @@ export function MinimizedCheckoutWidget({
             size="icon"
             className="h-5 w-5 -mr-1"
             onClick={handleClose}
-          >
+           aria-label="Đóng">
             <X className="h-3 w-3" />
           </Button>
         </div>

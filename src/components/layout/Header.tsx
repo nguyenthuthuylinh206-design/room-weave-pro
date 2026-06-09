@@ -46,7 +46,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
           size="icon"
           className="lg:hidden"
           onClick={onMenuClick}
-        >
+         aria-label="Mở menu">
           <Menu className="h-6 w-6" />
         </Button>
         

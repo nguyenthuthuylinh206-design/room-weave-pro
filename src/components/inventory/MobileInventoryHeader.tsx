@@ -55,7 +55,7 @@ export function MobileInventoryHeader({ onSearch }: MobileInventoryHeaderProps) 
               size="icon"
               onClick={handleCloseSearch}
               className="shrink-0"
-            >
+             aria-label="Đóng">
               <X className="h-5 w-5" />
             </Button>
           </motion.div>

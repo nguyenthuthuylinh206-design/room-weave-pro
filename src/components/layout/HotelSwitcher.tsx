@@ -166,7 +166,7 @@ export function HotelSwitcher() {
               className="h-10 w-10 shrink-0"
               onClick={handleRefresh}
               disabled={isRefreshing}
-            >
+             aria-label="Làm mới">
               <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
             </Button>
           </div>

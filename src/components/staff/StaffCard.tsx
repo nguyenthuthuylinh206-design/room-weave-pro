@@ -138,7 +138,7 @@ export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
                     ? `Telegram ${formatPhoneForTelegram(staff.phone)}`
                     : `${staff.full_name} chưa có SĐT - cần cập nhật trong Hồ sơ`
               }
-            >
+             aria-label="Gửi">
               <Send className="h-4 w-4" />
             </Button>
 
@@ -149,7 +149,7 @@ export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
                 className="h-8 w-8 text-muted-foreground hover:text-foreground"
                 onClick={handleCall}
                 title={`Gọi ${staff.phone}`}
-              >
+               aria-label="Gọi điện">
                 <Phone className="h-4 w-4" />
               </Button>
             )}

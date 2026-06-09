@@ -86,7 +86,7 @@ export function MobileHotelsPage() {
               className="h-8 w-8"
               onClick={handleRefresh}
               disabled={isRefreshing}
-            >
+             aria-label="Làm mới">
               <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
             </Button>
             <Button size="sm" className="h-8" onClick={handleAddNew}>
