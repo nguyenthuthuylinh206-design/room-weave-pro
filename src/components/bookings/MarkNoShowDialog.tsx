@@ -55,6 +55,7 @@ export function MarkNoShowDialog({
       reason: reason.trim(),
       refundDeposit: refund === 'refund',
     })
+    toast.success(`Đã đánh dấu no-show: ${guestName}`)
     onOpenChange(false)
     onSuccess?.()
   }
