@@ -157,19 +157,19 @@ export function buildShiftHandoverHTML(data: ShiftHandoverData): string {
       <table style="width:100%;margin-bottom:16px;border-collapse:collapse;">
         <tr>
           <td style="padding:4px 0;width:25%;color:#666;">Lễ tân:</td>
-          <td style="padding:4px 0;font-weight:600;">${data.staffName}</td>
+          <td style="padding:4px 0;font-weight:600;">${esc(data.staffName)}</td>
           <td style="padding:4px 0;width:20%;color:#666;">Mã ca:</td>
-          <td style="padding:4px 0;font-family:monospace;font-size:11px;">${data.shiftId.slice(0, 8)}</td>
+          <td style="padding:4px 0;font-family:monospace;font-size:11px;">${esc(data.shiftId.slice(0, 8))}</td>
         </tr>
         <tr>
           <td style="padding:4px 0;color:#666;">Bắt đầu ca:</td>
-          <td style="padding:4px 0;">${formatDateTime(data.startAt)}</td>
+          <td style="padding:4px 0;">${esc(formatDateTime(data.startAt))}</td>
           <td style="padding:4px 0;color:#666;">Kết thúc ca:</td>
-          <td style="padding:4px 0;">${formatDateTime(data.endAt)}</td>
+          <td style="padding:4px 0;">${esc(formatDateTime(data.endAt))}</td>
         </tr>
         <tr>
           <td style="padding:4px 0;color:#666;">Thời lượng:</td>
-          <td style="padding:4px 0;" colspan="3">${formatDuration(data.durationMinutes)}</td>
+          <td style="padding:4px 0;" colspan="3">${esc(formatDuration(data.durationMinutes))}</td>
         </tr>
       </table>
 
