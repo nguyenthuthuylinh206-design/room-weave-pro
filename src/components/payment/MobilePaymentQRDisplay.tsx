@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import { formatVNCurrency } from '@/lib/pricing';
 import { getBankName } from '@/lib/vietnam-banks';
 import { motion, AnimatePresence } from 'framer-motion';
+import { QRCountdown, useQRExpiry } from './QRCountdown';
+import { cn } from '@/lib/utils';
 
 interface MobilePaymentQRDisplayProps {
   open: boolean;
@@ -29,6 +31,8 @@ export function MobilePaymentQRDisplay({
   bookingInfo,
 }: MobilePaymentQRDisplayProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const { isExpired } = useQRExpiry(`${open}-${refreshKey}`);
 
   const qrCodeUrl = `https://qr.sepay.vn/img?acc=${qrData.accountNumber}&bank=${qrData.bankCode}&amount=${qrData.amount}&des=${encodeURIComponent(qrData.paymentContent)}&template=compact`;
 
@@ -74,9 +78,20 @@ export function MobilePaymentQRDisplay({
               <img
                 src={qrCodeUrl}
                 alt="QR Code thanh toán"
-                className="w-[280px] h-[280px] sm:w-[320px] sm:h-[320px] object-contain"
+                className={cn(
+                  'w-[280px] h-[280px] sm:w-[320px] sm:h-[320px] object-contain transition-all',
+                  isExpired && 'opacity-20 blur-sm',
+                )}
               />
             </motion.div>
+
+            {/* Countdown / Expiry */}
+            <div className="mt-4">
+              <QRCountdown
+                resetKey={`${open}-${refreshKey}`}
+                onRefresh={() => setRefreshKey((k) => k + 1)}
+              />
+            </div>
 
             {/* Amount - Prominent Display */}
             <motion.div
