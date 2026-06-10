@@ -75,7 +75,7 @@ export const MobileUserManagementPage = () => {
         <TabsContent value="users" className="m-0 flex-1">
           <PullToRefresh onRefresh={handleRefresh}>
             <div className="p-3">
-              <UserManagementTab onManagePermissions={handleManagePermissions} />
+              <MobileUserListTab onManagePermissions={handleManagePermissions} />
             </div>
           </PullToRefresh>
         </TabsContent>
