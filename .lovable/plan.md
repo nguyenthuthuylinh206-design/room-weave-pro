@@ -1,58 +1,93 @@
-## Kết quả scan sâu
+## Vấn đề hiện tại
 
-Chạy lại `security--run_security_scan` + `supabase--linter` + truy vấn trực tiếp `pg_proc`:
+Mobile `/settings/users` (`MobileUserManagementPage.tsx`) chỉ là 1 list phẳng + 3 ô stats + search. So với desktop (`UsersPage.tsx`) thì **thiếu rất nhiều**:
 
-| Hạng mục | Số lượng | Trạng thái |
-|---|---|---|
-| Tổng SECURITY DEFINER trong `public` | 308 | — |
-| Anon có thể EXECUTE | **2** | ✅ Đúng whitelist (`get_vat_claim_public`, `submit_vat_claim_public`) |
-| Authenticated có thể EXECUTE | **308** | ⚠ Toàn bộ WARN 0029 đều từ đây |
-| Function thiếu `search_path` | **0** | ✅ |
-| Public bucket cho LIST | **0** | ✅ (đã siết đợt trước) |
+- ❌ Không có 3 tab: **Người dùng / Vai trò / Cấu hình Quyền**
+- ❌ Không có UserStatsCards (5 chỉ số chuẩn) — đang tự đếm 3 ô thủ công, sai nhãn
+- ❌ Không có filter (cấp độ, trạng thái, khách sạn, chức vụ, bộ phận, "do tôi tạo")
+- ❌ Không có 2 view-mode: **Phân cấp (hierarchy)** & **Bảng**
+- ❌ Hiển thị `hotel_id.substring(0,8)...` (UUID rút gọn) thay vì tên khách sạn → đúng là "chưa chuẩn"
+- ❌ Không có nút Thêm trong context khi không có quyền (đang luôn show)
+- ❌ Không vào được Vai trò & Cấu hình Quyền trên mobile
 
-→ Anon side đã sạch đúng @security-memory. Search path + bucket cũng sạch. **Toàn bộ 310 WARN còn lại đều là `0028` x2 (whitelist) + `0029` x308 (authenticated)** — linter cảnh báo mặc định cho mọi SECDEF callable bởi authenticated.
+## Mục tiêu
 
-## Đánh giá rủi ro thật sự
+Mobile = bản desktop, được sắp xếp lại cho 390px portrait. Dùng lại đúng các component nghiệp vụ desktop, chỉ thay layout/spacing.
 
-Trong 308 hàm `authenticated`-executable, có thể chia 3 nhóm:
+## Thiết kế
 
-**Nhóm 1 — RPC nghiệp vụ (an toàn theo memory):** ~220 hàm validate `auth.uid()` / `get_current_tenant_id()` / `has_role()` / `has_user_permission()` bên trong (vd `perform_checkin`, `submit_room_check_lean`, `transition_room_status`, `cancel_booking`, …). Memory ghi nhận "mọi RPC validate tenant" → **chấp nhận WARN**.
+### A. Cấu trúc trang `MobileUserManagementPage`
 
-**Nhóm 2 — Trigger / helper bị flag nhầm:** function `RETURNS trigger` hoặc helper nội bộ không truy cập data tenant trực tiếp (`update_updated_at_column`, `touch_*`, …) → an toàn.
+```text
+┌─ MobileDetailHeader: "Người dùng & Phân quyền"
+│  ├─ back → /settings
+│  └─ action Plus → mở UserFormDialog (chỉ owner/manager)
+├─ Sticky tab bar (3 tab, full-width, h-10, không icon — theo Core "no icons in tabs")
+│  [ Người dùng | Vai trò | Cấu hình Quyền ]
+├─ TabsContent "users":
+│   ├─ UserStatsCards (grid 2 cột trên mobile, mỗi ô tap để filter)
+│   ├─ MobileUserFilters (Sheet): nút "Bộ lọc" + chip hiển thị filter đang bật
+│   ├─ Search input (h-9)
+│   ├─ View toggle nhỏ (Phân cấp / Bảng) — h-8 segmented
+│   └─ Danh sách:
+│        - Phân cấp: reuse <UserHierarchyView> (nó đã responsive khá tốt)
+│        - Bảng: thay bằng list card mobile (avatar + tên + chip role +
+│          email + tên khách sạn thật + chevron). Tap card mở Sheet
+│          UserDetail với các action Sửa / Phân quyền / Đổi mật khẩu.
+├─ TabsContent "roles": reuse <RolesOverviewTab> (đã ổn mobile, chỉ padding)
+└─ TabsContent "permissions": reuse <PermissionConfigurationTab>
+   (kèm preSelectedUserId truyền từ "Phân quyền" trong card)
+```
 
-**Nhóm 3 — Cron / maintenance functions ⚠ ĐÁNG SIẾT:** ~25–30 hàm chỉ dành cho cron/service_role mà vẫn cho `authenticated` EXECUTE. Một user đăng nhập bình thường có thể gọi và **kích hoạt side-effect** (xoá session, đẩy tenant vào read-only, gửi reminder, recompute snapshot…). Không leak data nhưng là vector lạm dụng tài nguyên / nhiễu nghiệp vụ.
+### B. Component thay đổi / thêm mới
 
-Ví dụ phát hiện được:
-- `auto_apply_read_only_after_grace()` — có thể bị gọi tay → ép tenant khác vào read-only.
-- `auto_clear_read_only_after_renewal()` — ngược lại, gỡ read-only sai.
-- `auto_close_stale_shifts()` / `auto_offline_inactive_staff()` — đóng ca/offline staff hàng loạt.
-- `check_expiring_subscriptions()` / `cleanup_expired_otps()` / `cleanup_old_check_sessions()` / `cleanup_orphaned_auth_users()` / `cleanup_rate_limit_hits()` / `cleanup_stale_check_sessions()` — dọn dữ liệu cross-tenant.
-- `compute_auto_reorder_suggestions(tenant,hotel)` — tốn CPU + có thể chỉ định tenant tuỳ ý.
-- `lift_expired_dnd_oos()` — đã có edge function cron riêng.
+| File | Hành động |
+|---|---|
+| `src/components/settings/MobileUserManagementPage.tsx` | **Rewrite** — dùng `<Tabs>` + reuse `UserManagementTab` logic |
+| `src/components/users/MobileUserCard.tsx` | **Mới** — card 1 user cho mobile (thay row UUID hiện tại) |
+| `src/components/users/MobileUserFiltersSheet.tsx` | **Mới** — Sheet chứa toàn bộ filter của `UserFilters` |
+| `src/components/users/UserStatsCards.tsx` | **Tweak** — thêm prop `compact` để render grid-2 trên mobile |
+| `src/pages/users/UsersPage.tsx` | Không đổi (vẫn rẽ nhánh `isMobile`) |
 
-## Đề xuất xử lý
+### C. Hiển thị tên khách sạn (fix lỗi UUID)
 
-### Bước 1 — Migration "lock down cron RPCs" (KHUYẾN NGHỊ)
-Soạn 1 migration `REVOKE EXECUTE … FROM authenticated, anon` và chỉ `GRANT … TO service_role` cho danh sách ~25 hàm cron/maintenance (sẽ liệt kê đầy đủ trong migration). Edge function chạy bằng service_role → không ảnh hưởng cron đang chạy.
+Trong `useUsers` đã có `user.hotel` (join). Nếu chưa có, thêm select join `hotel:hotels(name)` ở hook. Card mobile hiển thị `user.hotel?.name` thay vì cắt UUID.
 
-Kết quả dự kiến: 310 WARN → ~285 WARN, và đóng vector lạm dụng.
+### D. Quyền
 
-### Bước 2 — Audit spot-check 5 RPC nhạy cảm nhất
-Đọc source của: `bulk_delete_items`, `apply_room_standards`, `assign_default_permissions_to_role`, `can_create_user`, `confirm_warehouse_delivery` — xác nhận có `get_current_tenant_id()` + role check. Nếu thiếu → bổ sung trong cùng migration.
+- Nút Thêm chỉ hiện khi `user_level_code ∈ {tenant_owner, manager}` (dùng cùng điều kiện `canAddUser` của desktop).
+- Tab "Cấu hình Quyền" chỉ hiện cho owner/manager.
 
-### Bước 3 — Cập nhật `@security-memory`
-Ghi rõ:
-- Anon EXECUTE whitelist: 2 hàm VAT claim public.
-- Cron/maintenance RPCs chỉ `service_role` (sau bước 1).
-- Các WARN `0029` còn lại (~285) là chấp nhận có chủ đích: mọi RPC nghiệp vụ tự validate tenant + role trong thân hàm, hoặc trả về data đã RLS-filter.
+### E. Mobile UX chuẩn dự án
 
-### Bước 4 — Mark "ignore" các finding `0029` còn lại trong scanner
-Sau khi memo được cập nhật, đánh dấu các finding `0029` thuộc nhóm 1 + 2 là `ignored` với lý do tham chiếu memory → tránh nhiễu trong các scan sau.
+- Tap target ≥ 44px (`h-11` cho row card, `h-9` cho input/button).
+- Không icon/emoji trong TabsList (Core rule).
+- Status dùng màu chữ semantic (`text-amber-600` cho Chủ, `text-blue-600` Quản lý, `text-muted-foreground` Nhân viên) — không bg.
+- Pull-to-refresh giữ nguyên ở tab "Người dùng".
+- Sheet bottom cho Filter + UserDetail (đã có pattern).
 
-## Câu hỏi cần bạn chốt
+## Kỹ thuật
 
-1. **Có đồng ý Bước 1 (lock down cron RPCs ~25 hàm)?** Đây là hardening thực chất, rủi ro ~0 vì cron đều chạy qua edge function service_role.
-2. **Có muốn mình audit thêm nhóm RPC nhạy cảm ở Bước 2** (đọc source 5 hàm, sửa nếu thiếu check)?
-3. **Có muốn mình mass-ignore các finding `0029` đã được memo hoá ở Bước 4** để scan tiếp theo gọn lại còn ~5–10 WARN thật sự cần soi?
+- Reuse `useUsers`, `useCreateUser`, `useUpdateUser`, `UserFormDialog`, `UserHierarchyView`, `RolesOverviewTab`, `PermissionConfigurationTab` — **không** viết lại logic.
+- State: `activeTab`, `viewMode`, `filters`, `searchQuery`, `selectedUser`, `editingUser`, `isFilterSheetOpen`, `preSelectedUserId` — giống desktop `UserManagementTab`.
+- `useBreakpoint` đã có; route hiện đã rẽ nhánh — chỉ rewrite component mobile.
 
-Chờ bạn chốt rồi mình triển khai migration + cập nhật memory + ignore findings trong cùng một lượt build.
+## Test / QA
+
+- Owner thấy đủ 3 tab + nút Thêm; Staff chỉ thấy tab "Người dùng", ẩn nút Thêm.
+- Filter theo cấp độ, khách sạn, "do tôi tạo" hoạt động.
+- Tap stats card filter đúng nhóm.
+- Tên khách sạn hiển thị thật, không phải UUID.
+- Switch Phân cấp ↔ Bảng giữ filter & search.
+- Pull-to-refresh invalidate `['users']`.
+- Test trên 390x844 (iPhone 12), 360x800 (Android), 320x568 (iPhone SE).
+
+## Phạm vi không đụng tới
+
+- Desktop `UsersPage` & `UserManagementTab` giữ nguyên.
+- Schema DB & RLS không đổi.
+- Edge functions không đổi.
+
+## Rollback
+
+Chỉ ảnh hưởng client; revert 4 file mobile (2 mới + 1 rewrite + 1 tweak optional) là xong.
