@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { MobileDetailHeader } from '@/components/layout/MobileDetailHeader'
 import { PullToRefresh } from '@/components/mobile/TouchOptimized'
-import { UserManagementTab } from '@/components/users/UserManagementTab'
+import { MobileUserListTab } from './mobile/MobileUserListTab'
 import { RolesOverviewTab } from '@/components/users/RolesOverviewTab'
 import { PermissionConfigurationTab } from '@/components/users/PermissionConfigurationTab'
 import { useUser } from '@/hooks/useUser'
@@ -75,7 +75,7 @@ export const MobileUserManagementPage = () => {
         <TabsContent value="users" className="m-0 flex-1">
           <PullToRefresh onRefresh={handleRefresh}>
             <div className="p-3">
-              <UserManagementTab onManagePermissions={handleManagePermissions} />
+              <MobileUserListTab onManagePermissions={handleManagePermissions} />
             </div>
           </PullToRefresh>
         </TabsContent>
