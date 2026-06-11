@@ -11,7 +11,7 @@ import {
 import { UserAvatar } from '@/components/users/UserAvatar'
 import { PermissionGate } from '@/components/auth/PermissionGate'
 import { DeleteUserDialog } from '@/components/users/DeleteUserDialog'
-import { MultiRoleManagerDialog } from '@/components/users/MultiRoleManagerDialog'
+
 import { UserWithRelations } from '@/types/database.types'
 
 interface MobileUserCardProps {
