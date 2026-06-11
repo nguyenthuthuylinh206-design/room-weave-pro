@@ -11,7 +11,7 @@ import {
 import { UserAvatar } from '@/components/users/UserAvatar'
 import { PermissionGate } from '@/components/auth/PermissionGate'
 import { DeleteUserDialog } from '@/components/users/DeleteUserDialog'
-import { MultiRoleManagerDialog } from '@/components/users/MultiRoleManagerDialog'
+
 import { UserWithRelations } from '@/types/database.types'
 
 interface MobileUserCardProps {
@@ -74,9 +74,6 @@ export function MobileUserCard({ user, onEdit, onManagePermissions }: MobileUser
                         <Shield className="h-4 w-4 mr-2" /> Cấu hình quyền
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem onClick={() => setRolesOpen(true)}>
-                      <UsersIcon className="h-4 w-4 mr-2" /> Quản lý vai trò
-                    </DropdownMenuItem>
                   </PermissionGate>
                   <PermissionGate module="users" action="delete">
                     {!user.is_primary_owner && (
@@ -116,14 +113,6 @@ export function MobileUserCard({ user, onEdit, onManagePermissions }: MobileUser
         open={deleteOpen}
         onOpenChange={(o) => !o && setDeleteOpen(false)}
       />
-      {rolesOpen && (
-        <MultiRoleManagerDialog
-          userId={user.id}
-          userName={user.full_name ?? undefined}
-          open={rolesOpen}
-          onOpenChange={(o) => !o && setRolesOpen(false)}
-        />
-      )}
     </>
   )
 }
