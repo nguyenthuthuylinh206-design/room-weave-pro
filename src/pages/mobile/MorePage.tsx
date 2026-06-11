@@ -42,6 +42,8 @@ export function MorePage() {
   const { signOut } = useAuth()
   const { user, role } = useUser()
   const { data: modulePermissions } = useUserModulePermissions()
+  const [customizeOpen, setCustomizeOpen] = useState(false)
+
 
   const modules: ModuleItem[] = [
     { icon: CalendarDays, label: 'Đặt phòng', path: '/bookings', module: 'bookings', color: 'text-primary' },
