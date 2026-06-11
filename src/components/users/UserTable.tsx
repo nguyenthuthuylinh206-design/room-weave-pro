@@ -185,12 +185,8 @@ export function UserTable({ users, onEdit, onManagePermissions }: UserTableProps
                                 <Shield className="h-4 w-4 mr-2" />
                                 {t('users:permissions.title')}
                               </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem onClick={() => setRolesUser(user)}>
-                              <UsersIcon className="h-4 w-4 mr-2" />
-                              Quản lý vai trò
-                            </DropdownMenuItem>
                           </PermissionGate>
+
                           <PermissionGate module="users" action="delete">
                             {!user.is_primary_owner && (
                               <>
