@@ -1,23 +1,25 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { 
-  Package, 
-  DoorOpen, 
-  Shirt, 
-  Wrench, 
-  ShoppingCart, 
+import {
+  Package,
+  DoorOpen,
+  Shirt,
+  Wrench,
+  ShoppingCart,
   TrendingUp,
   Building2,
   Users,
   Settings,
-  FileText,
   List,
   ChevronRight,
   LogOut,
   HelpCircle,
   User,
   ClipboardList,
-  CalendarDays
+  CalendarDays,
+  SlidersHorizontal,
 } from 'lucide-react'
+import { MobileNavCustomizeSheet } from '@/components/mobile/MobileNavCustomizeSheet'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
