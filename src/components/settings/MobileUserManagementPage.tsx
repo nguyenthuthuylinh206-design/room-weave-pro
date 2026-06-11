@@ -6,8 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { MobileDetailHeader } from '@/components/layout/MobileDetailHeader'
 import { PullToRefresh } from '@/components/mobile/TouchOptimized'
 import { MobileUserListTab } from './mobile/MobileUserListTab'
-import { RolesOverviewTab } from '@/components/users/RolesOverviewTab'
-import { PermissionConfigurationTab } from '@/components/users/PermissionConfigurationTab'
+import { MobileRolesOverviewTab } from '@/components/users/mobile/MobileRolesOverviewTab'
+import { MobilePermissionConfigurationTab } from '@/components/users/mobile/MobilePermissionConfigurationTab'
 import { useUser } from '@/hooks/useUser'
 
 export const MobileUserManagementPage = () => {
@@ -82,14 +82,14 @@ export const MobileUserManagementPage = () => {
 
         <TabsContent value="roles" className="m-0 flex-1">
           <div className="p-3">
-            <RolesOverviewTab />
+            <MobileRolesOverviewTab />
           </div>
         </TabsContent>
 
         {canManagePermissions && (
           <TabsContent value="permissions" className="m-0 flex-1">
             <div className="p-3">
-              <PermissionConfigurationTab preSelectedUserId={preSelectedUserId} />
+              <MobilePermissionConfigurationTab preSelectedUserId={preSelectedUserId} />
             </div>
           </TabsContent>
         )}
