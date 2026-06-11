@@ -1,5 +1,4 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Home, DoorOpen, Shirt, Wrench, ClipboardList, CalendarDays, Package, MoreHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { useUser } from '@/hooks/useUser'
@@ -7,44 +6,8 @@ import { useUserModulePermissions, type PermissionSummary } from '@/hooks/useUse
 import { usePendingTaskCount } from '@/hooks/useHousekeepingTasks'
 import { usePendingCounts, type PendingCounts } from '@/hooks/usePendingCounts'
 import { prefetchRoute } from '@/lib/route-prefetch'
-import { useChatPopupsOptional } from '@/components/chat/ChatPopupContext'
-
-type PendingCountKey = keyof PendingCounts | 'tasks'
-
-interface NavItem {
-  id: string
-  label: string
-  icon: typeof Home
-  path: string
-  /** Module(s) needed to display this tab. Multiple = OR (any one is enough). */
-  modules?: string[]
-  badgeKey?: PendingCountKey
-  /** Always visible regardless of permission (Home, More) */
-  alwaysShow?: boolean
-}
-
-// Pool 8 tab — Home + 6 module + More. Sẽ filter theo permission rồi cắt còn tối đa 5 nút.
-const ALL_TABS: NavItem[] = [
-  { id: 'home', label: 'Home', icon: Home, path: '/', alwaysShow: true },
-  {
-    id: 'tasks',
-    label: 'Tasks',
-    icon: ClipboardList,
-    path: '/my-tasks',
-    badgeKey: 'tasks',
-    // Tasks là view tổng hợp — hiện nếu có quyền 1 trong các module sau
-    modules: ['housekeeping_tasks', 'room_checks', 'maintenance_requests', 'distribution_orders'],
-  },
-  { id: 'bookings', label: 'Đặt phòng', icon: CalendarDays, path: '/bookings', modules: ['bookings'] },
-  { id: 'rooms', label: 'Phòng', icon: DoorOpen, path: '/rooms', modules: ['rooms'] },
-  { id: 'laundry', label: 'Giặt là', icon: Shirt, path: '/laundry', modules: ['laundry'] },
-  { id: 'maintenance', label: 'Bảo trì', icon: Wrench, path: '/maintenance', modules: ['maintenance_requests', 'maintenance'] },
-  { id: 'inventory', label: 'Kho', icon: Package, path: '/inventory', modules: ['inventory', 'items'] },
-  // Chat đã chuyển thành nút nổi (floating launcher) giống desktop, không còn trong bottom nav
-  { id: 'more', label: 'Thêm', icon: MoreHorizontal, path: '/more', alwaysShow: true },
-]
-
-const MAX_TABS = 5
+import { useMobileNavPreferences } from '@/hooks/useMobileNavPreferences'
+import { NAV_TABS_POOL, MAX_NAV_TABS, type NavTabDef, type PendingCountKey } from './mobileNavTabs'
 
 export const MobileBottomNav = () => {
   const navigate = useNavigate()
@@ -53,15 +16,11 @@ export const MobileBottomNav = () => {
   const { data: modulePermissions } = useUserModulePermissions()
   const { data: pendingTaskCount = 0 } = usePendingTaskCount()
   const { data: pendingCounts } = usePendingCounts()
-  const chatPopups = useChatPopupsOptional()
+  const { selectedIds, isCustomized } = useMobileNavPreferences()
 
   // Hide MobileBottomNav khi đang trong room check (cần full screen)
-  if (location.pathname.includes('/check')) {
-    return null
-  }
+  if (location.pathname.includes('/check')) return null
 
-  // Sprint 2: Ẩn bottom nav khi vào form Nhập/Xuất/Chuyển/Kiểm kê inventory
-  // để không che nút Lưu (form sticky footer).
   const inventoryFormRoutes = [
     '/inventory/inbound/',
     '/inventory/outbound/',
@@ -70,8 +29,6 @@ export const MobileBottomNav = () => {
     '/inventory/adjustments/',
   ]
   if (inventoryFormRoutes.some((p) => location.pathname.startsWith(p))) {
-    // Cho phép list pages dạng /inventory/adjustments (không có "/" cuối)
-    // nhưng ẩn ở /inventory/adjustments/<id> và /new
     const isList =
       location.pathname === '/inventory/adjustments' ||
       location.pathname === '/inventory/inbound' ||
@@ -93,31 +50,30 @@ export const MobileBottomNav = () => {
     })
   }
 
-  // Determine tasks path based on department
   const tasksPath = user?.department === 'housekeeping' ? '/staff/housekeeping' : '/my-tasks'
+  const withDynamicPath = (tab: NavTabDef): NavTabDef =>
+    tab.id === 'tasks' ? { ...tab, path: tasksPath } : tab
 
-  // Filter pool theo permission
-  const accessibleTabs = ALL_TABS
-    .filter((tab) => tab.alwaysShow || hasModuleAccess(tab.modules))
-    .map((tab) => (tab.id === 'tasks' ? { ...tab, path: tasksPath } : tab))
+  const homeTab = NAV_TABS_POOL.find((t) => t.pinned === 'start')!
+  const moreTab = NAV_TABS_POOL.find((t) => t.pinned === 'end')!
 
-  // Tách Home (đầu) + Chat + More (cuối) + module tabs ở giữa
-  const homeTab = accessibleTabs.find((t) => t.id === 'home')!
-  const moreTab = accessibleTabs.find((t) => t.id === 'more')!
-  const chatTab = accessibleTabs.find((t) => t.id === 'chat')
-  const moduleTabs = accessibleTabs.filter(
-    (t) => t.id !== 'home' && t.id !== 'more' && t.id !== 'chat'
-  )
+  let middleTabs: NavTabDef[]
+  if (isCustomized && selectedIds) {
+    // Order theo selection của user, lọc lại theo permission
+    middleTabs = selectedIds
+      .map((id) => NAV_TABS_POOL.find((t) => t.id === id))
+      .filter((t): t is NavTabDef => !!t && !t.pinned && hasModuleAccess(t.modules))
+      .map(withDynamicPath)
+  } else {
+    // Default: filter pool theo permission, cắt còn MAX-2
+    middleTabs = NAV_TABS_POOL
+      .filter((t) => !t.pinned)
+      .filter((t) => hasModuleAccess(t.modules))
+      .slice(0, MAX_NAV_TABS - 2)
+      .map(withDynamicPath)
+  }
 
-  // Slot: Home + (modules) + Chat + More — chat luôn hiện
-  const reservedForChat = chatTab ? 1 : 0
-  const visibleModuleTabs = moduleTabs.slice(0, MAX_TABS - 2 - reservedForChat)
-  const effectiveNavItems: NavItem[] = [
-    homeTab,
-    ...visibleModuleTabs,
-    ...(chatTab ? [chatTab] : []),
-    moreTab,
-  ]
+  const effectiveNavItems: NavTabDef[] = [homeTab, ...middleTabs, moreTab]
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/'
@@ -143,23 +99,14 @@ export const MobileBottomNav = () => {
       <div className="flex items-center justify-around h-16">
         {effectiveNavItems.map((item) => {
           const Icon = item.icon
-          const isChat = item.id === 'chat'
-          const active = isChat ? !!chatPopups?.launcherOpen : isActive(item.path)
+          const active = isActive(item.path)
           const badgeCount = getBadgeCount(item.badgeKey)
-
-          const handleClick = () => {
-            if (isChat && chatPopups) {
-              chatPopups.toggleLauncher()
-              return
-            }
-            navigate(item.path)
-          }
 
           return (
             <button
               key={item.id}
-              onPointerDown={() => !isChat && prefetchRoute(item.path)}
-              onClick={handleClick}
+              onPointerDown={() => prefetchRoute(item.path)}
+              onClick={() => navigate(item.path)}
               className={cn(
                 'relative flex flex-col items-center justify-center gap-1 px-3 py-2 min-w-[64px] transition-all',
                 active ? 'text-primary' : 'text-muted-foreground'

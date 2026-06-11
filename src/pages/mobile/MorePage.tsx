@@ -1,23 +1,25 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { 
-  Package, 
-  DoorOpen, 
-  Shirt, 
-  Wrench, 
-  ShoppingCart, 
+import {
+  Package,
+  DoorOpen,
+  Shirt,
+  Wrench,
+  ShoppingCart,
   TrendingUp,
   Building2,
   Users,
   Settings,
-  FileText,
   List,
   ChevronRight,
   LogOut,
   HelpCircle,
   User,
   ClipboardList,
-  CalendarDays
+  CalendarDays,
+  SlidersHorizontal,
 } from 'lucide-react'
+import { MobileNavCustomizeSheet } from '@/components/mobile/MobileNavCustomizeSheet'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -40,6 +42,8 @@ export function MorePage() {
   const { signOut } = useAuth()
   const { user, role } = useUser()
   const { data: modulePermissions } = useUserModulePermissions()
+  const [customizeOpen, setCustomizeOpen] = useState(false)
+
 
   const modules: ModuleItem[] = [
     { icon: CalendarDays, label: 'Đặt phòng', path: '/bookings', module: 'bookings', color: 'text-primary' },
@@ -120,6 +124,15 @@ export function MorePage() {
           </h2>
           <Card>
             <CardContent className="p-0">
+              <button
+                onClick={() => setCustomizeOpen(true)}
+                className="w-full flex items-center gap-3 p-4 hover:bg-accent transition-colors"
+              >
+                <SlidersHorizontal className="h-5 w-5 text-muted-foreground" />
+                <span className="flex-1 text-left">Tùy chỉnh thanh dưới</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </button>
+              <Separator />
               {quickLinks.map((link, index) => {
                 const Icon = link.icon
                 return (
@@ -139,6 +152,8 @@ export function MorePage() {
             </CardContent>
           </Card>
         </section>
+
+        <MobileNavCustomizeSheet open={customizeOpen} onOpenChange={setCustomizeOpen} />
 
         {/* App Info */}
         <section>
