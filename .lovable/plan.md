@@ -1,49 +1,41 @@
-# Plan: Dọn `MultiRoleManagerDialog` & siết multi-role
+## Mục tiêu
+Cho phép mỗi user tự chọn các module nào sẽ xuất hiện trên thanh menu ngang dưới (MobileBottomNav). Các module không chọn sẽ nằm trong trang "Thêm" như hiện tại.
 
-## Bối cảnh
+## Cách hoạt động
 
-`src/components/users/MultiRoleManagerDialog.tsx` hiển thị checkbox đủ 5 vai trò (gồm `super_admin` cấp 100, `owner` cấp 80) cho bất kỳ ai mở dialog, chỉ dựa vào RLS Postgres để chặn. UX sai (lộ tồn tại Super Admin, hiển thị checkbox tick được rồi báo lỗi), và mô hình "multi-role tự do" mâu thuẫn với spec 4-tier đã chốt ở `docs/architecture/01-modules/users-permissions.md` (1 user = 1 `user_level_code`).
+- Home và "Thêm" luôn cố định ở 2 đầu (không cho ẩn).
+- Ở giữa hiện tối đa 3 slot tùy biến (tổng 5 nút). User chọn từ pool: Tasks, Đặt phòng, Phòng, Giặt là, Bảo trì, Kho, Báo cáo, Khách sạn, Nhân viên, Nhà cung cấp, Bổ sung đồ, Đơn mua hàng.
+- Mặc định (chưa cấu hình): giữ nguyên logic hiện tại — tự chọn theo permission từ ALL_TABS.
+- User chỉ chọn được tab mình có quyền truy cập.
 
-Grep toàn repo: **không có file nào import** `MultiRoleManagerDialog`. Đây là dead code — giống `ChangeLevelDialog` đã xoá ở lượt trước.
+## Lưu trữ
 
-## Quyết định
+- LocalStorage key `mobile-bottom-nav:v1:{userId}` lưu mảng `string[]` id tab đã chọn (max 3).
+- Lưu local-only (không cần migration DB). Đồng bộ qua `storage` event để các tab cùng device cập nhật.
 
-Đi theo phương án **"Siết theo 4-tier"** đã chọn:
+## Files
 
-1. **Xoá `MultiRoleManagerDialog.tsx`** — không còn entry point, không cần migrate UI.
-2. **Giữ nguyên đường duy nhất sửa vai trò = `UserFormDialog`**, vốn đã:
-   - Lọc `getAvailableUserLevels()` theo cấp actor (`tenant_owner`/`manager` chỉ thấy `manager | staff`).
-   - Không bao giờ render `super_admin` (đã loại ở `useAvailableUserLevels`).
-   - Đi qua Edge Function `create-user`/`update-user` (type union không có `super_admin`) → RPC `can_create_user` / `can_manage_user` → RLS `user_roles`.
-3. **Bổ sung 1 ràng buộc còn thiếu**: chặn user tự sửa cấp của chính mình ở `UserFormDialog` (nếu chưa có) — kiểm tra `targetUser.id === currentUser.id` thì disable trường "Cấp người dùng".
+### Mới
+- `src/hooks/useMobileNavPreferences.ts` — đọc/ghi preference từ localStorage, expose `selectedIds`, `setSelectedIds`, `isCustomized`, `reset()`. Key gắn `user.id`.
+- `src/components/mobile/MobileNavCustomizeSheet.tsx` — bottom Sheet, hiện list module có thể chọn (lọc theo `useUserModulePermissions` + role privileged), checkbox tối đa 3, nút "Khôi phục mặc định" và "Lưu". Vô hiệu hóa checkbox khi đã đủ 3.
 
-## Phạm vi file
+### Sửa
+- `src/components/layout/MobileBottomNav.tsx` — đọc `useMobileNavPreferences`. Nếu `isCustomized`, build `effectiveNavItems = [home, ...selected (lọc lại theo quyền), more]`. Nếu chưa, giữ logic hiện tại.
+- `src/pages/mobile/MorePage.tsx` — thêm 1 item trong "LIÊN KẾT NHANH": "Tùy chỉnh thanh điều hướng" (icon `LayoutGrid` hoặc `SlidersHorizontal`) mở `MobileNavCustomizeSheet`.
 
-| Hành động | File | Ghi chú |
-|---|---|---|
-| Xoá | `src/components/users/MultiRoleManagerDialog.tsx` | Dead code, 0 usage |
-| Kiểm tra & vá nếu thiếu | `src/components/users/UserFormDialog.tsx` | Self-edit guard cho `user_level` |
-| Không động | RLS `user_roles`, RPC `can_create_user/can_manage_user`, Edge Functions | Đã đủ lớp phòng vệ |
+## UI sheet (tóm tắt)
 
-## Không làm trong plan này
+- Header: "Tùy chỉnh thanh dưới" + mô tả "Chọn tối đa 3 mục hiển thị giữa Home và Thêm".
+- List: từng row có icon + label + checkbox bên phải. Row disabled nếu user không có quyền (hiện badge "Không có quyền").
+- Counter: "Đã chọn x/3".
+- Footer sticky: nút "Khôi phục mặc định" (ghost) + "Lưu" (primary, sticky).
 
-- Không sửa schema/RLS (đã đúng).
-- Không đụng `useEffectivePermissions` (vẫn dùng cho hiển thị permission của 1 role).
-- Không tạo replacement dialog — multi-role không nằm trong spec 4-tier.
+## Không thay đổi
+- Quyền truy cập, RLS, routing.
+- MorePage grid vẫn hiện đầy đủ module — đây là menu tổng hợp.
 
-## Test / QA
-
-1. Mở `/settings/users` với role `tenant_owner` → Sửa user manager → form chỉ có `manager | staff`, không có `owner`/`super_admin`.
-2. Mở chính mình → trường "Cấp người dùng" disabled, helper text "Không thể tự thay đổi cấp của mình".
-3. Grep `MultiRoleManagerDialog` sau khi xoá → 0 kết quả, build pass.
-4. Mobile `/settings/users` (390px) → vẫn dùng `MobileUserCard` → menu Edit gọi cùng `UserFormDialog` → behaviour giống desktop.
-
-## Rollback
-
-Xoá file là git-tracked; revert commit nếu phát hiện component này thực ra được lazy-import động (đã grep, không có — rủi ro ~0).
-
-## Bước tiếp theo sau khi approve
-
-1. `rm src/components/users/MultiRoleManagerDialog.tsx`.
-2. Xem `UserFormDialog.tsx`, thêm self-edit guard nếu còn thiếu.
-3. Báo lại file đã sửa + xác nhận build.
+## Test thủ công
+- Chọn 0/1/2/3 mục → bottom nav cập nhật ngay.
+- Reset → quay về danh sách filter theo permission cũ.
+- User không có quyền 1 module: không thấy trong sheet; nếu preference cũ có id đó, lọc bỏ runtime.
+- Đổi user (logout/login khác): preference độc lập theo `user.id`.
