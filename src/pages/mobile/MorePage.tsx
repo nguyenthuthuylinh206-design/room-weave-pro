@@ -124,6 +124,15 @@ export function MorePage() {
           </h2>
           <Card>
             <CardContent className="p-0">
+              <button
+                onClick={() => setCustomizeOpen(true)}
+                className="w-full flex items-center gap-3 p-4 hover:bg-accent transition-colors"
+              >
+                <SlidersHorizontal className="h-5 w-5 text-muted-foreground" />
+                <span className="flex-1 text-left">Tùy chỉnh thanh dưới</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </button>
+              <Separator />
               {quickLinks.map((link, index) => {
                 const Icon = link.icon
                 return (
@@ -143,6 +152,8 @@ export function MorePage() {
             </CardContent>
           </Card>
         </section>
+
+        <MobileNavCustomizeSheet open={customizeOpen} onOpenChange={setCustomizeOpen} />
 
         {/* App Info */}
         <section>
