@@ -220,14 +220,7 @@ export function UserTable({ users, onEdit, onManagePermissions }: UserTableProps
         onOpenChange={(open) => !open && setUserToDelete(null)}
       />
 
-      {rolesUser && (
-        <MultiRoleManagerDialog
-          userId={rolesUser.id}
-          userName={rolesUser.full_name ?? undefined}
-          open={!!rolesUser}
-          onOpenChange={(o) => !o && setRolesUser(null)}
-        />
-      )}
     </>
   )
 }
+
