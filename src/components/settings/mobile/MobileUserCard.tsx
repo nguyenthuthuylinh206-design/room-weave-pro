@@ -113,14 +113,6 @@ export function MobileUserCard({ user, onEdit, onManagePermissions }: MobileUser
         open={deleteOpen}
         onOpenChange={(o) => !o && setDeleteOpen(false)}
       />
-      {rolesOpen && (
-        <MultiRoleManagerDialog
-          userId={user.id}
-          userName={user.full_name ?? undefined}
-          open={rolesOpen}
-          onOpenChange={(o) => !o && setRolesOpen(false)}
-        />
-      )}
     </>
   )
 }
