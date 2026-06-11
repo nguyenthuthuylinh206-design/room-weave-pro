@@ -1,93 +1,49 @@
-## Vấn đề hiện tại
+# Plan: Dọn `MultiRoleManagerDialog` & siết multi-role
 
-Mobile `/settings/users` (`MobileUserManagementPage.tsx`) chỉ là 1 list phẳng + 3 ô stats + search. So với desktop (`UsersPage.tsx`) thì **thiếu rất nhiều**:
+## Bối cảnh
 
-- ❌ Không có 3 tab: **Người dùng / Vai trò / Cấu hình Quyền**
-- ❌ Không có UserStatsCards (5 chỉ số chuẩn) — đang tự đếm 3 ô thủ công, sai nhãn
-- ❌ Không có filter (cấp độ, trạng thái, khách sạn, chức vụ, bộ phận, "do tôi tạo")
-- ❌ Không có 2 view-mode: **Phân cấp (hierarchy)** & **Bảng**
-- ❌ Hiển thị `hotel_id.substring(0,8)...` (UUID rút gọn) thay vì tên khách sạn → đúng là "chưa chuẩn"
-- ❌ Không có nút Thêm trong context khi không có quyền (đang luôn show)
-- ❌ Không vào được Vai trò & Cấu hình Quyền trên mobile
+`src/components/users/MultiRoleManagerDialog.tsx` hiển thị checkbox đủ 5 vai trò (gồm `super_admin` cấp 100, `owner` cấp 80) cho bất kỳ ai mở dialog, chỉ dựa vào RLS Postgres để chặn. UX sai (lộ tồn tại Super Admin, hiển thị checkbox tick được rồi báo lỗi), và mô hình "multi-role tự do" mâu thuẫn với spec 4-tier đã chốt ở `docs/architecture/01-modules/users-permissions.md` (1 user = 1 `user_level_code`).
 
-## Mục tiêu
+Grep toàn repo: **không có file nào import** `MultiRoleManagerDialog`. Đây là dead code — giống `ChangeLevelDialog` đã xoá ở lượt trước.
 
-Mobile = bản desktop, được sắp xếp lại cho 390px portrait. Dùng lại đúng các component nghiệp vụ desktop, chỉ thay layout/spacing.
+## Quyết định
 
-## Thiết kế
+Đi theo phương án **"Siết theo 4-tier"** đã chọn:
 
-### A. Cấu trúc trang `MobileUserManagementPage`
+1. **Xoá `MultiRoleManagerDialog.tsx`** — không còn entry point, không cần migrate UI.
+2. **Giữ nguyên đường duy nhất sửa vai trò = `UserFormDialog`**, vốn đã:
+   - Lọc `getAvailableUserLevels()` theo cấp actor (`tenant_owner`/`manager` chỉ thấy `manager | staff`).
+   - Không bao giờ render `super_admin` (đã loại ở `useAvailableUserLevels`).
+   - Đi qua Edge Function `create-user`/`update-user` (type union không có `super_admin`) → RPC `can_create_user` / `can_manage_user` → RLS `user_roles`.
+3. **Bổ sung 1 ràng buộc còn thiếu**: chặn user tự sửa cấp của chính mình ở `UserFormDialog` (nếu chưa có) — kiểm tra `targetUser.id === currentUser.id` thì disable trường "Cấp người dùng".
 
-```text
-┌─ MobileDetailHeader: "Người dùng & Phân quyền"
-│  ├─ back → /settings
-│  └─ action Plus → mở UserFormDialog (chỉ owner/manager)
-├─ Sticky tab bar (3 tab, full-width, h-10, không icon — theo Core "no icons in tabs")
-│  [ Người dùng | Vai trò | Cấu hình Quyền ]
-├─ TabsContent "users":
-│   ├─ UserStatsCards (grid 2 cột trên mobile, mỗi ô tap để filter)
-│   ├─ MobileUserFilters (Sheet): nút "Bộ lọc" + chip hiển thị filter đang bật
-│   ├─ Search input (h-9)
-│   ├─ View toggle nhỏ (Phân cấp / Bảng) — h-8 segmented
-│   └─ Danh sách:
-│        - Phân cấp: reuse <UserHierarchyView> (nó đã responsive khá tốt)
-│        - Bảng: thay bằng list card mobile (avatar + tên + chip role +
-│          email + tên khách sạn thật + chevron). Tap card mở Sheet
-│          UserDetail với các action Sửa / Phân quyền / Đổi mật khẩu.
-├─ TabsContent "roles": reuse <RolesOverviewTab> (đã ổn mobile, chỉ padding)
-└─ TabsContent "permissions": reuse <PermissionConfigurationTab>
-   (kèm preSelectedUserId truyền từ "Phân quyền" trong card)
-```
+## Phạm vi file
 
-### B. Component thay đổi / thêm mới
+| Hành động | File | Ghi chú |
+|---|---|---|
+| Xoá | `src/components/users/MultiRoleManagerDialog.tsx` | Dead code, 0 usage |
+| Kiểm tra & vá nếu thiếu | `src/components/users/UserFormDialog.tsx` | Self-edit guard cho `user_level` |
+| Không động | RLS `user_roles`, RPC `can_create_user/can_manage_user`, Edge Functions | Đã đủ lớp phòng vệ |
 
-| File | Hành động |
-|---|---|
-| `src/components/settings/MobileUserManagementPage.tsx` | **Rewrite** — dùng `<Tabs>` + reuse `UserManagementTab` logic |
-| `src/components/users/MobileUserCard.tsx` | **Mới** — card 1 user cho mobile (thay row UUID hiện tại) |
-| `src/components/users/MobileUserFiltersSheet.tsx` | **Mới** — Sheet chứa toàn bộ filter của `UserFilters` |
-| `src/components/users/UserStatsCards.tsx` | **Tweak** — thêm prop `compact` để render grid-2 trên mobile |
-| `src/pages/users/UsersPage.tsx` | Không đổi (vẫn rẽ nhánh `isMobile`) |
+## Không làm trong plan này
 
-### C. Hiển thị tên khách sạn (fix lỗi UUID)
-
-Trong `useUsers` đã có `user.hotel` (join). Nếu chưa có, thêm select join `hotel:hotels(name)` ở hook. Card mobile hiển thị `user.hotel?.name` thay vì cắt UUID.
-
-### D. Quyền
-
-- Nút Thêm chỉ hiện khi `user_level_code ∈ {tenant_owner, manager}` (dùng cùng điều kiện `canAddUser` của desktop).
-- Tab "Cấu hình Quyền" chỉ hiện cho owner/manager.
-
-### E. Mobile UX chuẩn dự án
-
-- Tap target ≥ 44px (`h-11` cho row card, `h-9` cho input/button).
-- Không icon/emoji trong TabsList (Core rule).
-- Status dùng màu chữ semantic (`text-amber-600` cho Chủ, `text-blue-600` Quản lý, `text-muted-foreground` Nhân viên) — không bg.
-- Pull-to-refresh giữ nguyên ở tab "Người dùng".
-- Sheet bottom cho Filter + UserDetail (đã có pattern).
-
-## Kỹ thuật
-
-- Reuse `useUsers`, `useCreateUser`, `useUpdateUser`, `UserFormDialog`, `UserHierarchyView`, `RolesOverviewTab`, `PermissionConfigurationTab` — **không** viết lại logic.
-- State: `activeTab`, `viewMode`, `filters`, `searchQuery`, `selectedUser`, `editingUser`, `isFilterSheetOpen`, `preSelectedUserId` — giống desktop `UserManagementTab`.
-- `useBreakpoint` đã có; route hiện đã rẽ nhánh — chỉ rewrite component mobile.
+- Không sửa schema/RLS (đã đúng).
+- Không đụng `useEffectivePermissions` (vẫn dùng cho hiển thị permission của 1 role).
+- Không tạo replacement dialog — multi-role không nằm trong spec 4-tier.
 
 ## Test / QA
 
-- Owner thấy đủ 3 tab + nút Thêm; Staff chỉ thấy tab "Người dùng", ẩn nút Thêm.
-- Filter theo cấp độ, khách sạn, "do tôi tạo" hoạt động.
-- Tap stats card filter đúng nhóm.
-- Tên khách sạn hiển thị thật, không phải UUID.
-- Switch Phân cấp ↔ Bảng giữ filter & search.
-- Pull-to-refresh invalidate `['users']`.
-- Test trên 390x844 (iPhone 12), 360x800 (Android), 320x568 (iPhone SE).
-
-## Phạm vi không đụng tới
-
-- Desktop `UsersPage` & `UserManagementTab` giữ nguyên.
-- Schema DB & RLS không đổi.
-- Edge functions không đổi.
+1. Mở `/settings/users` với role `tenant_owner` → Sửa user manager → form chỉ có `manager | staff`, không có `owner`/`super_admin`.
+2. Mở chính mình → trường "Cấp người dùng" disabled, helper text "Không thể tự thay đổi cấp của mình".
+3. Grep `MultiRoleManagerDialog` sau khi xoá → 0 kết quả, build pass.
+4. Mobile `/settings/users` (390px) → vẫn dùng `MobileUserCard` → menu Edit gọi cùng `UserFormDialog` → behaviour giống desktop.
 
 ## Rollback
 
-Chỉ ảnh hưởng client; revert 4 file mobile (2 mới + 1 rewrite + 1 tweak optional) là xong.
+Xoá file là git-tracked; revert commit nếu phát hiện component này thực ra được lazy-import động (đã grep, không có — rủi ro ~0).
+
+## Bước tiếp theo sau khi approve
+
+1. `rm src/components/users/MultiRoleManagerDialog.tsx`.
+2. Xem `UserFormDialog.tsx`, thêm self-edit guard nếu còn thiếu.
+3. Báo lại file đã sửa + xác nhận build.
