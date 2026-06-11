@@ -17,17 +17,21 @@ interface PageHeaderProps {
 
 export const PageHeader = ({ title, description, action, children, showHelp = true }: PageHeaderProps) => {
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
+    <div className="flex items-center justify-between gap-2 min-w-0">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold tracking-tight truncate leading-tight">
+            {title}
+          </h1>
           {description && (
-            <p className="mt-2 text-muted-foreground">{description}</p>
+            <p className="mt-0.5 sm:mt-2 text-xs sm:text-sm text-muted-foreground truncate">
+              {description}
+            </p>
           )}
         </div>
         {showHelp && <ContextualHelpButton />}
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-shrink-0">
         {children}
         {action && (
           <Button onClick={action.onClick}>
