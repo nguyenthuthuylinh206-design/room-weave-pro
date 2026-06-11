@@ -74,9 +74,6 @@ export function MobileUserCard({ user, onEdit, onManagePermissions }: MobileUser
                         <Shield className="h-4 w-4 mr-2" /> Cấu hình quyền
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem onClick={() => setRolesOpen(true)}>
-                      <UsersIcon className="h-4 w-4 mr-2" /> Quản lý vai trò
-                    </DropdownMenuItem>
                   </PermissionGate>
                   <PermissionGate module="users" action="delete">
                     {!user.is_primary_owner && (
