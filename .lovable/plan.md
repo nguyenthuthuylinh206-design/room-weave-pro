@@ -1,41 +1,59 @@
 ## Mục tiêu
-Cho phép mỗi user tự chọn các module nào sẽ xuất hiện trên thanh menu ngang dưới (MobileBottomNav). Các module không chọn sẽ nằm trong trang "Thêm" như hiện tại.
+Mở tuần tự 19 trang trong nhóm **Cài đặt** trên preview (desktop, đã đăng nhập), với mỗi trang:
+- Chụp 1 screenshot.
+- Đọc console errors + network 4xx/5xx phát sinh trong lúc tải.
+- Thử click nút chính (Lưu / Tạo mới / Thêm…) ở mức quan sát được để phát hiện handler chết, mutation lỗi, dialog không mở.
+- Ghi nhận: "OK" / "Trang trắng" / "Lỗi runtime" / "Permission chặn" / "Nút không phản hồi" / "RPC 4xx-5xx".
 
-## Cách hoạt động
+Không sửa code trong vòng này — chỉ kiểm tra và báo cáo. Sau khi có danh sách lỗi, sẽ hỏi bạn ưu tiên fix mục nào trước.
 
-- Home và "Thêm" luôn cố định ở 2 đầu (không cho ẩn).
-- Ở giữa hiện tối đa 3 slot tùy biến (tổng 5 nút). User chọn từ pool: Tasks, Đặt phòng, Phòng, Giặt là, Bảo trì, Kho, Báo cáo, Khách sạn, Nhân viên, Nhà cung cấp, Bổ sung đồ, Đơn mua hàng.
-- Mặc định (chưa cấu hình): giữ nguyên logic hiện tại — tự chọn theo permission từ ALL_TABS.
-- User chỉ chọn được tab mình có quyền truy cập.
+## Danh sách trang sẽ test (theo nhóm sidebar)
 
-## Lưu trữ
+**Tài khoản**
+1. `/settings/users` — Người dùng & Phân quyền
+2. `/settings/change-password` — Đổi mật khẩu
 
-- LocalStorage key `mobile-bottom-nav:v1:{userId}` lưu mảng `string[]` id tab đã chọn (max 3).
-- Lưu local-only (không cần migration DB). Đồng bộ qua `storage` event để các tab cùng device cập nhật.
+**Khách sạn & Pháp lý**
+3. `/settings/hotels` — Thông tin khách sạn
+4. `/settings/hotel-policy` — Chính sách khách sạn
+5. `/settings/legal/stay-registration` — Khai báo lưu trú (BCA)
 
-## Files
+**Thiết lập hệ thống**
+6. `/settings/categories` — Danh mục & Đơn vị
+7. `/settings/fixed-costs` — Chi phí & Mục tiêu
+8. `/settings/business` — Cài đặt module
+9. `/settings/room-check` — Kiểm tra phòng
+10. `/settings/workflows` — Tự động hóa
 
-### Mới
-- `src/hooks/useMobileNavPreferences.ts` — đọc/ghi preference từ localStorage, expose `selectedIds`, `setSelectedIds`, `isCustomized`, `reset()`. Key gắn `user.id`.
-- `src/components/mobile/MobileNavCustomizeSheet.tsx` — bottom Sheet, hiện list module có thể chọn (lọc theo `useUserModulePermissions` + role privileged), checkbox tối đa 3, nút "Khôi phục mặc định" và "Lưu". Vô hiệu hóa checkbox khi đã đủ 3.
+**Bảng giá & Phụ thu**
+11. `/settings/pricing` — Bảng giá (kiểm cả 3 tab: daily / default / seasonal)
 
-### Sửa
-- `src/components/layout/MobileBottomNav.tsx` — đọc `useMobileNavPreferences`. Nếu `isCustomized`, build `effectiveNavItems = [home, ...selected (lọc lại theo quyền), more]`. Nếu chưa, giữ logic hiện tại.
-- `src/pages/mobile/MorePage.tsx` — thêm 1 item trong "LIÊN KẾT NHANH": "Tùy chỉnh thanh điều hướng" (icon `LayoutGrid` hoặc `SlidersHorizontal`) mở `MobileNavCustomizeSheet`.
+**Thông báo**
+12. `/settings/notifications` — Thông báo
+13. `/settings/telegram` — Telegram
 
-## UI sheet (tóm tắt)
+**Thanh toán & Gói**
+14. `/settings/subscription` — Đăng ký & Thanh toán
+15. `/settings/usage` — Mức sử dụng
+16. `/finance/reconciliation` — Đối soát giao dịch
 
-- Header: "Tùy chỉnh thanh dưới" + mô tả "Chọn tối đa 3 mục hiển thị giữa Home và Thêm".
-- List: từng row có icon + label + checkbox bên phải. Row disabled nếu user không có quyền (hiện badge "Không có quyền").
-- Counter: "Đã chọn x/3".
-- Footer sticky: nút "Khôi phục mặc định" (ghost) + "Lưu" (primary, sticky).
+**Hệ thống**
+17. `/settings/general` — Cài đặt chung
+18. `/settings/ai` — Cài đặt AI
+19. `/settings/audit-log` — Nhật ký thay đổi
 
-## Không thay đổi
-- Quyền truy cập, RLS, routing.
-- MorePage grid vẫn hiện đầy đủ module — đây là menu tổng hợp.
+## Quy trình mỗi trang
+1. `browser--view_preview path=…`
+2. `browser--read_console_logs level=error` + `browser--list_network_requests`
+3. `browser--screenshot`
+4. Nếu thấy CTA chính, `browser--observe` → `browser--act` 1 lần để xác nhận handler chạy.
 
-## Test thủ công
-- Chọn 0/1/2/3 mục → bottom nav cập nhật ngay.
-- Reset → quay về danh sách filter theo permission cũ.
-- User không có quyền 1 module: không thấy trong sheet; nếu preference cũ có id đó, lọc bỏ runtime.
-- Đổi user (logout/login khác): preference độc lập theo `user.id`.
+## Đầu ra
+Bảng kết quả: STT | Đường dẫn | Tên | Trạng thái | Chi tiết lỗi (nếu có) | Đề xuất xử lý sơ bộ.
+
+## Giả định
+- User hiện tại có role đủ cao (đang ở `/settings/room-check` không bị chặn) để mở các trang Owner-only như `/settings/ai`, `/settings/subscription`. Nếu một trang bị `AccessDenied` thay vì lỗi thật, sẽ ghi "Bị chặn quyền — không thể test bằng tài khoản hiện tại".
+- Không kích các action phá hủy (xóa, gửi email thật, tạo payment). Chỉ click mở dialog / nút "Tạo mới" và đóng lại.
+
+## Bước tiếp theo
+Sau khi có báo cáo, bạn chọn mục nào cần fix → tôi chuyển sang build mode để sửa.
