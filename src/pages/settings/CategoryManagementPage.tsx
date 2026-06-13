@@ -14,9 +14,9 @@ export default function CategoryManagementPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">Category Management</h2>
+        <h2 className="text-2xl font-bold">Quản lý danh mục</h2>
         <p className="text-muted-foreground">
-          Manage categories for items, rooms, maintenance, and more
+          Quản lý danh mục cho tài sản, loại phòng, bảo trì và các phân loại khác
         </p>
       </div>
 
@@ -24,27 +24,27 @@ export default function CategoryManagementPage() {
         <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="items" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
-            <span className="hidden sm:inline">Item Categories</span>
+            <span className="hidden sm:inline">Danh mục tài sản</span>
           </TabsTrigger>
           <TabsTrigger value="rooms" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Room Types</span>
+            <span className="hidden sm:inline">Loại phòng</span>
           </TabsTrigger>
           <TabsTrigger value="maintenance" className="flex items-center gap-2">
             <Wrench className="h-4 w-4" />
-            <span className="hidden sm:inline">Maintenance</span>
+            <span className="hidden sm:inline">Bảo trì</span>
           </TabsTrigger>
           <TabsTrigger value="units" className="flex items-center gap-2">
             <Ruler className="h-4 w-4" />
-            <span className="hidden sm:inline">Units</span>
+            <span className="hidden sm:inline">Đơn vị tính</span>
           </TabsTrigger>
           <TabsTrigger value="laundry" className="flex items-center gap-2">
             <Shirt className="h-4 w-4" />
-            <span className="hidden sm:inline">Laundry</span>
+            <span className="hidden sm:inline">Giặt là</span>
           </TabsTrigger>
           <TabsTrigger value="classification" className="flex items-center gap-2">
             <Settings2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Classification</span>
+            <span className="hidden sm:inline">Phân loại</span>
           </TabsTrigger>
         </TabsList>
 

@@ -518,35 +518,17 @@ export default function TelegramSettingsPage() {
       {/* Info Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Các loại thông báo</CardTitle>
+          <CardTitle className="text-base">Các loại thông báo nhận được</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-2 text-sm sm:grid-cols-2">
-            <div className="flex items-center gap-2">
-              <span>🏨</span>
-              <span>Đặt phòng mới</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span>✅</span>
-              <span>Check-in / Check-out</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span>🔧</span>
-              <span>Yêu cầu bảo trì</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span>📦</span>
-              <span>Cảnh báo kho hàng</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span>🧺</span>
-              <span>Cập nhật giặt ủi</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span>💰</span>
-              <span>Thanh toán</span>
-            </div>
-          </div>
+          <ul className="grid gap-1.5 text-sm sm:grid-cols-2 list-disc pl-5 marker:text-muted-foreground">
+            <li>Đặt phòng mới</li>
+            <li>Nhận phòng / Trả phòng</li>
+            <li>Yêu cầu bảo trì</li>
+            <li>Cảnh báo kho hàng</li>
+            <li>Cập nhật giặt là</li>
+            <li>Thanh toán</li>
+          </ul>
         </CardContent>
       </Card>
 
