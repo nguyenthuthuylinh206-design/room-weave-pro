@@ -23,7 +23,7 @@ export function ItemUnitsList() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search units..."
+            placeholder="Tìm đơn vị tính..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -31,7 +31,7 @@ export function ItemUnitsList() {
         </div>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
-          Add Unit
+          Thêm đơn vị
         </Button>
       </div>
 
@@ -53,7 +53,7 @@ export function ItemUnitsList() {
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Badge variant="outline">{unit.type}</Badge>
-                    {unit.symbol && <span>Symbol: {unit.symbol}</span>}
+                    {unit.symbol && <span>Ký hiệu: {unit.symbol}</span>}
                   </div>
                 </div>
               </div>
@@ -63,7 +63,7 @@ export function ItemUnitsList() {
       ) : (
         <div className="text-center py-12 text-muted-foreground">
           <Ruler className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>No units found</p>
+          <p>Chưa có đơn vị tính nào</p>
         </div>
       )}
     </div>

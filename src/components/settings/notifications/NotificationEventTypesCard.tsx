@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { AlertTriangle, Bell } from 'lucide-react'
 import type { NotificationPreferences } from '@/hooks/useNotificationPreferences'
 
-type Channel = 'Push' | 'Telegram' | 'Email'
+type Channel = 'push' | 'telegram' | 'email'
 
 interface EventDef {
   key: keyof NotificationPreferences
@@ -17,33 +17,33 @@ interface EventDef {
 const EVENTS: EventDef[] = [
   {
     key: 'inapp_booking_events' as keyof NotificationPreferences,
-    label: 'Đặt phòng mới / Check-in / Check-out',
+    label: 'Đặt phòng mới / Nhận phòng / Trả phòng',
     description: 'Khi có đặt phòng mới, khách nhận hoặc trả phòng',
-    channels: ['Push', 'Telegram'],
+    channels: ['push', 'telegram'],
   },
   {
     key: 'inapp_maintenance_new',
     label: 'Yêu cầu bảo trì mới',
     description: 'Khi có yêu cầu bảo trì được tạo',
-    channels: ['Push', 'Telegram', 'Email'],
+    channels: ['push', 'telegram', 'email'],
   },
   {
     key: 'inapp_low_stock',
     label: 'Cảnh báo tồn kho thấp',
     description: 'Khi tồn kho chạm ngưỡng cảnh báo',
-    channels: ['Push', 'Email'],
+    channels: ['push', 'email'],
   },
   {
     key: 'inapp_laundry_delayed' as keyof NotificationPreferences,
-    label: 'Giặt là: batch sắp trễ',
+    label: 'Giặt là: lô sắp trễ',
     description: 'Khi lô giặt sắp quá hạn nhận',
-    channels: ['Push', 'Telegram'],
+    channels: ['push', 'telegram'],
   },
   {
     key: 'inapp_task_assigned',
     label: 'Công việc được giao cho tôi',
     description: 'Khi quản lý giao việc mới',
-    channels: ['Push', 'Telegram'],
+    channels: ['push', 'telegram'],
   },
 ]
 
@@ -54,9 +54,15 @@ interface Props {
 }
 
 const channelTone: Record<Channel, string> = {
-  Push: 'border-primary/30 text-primary',
-  Telegram: 'border-sky-500/30 text-sky-600 dark:text-sky-400',
-  Email: 'border-amber-500/30 text-amber-600 dark:text-amber-500',
+  push: 'border-primary/30 text-primary',
+  telegram: 'border-sky-500/30 text-sky-600 dark:text-sky-400',
+  email: 'border-amber-500/30 text-amber-600 dark:text-amber-500',
+}
+
+const channelLabel: Record<Channel, string> = {
+  push: 'Đẩy',
+  telegram: 'Telegram',
+  email: 'Email',
 }
 
 export function NotificationEventTypesCard({ prefs, pushSubscribed, onChange }: Props) {
@@ -100,7 +106,7 @@ export function NotificationEventTypesCard({ prefs, pushSubscribed, onChange }: 
                         variant="outline"
                         className={`text-[10px] px-1.5 py-0 h-4 ${channelTone[c]}`}
                       >
-                        {c}
+                        {channelLabel[c]}
                       </Badge>
                     ))}
                   </div>
@@ -118,7 +124,7 @@ export function NotificationEventTypesCard({ prefs, pushSubscribed, onChange }: 
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Kênh nhận thực tế phụ thuộc vào cài đặt Push / Telegram / Email của bạn.
+          Kênh nhận thực tế phụ thuộc vào cài đặt Thông báo đẩy / Telegram / Email của bạn.
         </p>
       </CardContent>
     </Card>

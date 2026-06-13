@@ -40,7 +40,7 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
   past_due: { label: 'Quá hạn', variant: 'destructive' },
   canceled: { label: 'Đã hủy', variant: 'outline' },
   inactive: { label: 'Không hoạt động', variant: 'outline' },
-  grace_period: { label: 'Gia hạn (Grace)', variant: 'destructive' },
+  grace_period: { label: 'Còn ân hạn', variant: 'destructive' },
   suspended: { label: 'Tạm ngưng', variant: 'outline' },
 };
 
