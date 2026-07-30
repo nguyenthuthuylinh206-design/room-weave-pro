@@ -8,7 +8,10 @@ export function GoogleAuthButton() {
   } = useToast();
   const handleGoogleLogin = async () => {
     try {
-      const redirectUrl = `${window.location.origin}/auth/callback`;
+      // Giữ lại ?next=... (vd: màn hình đồng ý OAuth) sau khi quay về từ Google
+      const rawNext = new URLSearchParams(window.location.search).get('next');
+      const safeNext = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : null;
+      const redirectUrl = `${window.location.origin}/auth/callback${safeNext ? `?next=${encodeURIComponent(safeNext)}` : ''}`;
       const {
         error
       } = await supabase.auth.signInWithOAuth({

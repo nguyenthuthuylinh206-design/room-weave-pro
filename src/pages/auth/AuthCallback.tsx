@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUser } from '@/hooks/useUser'
 import { useFirstAccessibleRoute } from '@/hooks/useFirstAccessibleRoute'
@@ -9,6 +9,10 @@ import { Button } from '@/components/ui/button'
 
 export default function AuthCallback() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  // Đường dẫn nội bộ cần quay lại sau khi đăng nhập (vd: màn hình đồng ý OAuth)
+  const rawNext = searchParams.get('next')
+  const nextPath = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : null
   const { user: authUser, loading: authLoading, signOut } = useAuth()
   const { user, isLoading: isUserLoading } = useUser()
   const { firstAccessibleRoute, isLoading: isPermissionsLoading } = useFirstAccessibleRoute()
@@ -39,6 +43,11 @@ export default function AuthCallback() {
       return
     }
 
+    if (nextPath) {
+      navigate(nextPath, { replace: true })
+      return
+    }
+
     if (!user?.tenant_id || !user?.hotel_id) {
       navigate('/onboarding', { replace: true })
       return
@@ -61,7 +70,7 @@ export default function AuthCallback() {
     }
 
     navigate(firstAccessibleRoute, { replace: true })
-  }, [authUser, user, isLoading, firstAccessibleRoute, forceFallback, navigate, toast])
+  }, [authUser, user, isLoading, firstAccessibleRoute, forceFallback, navigate, toast, nextPath])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted">

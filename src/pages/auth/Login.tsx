@@ -31,7 +31,7 @@ const Login = () => {
   useEffect(() => {
     // Chỉ redirect khi auth đã load xong và user đã authenticated
     if (!loading && isAuthenticated) {
-      navigate('/auth/callback', { replace: true })
+      navigate('/auth/callback' + window.location.search, { replace: true })
     }
   }, [isAuthenticated, loading, navigate])
 
@@ -50,7 +50,7 @@ const Login = () => {
   }
 
   const handleLoginSuccess = () => {
-    navigate('/auth/callback', { replace: true })
+    navigate('/auth/callback' + window.location.search, { replace: true })
   }
 
   // Show quick re-login if there's a remembered email and user hasn't clicked "switch account"

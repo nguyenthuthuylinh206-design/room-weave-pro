@@ -180,6 +180,7 @@ const Register = lazy(() => import("./pages/auth/Register"));
 const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
 const AuthChangePasswordPage = lazy(() => import("./pages/auth/ChangePasswordPage"));
 const AuthCallback = lazy(() => import("./pages/auth/AuthCallback"));
+const OAuthConsent = lazy(() => import("./pages/auth/OAuthConsent"));
 const Onboarding = lazy(() => import("./pages/auth/Onboarding"));
 const Unauthorized = lazy(() => import("./pages/Unauthorized"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -254,6 +255,7 @@ const router = createBrowserRouter([
   },
 
   { path: "/auth/callback", element: <AuthCallback />, errorElement: <RouteErrorBoundary /> },
+  { path: "/.lovable/oauth/consent", element: <OAuthConsent />, errorElement: <RouteErrorBoundary /> },
   { path: "/unauthorized", element: <Unauthorized />, errorElement: <RouteErrorBoundary /> },
 
   // Payment QR Page - Public route (no auth required)
