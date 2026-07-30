@@ -255,6 +255,7 @@ const router = createBrowserRouter([
   },
 
   { path: "/auth/callback", element: <AuthCallback />, errorElement: <RouteErrorBoundary /> },
+  { path: "/.lovable/oauth/consent", element: <OAuthConsent />, errorElement: <RouteErrorBoundary /> },
   { path: "/unauthorized", element: <Unauthorized />, errorElement: <RouteErrorBoundary /> },
 
   // Payment QR Page - Public route (no auth required)
